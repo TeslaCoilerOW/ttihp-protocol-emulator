@@ -1,0 +1,1732 @@
+{
+ "images": {
+  "event-transmitter": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "7 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "2 boundary contexts, 2 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "bounded-waits",
+    "status": "INFO",
+    "detail": "1 WAITPIN/WAITEVENT contexts; LIMIT values [65535]; longest bounded stall 65534 cycles (1310.680 us at 50 MHz) before fault 3"
+   },
+   {
+    "id": "event-pulse",
+    "status": "PASS",
+    "detail": "low pulse exactly 32 cycles (half-period 32, docs/firmware.md default); pulse starts 1 cycle(s) after WAITEVENT completes; minimum high time between pulses 3 cycles when events are already pending",
+    "clocks": {
+     "cycles": 32,
+     "at": {
+      "10MHz": {
+       "time": "3.200 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "1.280 us",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "640.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "484.8 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "320.0 ns",
+       "ok": true
+      }
+     }
+    }
+   }
+  ],
+  "i2c-read": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "58 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "36 boundary contexts, 38 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [65] reachable"
+   },
+   {
+    "id": "bounded-waits",
+    "status": "INFO",
+    "detail": "7 WAITPIN/WAITEVENT contexts; LIMIT values [131072]; longest bounded stall 131071 cycles (2621.420 us at 50 MHz) before fault 3"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc2 PULL [pin6=Z pin7=Z]; pc48 PUSH [pin6=0 pin7=Z]"
+   },
+   {
+    "id": "i2c-open-drain",
+    "status": "PASS",
+    "detail": "SCL/SDA are open-drain and never driven high (pull-ups define the high level)"
+   },
+   {
+    "id": "i2c-stretch-safe",
+    "status": "PASS",
+    "detail": "every SCL release is followed by WAITPIN SCL==1 before SCL is driven low again (clock stretching honoured; LIMIT bounds it)"
+   },
+   {
+    "id": "i2c-sda-only-while-scl-low",
+    "status": "PASS",
+    "detail": "SDA changes only while SCL is held low, except START/STOP conditions"
+   },
+   {
+    "id": "i2c-fault-release",
+    "status": "WARN",
+    "detail": "on an explicit fault [65] SCL is released [2] cycle(s) after being driven low at pcs [28]: a runt SCL low pulse (40.0 ns at 50 MHz, below tSP=50 ns only above 40 MHz) and no STOP condition before the bus is released"
+   },
+   {
+    "id": "i2c-scl-low-phase",
+    "status": "PASS",
+    "detail": "SCL low phases (cycles: occurrences) {'38': 2, '36': 14, '37': 2, '40': 2, '35': 8, '37..inf': 1}; every phase >= half-period 32 (docs/firmware.md default)"
+   },
+   {
+    "id": "i2c-bus-timing-cycles",
+    "status": "INFO",
+    "detail": "tLOW >= 35; tHIGH >= 36; tHD;STA >= 34; tSU;STA >= 37; tSU;STO >= 36; tBUF >= 72; tSU;DAT >= 34; tHD;DAT >= 2; fSCL_period >= 71; tVD;DAT <= 4 cycles (tHIGH/tSU;STA/tSU;STO counted from the synchronized observation of SCL high, +2 cycles input latency; stretch-aware)",
+    "params": {
+     "tLOW": 35,
+     "tHIGH": 36,
+     "tHD;STA": 34,
+     "tSU;STA": 37,
+     "tSU;STO": 36,
+     "tBUF": 72,
+     "tSU;DAT": 34,
+     "tHD;DAT": 2,
+     "fSCL_period": 71,
+     "tVD;DAT": 4
+    }
+   },
+   {
+    "id": "i2c-Sm",
+    "status": "INFO",
+    "detail": "UM10204 Sm: met for clocks 1.16..7.1 MHz (limited by fSCL_period); at 50 MHz FAIL; 10MHz FAIL, 25MHz FAIL, 50MHz FAIL, 66MHz FAIL, 100MHz FAIL",
+    "max_clock_hz": 7099999.999999999,
+    "min_clock_hz": 1159420.2898550725,
+    "at": {
+     "10MHz": "FAIL",
+     "25MHz": "FAIL",
+     "50MHz": "FAIL",
+     "66MHz": "FAIL",
+     "100MHz": "FAIL"
+    }
+   },
+   {
+    "id": "i2c-Fm",
+    "status": "INFO",
+    "detail": "UM10204 Fm: met for clocks 4.44..26.9 MHz (limited by tLOW); at 50 MHz FAIL; 10MHz PASS, 25MHz PASS, 50MHz FAIL, 66MHz FAIL, 100MHz FAIL",
+    "max_clock_hz": 26923076.923076924,
+    "min_clock_hz": 4444444.444444445,
+    "at": {
+     "10MHz": "PASS",
+     "25MHz": "PASS",
+     "50MHz": "FAIL",
+     "66MHz": "FAIL",
+     "100MHz": "FAIL"
+    }
+   },
+   {
+    "id": "i2c-Fm+",
+    "status": "INFO",
+    "detail": "UM10204 Fm+: met for clocks 8.89..70 MHz (limited by tLOW); at 50 MHz PASS; 10MHz PASS, 25MHz PASS, 50MHz PASS, 66MHz PASS, 100MHz FAIL",
+    "max_clock_hz": 70000000.0,
+    "min_clock_hz": 8888888.88888889,
+    "at": {
+     "10MHz": "PASS",
+     "25MHz": "PASS",
+     "50MHz": "PASS",
+     "66MHz": "PASS",
+     "100MHz": "FAIL"
+    }
+   }
+  ],
+  "i2c-repeated-start": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "63 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "58 boundary contexts, 62 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [65] reachable"
+   },
+   {
+    "id": "bounded-waits",
+    "status": "INFO",
+    "detail": "7 WAITPIN/WAITEVENT contexts; LIMIT values [131072]; longest bounded stall 131071 cycles (2621.420 us at 50 MHz) before fault 3"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc11 PULL [pin6=0 pin7=0]; pc54 PUSH [pin6=0 pin7=Z]"
+   },
+   {
+    "id": "i2c-open-drain",
+    "status": "PASS",
+    "detail": "SCL/SDA are open-drain and never driven high (pull-ups define the high level)"
+   },
+   {
+    "id": "i2c-stretch-safe",
+    "status": "PASS",
+    "detail": "every SCL release is followed by WAITPIN SCL==1 before SCL is driven low again (clock stretching honoured; LIMIT bounds it)"
+   },
+   {
+    "id": "i2c-sda-only-while-scl-low",
+    "status": "PASS",
+    "detail": "SDA changes only while SCL is held low, except START/STOP conditions"
+   },
+   {
+    "id": "i2c-fault-release",
+    "status": "WARN",
+    "detail": "on an explicit fault [65] SCL is released [2] cycle(s) after being driven low at pcs [29]: a runt SCL low pulse (40.0 ns at 50 MHz, below tSP=50 ns only above 40 MHz) and no STOP condition before the bus is released"
+   },
+   {
+    "id": "i2c-scl-low-phase",
+    "status": "FAIL",
+    "detail": "SCL low phase shorter than the half-period 32 (docs/firmware.md default) after SCL is pulled low at pc29 (7 cycles); all phases {'39..inf': 3, '36': 28, '37': 4, '46..inf': 2, '7': 1, '41': 1, '35': 8, '36..inf': 1}"
+   },
+   {
+    "id": "i2c-bus-timing-cycles",
+    "status": "INFO",
+    "detail": "tLOW >= 7; tHIGH >= 36; tHD;STA >= 34; tSU;STA >= 37; tSU;STO >= 36; tBUF >= 72; tSU;DAT >= 34; tHD;DAT >= 2; fSCL_period >= 43; tVD;DAT <= 2 cycles (tHIGH/tSU;STA/tSU;STO counted from the synchronized observation of SCL high, +2 cycles input latency; stretch-aware)",
+    "params": {
+     "tLOW": 7,
+     "tHIGH": 36,
+     "tHD;STA": 34,
+     "tSU;STA": 37,
+     "tSU;STO": 36,
+     "tBUF": 72,
+     "tSU;DAT": 34,
+     "tHD;DAT": 2,
+     "fSCL_period": 43,
+     "tVD;DAT": 2
+    }
+   },
+   {
+    "id": "i2c-Sm",
+    "status": "INFO",
+    "detail": "UM10204 Sm: met for clocks 0.58..1.49 MHz (limited by tLOW); at 50 MHz FAIL; 10MHz FAIL, 25MHz FAIL, 50MHz FAIL, 66MHz FAIL, 100MHz FAIL",
+    "max_clock_hz": 1489361.7021276597,
+    "min_clock_hz": 579710.1449275363,
+    "at": {
+     "10MHz": "FAIL",
+     "25MHz": "FAIL",
+     "50MHz": "FAIL",
+     "66MHz": "FAIL",
+     "100MHz": "FAIL"
+    }
+   },
+   {
+    "id": "i2c-Fm",
+    "status": "INFO",
+    "detail": "UM10204 Fm: met for clocks 2.22..5.38 MHz (limited by tLOW); at 50 MHz FAIL; 10MHz FAIL, 25MHz FAIL, 50MHz FAIL, 66MHz FAIL, 100MHz FAIL",
+    "max_clock_hz": 5384615.384615384,
+    "min_clock_hz": 2222222.2222222225,
+    "at": {
+     "10MHz": "FAIL",
+     "25MHz": "FAIL",
+     "50MHz": "FAIL",
+     "66MHz": "FAIL",
+     "100MHz": "FAIL"
+    }
+   },
+   {
+    "id": "i2c-Fm+",
+    "status": "INFO",
+    "detail": "UM10204 Fm+: met for clocks 4.44..14 MHz (limited by tLOW); at 50 MHz FAIL; 10MHz PASS, 25MHz FAIL, 50MHz FAIL, 66MHz FAIL, 100MHz FAIL",
+    "max_clock_hz": 14000000.0,
+    "min_clock_hz": 4444444.444444445,
+    "at": {
+     "10MHz": "PASS",
+     "25MHz": "FAIL",
+     "50MHz": "FAIL",
+     "66MHz": "FAIL",
+     "100MHz": "FAIL"
+    }
+   }
+  ],
+  "i2c-target-read": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "40 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "67 boundary contexts, 70 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [66, 67] reachable"
+   },
+   {
+    "id": "bounded-waits",
+    "status": "INFO",
+    "detail": "14 WAITPIN/WAITEVENT contexts; LIMIT values [131072]; longest bounded stall 131071 cycles (2621.420 us at 50 MHz) before fault 3"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc18 PULL [pin6=0 pin7=0]; pc18 PULL [pin6=0 pin7=0|Z]"
+   },
+   {
+    "id": "i2c-target-sda-latency",
+    "status": "PASS",
+    "detail": "SDA driven 7..8 cycles after SCL falls (input latency included); controller keeps SCL low >= 16 cycles: tSU;DAT margin 8 cycles (160.0 ns at 50 MHz); declared: \"Controller must supply each low/high phase at least 16 system clocks and honor stretching. Target stretches before address ACK for TX availability and before data ACK for RX space.\""
+   },
+   {
+    "id": "i2c-target-sda-only-after-scl-low",
+    "status": "PASS",
+    "detail": "the target changes SDA only after observing SCL low (or while stretching SCL)"
+   },
+   {
+    "id": "i2c-target-rearm",
+    "status": "PASS",
+    "detail": "after each observed edge the firmware reaches the next pin wait within 6 cycles, or grabs SCL (stretch) within 7..8 cycles of the edge; both <= 16 (margin 8)"
+   },
+   {
+    "id": "i2c-target-sample-hold",
+    "status": "PASS",
+    "detail": "SDA sampled from the pad 1..2 cycles after SCL rises (data held by the controller >= 16 cycles; margin 14)"
+   },
+   {
+    "id": "i2c-target-stretch-at-holding",
+    "status": "PASS",
+    "detail": "SCL held low (clock stretch) at every FIFO holding point"
+   }
+  ],
+  "i2c-target-write": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "37 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "48 boundary contexts, 49 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [66] reachable"
+   },
+   {
+    "id": "bounded-waits",
+    "status": "INFO",
+    "detail": "14 WAITPIN/WAITEVENT contexts; LIMIT values [131072]; longest bounded stall 131071 cycles (2621.420 us at 50 MHz) before fault 3"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc29 PUSH [pin6=0 pin7=0]"
+   },
+   {
+    "id": "i2c-target-sda-latency",
+    "status": "PASS",
+    "detail": "SDA driven 7..8 cycles after SCL falls (input latency included); controller keeps SCL low >= 16 cycles: tSU;DAT margin 8 cycles (160.0 ns at 50 MHz); declared: \"Controller must supply each low/high phase at least 16 system clocks and honor stretching. Target stretches before address ACK for TX availability and before data ACK for RX space.\""
+   },
+   {
+    "id": "i2c-target-sda-only-after-scl-low",
+    "status": "PASS",
+    "detail": "the target changes SDA only after observing SCL low (or while stretching SCL)"
+   },
+   {
+    "id": "i2c-target-rearm",
+    "status": "PASS",
+    "detail": "after each observed edge the firmware reaches the next pin wait within 4 cycles, or grabs SCL (stretch) within 7..8 cycles of the edge; both <= 16 (margin 8)"
+   },
+   {
+    "id": "i2c-target-sample-hold",
+    "status": "PASS",
+    "detail": "SDA sampled from the pad 1..2 cycles after SCL rises (data held by the controller >= 16 cycles; margin 14)"
+   },
+   {
+    "id": "i2c-target-stretch-at-holding",
+    "status": "PASS",
+    "detail": "SCL held low (clock stretch) at every FIFO holding point"
+   }
+  ],
+  "i2c-write": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "64 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "25 boundary contexts, 27 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [65] reachable"
+   },
+   {
+    "id": "bounded-waits",
+    "status": "INFO",
+    "detail": "7 WAITPIN/WAITEVENT contexts; LIMIT values [131072]; longest bounded stall 131071 cycles (2621.420 us at 50 MHz) before fault 3"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc2 PULL [pin6=Z pin7=Z]; pc33 PULL [pin6=0 pin7=0]"
+   },
+   {
+    "id": "i2c-open-drain",
+    "status": "PASS",
+    "detail": "SCL/SDA are open-drain and never driven high (pull-ups define the high level)"
+   },
+   {
+    "id": "i2c-stretch-safe",
+    "status": "PASS",
+    "detail": "every SCL release is followed by WAITPIN SCL==1 before SCL is driven low again (clock stretching honoured; LIMIT bounds it)"
+   },
+   {
+    "id": "i2c-sda-only-while-scl-low",
+    "status": "PASS",
+    "detail": "SDA changes only while SCL is held low, except START/STOP conditions"
+   },
+   {
+    "id": "i2c-fault-release",
+    "status": "WARN",
+    "detail": "on an explicit fault [65] SCL is released [2] cycle(s) after being driven low at pcs [28, 51]: a runt SCL low pulse (40.0 ns at 50 MHz, below tSP=50 ns only above 40 MHz) and no STOP condition before the bus is released"
+   },
+   {
+    "id": "i2c-scl-low-phase",
+    "status": "PASS",
+    "detail": "SCL low phases (cycles: occurrences) {'38': 2, '36': 14, '37': 2, '41..inf': 1}; every phase >= half-period 32 (docs/firmware.md default)"
+   },
+   {
+    "id": "i2c-bus-timing-cycles",
+    "status": "INFO",
+    "detail": "tLOW >= 36; tHIGH >= 36; tHD;STA >= 34; tSU;STA >= 37; tSU;STO >= 36; tBUF >= 72; tSU;DAT >= 34; tHD;DAT >= 2; fSCL_period >= 72; tVD;DAT <= 4 cycles (tHIGH/tSU;STA/tSU;STO counted from the synchronized observation of SCL high, +2 cycles input latency; stretch-aware)",
+    "params": {
+     "tLOW": 36,
+     "tHIGH": 36,
+     "tHD;STA": 34,
+     "tSU;STA": 37,
+     "tSU;STO": 36,
+     "tBUF": 72,
+     "tSU;DAT": 34,
+     "tHD;DAT": 2,
+     "fSCL_period": 72,
+     "tVD;DAT": 4
+    }
+   },
+   {
+    "id": "i2c-Sm",
+    "status": "INFO",
+    "detail": "UM10204 Sm: met for clocks 1.16..7.2 MHz (limited by fSCL_period); at 50 MHz FAIL; 10MHz FAIL, 25MHz FAIL, 50MHz FAIL, 66MHz FAIL, 100MHz FAIL",
+    "max_clock_hz": 7199999.999999999,
+    "min_clock_hz": 1159420.2898550725,
+    "at": {
+     "10MHz": "FAIL",
+     "25MHz": "FAIL",
+     "50MHz": "FAIL",
+     "66MHz": "FAIL",
+     "100MHz": "FAIL"
+    }
+   },
+   {
+    "id": "i2c-Fm",
+    "status": "INFO",
+    "detail": "UM10204 Fm: met for clocks 4.44..27.7 MHz (limited by tLOW); at 50 MHz FAIL; 10MHz PASS, 25MHz PASS, 50MHz FAIL, 66MHz FAIL, 100MHz FAIL",
+    "max_clock_hz": 27692307.692307692,
+    "min_clock_hz": 4444444.444444445,
+    "at": {
+     "10MHz": "PASS",
+     "25MHz": "PASS",
+     "50MHz": "FAIL",
+     "66MHz": "FAIL",
+     "100MHz": "FAIL"
+    }
+   },
+   {
+    "id": "i2c-Fm+",
+    "status": "INFO",
+    "detail": "UM10204 Fm+: met for clocks 8.89..72 MHz (limited by fSCL_period); at 50 MHz PASS; 10MHz PASS, 25MHz PASS, 50MHz PASS, 66MHz PASS, 100MHz FAIL",
+    "max_clock_hz": 72000000.0,
+    "min_clock_hz": 8888888.88888889,
+    "at": {
+     "10MHz": "PASS",
+     "25MHz": "PASS",
+     "50MHz": "PASS",
+     "66MHz": "PASS",
+     "100MHz": "FAIL"
+    }
+   }
+  ],
+  "jtag": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "35 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "4 boundary contexts, 4 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc29 PULL [pin0=0 pin1=0 pin3=0]; pc29 PULL [pin0=0 pin1=0|1 pin3=0]; pc33 PUSH [pin0=0 pin1=0|1 pin3=0]"
+   },
+   {
+    "id": "jtag-tms-tdi-change-on-tck-low",
+    "status": "PASS",
+    "detail": "all 20 TMS/TDI writes happen while TCK is low"
+   },
+   {
+    "id": "jtag-setup-hold",
+    "status": "PASS",
+    "detail": "TMS/TDI setup to TCK rise >= 32 cycles, hold after TCK rise >= 32 cycles; TCK low/high phases >= 32 cycles"
+   },
+   {
+    "id": "jtag-tdo-sampling",
+    "status": "PASS",
+    "detail": "TDO sampled exactly on TCK rising edges; TDO launched on the falling edge must reach the pad within 30 cycles (600.0 ns at 50 MHz)",
+    "clocks": {
+     "cycles": 30,
+     "at": {
+      "10MHz": {
+       "time": "3.000 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "1.200 us",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "600.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "454.5 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "300.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "jtag-tap-reset",
+    "status": "PASS",
+    "detail": "6 TCK rising edges with TMS high before the first TMS low (>= 5 resets any TAP)"
+   }
+  ],
+  "spi-controller-fast": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "11 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "4 boundary contexts, 4 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc3 PULL [pin2=0 pin3=0 pin5=1]; pc9 PUSH [pin2=0 pin3=0 pin5=1]"
+   },
+   {
+    "id": "spi-xfer-encoding",
+    "status": "PASS",
+    "detail": "1 XFER: 8 bits, half-period 16, CPOL0/CPHA0, MSB first, drive+sample; declared: \"Fused transfers have 16-cycle half periods; scalar expansion preserves mode but adds data-dependent instruction overhead between bits.\" and mode0"
+   },
+   {
+    "id": "spi-sck-half-period",
+    "status": "PASS",
+    "detail": "every frame has 16 SCK edges spaced exactly 16 cycles (2 frame contexts)",
+    "clocks": {
+     "cycles": 16,
+     "at": {
+      "10MHz": {
+       "time": "1.600 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "640.0 ns",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "320.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "242.4 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "160.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "spi-idle-at-holding-points",
+    "status": "PASS",
+    "detail": "SCK at CPOL level 0 and CS deasserted at every PULL/PUSH holding point"
+   },
+   {
+    "id": "spi-cs-timing",
+    "status": "INFO",
+    "detail": "CS setup (CS low to first SCK edge) [17] cycles; CS hold (last SCK edge to CS high) [1] cycles; CS high between frames >= 6 cycles (120.0 ns at 50 MHz)"
+   },
+   {
+    "id": "spi-mosi-setup-hold",
+    "status": "PASS",
+    "detail": "MOSI stable >= 16 cycles before and >= 16 cycles after every target sampling edge (leading)"
+   },
+   {
+    "id": "spi-miso-sampling",
+    "status": "PASS",
+    "detail": "MISO sampled on every leading SCK edge; the sample reads the pad 2 cycles before the edge, so target clock-to-out plus board round trip must fit in 14 cycles (280.0 ns at 50 MHz)",
+    "clocks": {
+     "cycles": 14,
+     "at": {
+      "10MHz": {
+       "time": "1.400 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "560.0 ns",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "280.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "212.1 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "140.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "spi-sck-frequency",
+    "status": "INFO",
+    "detail": "10MHz: SCK 0.3125 MHz, 25MHz: SCK 0.78125 MHz, 50MHz: SCK 1.5625 MHz, 66MHz: SCK 2.0625 MHz, 100MHz: SCK 3.125 MHz"
+   },
+   {
+    "id": "image-name",
+    "status": "INFO",
+    "detail": "image 'name' field is \"spi-controller-mode0\" but the file is spi-controller-fast.image.json"
+   }
+  ],
+  "spi-controller-mode0": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "11 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "4 boundary contexts, 4 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc3 PULL [pin2=0 pin3=0 pin5=1]; pc9 PUSH [pin2=0 pin3=0 pin5=1]"
+   },
+   {
+    "id": "spi-xfer-encoding",
+    "status": "PASS",
+    "detail": "1 XFER: 8 bits, half-period 32, CPOL0/CPHA0, MSB first, drive+sample; declared: \"Fused transfers have 32-cycle half periods; scalar expansion preserves mode but adds data-dependent instruction overhead between bits.\" and mode0"
+   },
+   {
+    "id": "spi-sck-half-period",
+    "status": "PASS",
+    "detail": "every frame has 16 SCK edges spaced exactly 32 cycles (2 frame contexts)",
+    "clocks": {
+     "cycles": 32,
+     "at": {
+      "10MHz": {
+       "time": "3.200 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "1.280 us",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "640.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "484.8 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "320.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "spi-idle-at-holding-points",
+    "status": "PASS",
+    "detail": "SCK at CPOL level 0 and CS deasserted at every PULL/PUSH holding point"
+   },
+   {
+    "id": "spi-cs-timing",
+    "status": "INFO",
+    "detail": "CS setup (CS low to first SCK edge) [33] cycles; CS hold (last SCK edge to CS high) [1] cycles; CS high between frames >= 6 cycles (120.0 ns at 50 MHz)"
+   },
+   {
+    "id": "spi-mosi-setup-hold",
+    "status": "PASS",
+    "detail": "MOSI stable >= 32 cycles before and >= 32 cycles after every target sampling edge (leading)"
+   },
+   {
+    "id": "spi-miso-sampling",
+    "status": "PASS",
+    "detail": "MISO sampled on every leading SCK edge; the sample reads the pad 2 cycles before the edge, so target clock-to-out plus board round trip must fit in 30 cycles (600.0 ns at 50 MHz)",
+    "clocks": {
+     "cycles": 30,
+     "at": {
+      "10MHz": {
+       "time": "3.000 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "1.200 us",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "600.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "454.5 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "300.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "spi-sck-frequency",
+    "status": "INFO",
+    "detail": "10MHz: SCK 0.15625 MHz, 25MHz: SCK 0.390625 MHz, 50MHz: SCK 0.78125 MHz, 66MHz: SCK 1.03125 MHz, 100MHz: SCK 1.5625 MHz"
+   }
+  ],
+  "spi-controller-mode1": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "11 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "4 boundary contexts, 4 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc3 PULL [pin2=0 pin3=0 pin5=1]; pc9 PUSH [pin2=0 pin3=0 pin5=1]"
+   },
+   {
+    "id": "spi-xfer-encoding",
+    "status": "PASS",
+    "detail": "1 XFER: 8 bits, half-period 32, CPOL0/CPHA1, MSB first, drive+sample; declared: \"Fused transfers have 32-cycle half periods; scalar expansion preserves mode but adds data-dependent instruction overhead between bits.\" and mode1"
+   },
+   {
+    "id": "spi-sck-half-period",
+    "status": "PASS",
+    "detail": "every frame has 16 SCK edges spaced exactly 32 cycles (2 frame contexts)",
+    "clocks": {
+     "cycles": 32,
+     "at": {
+      "10MHz": {
+       "time": "3.200 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "1.280 us",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "640.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "484.8 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "320.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "spi-idle-at-holding-points",
+    "status": "PASS",
+    "detail": "SCK at CPOL level 0 and CS deasserted at every PULL/PUSH holding point"
+   },
+   {
+    "id": "spi-cs-timing",
+    "status": "INFO",
+    "detail": "CS setup (CS low to first SCK edge) [33] cycles; CS hold (last SCK edge to CS high) [1] cycles; CS high between frames >= 6 cycles (120.0 ns at 50 MHz)"
+   },
+   {
+    "id": "spi-mosi-setup-hold",
+    "status": "PASS",
+    "detail": "MOSI stable >= 32 cycles before and >= 1 cycles after every target sampling edge (trailing); the last bit's hold is only [1] cycle(s) because the post-transfer SET rewrites MOSI together with CS"
+   },
+   {
+    "id": "spi-miso-sampling",
+    "status": "PASS",
+    "detail": "MISO sampled on every trailing SCK edge; the sample reads the pad 2 cycles before the edge, so target clock-to-out plus board round trip must fit in 30 cycles (600.0 ns at 50 MHz)",
+    "clocks": {
+     "cycles": 30,
+     "at": {
+      "10MHz": {
+       "time": "3.000 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "1.200 us",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "600.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "454.5 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "300.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "spi-sck-frequency",
+    "status": "INFO",
+    "detail": "10MHz: SCK 0.15625 MHz, 25MHz: SCK 0.390625 MHz, 50MHz: SCK 0.78125 MHz, 66MHz: SCK 1.03125 MHz, 100MHz: SCK 1.5625 MHz"
+   }
+  ],
+  "spi-controller-mode2": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "11 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "4 boundary contexts, 4 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc3 PULL [pin2=1 pin3=0 pin5=1]; pc9 PUSH [pin2=1 pin3=0 pin5=1]"
+   },
+   {
+    "id": "spi-xfer-encoding",
+    "status": "PASS",
+    "detail": "1 XFER: 8 bits, half-period 32, CPOL1/CPHA0, MSB first, drive+sample; declared: \"Fused transfers have 32-cycle half periods; scalar expansion preserves mode but adds data-dependent instruction overhead between bits.\" and mode2"
+   },
+   {
+    "id": "spi-sck-half-period",
+    "status": "PASS",
+    "detail": "every frame has 16 SCK edges spaced exactly 32 cycles (2 frame contexts)",
+    "clocks": {
+     "cycles": 32,
+     "at": {
+      "10MHz": {
+       "time": "3.200 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "1.280 us",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "640.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "484.8 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "320.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "spi-idle-at-holding-points",
+    "status": "PASS",
+    "detail": "SCK at CPOL level 1 and CS deasserted at every PULL/PUSH holding point"
+   },
+   {
+    "id": "spi-cs-timing",
+    "status": "INFO",
+    "detail": "CS setup (CS low to first SCK edge) [33] cycles; CS hold (last SCK edge to CS high) [1] cycles; CS high between frames >= 6 cycles (120.0 ns at 50 MHz)"
+   },
+   {
+    "id": "spi-mosi-setup-hold",
+    "status": "PASS",
+    "detail": "MOSI stable >= 32 cycles before and >= 32 cycles after every target sampling edge (leading)"
+   },
+   {
+    "id": "spi-miso-sampling",
+    "status": "PASS",
+    "detail": "MISO sampled on every leading SCK edge; the sample reads the pad 2 cycles before the edge, so target clock-to-out plus board round trip must fit in 30 cycles (600.0 ns at 50 MHz)",
+    "clocks": {
+     "cycles": 30,
+     "at": {
+      "10MHz": {
+       "time": "3.000 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "1.200 us",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "600.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "454.5 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "300.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "spi-sck-frequency",
+    "status": "INFO",
+    "detail": "10MHz: SCK 0.15625 MHz, 25MHz: SCK 0.390625 MHz, 50MHz: SCK 0.78125 MHz, 66MHz: SCK 1.03125 MHz, 100MHz: SCK 1.5625 MHz"
+   }
+  ],
+  "spi-controller-mode3": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "11 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "4 boundary contexts, 4 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc3 PULL [pin2=1 pin3=0 pin5=1]; pc9 PUSH [pin2=1 pin3=0 pin5=1]"
+   },
+   {
+    "id": "spi-xfer-encoding",
+    "status": "PASS",
+    "detail": "1 XFER: 8 bits, half-period 32, CPOL1/CPHA1, MSB first, drive+sample; declared: \"Fused transfers have 32-cycle half periods; scalar expansion preserves mode but adds data-dependent instruction overhead between bits.\" and mode3"
+   },
+   {
+    "id": "spi-sck-half-period",
+    "status": "PASS",
+    "detail": "every frame has 16 SCK edges spaced exactly 32 cycles (2 frame contexts)",
+    "clocks": {
+     "cycles": 32,
+     "at": {
+      "10MHz": {
+       "time": "3.200 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "1.280 us",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "640.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "484.8 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "320.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "spi-idle-at-holding-points",
+    "status": "PASS",
+    "detail": "SCK at CPOL level 1 and CS deasserted at every PULL/PUSH holding point"
+   },
+   {
+    "id": "spi-cs-timing",
+    "status": "INFO",
+    "detail": "CS setup (CS low to first SCK edge) [33] cycles; CS hold (last SCK edge to CS high) [1] cycles; CS high between frames >= 6 cycles (120.0 ns at 50 MHz)"
+   },
+   {
+    "id": "spi-mosi-setup-hold",
+    "status": "PASS",
+    "detail": "MOSI stable >= 32 cycles before and >= 1 cycles after every target sampling edge (trailing); the last bit's hold is only [1] cycle(s) because the post-transfer SET rewrites MOSI together with CS"
+   },
+   {
+    "id": "spi-miso-sampling",
+    "status": "PASS",
+    "detail": "MISO sampled on every trailing SCK edge; the sample reads the pad 2 cycles before the edge, so target clock-to-out plus board round trip must fit in 30 cycles (600.0 ns at 50 MHz)",
+    "clocks": {
+     "cycles": 30,
+     "at": {
+      "10MHz": {
+       "time": "3.000 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "1.200 us",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "600.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "454.5 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "300.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "spi-sck-frequency",
+    "status": "INFO",
+    "detail": "10MHz: SCK 0.15625 MHz, 25MHz: SCK 0.390625 MHz, 50MHz: SCK 0.78125 MHz, 66MHz: SCK 1.03125 MHz, 100MHz: SCK 1.5625 MHz"
+   }
+  ],
+  "spi-target-mode0": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "19 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "24 boundary contexts, 24 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "bounded-waits",
+    "status": "INFO",
+    "detail": "5 WAITPIN/WAITEVENT contexts; LIMIT values [32768]; longest bounded stall 32767 cycles (655.340 us at 50 MHz) before fault 3"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc3 PULL [pin4=Z]"
+   },
+   {
+    "id": "spi-target-miso-latency",
+    "status": "PASS",
+    "detail": "after CS edge: MISO valid 4..5 cycles later, budget 8 (margin 3); after SCK edge: MISO valid 4..5 cycles later, budget 8 (margin 3); declared: \"CS must be high between bytes, asserted at least 8 system clocks before first edge; each external half period at least 8 clocks.\", \"CS must be high between bytes, asserted at least 8 system clocks before first edge; each external half period at least 8 clocks.\""
+   },
+   {
+    "id": "spi-target-mosi-hold",
+    "status": "PASS",
+    "detail": "MOSI sampled from the pad 1..2 cycles after the sampling SCK edge; the controller keeps it for >= 8 cycles (margin 6)"
+   },
+   {
+    "id": "spi-target-rearm",
+    "status": "PASS",
+    "detail": "after each SCK edge is seen the firmware waits for the next edge within 3 cycles (<= 8: no edge observed late; margin 5)"
+   },
+   {
+    "id": "spi-target-cs-setup",
+    "status": "PASS",
+    "detail": "after CS assertion is seen, waiting for the first SCK edge within 3 cycles (declared CS setup 8; margin 5)"
+   },
+   {
+    "id": "spi-target-miso-released",
+    "status": "PASS",
+    "detail": "MISO released (high-Z) at the PULL holding point between frames"
+   }
+  ],
+  "spi-target-mode1": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "19 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "25 boundary contexts, 25 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "bounded-waits",
+    "status": "INFO",
+    "detail": "5 WAITPIN/WAITEVENT contexts; LIMIT values [32768]; longest bounded stall 32767 cycles (655.340 us at 50 MHz) before fault 3"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc3 PULL [pin4=Z]"
+   },
+   {
+    "id": "spi-target-miso-latency",
+    "status": "PASS",
+    "detail": "after SCK edge: MISO valid 3..4 cycles later, budget 8 (margin 4); declared: \"CS must be high between bytes, asserted at least 8 system clocks before first edge; each external half period at least 8 clocks.\", \"CS must be high between bytes, asserted at least 8 system clocks before first edge; each external half period at least 8 clocks.\""
+   },
+   {
+    "id": "spi-target-mosi-hold",
+    "status": "PASS",
+    "detail": "MOSI sampled from the pad 1..2 cycles after the sampling SCK edge; the controller keeps it for >= 8 cycles (margin 6)"
+   },
+   {
+    "id": "spi-target-rearm",
+    "status": "PASS",
+    "detail": "after each SCK edge is seen the firmware waits for the next edge within 3 cycles (<= 8: no edge observed late; margin 5)"
+   },
+   {
+    "id": "spi-target-cs-setup",
+    "status": "PASS",
+    "detail": "after CS assertion is seen, waiting for the first SCK edge within 2 cycles (declared CS setup 8; margin 6)"
+   },
+   {
+    "id": "spi-target-miso-released",
+    "status": "PASS",
+    "detail": "MISO released (high-Z) at the PULL holding point between frames"
+   }
+  ],
+  "spi-target-mode2": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "19 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "24 boundary contexts, 24 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "bounded-waits",
+    "status": "INFO",
+    "detail": "5 WAITPIN/WAITEVENT contexts; LIMIT values [32768]; longest bounded stall 32767 cycles (655.340 us at 50 MHz) before fault 3"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc3 PULL [pin4=Z]"
+   },
+   {
+    "id": "spi-target-miso-latency",
+    "status": "PASS",
+    "detail": "after CS edge: MISO valid 4..5 cycles later, budget 8 (margin 3); after SCK edge: MISO valid 4..5 cycles later, budget 8 (margin 3); declared: \"CS must be high between bytes, asserted at least 8 system clocks before first edge; each external half period at least 8 clocks.\", \"CS must be high between bytes, asserted at least 8 system clocks before first edge; each external half period at least 8 clocks.\""
+   },
+   {
+    "id": "spi-target-mosi-hold",
+    "status": "PASS",
+    "detail": "MOSI sampled from the pad 1..2 cycles after the sampling SCK edge; the controller keeps it for >= 8 cycles (margin 6)"
+   },
+   {
+    "id": "spi-target-rearm",
+    "status": "PASS",
+    "detail": "after each SCK edge is seen the firmware waits for the next edge within 3 cycles (<= 8: no edge observed late; margin 5)"
+   },
+   {
+    "id": "spi-target-cs-setup",
+    "status": "PASS",
+    "detail": "after CS assertion is seen, waiting for the first SCK edge within 3 cycles (declared CS setup 8; margin 5)"
+   },
+   {
+    "id": "spi-target-miso-released",
+    "status": "PASS",
+    "detail": "MISO released (high-Z) at the PULL holding point between frames"
+   }
+  ],
+  "spi-target-mode3": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "19 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "25 boundary contexts, 25 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "bounded-waits",
+    "status": "INFO",
+    "detail": "5 WAITPIN/WAITEVENT contexts; LIMIT values [32768]; longest bounded stall 32767 cycles (655.340 us at 50 MHz) before fault 3"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc3 PULL [pin4=Z]"
+   },
+   {
+    "id": "spi-target-miso-latency",
+    "status": "PASS",
+    "detail": "after SCK edge: MISO valid 3..4 cycles later, budget 8 (margin 4); declared: \"CS must be high between bytes, asserted at least 8 system clocks before first edge; each external half period at least 8 clocks.\", \"CS must be high between bytes, asserted at least 8 system clocks before first edge; each external half period at least 8 clocks.\""
+   },
+   {
+    "id": "spi-target-mosi-hold",
+    "status": "PASS",
+    "detail": "MOSI sampled from the pad 1..2 cycles after the sampling SCK edge; the controller keeps it for >= 8 cycles (margin 6)"
+   },
+   {
+    "id": "spi-target-rearm",
+    "status": "PASS",
+    "detail": "after each SCK edge is seen the firmware waits for the next edge within 3 cycles (<= 8: no edge observed late; margin 5)"
+   },
+   {
+    "id": "spi-target-cs-setup",
+    "status": "PASS",
+    "detail": "after CS assertion is seen, waiting for the first SCK edge within 2 cycles (declared CS setup 8; margin 6)"
+   },
+   {
+    "id": "spi-target-miso-released",
+    "status": "PASS",
+    "detail": "MISO released (high-Z) at the PULL holding point between frames"
+   }
+  ],
+  "uart-rx": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "18 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "5 boundary contexts, 7 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [64] reachable"
+   },
+   {
+    "id": "bounded-waits",
+    "status": "INFO",
+    "detail": "2 WAITPIN/WAITEVENT contexts; LIMIT values [768]; longest bounded stall 767 cycles (15.340 us at 50 MHz) before fault 3"
+   },
+   {
+    "id": "uart-rx-center-sampling",
+    "status": "PASS",
+    "detail": "data bits sampled 32..33 cycles into the bit (centre 32), stop bit +35..36 of 64; offsets from start-edge sample: (96, 160, 224, 288, 352, 416, 480, 544, 611); declared: \"UART 8N1 RX on pin1, 64 clocks per bit, low-byte RX words.\"",
+    "sample_positions": [
+     "bit1: +32..33 of 64",
+     "bit2: +32..33 of 64",
+     "bit3: +32..33 of 64",
+     "bit4: +32..33 of 64",
+     "bit5: +32..33 of 64",
+     "bit6: +32..33 of 64",
+     "bit7: +32..33 of 64",
+     "bit8: +32..33 of 64",
+     "bit9: +35..36 of 64"
+    ]
+   },
+   {
+    "id": "uart-rx-baud-tolerance",
+    "status": "INFO",
+    "detail": "all 9 samples stay inside their bit for a transmitter bit period within -4.37% .. +6.08% of 64 cycles (includes the 1-cycle asynchronous start-edge uncertainty)",
+    "eps_min": -0.043749999999999956,
+    "eps_max": 0.06076388888888884
+   },
+   {
+    "id": "uart-rx-rearm",
+    "status": "PASS",
+    "detail": "re-armed at the start-bit WAITPIN 619 cycles after the start edge is seen; the next start edge (1 stop bit) is 640 cycles after the previous one: margin 20 cycles; continuous traffic tolerates a transmitter up to -3.12% fast without late start detection",
+    "rearm_cycles": 619
+   },
+   {
+    "id": "uart-rx-idle-bound",
+    "status": "PASS",
+    "detail": "idle/start WAITPIN LIMIT [768] = 12 x 64-cycle bit periods; declared: \"Two-flop input synchronization precedes center sampling; stop-bit low produces fault64. Idle/start waits are bounded by 12 bit periods.\""
+   },
+   {
+    "id": "uart-rx-rate",
+    "status": "INFO",
+    "detail": "baud = clock/64: 10MHz 156250 Bd, 25MHz 390625 Bd, 50MHz 781250 Bd, 66MHz 1031250 Bd, 100MHz 1562500 Bd"
+   }
+  ],
+  "uart-tx": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "12 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "3 boundary contexts, 3 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc2 PULL [pin0=1]"
+   },
+   {
+    "id": "uart-tx-bit-period",
+    "status": "PASS",
+    "detail": "start bit and all 8 data bits last exactly 64 cycles in every context (18 bit boundaries); declared: \"UART 8N1 TX on pin0, LSB first, exact bit period 64 clocks (50000000 Hz nominal clock).\"",
+    "cycles": 64,
+    "clocks": {
+     "cycles": 64,
+     "at": {
+      "10MHz": {
+       "time": "6.400 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "2.560 us",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "1.280 us",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "969.7 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "640.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "uart-tx-frame-8N1",
+    "status": "PASS",
+    "detail": "each frame: start (1->0), 8 OUT data bits, stop (->1); contexts {'pc2 PULL': 16}"
+   },
+   {
+    "id": "uart-tx-stop-bit",
+    "status": "PASS",
+    "detail": "stop bit (idle high before the next start bit) >= 68 cycles, required >= 64; margin 4 cycles (loop/PULL overhead), unbounded while the TX FIFO is empty"
+   },
+   {
+    "id": "uart-tx-idle-high",
+    "status": "PASS",
+    "detail": "TX pin driven high at every FIFO holding point (PULL)"
+   },
+   {
+    "id": "uart-tx-rate",
+    "status": "INFO",
+    "detail": "baud = clock/64: 10MHz 156250 Bd, 25MHz 390625 Bd, 50MHz 781250 Bd, 66MHz 1031250 Bd, 100MHz 1562500 Bd; back-to-back frame period >= 644 cycles (10 bits = 640); standard 115200 Bd would need a 7.3728 MHz clock",
+    "frame_period_min": 644
+   }
+  ],
+  "waveform": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "11 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "2 boundary contexts, 2 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc9 PUSH [pin0=0]"
+   },
+   {
+    "id": "waveform-pulses",
+    "status": "PASS",
+    "detail": "16 pulses, high [32] cycles, low [64] cycles; declared 16 pulses high 32 / low 64 (half-period 32: docs/firmware.md default)",
+    "clocks": {
+     "cycles": 32,
+     "at": {
+      "10MHz": {
+       "time": "3.200 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "1.280 us",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "640.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "484.8 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "320.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "waveform-timestamp",
+    "status": "INFO",
+    "detail": "TIME issues 1540 cycles after the START edge, 64 cycles after the last falling edge"
+   }
+  ]
+ },
+ "flagship": [
+  {
+   "id": "flagship-ownership",
+   "status": "PASS",
+   "detail": "images on engines 0:uart-tx (0x01), 1:uart-rx (0x00), 2:spi-controller-mode0 (0x2c), 3:i2c-write (0xc0); ownership disjoint and matches each image's engine"
+  },
+  {
+   "id": "flagship-pin-roles",
+   "status": "PASS",
+   "detail": "pin connections match the image pin roles of docs/firmware.md"
+  },
+  {
+   "id": "flagship-engine0-schedule",
+   "status": "PASS",
+   "detail": "uart-tx: 3 contexts, WCET between boundaries 644 cycles; schedule exact per engine (no widening). Isolation from the other engines, host and mover rests on formal job timing_isolation_prove_k0 (formal/README.md; not re-run by this tool)"
+  },
+  {
+   "id": "flagship-engine1-schedule",
+   "status": "PASS",
+   "detail": "uart-rx: 5 contexts, WCET between boundaries 618 cycles; schedule exact per engine (no widening). Isolation from the other engines, host and mover rests on formal job timing_isolation_prove_k1 (formal/README.md; not re-run by this tool)"
+  },
+  {
+   "id": "flagship-engine2-schedule",
+   "status": "PASS",
+   "detail": "spi-controller-mode0: 4 contexts, WCET between boundaries 518 cycles; schedule exact per engine (no widening). Isolation from the other engines, host and mover rests on formal job timing_isolation_prove_k2 (formal/README.md; not re-run by this tool)"
+  },
+  {
+   "id": "flagship-engine3-schedule",
+   "status": "PASS",
+   "detail": "i2c-write: 25 contexts, WCET between boundaries 107 cycles; schedule exact per engine (no widening). Isolation from the other engines, host and mover rests on formal job timing_isolation_prove_k3 (formal/README.md; not re-run by this tool)"
+  },
+  {
+   "id": "flagship-bridge-rate",
+   "status": "PASS",
+   "detail": "UART RX (engine1) delivers at most one word per 640 cycles (10 x 64); the SPI engine returns to PULL 520 cycles after taking a word when its RX FIFO has room: the route never backs up at line rate (margin 120 cycles/word)"
+  },
+  {
+   "id": "flagship-spi-rx-capacity",
+   "status": "PASS",
+   "detail": "8 SPI return words fit the 8-word RX FIFO without host service; the 9th would stall the SPI PUSH, back up the route and end in the UART strict-PUSH fault4 (documented overload behaviour)"
+  }
+ ]
+}

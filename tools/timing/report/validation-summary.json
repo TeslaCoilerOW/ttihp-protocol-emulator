@@ -1,0 +1,1794 @@
+{
+ "result": "PASS",
+ "files": 302,
+ "suites": {
+  "random": {
+   "items": 73000,
+   "seconds": 14599.699999999997
+  },
+  "mutants": {
+   "items": 21,
+   "seconds": 60.7
+  },
+  "scenarios": {
+   "items": 30,
+   "seconds": 2.9000000000000004
+  },
+  "legacy": {
+   "items": 75,
+   "seconds": 5.9
+  },
+  "event": {
+   "items": 3,
+   "seconds": 1.8
+  },
+  "margins": {
+   "items": 9,
+   "seconds": 75.0
+  },
+  "stress": {
+   "items": 64000,
+   "seconds": 51452.600000000006
+  }
+ },
+ "stats": {
+  "runs": 1303659,
+  "runs_ok": 1303659,
+  "runs_failed": 0,
+  "ticks_checked": 2731272916,
+  "attempts_checked": 1355204958,
+  "pad_changes_observed": 38037698,
+  "pad_changes_matched": 38037698,
+  "segments_completed": 14952277,
+  "boundaries_completed": 14499907,
+  "timeouts_matched": 42377,
+  "terminals_matched": 409993,
+  "strict_push_faults": 57414,
+  "unchecked_ticks": 0,
+  "runs_unchecked_budget": 0,
+  "stall_vs_min": {
+   "branch:min": 1176222,
+   "event_limit:>min": 117466,
+   "event_limit:min": 375438,
+   "pin_limit:>min": 4532211,
+   "pin_limit:min": 3164763,
+   "rx_fifo_unbounded:>min": 1500771,
+   "rx_fifo_unbounded:min": 1959323,
+   "tx_fifo_unbounded:>min": 237637,
+   "tx_fifo_unbounded:min": 1436076
+  },
+  "per_program_runs": {
+   "custom programs": 702258,
+   "event-transmitter": 28063,
+   "i2c-read": 28796,
+   "i2c-repeated-start": 28695,
+   "i2c-target-read": 27911,
+   "i2c-target-write": 27978,
+   "i2c-write": 28633,
+   "jtag": 33912,
+   "spi-controller-fast": 35073,
+   "spi-controller-mode0": 34452,
+   "spi-controller-mode1": 34903,
+   "spi-controller-mode2": 34845,
+   "spi-controller-mode3": 34938,
+   "spi-target-mode0": 31912,
+   "spi-target-mode1": 31691,
+   "spi-target-mode2": 31450,
+   "spi-target-mode3": 31793,
+   "uart-rx": 28873,
+   "uart-tx": 31242,
+   "waveform": 28338,
+   "jtag-scalar": 1319,
+   "spi-controller-scalar-fast": 1316,
+   "spi-controller-scalar-mode0": 1325,
+   "spi-controller-scalar-mode1": 1298,
+   "spi-controller-scalar-mode2": 1313,
+   "spi-controller-scalar-mode3": 1332
+  },
+  "variant_coverage": {
+   "event-transmitter": {
+    "variants": 2,
+    "observed": 2,
+    "percent": 100.0
+   },
+   "i2c-read": {
+    "variants": 38,
+    "observed": 38,
+    "percent": 100.0
+   },
+   "i2c-repeated-start": {
+    "variants": 62,
+    "observed": 62,
+    "percent": 100.0
+   },
+   "i2c-target-read": {
+    "variants": 70,
+    "observed": 70,
+    "percent": 100.0
+   },
+   "i2c-target-write": {
+    "variants": 49,
+    "observed": 49,
+    "percent": 100.0
+   },
+   "i2c-write": {
+    "variants": 27,
+    "observed": 27,
+    "percent": 100.0
+   },
+   "jtag": {
+    "variants": 4,
+    "observed": 4,
+    "percent": 100.0
+   },
+   "jtag-scalar": {
+    "variants": 38,
+    "observed": 38,
+    "percent": 100.0
+   },
+   "spi-controller-fast": {
+    "variants": 4,
+    "observed": 4,
+    "percent": 100.0
+   },
+   "spi-controller-mode0": {
+    "variants": 4,
+    "observed": 4,
+    "percent": 100.0
+   },
+   "spi-controller-mode1": {
+    "variants": 4,
+    "observed": 4,
+    "percent": 100.0
+   },
+   "spi-controller-mode2": {
+    "variants": 4,
+    "observed": 4,
+    "percent": 100.0
+   },
+   "spi-controller-mode3": {
+    "variants": 4,
+    "observed": 4,
+    "percent": 100.0
+   },
+   "spi-controller-scalar-fast": {
+    "variants": 36,
+    "observed": 36,
+    "percent": 100.0
+   },
+   "spi-controller-scalar-mode0": {
+    "variants": 36,
+    "observed": 36,
+    "percent": 100.0
+   },
+   "spi-controller-scalar-mode1": {
+    "variants": 36,
+    "observed": 36,
+    "percent": 100.0
+   },
+   "spi-controller-scalar-mode2": {
+    "variants": 36,
+    "observed": 36,
+    "percent": 100.0
+   },
+   "spi-controller-scalar-mode3": {
+    "variants": 36,
+    "observed": 36,
+    "percent": 100.0
+   },
+   "spi-target-mode0": {
+    "variants": 24,
+    "observed": 24,
+    "percent": 100.0
+   },
+   "spi-target-mode1": {
+    "variants": 25,
+    "observed": 25,
+    "percent": 100.0
+   },
+   "spi-target-mode2": {
+    "variants": 24,
+    "observed": 24,
+    "percent": 100.0
+   },
+   "spi-target-mode3": {
+    "variants": 25,
+    "observed": 25,
+    "percent": 100.0
+   },
+   "uart-rx": {
+    "variants": 7,
+    "observed": 7,
+    "percent": 100.0
+   },
+   "uart-tx": {
+    "variants": 3,
+    "observed": 3,
+    "percent": 100.0
+   },
+   "waveform": {
+    "variants": 2,
+    "observed": 2,
+    "percent": 100.0
+   }
+  },
+  "failures": []
+ },
+ "custom_programs": {
+  "count": 334356,
+  "not_exact": [
+   "custom-002ac00aaa",
+   "custom-009a71cb29",
+   "custom-00be9f7cb6",
+   "custom-015cfd9e34",
+   "custom-016cdecb44",
+   "custom-0172f1430d",
+   "custom-017d053f06",
+   "custom-01961c7d84",
+   "custom-0198d0e1f6",
+   "custom-01a65a3115",
+   "custom-02166e9f13",
+   "custom-02457b3100",
+   "custom-024a1dc3f3",
+   "custom-02786d0425",
+   "custom-0295f9b53b",
+   "custom-02e5de47e0",
+   "custom-0381a6a904",
+   "custom-03838ee023",
+   "custom-03bf117e79",
+   "custom-046ab2b975",
+   "custom-046f49af51",
+   "custom-04fb2f2c81",
+   "custom-050fac9aae",
+   "custom-05c6595846",
+   "custom-05f82e27af",
+   "custom-060159fd5a",
+   "custom-0620ed7850",
+   "custom-06478c896c",
+   "custom-067ac342b1",
+   "custom-06b4257405",
+   "custom-07343e7e0a",
+   "custom-0743993975",
+   "custom-07d3671d74",
+   "custom-0856fd532c",
+   "custom-08a3bf403e",
+   "custom-0983dcc993",
+   "custom-098d3a0f2b",
+   "custom-09ebe62f61",
+   "custom-0a0e88c2fc",
+   "custom-0a9f03a18f",
+   "custom-0ab4d56a0a",
+   "custom-0ad188fd3b",
+   "custom-0ae3b611eb",
+   "custom-0b1855059a",
+   "custom-0cb7800ad6",
+   "custom-0cbe979123",
+   "custom-0d688bd6dc",
+   "custom-0df1bcff47",
+   "custom-0e20730bdf",
+   "custom-0e58e0d948"
+  ],
+  "not_exact_count": 973
+ },
+ "mutants": {
+  "wait-n-cycles": {
+   "detected": true,
+   "runs_failed": 29,
+   "runs": 109,
+   "first_failure": "missing attempt pc6 at +65"
+  },
+  "xfer-late-edge": {
+   "detected": true,
+   "runs_failed": 57,
+   "runs": 109,
+   "first_failure": "pin2 pad 0 at +132, predicted 1"
+  },
+  "count-n-iterations": {
+   "detected": true,
+   "runs_failed": 31,
+   "runs": 109,
+   "first_failure": "attempt pc6 at +514, predicted pc9"
+  },
+  "loopback-latency-4": {
+   "detected": true,
+   "runs_failed": 1,
+   "runs": 109,
+   "first_failure": "boundary pc16 completed after 2 stalls, minimum 3"
+  },
+  "open-drain-as-push-pull": {
+   "detected": true,
+   "runs_failed": 11,
+   "runs": 109,
+   "first_failure": "pin7 pad Z at +72, predicted 0|1"
+  },
+  "halt-keeps-pins": {
+   "detected": true,
+   "runs_failed": 52,
+   "runs": 109,
+   "first_failure": "pin0 pad Z at +8, predicted 0"
+  },
+  "set-two-cycles": {
+   "detected": true,
+   "runs_failed": 36,
+   "runs": 109,
+   "first_failure": "unexpected attempt pc1 at +2"
+  }
+ },
+ "margins": {
+  "uart-rx-baud": {
+   "agrees": true,
+   "exact": true,
+   "summary": "back-to-back 8N1 at 64 cycles/bit: predicted safe bit periods 62..67, observed passing 62..67 (patterns incl. 0x55/0xAA); prediction matches every setting",
+   "rows": [
+    {
+     "bit_cycles": 56,
+     "error_pct": -12.5,
+     "back_to_back": true,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 57,
+     "error_pct": -10.938,
+     "back_to_back": true,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 58,
+     "error_pct": -9.375,
+     "back_to_back": true,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 59,
+     "error_pct": -7.812,
+     "back_to_back": true,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 60,
+     "error_pct": -6.25,
+     "back_to_back": true,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 61,
+     "error_pct": -4.688,
+     "back_to_back": true,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 62,
+     "error_pct": -3.125,
+     "back_to_back": true,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "bit_cycles": 63,
+     "error_pct": -1.562,
+     "back_to_back": true,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "bit_cycles": 64,
+     "error_pct": 0.0,
+     "back_to_back": true,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "bit_cycles": 65,
+     "error_pct": 1.562,
+     "back_to_back": true,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "bit_cycles": 66,
+     "error_pct": 3.125,
+     "back_to_back": true,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "bit_cycles": 67,
+     "error_pct": 4.688,
+     "back_to_back": true,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "bit_cycles": 68,
+     "error_pct": 6.25,
+     "back_to_back": true,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 69,
+     "error_pct": 7.812,
+     "back_to_back": true,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 70,
+     "error_pct": 9.375,
+     "back_to_back": true,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 71,
+     "error_pct": 10.938,
+     "back_to_back": true,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 72,
+     "error_pct": 12.5,
+     "back_to_back": true,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 56,
+     "error_pct": -12.5,
+     "back_to_back": false,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 57,
+     "error_pct": -10.938,
+     "back_to_back": false,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 58,
+     "error_pct": -9.375,
+     "back_to_back": false,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 59,
+     "error_pct": -7.812,
+     "back_to_back": false,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 60,
+     "error_pct": -6.25,
+     "back_to_back": false,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 61,
+     "error_pct": -4.688,
+     "back_to_back": false,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "bit_cycles": 62,
+     "error_pct": -3.125,
+     "back_to_back": false,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "bit_cycles": 63,
+     "error_pct": -1.562,
+     "back_to_back": false,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "bit_cycles": 64,
+     "error_pct": 0.0,
+     "back_to_back": false,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "bit_cycles": 65,
+     "error_pct": 1.562,
+     "back_to_back": false,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "bit_cycles": 66,
+     "error_pct": 3.125,
+     "back_to_back": false,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "bit_cycles": 67,
+     "error_pct": 4.688,
+     "back_to_back": false,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "bit_cycles": 68,
+     "error_pct": 6.25,
+     "back_to_back": false,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 69,
+     "error_pct": 7.812,
+     "back_to_back": false,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 70,
+     "error_pct": 9.375,
+     "back_to_back": false,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 71,
+     "error_pct": 10.938,
+     "back_to_back": false,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "bit_cycles": 72,
+     "error_pct": 12.5,
+     "back_to_back": false,
+     "predicted_safe": false,
+     "observed_pass": false
+    }
+   ]
+  },
+  "spi-target-timing": {
+   "agrees": true,
+   "exact": false,
+   "summary": "mode0 half_period: predicted >= 5, observed first pass 5; mode0 cs_setup: predicted >= 5, observed first pass 5; mode0 cs_high: predicted >= 9, observed first pass 9; mode1 half_period: predicted >= 4, observed first pass 4; mode1 cs_setup: predicted >= 2, observed first pass 1; mode1 cs_high: predicted >= 9, observed first pass 9; mode2 half_period: predicted >= 5, observed first pass 5; mode2 cs_setup: predicted >= 5, observed first pass 5; mode2 cs_high: predicted >= 9, observed first pass 9; mode3 half_period: predicted >= 4, observed first pass 4; mode3 cs_setup: predicted >= 2, observed first pass 1; mode3 cs_high: predicted >= 9, observed first pass 9",
+   "rows": [
+    {
+     "mode": 0,
+     "param": "half_period",
+     "value": 1,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "half_period",
+     "value": 2,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "half_period",
+     "value": 3,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "half_period",
+     "value": 4,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "half_period",
+     "value": 5,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "half_period",
+     "value": 6,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "half_period",
+     "value": 7,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "half_period",
+     "value": 8,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "half_period",
+     "value": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "half_period",
+     "value": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "cs_setup",
+     "value": 1,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "cs_setup",
+     "value": 2,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "cs_setup",
+     "value": 3,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "cs_setup",
+     "value": 4,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "cs_setup",
+     "value": 5,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "cs_setup",
+     "value": 6,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "cs_setup",
+     "value": 7,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "cs_setup",
+     "value": 8,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "cs_setup",
+     "value": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "cs_setup",
+     "value": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 1,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 2,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 3,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 4,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 5,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 6,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 7,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 8,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 11,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 12,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 13,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 0,
+     "param": "cs_high",
+     "value": 14,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "half_period",
+     "value": 1,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 1,
+     "param": "half_period",
+     "value": 2,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 1,
+     "param": "half_period",
+     "value": 3,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 1,
+     "param": "half_period",
+     "value": 4,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "half_period",
+     "value": 5,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "half_period",
+     "value": 6,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "half_period",
+     "value": 7,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "half_period",
+     "value": 8,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "half_period",
+     "value": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "half_period",
+     "value": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_setup",
+     "value": 1,
+     "predicted_safe": false,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_setup",
+     "value": 2,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_setup",
+     "value": 3,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_setup",
+     "value": 4,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_setup",
+     "value": 5,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_setup",
+     "value": 6,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_setup",
+     "value": 7,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_setup",
+     "value": 8,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_setup",
+     "value": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_setup",
+     "value": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 1,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 2,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 3,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 4,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 5,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 6,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 7,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 8,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 11,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 12,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 13,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 1,
+     "param": "cs_high",
+     "value": 14,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "half_period",
+     "value": 1,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "half_period",
+     "value": 2,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "half_period",
+     "value": 3,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "half_period",
+     "value": 4,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "half_period",
+     "value": 5,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "half_period",
+     "value": 6,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "half_period",
+     "value": 7,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "half_period",
+     "value": 8,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "half_period",
+     "value": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "half_period",
+     "value": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "cs_setup",
+     "value": 1,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "cs_setup",
+     "value": 2,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "cs_setup",
+     "value": 3,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "cs_setup",
+     "value": 4,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "cs_setup",
+     "value": 5,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "cs_setup",
+     "value": 6,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "cs_setup",
+     "value": 7,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "cs_setup",
+     "value": 8,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "cs_setup",
+     "value": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "cs_setup",
+     "value": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 1,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 2,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 3,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 4,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 5,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 6,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 7,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 8,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 11,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 12,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 13,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 2,
+     "param": "cs_high",
+     "value": 14,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "half_period",
+     "value": 1,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 3,
+     "param": "half_period",
+     "value": 2,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 3,
+     "param": "half_period",
+     "value": 3,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 3,
+     "param": "half_period",
+     "value": 4,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "half_period",
+     "value": 5,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "half_period",
+     "value": 6,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "half_period",
+     "value": 7,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "half_period",
+     "value": 8,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "half_period",
+     "value": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "half_period",
+     "value": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_setup",
+     "value": 1,
+     "predicted_safe": false,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_setup",
+     "value": 2,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_setup",
+     "value": 3,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_setup",
+     "value": 4,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_setup",
+     "value": 5,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_setup",
+     "value": 6,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_setup",
+     "value": 7,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_setup",
+     "value": 8,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_setup",
+     "value": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_setup",
+     "value": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 1,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 2,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 3,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 4,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 5,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 6,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 7,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 8,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 11,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 12,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 13,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "mode": 3,
+     "param": "cs_high",
+     "value": 14,
+     "predicted_safe": true,
+     "observed_pass": true
+    }
+   ]
+  },
+  "i2c-target-phase": {
+   "agrees": true,
+   "exact": true,
+   "summary": "i2c-target-write: predicted phase >= 8 cycles (declared >= 16), observed first pass 8; i2c-target-write: mismatched second address faults 66 as documented; i2c-target-write: two transactions pass; i2c-target-read: predicted phase >= 8 cycles (declared >= 16), observed first pass 8; i2c-target-read: mismatched second address faults 66 as documented; i2c-target-read: two transactions pass, controller ACK faults 67 as documented",
+   "rows": [
+    {
+     "image": "i2c-target-write",
+     "phase": 2,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 3,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 4,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 5,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 6,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 7,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 8,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 11,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 12,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 13,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 14,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 15,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 16,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 17,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 18,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 19,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 20,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 16,
+     "trial": "two transactions",
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-write",
+     "phase": 16,
+     "trial": "second address wrong -> fault66",
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 2,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 3,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 4,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 5,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 6,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 7,
+     "predicted_safe": false,
+     "observed_pass": false
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 8,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 9,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 10,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 11,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 12,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 13,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 14,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 15,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 16,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 17,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 18,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 19,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 20,
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 16,
+     "trial": "two transactions",
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 16,
+     "trial": "second address wrong -> fault66",
+     "predicted_safe": true,
+     "observed_pass": true
+    },
+    {
+     "image": "i2c-target-read",
+     "phase": 16,
+     "trial": "controller ACK -> fault67",
+     "predicted_safe": true,
+     "observed_pass": true
+    }
+   ]
+  }
+ },
+ "errors": []
+}
