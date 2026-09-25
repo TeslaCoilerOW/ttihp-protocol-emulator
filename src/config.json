@@ -108,6 +108,13 @@
   "//": "Magic's cmos5l DRC lacks the SRAM rule exceptions and flags thousands of in-macro errors. Magic DRC",
   "//": "is not part of the cmos5l precheck; the precheck's KLayout SG13CMOS5L deck checks the real GDS.",
   "ERROR_ON_MAGIC_DRC": false,
+  "//": "All Magic markers lie inside the SRAM macros (docs/drc-triage.md); skipping the step saves ~40 min",
+  "//": "of the GitHub runner's 6 h limit. KLayout DRC in the precheck is the sign-off check.",
+  "RUN_MAGIC_DRC": false,
+
+  "//": "Half the 32.96 um gap between paired macros: the halos meet, so no std-cell rows and no short",
+  "//": "VPWR/VGND Metal4 straps (which fail the precheck Pin check) are generated between them.",
+  "FP_MACRO_HORIZONTAL_HALO": 16.48,
 
   "//": "Waived for ONE known case: POWER stripes cross the LEF Metal4 OBS at each macro's VDD!/VDDARRAY!",
   "//": "split (local y 39.085..45.205). The flattened GDS has no Metal4/Via3/TopMetal1 within 1 um of the",
