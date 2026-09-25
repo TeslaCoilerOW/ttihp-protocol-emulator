@@ -1,0 +1,28 @@
+# Integration invariants over the SRAM-refinement processor debug export,
+# from reset (first edge rst_n=0): ownership/open-drain masking, event
+# recurrence, single DMA grant, mover handshakes, host priority, round robin.
+[tasks]
+bmc
+prove
+
+[options]
+bmc: mode bmc
+bmc: depth 24
+prove: mode prove
+prove: depth 2
+
+[engines]
+smtbmc yices
+
+[script]
+read_verilog -DFUNCTIONAL -DSYNTHESIS RM_IHPSG13_1P_core_behavioral.v RM_IHPSG13_1P_64x16_c2.v
+read_verilog processor_debug.v
+read -formal processor_invariants.sv
+chparam -set WIDTH 32 -set ENGINES 4 -set DEPTH 8 processor_invariants
+prep -top processor_invariants
+
+[files]
+../models/RM_IHPSG13_1P_core_behavioral.v
+../models/RM_IHPSG13_1P_64x16_c2.v
+build/rtl/processor_debug.v
+processor_invariants.sv

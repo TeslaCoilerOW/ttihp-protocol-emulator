@@ -1,0 +1,3 @@
+# Generated RTL, dune build tree and sby work directories (formal/run.sh).
+# No trailing slash: formal/build may be a symlink (FORMAL_WORK).
+/build

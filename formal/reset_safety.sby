@@ -1,0 +1,24 @@
+# Reset/deselection safety of the committed Tiny Tapeout top (src/) with the
+# exact IHP SRAM FUNCTIONAL models. prove = k-induction (unbounded result).
+[tasks]
+prove
+
+[options]
+prove: mode prove
+prove: depth 4
+
+[engines]
+smtbmc yices
+
+[script]
+read_verilog -DFUNCTIONAL -DSYNTHESIS RM_IHPSG13_1P_core_behavioral.v RM_IHPSG13_1P_64x16_c2.v
+read_verilog project.v protocol_emulator_core.v
+read -formal reset_safety.sv
+prep -top reset_safety
+
+[files]
+../models/RM_IHPSG13_1P_core_behavioral.v
+../models/RM_IHPSG13_1P_64x16_c2.v
+../src/project.v
+../src/protocol_emulator_core.v
+reset_safety.sv

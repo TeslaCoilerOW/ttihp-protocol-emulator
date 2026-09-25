@@ -1,0 +1,21 @@
+# Production Engine.create (queue handshakes, reset/stop/fault release, WAIT,
+# NOP/JMP, blocked operations, LIMIT threshold), from reset.
+[tasks]
+bmc
+
+[options]
+bmc: mode bmc
+bmc: depth 24
+
+[engines]
+smtbmc yices
+
+[script]
+read_verilog engine.v
+read -formal engine_safety.sv
+chparam -set WIDTH 32 -set ENGINES 4 engine_safety
+prep -top engine_safety
+
+[files]
+build/rtl/engine.v
+engine_safety.sv

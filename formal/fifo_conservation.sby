@@ -1,0 +1,24 @@
+# Production ring-buffer FIFO (Fifo.create at the configured width/depth)
+# against an independent shift-queue specification, from reset.
+#   prove  unbounded proof by IC3/PDR (abc pdr finds the inductive invariant
+#          relating the ring buffer to the shift queue itself). BMC is not
+#          used: smtbmc/yices stalled near step 14 and abc bmc3 at depth 24
+#          did not finish in 300 s.
+[tasks]
+prove
+
+[options]
+prove: mode prove
+
+[engines]
+prove: abc pdr
+
+[script]
+read_verilog fifo.v
+read -formal fifo_conservation.sv
+chparam -set WIDTH 32 -set DEPTH 8 fifo_conservation
+prep -top fifo_conservation
+
+[files]
+build/rtl/fifo.v
+fifo_conservation.sv

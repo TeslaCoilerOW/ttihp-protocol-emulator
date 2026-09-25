@@ -1,0 +1,58 @@
+# Whole-chip timing isolation (non-interference) of engine K's protocol pins:
+# a miter of two SRAM-refinement processors (see timing_isolation.sv).
+#   prove        k-induction, engine K=0 (unbounded result)
+#   prove_k1..3  the same for engines 1..3
+#   bmc          bounded check from the same arbitrary synchronised state
+#   cover        non-vacuity witnesses (engine K toggles owned pins while the
+#                copies' host traffic, other engines and mover differ)
+#   neg_pull     NEGATIVE CONTROL, must FAIL: no exemption after PULL/PUSH/
+#                WAITEVENT, so host FIFO traffic reaches engine K's pins
+#   neg_mutant   NEGATIVE CONTROL, must FAIL: RTL mutant in which a host write
+#                strobe (ui_in[4]) disables engine K's instruction SRAM
+[tasks]
+prove plain
+prove_k1 prove plain
+prove_k2 prove plain
+prove_k3 prove plain
+bmc plain
+cover plain
+neg_pull
+neg_mutant
+
+[options]
+prove: mode prove
+prove: depth 2
+bmc: mode bmc
+bmc: depth 20
+cover: mode cover
+cover: depth 6
+neg_pull: mode bmc
+neg_pull: depth 12
+neg_pull: expect fail
+neg_mutant: mode bmc
+neg_mutant: depth 12
+neg_mutant: expect fail
+
+[engines]
+bmc: smtbmc bitwuzla
+~bmc: smtbmc yices
+
+[script]
+read_verilog -DFUNCTIONAL -DSYNTHESIS RM_IHPSG13_1P_core_behavioral.v RM_IHPSG13_1P_64x16_c2.v
+~neg_mutant: read_verilog processor_fv.v
+neg_mutant: read_verilog processor_fv_mutant.v
+plain: read -formal timing_isolation.sv
+neg_pull: read -formal -DNI_NO_EXEMPTION timing_isolation.sv
+neg_mutant: read -formal -DNI_PINS_ONLY timing_isolation.sv
+prove_k1: chparam -set K 1 timing_isolation
+prove_k2: chparam -set K 2 timing_isolation
+prove_k3: chparam -set K 3 timing_isolation
+chparam -set WIDTH 32 -set ENGINES 4 -set DEPTH 8 timing_isolation
+prep -top timing_isolation
+
+[files]
+../models/RM_IHPSG13_1P_core_behavioral.v
+../models/RM_IHPSG13_1P_64x16_c2.v
+~neg_mutant: build/rtl/processor_fv.v
+neg_mutant: build/rtl/processor_fv_mutant.v
+timing_isolation.sv

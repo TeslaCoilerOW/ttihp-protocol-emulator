@@ -1,0 +1,31 @@
+# Preservation of the processor invariants from an arbitrary valid state
+# (ownership disjoint, open-drain contained, FIFO levels bounded; all other
+# state, SRAM contents included, unconstrained).
+[tasks]
+bmc
+prove
+cover
+
+[options]
+bmc: mode bmc
+bmc: depth 8
+prove: mode prove
+prove: depth 2
+cover: mode cover
+cover: depth 4
+
+[engines]
+smtbmc yices
+
+[script]
+read_verilog -DFUNCTIONAL -DSYNTHESIS RM_IHPSG13_1P_core_behavioral.v RM_IHPSG13_1P_64x16_c2.v
+read_verilog processor_debug.v
+read -formal processor_inductive.sv
+chparam -set WIDTH 32 -set ENGINES 4 -set DEPTH 8 processor_inductive
+prep -top processor_inductive
+
+[files]
+../models/RM_IHPSG13_1P_core_behavioral.v
+../models/RM_IHPSG13_1P_64x16_c2.v
+build/rtl/processor_debug.v
+processor_inductive.sv

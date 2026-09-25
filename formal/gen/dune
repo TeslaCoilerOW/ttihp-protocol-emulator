@@ -1,0 +1,6 @@
+; Formal-only observation generator. run.sh copies this directory next to a
+; copy of hardcaml/lib in the formal build tree; it is never part of src/.
+(executable
+ (name generate_fv)
+ (modules generate_fv)
+ (libraries protocol_processor hardcaml))

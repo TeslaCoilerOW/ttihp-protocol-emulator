@@ -1,0 +1,127 @@
+name: formal
+# SymbiYosys proofs, bounded checks, covers and negative controls over RTL
+# generated from hardcaml/ (see formal/README.md). The OCaml pins and opam
+# cache are the same as regen.yaml; the OSS CAD Suite release is pinned.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  OCAML_COMPILER: "5.2.1"
+  OSS_CAD_SUITE: "2026-07-29"
+
+jobs:
+  rtl:
+    name: generate formal RTL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Install system packages
+        shell: bash
+        run: sudo apt-get update && sudo apt-get install -y libgmp-dev pkg-config
+
+      - name: Restore opam switch
+        uses: actions/cache@v6
+        with:
+          path: _opam
+          key: opam-${{ runner.os }}-${{ runner.arch }}-ocaml-${{ env.OCAML_COMPILER }}-${{ hashFiles('scripts/opam-deps.txt') }}
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: ${{ env.OCAML_COMPILER }}
+          cache: false
+          opam-pin: false
+
+      - name: Install pinned opam packages
+        shell: bash
+        run: |
+          opam install --yes $(grep -v '^#' scripts/opam-deps.txt)
+          opam list --installed --columns=name,version hardcaml yojson digestif dune
+
+      - name: Generate formal RTL
+        shell: bash
+        run: opam exec -- formal/run.sh --generate-only
+
+      - name: Upload formal RTL
+        uses: actions/upload-artifact@v7
+        with:
+          name: formal-rtl
+          path: formal/build/rtl/
+          if-no-files-found: error
+
+  sby:
+    name: ${{ matrix.job }}
+    needs: rtl
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - reset_safety
+          - fifo_conservation
+          - engine_safety
+          - processor_invariants_bmc
+          - processor_invariants_prove
+          - processor_inductive_bmc
+          - processor_inductive_prove
+          - processor_inductive_cover
+          - timing_isolation_prove_k0
+          - timing_isolation_prove_k1
+          - timing_isolation_prove_k2
+          - timing_isolation_prove_k3
+          - timing_isolation_bmc
+          - timing_isolation_cover
+          - timing_isolation_neg_pull
+          - timing_isolation_neg_mutant
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Download formal RTL
+        uses: actions/download-artifact@v8
+        with:
+          name: formal-rtl
+          path: formal/build/rtl
+
+      - name: Set up OSS CAD Suite
+        uses: YosysHQ/setup-oss-cad-suite@v4
+        with:
+          version: ${{ env.OSS_CAD_SUITE }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tool versions
+        run: yosys -V && sby --version
+
+      - name: Run ${{ matrix.job }}
+        shell: bash
+        env:
+          SBY_TIMEOUT: "1500"
+        run: formal/run.sh --no-generate ${{ matrix.job }}
+
+      - name: Job summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f formal/build/summary.tsv ]; then
+            { echo '```'; column -t -s $'\t' formal/build/summary.tsv; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload sby logs and traces
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sby-${{ matrix.job }}
+          path: |
+            formal/build/summary.tsv
+            formal/build/sby/*.log
+            formal/build/sby/*/logfile.txt
+            formal/build/sby/*/status
+            formal/build/sby/*/engine_*/*.vcd
+            formal/build/sby/*/engine_*/*.yw
+          if-no-files-found: ignore
