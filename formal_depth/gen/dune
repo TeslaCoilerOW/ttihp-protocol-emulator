@@ -1,0 +1,6 @@
+; Formal-depth observation generator. formal_depth/run.sh copies this
+; directory next to a copy of hardcaml/{lib,bin}; it is never part of src/.
+(executable
+ (name generate_fd)
+ (modules generate_fd)
+ (libraries protocol_processor hardcaml))

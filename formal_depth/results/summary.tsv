@@ -1,0 +1,162 @@
+task	status	expect	met	wall_s	deepest_step	slurm	partition	failed_assertions	run	engine_verdict
+deep_engine_safety_bmc128@abc-bmc3	PASS	PASS	yes	1158.1	127	23757106_1	mit_normal		deep2	PASS
+deep_engine_safety_bmc128@aiger-rIC3	PASS	PASS	yes	74.7		23757106_0	mit_normal		deep2	PASS
+deep_engine_safety_bmc128@btor-btormc	PASS	PASS	yes	95.8		23757106_2	mit_normal		deep2	pass
+deep_engine_safety_bmc128@smtbmc-bitwuzla	PASS	PASS	yes	515.6	127	23757106_3	mit_normal		deep2	pass
+deep_engine_safety_bmc64@abc-bmc3	PASS	PASS	yes	148.8	63	23752067_4	mit_preemptable		deep	PASS
+deep_engine_safety_bmc64@aiger-rIC3	PASS	PASS	yes	30.7		23752067_7	mit_preemptable		deep	PASS
+deep_engine_safety_bmc64@btor-btormc	PASS	PASS	yes	36.6		23752067_5	mit_preemptable		deep	pass
+deep_engine_safety_bmc64@btor-pono	PASS	PASS	yes	48.6		23752067_6	mit_preemptable		deep	pass
+deep_engine_safety_bmc64@smtbmc-bitwuzla	PASS	PASS	yes	53.3	63	23752067_2	mit_preemptable		deep	pass
+deep_engine_safety_bmc64@smtbmc-boolector	PASS	PASS	yes	118.7	63	23752067_1	mit_preemptable		deep	pass
+deep_engine_safety_bmc64@smtbmc-yices	PASS	PASS	yes	609.4	63	23752067_0	mit_preemptable		deep	pass
+deep_engine_safety_kind16@smtbmc-bitwuzla	UNKNOWN	PASS	no	59.4	14 (started 15)	23752067_15	mit_preemptable	engine_safety.sv:66 assert(!running && pin_enables == 0);	deep	FAIL,pass
+deep_engine_safety_kind16@smtbmc-yices	UNKNOWN	PASS	no	5.7	14 (started 15)	23752067_14	mit_preemptable	engine_safety.sv:66 assert(!running && pin_enables == 0);	deep	FAIL,pass
+deep_engine_safety_kind32@smtbmc-bitwuzla	UNKNOWN	PASS	no	246.7	30 (started 31)	23752067_17	mit_preemptable	engine_safety.sv:66 assert(!running && pin_enables == 0);	deep	FAIL,pass
+deep_engine_safety_kind32@smtbmc-yices	UNKNOWN	PASS	no	48.2	30 (started 31)	23752067_16	mit_preemptable	engine_safety.sv:66 assert(!running && pin_enables == 0);	deep	FAIL,pass
+deep_engine_safety_kind8@smtbmc-bitwuzla	UNKNOWN	PASS	no	24.2	6 (started 7)	23752067_13	mit_preemptable	engine_safety.sv:66 assert(!running && pin_enables == 0);	deep	FAIL,pass
+deep_engine_safety_kind8@smtbmc-yices	UNKNOWN	PASS	no	2.8	6 (started 7)	23752067_12	mit_preemptable	engine_safety.sv:66 assert(!running && pin_enables == 0);	deep	FAIL,pass
+deep_engine_safety_prove@aiger-avy	ERROR	PASS	no	4.4		23752067_10	mit_preemptable		deep	
+deep_engine_safety_prove@aiger-suprove	PASS	PASS	yes	97.5		23752067_11	mit_preemptable		deep	PASS
+deep_fifo_conservation_prove@abc-pdr	PASS	PASS	yes	217.6		23752067_18	mit_normal		deep	PASS
+deep_fifo_conservation_prove@aiger-avy	ERROR	PASS	no	1.4		23752067_20	mit_normal		deep	
+deep_fifo_conservation_prove@aiger-rIC3	PASS	PASS	yes	159.2		23752067_19	mit_normal		deep	PASS
+deep_fifo_conservation_prove@aiger-suprove	PASS	PASS	yes	1303.0		23752067_21	mit_normal		deep	PASS
+deep_processor_inductive_bmc48@abc-bmc3	PASS	PASS	yes	1360.5	47	23752066_20	mit_preemptable		deep	PASS
+deep_processor_inductive_bmc48@aiger-rIC3	PASS	PASS	yes	206.6		23752066_23	mit_preemptable		deep	PASS
+deep_processor_inductive_bmc48@btor-btormc	PASS	PASS	yes	66.8		23752066_21	mit_preemptable		deep	pass
+deep_processor_inductive_bmc48@btor-pono	PASS	PASS	yes	160.5		23752066_22	mit_preemptable		deep	pass
+deep_processor_inductive_bmc48@smtbmc-bitwuzla	PASS	PASS	yes	1489.2	47	23752066_18	mit_preemptable		deep	pass
+deep_processor_inductive_bmc48@smtbmc-boolector	PASS	PASS	yes	1005.7	47	23752066_17	mit_preemptable		deep	pass
+deep_processor_inductive_bmc96@abc-bmc3	PASS	PASS	yes	4020.6	95	23757105_7	mit_preemptable		deep2	PASS
+deep_processor_inductive_bmc96@aiger-rIC3	PASS	PASS	yes	699.3		23757105_6	mit_preemptable		deep2	PASS
+deep_processor_inductive_bmc96@btor-btormc	PASS	PASS	yes	292.4		23757105_8	mit_preemptable		deep2	pass
+deep_processor_invariants_bmc128@abc-bmc3	PASS	PASS	yes	361.7	127	23757105_4	mit_preemptable		deep2	PASS
+deep_processor_invariants_bmc128@aiger-rIC3	PASS	PASS	yes	3000.3		23757105_3	mit_preemptable		deep2	PASS
+deep_processor_invariants_bmc128@btor-btormc	PASS	PASS	yes	393.8		23757105_5	mit_preemptable		deep2	pass
+deep_processor_invariants_bmc64@abc-bmc3	PASS	PASS	yes	76.7	63	23752066_12	mit_preemptable		deep	PASS
+deep_processor_invariants_bmc64@aiger-rIC3	PASS	PASS	yes	278.3		23752066_15	mit_preemptable		deep	PASS
+deep_processor_invariants_bmc64@btor-btormc	PASS	PASS	yes	134.7		23752066_13	mit_preemptable		deep	pass
+deep_processor_invariants_bmc64@btor-pono	PASS	PASS	yes	264.5		23752066_14	mit_preemptable		deep	pass
+deep_processor_invariants_bmc64@smtbmc-bitwuzla	PASS	PASS	yes	348.5	63	23752066_10	mit_preemptable		deep	pass
+deep_processor_invariants_bmc64@smtbmc-boolector	PASS	PASS	yes	700.2	63	23752066_9	mit_preemptable		deep	pass
+deep_timing_isolation_bmc100@aiger-rIC3	PASS	PASS	yes	2643.4		23757105_0	mit_preemptable		deep2	PASS
+deep_timing_isolation_bmc60@aiger-rIC3	PASS	PASS	yes	1226.5		23752066_7	mit_preemptable		deep	PASS
+deep_timing_isolation_bmc60@smtbmc-bitwuzla	PASS	PASS	yes	7038.0	59	23752066_2	mit_preemptable		deep	pass
+engine_inductive_ic3@abc-pdr	TIMEOUT	PASS	no	800.3		23757443_9	mit_preemptable		engind	
+engine_inductive_ic3@aiger-rIC3	PASS	PASS	yes	9.9		23757443_10	mit_preemptable		engind	PASS
+engine_inductive_ic3@aiger-suprove	UNKNOWN	PASS	no	4926.1		23767637_1	mit_normal		engind2	UNKNOWN
+engine_inductive_kind2@smtbmc-bitwuzla	PASS	PASS	yes	9.9	1	23757443_1	mit_preemptable		engind	pass
+engine_inductive_kind2@smtbmc-boolector	PASS	PASS	yes	8.9	1	23757443_2	mit_preemptable		engind	pass
+engine_inductive_kind2@smtbmc-yices	PASS	PASS	yes	9.8	1	23757443_0	mit_preemptable		engind	pass
+engine_inductive_kind4@smtbmc-bitwuzla	PASS	PASS	yes	9.2	3	23757443_4	mit_preemptable		engind	pass
+engine_inductive_kind4@smtbmc-boolector	PASS	PASS	yes	9.2	3	23757443_5	mit_preemptable		engind	pass
+engine_inductive_kind4@smtbmc-yices	PASS	PASS	yes	9.5	3	23757443_3	mit_preemptable		engind	pass
+engine_inductive_kind8@smtbmc-bitwuzla	PASS	PASS	yes	10.0	7	23757443_7	mit_preemptable		engind	pass
+engine_inductive_kind8@smtbmc-boolector	PASS	PASS	yes	9.9	7	23757443_8	mit_preemptable		engind	pass
+engine_inductive_kind8@smtbmc-yices	PASS	PASS	yes	9.9	7	23757443_6	mit_preemptable		engind	pass
+fault_any_cover@smtbmc-bitwuzla	PASS	PASS	yes	216.0	2	23767452_1	mit_normal		props5	pass
+fault_any_cover@smtbmc-yices	PASS	PASS	yes	14.2	2	23767452_0	mit_normal		props5	pass
+fault_bmc40@abc-bmc3	PASS	PASS	yes	58.1	39	23756748_29	mit_preemptable		props2	PASS
+fault_bmc40@btor-btormc	PASS	PASS	yes	57.0		23756748_30	mit_preemptable		props2	pass
+fault_bmc40@smtbmc-bitwuzla	PASS	PASS	yes	158.0	39	23756748_27	mit_preemptable		props2	pass
+fault_bmc40@smtbmc-boolector	PASS	PASS	yes	127.8	39	23756748_28	mit_preemptable		props2	pass
+fault_bmc40@smtbmc-yices	PASS	PASS	yes	219.6	39	23756748_26	mit_preemptable		props2	pass
+fault_cover@smtbmc-yices	PASS	PASS	yes	2778.8	54	23767451_0	mit_normal		props5	pass
+fault_prove@abc-pdr	PASS	PASS	yes	74.2		23756749_51	mit_preemptable		props2	PASS
+fault_prove@aiger-rIC3	PASS	PASS	yes	123.2		23756749_52	mit_preemptable		props2	PASS
+fault_prove@aiger-suprove	PASS	PASS	yes	545.2		23756749_53	mit_preemptable		props2	PASS
+fault_prove@smtbmc-bitwuzla	PASS	PASS	yes	7.1	3	23756749_49	mit_preemptable		props2	pass
+fault_prove@smtbmc-boolector	PASS	PASS	yes	12.5	3	23756749_50	mit_preemptable		props2	pass
+fault_prove@smtbmc-yices	PASS	PASS	yes	2.9	3	23756749_48	mit_preemptable		props2	pass
+host_bmc40@abc-bmc3	PASS	PASS	yes	425.3	39	23756997_3	mit_preemptable		props3	PASS
+host_bmc40@btor-btormc	PASS	PASS	yes	367.3		23756997_4	mit_preemptable		props3	pass
+host_bmc40@smtbmc-bitwuzla	PASS	PASS	yes	275.2	39	23756997_1	mit_preemptable		props3	pass
+host_bmc40@smtbmc-boolector	PASS	PASS	yes	158.2	39	23756997_2	mit_preemptable		props3	pass
+host_bmc40@smtbmc-yices	PASS	PASS	yes	873.5	39	23756997_0	mit_preemptable		props3	pass
+host_cover@smtbmc-yices	PASS	PASS	yes	573.9	45	23756997_5	mit_preemptable		props3	pass
+host_prove@abc-pdr	PASS	PASS	yes	655.5		23756999_3	mit_preemptable		props3	PASS
+host_prove@aiger-rIC3	PASS	PASS	yes	291.2		23756999_4	mit_preemptable		props3	PASS
+host_prove@aiger-suprove	UNKNOWN	PASS	no	5108.1		23756999_5	mit_preemptable		props3	UNKNOWN
+host_prove@smtbmc-bitwuzla	PASS	PASS	yes	25.3	3	23756999_1	mit_preemptable		props3	pass
+host_prove@smtbmc-boolector	PASS	PASS	yes	10.1	3	23756999_2	mit_preemptable		props3	pass
+host_prove@smtbmc-yices	PASS	PASS	yes	20.5	3	23756999_0	mit_preemptable		props3	pass
+load_bmc48@abc-bmc3	PASS	PASS	yes	252.6	47	23756748_10	mit_preemptable		props2	PASS
+load_bmc48@btor-btormc	PASS	PASS	yes	1222.3		23756748_11	mit_preemptable		props2	pass
+load_bmc48@smtbmc-bitwuzla	PASS	PASS	yes	426.3	47	23756748_8	mit_preemptable		props2	pass
+load_bmc48@smtbmc-boolector	PASS	PASS	yes	347.8	47	23756748_9	mit_preemptable		props2	pass
+load_bmc48@smtbmc-yices	PASS	PASS	yes	4596.1	47	23756748_7	mit_preemptable		props2	pass
+load_cover@smtbmc-yices	PASS	PASS	yes	1719.8	45	23756748_12	mit_preemptable		props2	pass
+load_prove@smtbmc-bitwuzla	PASS	PASS	yes	5.1	3	23756749_13	mit_normal		props2	pass
+load_prove@smtbmc-boolector	PASS	PASS	yes	5.2	3	23756749_14	mit_normal		props2	pass
+load_prove@smtbmc-yices	PASS	PASS	yes	3.9	3	23756749_12	mit_normal		props2	pass
+load_prove_word@aiger-suprove	UNKNOWN	PASS	no	5311.6		23756749_17	mit_normal		props2	UNKNOWN
+mover_any_bmc24@abc-bmc3	PASS	PASS	yes	426.7	23	23760772_8	mit_preemptable		props4	PASS
+mover_any_bmc24@smtbmc-bitwuzla	PASS	PASS	yes	3007.3	23	23760772_6	mit_preemptable		props4	pass
+mover_any_bmc24@smtbmc-boolector	PASS	PASS	yes	5662.4	23	23760772_7	mit_preemptable		props4	pass
+mover_any_cover@smtbmc-bitwuzla	PASS	PASS	yes	817.3	5	23760775_7	mit_normal		props4	pass
+mover_any_cover@smtbmc-yices	PASS	PASS	yes	14.1	5	23760775_6	mit_normal		props4	pass
+mover_bmc40@abc-bmc3	PASS	PASS	yes	80.8	39	23760772_3	mit_preemptable		props4	PASS
+mover_bmc40@btor-btormc	PASS	PASS	yes	354.7		23760772_4	mit_preemptable		props4	pass
+mover_bmc40@smtbmc-bitwuzla	PASS	PASS	yes	433.2	39	23760772_1	mit_preemptable		props4	pass
+mover_bmc40@smtbmc-boolector	PASS	PASS	yes	603.3	39	23760772_2	mit_preemptable		props4	pass
+mover_bmc40@smtbmc-yices	PASS	PASS	yes	417.7	39	23760772_0	mit_preemptable		props4	pass
+mover_cover@smtbmc-bitwuzla	TIMEOUT	PASS	no	840.1	44 (started 45)	23760907_1	mit_preemptable		moverq	
+mover_cover@smtbmc-yices	FAIL	PASS	no	6458.2	63	23760772_10	mit_preemptable		props4	FAIL
+mover_prove@abc-pdr	PASS	PASS	yes	1169.6		23760775_3	mit_preemptable		props4	PASS
+mover_prove@aiger-rIC3	PASS	PASS	yes	388.7		23760775_4	mit_preemptable		props4	PASS
+mover_prove@aiger-suprove	UNKNOWN	PASS	no	4869.3		23760775_5	mit_preemptable		props4	UNKNOWN
+mover_prove@smtbmc-bitwuzla	PASS	PASS	yes	57.3	3	23760892_1	mit_preemptable		moverq	pass
+mover_prove@smtbmc-boolector	PASS	PASS	yes	45.4	3	23760775_2	mit_preemptable		props4	pass
+mover_prove@smtbmc-yices	PASS	PASS	yes	80.7	3	23760892_0	mit_preemptable		moverq	pass
+neg_fault_keeps_oe@smtbmc-yices	FAIL	FAIL	yes	105.5	37	23756748_35	mit_preemptable	spec_fault_stops (fault_release.sv:60)	props2	FAIL
+neg_fault_restart@smtbmc-yices	FAIL	FAIL	yes	258.9	43	23756748_33	mit_preemptable	spec_no_start_faulted (fault_release.sv:57)	props2	FAIL
+neg_host_early_commit@smtbmc-bitwuzla	FAIL	FAIL	yes	88.3	8	23756999_7	mit_preemptable	spec_cmd_eighth (host_protocol.sv:124)	props3	FAIL
+neg_host_early_commit@smtbmc-yices	FAIL	FAIL	yes	14.0	8	23756999_6	mit_preemptable	spec_cmd_eighth (host_protocol.sv:124)	props3	FAIL
+neg_host_keep_partial@smtbmc-bitwuzla	FAIL	FAIL	yes	260.3	10	23756999_9	mit_preemptable	spec_tx_eighth (host_protocol.sv:145)	props3	FAIL
+neg_host_keep_partial@smtbmc-yices	FAIL	FAIL	yes	12.8	10	23756999_8	mit_preemptable	spec_tx_eighth (host_protocol.sv:145)	props3	FAIL
+neg_host_live_read@smtbmc-bitwuzla	FAIL	FAIL	yes	324.8	10	23756999_11	mit_preemptable	spec_read_stable (host_protocol.sv:169)	props3	FAIL
+neg_host_live_read@smtbmc-yices	FAIL	FAIL	yes	8.5	10	23756999_10	mit_preemptable	spec_read_stable (host_protocol.sv:169)	props3	FAIL
+neg_load_partial_commit@smtbmc-yices	FAIL	FAIL	yes	34.8	26	23756749_18	mit_normal	spec_run_committed (program_load.sv:81)	props2	FAIL
+neg_load_start_uncommitted@smtbmc-bitwuzla	FAIL	FAIL	yes	175.7	10	23756749_21	mit_normal	spec_run_committed (program_load.sv:81)	props2	FAIL
+neg_load_start_uncommitted@smtbmc-yices	FAIL	FAIL	yes	8.0	10	23756749_20	mit_normal	spec_run_committed (program_load.sv:81)	props2	FAIL
+neg_mover_no_pop@smtbmc-bitwuzla	FAIL	FAIL	yes	46.5	2	23760775_13	mit_preemptable	spec_grant_pop (mover.sv:193)	props4	FAIL
+neg_mover_no_pop@smtbmc-yices	FAIL	FAIL	yes	24.5	2	23760775_12	mit_preemptable	spec_grant_pop (mover.sv:193)	props4	FAIL
+neg_mover_quota_on_eligible@smtbmc-bitwuzla	FAIL	FAIL	yes	33.0	2	23760775_11	mit_preemptable	spec_quota (mover.sv:201)	props4	FAIL
+neg_mover_quota_on_eligible@smtbmc-yices	FAIL	FAIL	yes	14.8	2	23760775_10	mit_normal	spec_quota (mover.sv:201)	props4	FAIL
+neg_mover_wrong_data@smtbmc-bitwuzla	FAIL	FAIL	yes	40.7	2	23760775_9	mit_normal	spec_grant_data (mover.sv:196)	props4	FAIL
+neg_mover_wrong_data@smtbmc-yices	FAIL	FAIL	yes	16.7	2	23760775_8	mit_normal	spec_grant_data (mover.sv:196)	props4	FAIL
+neg_pin_od_drive_high@smtbmc-yices	FAIL	FAIL	yes	433.1	45	23756748_44	mit_preemptable	spec_open_drain_high (pin_safety.sv:43); spec_pin_model_out (pin_safety.sv:60)	props2	FAIL
+neg_pin_own_overlap@smtbmc-yices	FAIL	FAIL	yes	66.0	26	23756749_60	mit_preemptable	spec_own_disjoint (pin_safety.sv:64)	props2	FAIL
+neg_rr_no_advance@smtbmc-bitwuzla	FAIL	FAIL	yes	107.9	4	23756749_47	mit_preemptable	spec_bound_grant (rr_bound.sv:48)	props2	FAIL
+neg_rr_no_advance@smtbmc-yices	FAIL	FAIL	yes	5.0	4	23756749_46	mit_preemptable	spec_bound_grant (rr_bound.sv:48)	props2	FAIL
+pin_any_cover@smtbmc-bitwuzla	PASS	PASS	yes	77.2	2	23767452_3	mit_normal		props5	pass
+pin_any_cover@smtbmc-yices	PASS	PASS	yes	5.0	2	23767452_2	mit_normal		props5	pass
+pin_bmc40@abc-bmc3	PASS	PASS	yes	61.0	39	23756748_40	mit_preemptable		props2	PASS
+pin_bmc40@btor-btormc	PASS	PASS	yes	32.3		23756748_41	mit_preemptable		props2	pass
+pin_bmc40@smtbmc-bitwuzla	PASS	PASS	yes	215.6	39	23756748_38	mit_preemptable		props2	pass
+pin_bmc40@smtbmc-boolector	PASS	PASS	yes	168.2	39	23756748_39	mit_preemptable		props2	pass
+pin_bmc40@smtbmc-yices	PASS	PASS	yes	260.6	39	23756748_37	mit_preemptable		props2	pass
+pin_cover@smtbmc-yices	FAIL	PASS	no	1550.0	59	23756748_42	mit_preemptable		props2	FAIL
+pin_prove@abc-pdr	PASS	PASS	yes	77.5		23756749_57	mit_preemptable		props2	PASS
+pin_prove@aiger-rIC3	PASS	PASS	yes	129.0		23756749_58	mit_preemptable		props2	PASS
+pin_prove@aiger-suprove	PASS	PASS	yes	711.0		23756749_59	mit_preemptable		props2	PASS
+pin_prove@smtbmc-bitwuzla	PASS	PASS	yes	6.6	3	23756749_55	mit_preemptable		props2	pass
+pin_prove@smtbmc-boolector	PASS	PASS	yes	4.6	3	23756749_56	mit_preemptable		props2	pass
+pin_prove@smtbmc-yices	PASS	PASS	yes	5.4	3	23756749_54	mit_preemptable		props2	pass
+rr_bmc24@abc-bmc3	PASS	PASS	yes	17.7	23	23756749_43	mit_preemptable		props2	PASS
+rr_bmc24@smtbmc-yices	PASS	PASS	yes	87.8	23	23756749_42	mit_normal		props2	pass
+rr_cover@smtbmc-bitwuzla	PASS	PASS	yes	472.9	4	23756749_45	mit_preemptable		props2	pass
+rr_cover@smtbmc-yices	PASS	PASS	yes	13.5	4	23756749_44	mit_preemptable		props2	pass
+rr_prove@abc-pdr	PASS	PASS	yes	10.5		23756749_39	mit_normal		props2	PASS
+rr_prove@aiger-rIC3	PASS	PASS	yes	16.4		23756749_40	mit_normal		props2	PASS
+rr_prove@aiger-suprove	PASS	PASS	yes	12.4		23756749_41	mit_normal		props2	PASS
+rr_prove@smtbmc-bitwuzla	PASS	PASS	yes	5.5	3	23756749_37	mit_preemptable		props2	pass
+rr_prove@smtbmc-boolector	PASS	PASS	yes	3.6	3	23756749_38	mit_normal		props2	pass
+rr_prove@smtbmc-yices	PASS	PASS	yes	4.2	3	23756749_36	mit_preemptable		props2	pass
+xcheck_ti_neg_mutant@abc-bmc3	ERROR	FAIL	no	28.1	3	23770778_1	mit_preemptable		xcheck	FAIL
+xcheck_ti_neg_mutant@aiger-rIC3	ERROR	FAIL	no	86.8		23770778_0	mit_preemptable		xcheck	FAIL
+xcheck_ti_neg_mutant@btor-btormc	FAIL	FAIL	yes	3.8		23770778_2	mit_preemptable		xcheck	FAIL
+xcheck_ti_neg_pull@abc-bmc3	ERROR	FAIL	no	24.8	2	23770778_4	mit_preemptable		xcheck	FAIL
+xcheck_ti_neg_pull@aiger-rIC3	ERROR	FAIL	no	136.4		23770778_3	mit_preemptable		xcheck	FAIL
+xcheck_ti_neg_pull@btor-btormc	FAIL	FAIL	yes	5.2		23770778_5	mit_preemptable		xcheck	FAIL
