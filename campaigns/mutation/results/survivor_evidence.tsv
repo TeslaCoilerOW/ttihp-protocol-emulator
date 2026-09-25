@@ -1,0 +1,574 @@
+id	region	mode	port	equiv	rip	deep	directed	diverged_state	outputs
+4	engine_ctrl	cnot0	A[14]	not_proven	internal_only	killed	survived	wait_limit_0:102083	
+5	engine_ctrl	const0	B[19]	equivalent	not_activated	survived	survived		
+12	engine_ctrl	cnot1	Y[31]	not_proven	not_activated	survived	survived		
+15	engine_ctrl	cnot1	Y[5]	not_proven	not_activated	survived	survived		
+18	engine_ctrl	const0	B[9]	not_proven	not_activated	survived	survived		
+19	engine_ctrl	const1	B[8]	not_proven	internal_only	survived	survived	blocked_cycles_2:4241	
+25	engine_ctrl	cnot0	B[12]	not_proven	internal_only	survived	survived	blocked_cycles_1:2671	
+30	engine_ctrl	cnot1	A[25]	not_proven	not_activated	survived	survived		
+32	engine_ctrl	cnot1	B[8]	equivalent	not_activated	survived	survived		
+33	engine_ctrl	cnot1	Y[2]	not_proven	not_activated	survived	survived		
+40	engine_ctrl	cnot1	Y[6]	not_proven	not_activated	survived	survived		
+43	engine_ctrl	inv	A[0]	not_proven	internal_only	survived	survived	blocked_cycles_0:3849	
+45	engine_ctrl	cnot1	B[11]	not_proven	internal_only	killed	survived	completed_instructions:774	
+46	engine_ctrl	const0	B[13]	equivalent	not_activated	survived	survived		
+47	engine_ctrl	const1	B[18]	not_proven	internal_only	survived	survived	blocked_cycles_2:28644	
+50	engine_ctrl	cnot1	A[21]	not_proven	not_activated	survived	survived		
+57	engine_ctrl	cnot1	A[22]	not_proven	not_activated	survived	survived		
+59	engine_ctrl	cnot1	A[8]	not_proven	not_activated	survived	survived		
+61	engine_ctrl	const0	B[3]	equivalent	not_activated	survived	survived		
+62	engine_ctrl	cnot1	B[17]	not_proven	not_activated	survived	survived		
+63	engine_ctrl	cnot1	Y[21]	not_proven	not_activated	survived	survived		
+65	engine_ctrl	const0	B[15]	not_proven	not_activated	survived	survived		
+67	engine_ctrl	cnot1	B[3]	not_proven	not_activated	survived	survived		
+68	engine_ctrl	cnot1	B[28]	not_proven	not_activated	survived	survived		
+70	engine_ctrl	const0	Y[14]	not_proven	not_activated	survived	survived		
+76	engine_ctrl	const0	Y[0]	not_proven	not_activated	survived	survived		
+77	engine_ctrl	const0	A[12]	not_proven	not_activated	survived	survived		
+79	engine_ctrl	const0	B[2]	not_proven	not_activated	killed	survived		
+80	engine_ctrl	inv	Y[0]	not_proven	internal_only	killed	killed	blocked_cycles_1:30071	
+83	engine_ctrl	cnot1	A[12]	not_proven	not_activated	survived	survived		
+84	engine_ctrl	cnot1	B[7]	equivalent	not_activated	survived	survived		
+88	engine_ctrl	cnot1	A[17]	not_proven	not_activated	survived	survived		
+92	engine_ctrl	cnot1	A[19]	not_proven	not_activated	survived	survived		
+94	engine_ctrl	const0	Y[8]	not_proven	not_activated	survived	survived		
+95	engine_ctrl	const0	A[13]	not_proven	not_activated	survived	survived		
+98	engine_ctrl	const1	A[1]	not_proven	internal_only	killed	killed	blocked_cycles_1:36026	
+102	engine_ctrl	cnot1	Y[12]	equivalent	not_activated	survived	survived		
+103	engine_ctrl	cnot1	B[2]	equivalent	not_activated	survived	survived		
+104	engine_ctrl	const0	Y[29]	not_proven	not_activated	survived	survived		
+105	engine_ctrl	cnot0	B[17]	not_proven	internal_only	survived	survived	wait_limit_1:15452	
+107	engine_ctrl	const1	A[19]	not_proven	internal_only	killed	survived	blocked_cycles:19135	
+113	engine_ctrl	const0	A[9]	not_proven	not_activated	survived	survived		
+116	engine_ctrl	const0	Y[16]	not_proven	not_activated	survived	survived		
+118	engine_ctrl	const1	B[18]	not_proven	internal_only	survived	survived	blocked_cycles:13564	
+119	engine_ctrl	cnot1	A[7]	equivalent	not_activated	survived	survived		
+124	engine_ctrl	const0	Y[13]	not_proven	internal_only	survived	killed	repeat_count_0:5	
+126	engine_ctrl	cnot1	A[7]	not_proven	not_activated	survived	survived		
+132	engine_ctrl	const1	A[9]	not_proven	internal_only	killed	survived	blocked_cycles_0:42289	
+138	engine_ctrl	cnot1	A[23]	not_proven	not_activated	survived	survived		
+139	engine_ctrl	const0	Y[14]	not_proven	not_activated	survived	survived		
+140	engine_ctrl	const0	Y[12]	not_proven	internal_only	survived	survived	wait_limit_2:147514	
+141	engine_ctrl	const0	B[29]	not_proven	not_activated	survived	survived		
+143	engine_ctrl	const1	B[14]	not_proven	internal_only	survived	survived	wait_timer_2:32491	
+145	engine_ctrl	const0	Y[23]	not_proven	not_activated	survived	survived		
+149	engine_ctrl	const0	A[10]	not_proven	internal_only	killed	survived	blocked_cycles_2:7521	
+155	engine_ctrl	cnot1	B[10]	equivalent	not_activated	survived	survived		
+157	engine_ctrl	cnot1	B[6]	not_proven	not_activated	survived	survived		
+159	engine_ctrl	cnot1	A[26]	not_proven	not_activated	survived	survived		
+160	engine_ctrl	const0	B[19]	not_proven	not_activated	survived	survived		
+169	engine_ctrl	const0	D[19]	not_proven	internal_only	survived	survived	pc_1:5	
+170	engine_ctrl	const0	B[16]	not_proven	not_activated	survived	survived		
+171	engine_ctrl	cnot1	A[10]	not_proven	not_activated	survived	survived		
+173	engine_ctrl	const0	A[19]	not_proven	not_activated	survived	survived		
+174	engine_ctrl	cnot1	A[0]	not_proven	not_activated	survived	killed		
+175	engine_ctrl	cnot1	A[28]	not_proven	not_activated	survived	survived		
+182	engine_ctrl	const0	A[23]	not_proven	not_activated	survived	survived		
+185	engine_ctrl	cnot1	B[4]	not_proven	not_activated	survived	survived		
+186	engine_ctrl	const0	B[14]	equivalent	not_activated	survived	survived		
+188	engine_ctrl	const1	Y[4]	not_proven	internal_only	survived	survived	blocked_cycles_0:18931	
+189	engine_ctrl	inv	A[0]	not_proven	internal_only	survived	survived	blocked_cycles_0:114462	
+191	engine_ctrl	inv	A[4]	not_proven	internal_only	survived	survived	blocked_cycles_1:4038	
+192	engine_ctrl	cnot1	A[5]	not_proven	not_activated	survived	survived		
+195	engine_ctrl	cnot1	A[4]	not_proven	not_activated	survived	killed		
+196	engine_ctrl	inv	Y[22]	not_proven	internal_only	survived	survived	blocked_cycles_2:10994	
+203	engine_ctrl	cnot1	Y[1]	not_proven	not_activated	survived	survived		
+204	engine_ctrl	const0	Q[6]	not_proven	internal_only	killed	survived	wait_limit_0:110842	
+209	engine_ctrl	const0	B[3]	equivalent	not_activated	survived	survived		
+211	engine_ctrl	const0	A[22]	not_proven	not_activated	survived	survived		
+215	engine_ctrl	cnot1	B[16]	not_proven	not_activated	survived	survived		
+217	engine_ctrl	const0	B[23]	not_proven	not_activated	survived	survived		
+221	engine_ctrl	cnot1	A[0]	not_proven	not_activated	killed	survived		
+224	engine_ctrl	const0	Y[21]	not_proven	not_activated	survived	survived		
+225	engine_ctrl	const0	A[5]	not_proven	not_activated	survived	survived		
+226	engine_ctrl	const0	Y[14]	not_proven	not_activated	survived	survived		
+231	engine_ctrl	const0	Y[12]	not_proven	internal_only	survived	killed	completed_instructions:5	
+233	engine_ctrl	cnot1	A[10]	not_proven	not_activated	survived	survived		
+234	engine_ctrl	const0	A[9]	not_proven	internal_only	survived	survived	wait_timer_1:5	
+240	engine_ctrl	const1	Y[1]	not_proven	internal_only	killed	survived	blocked_cycles:40759	
+241	engine_ctrl	const1	B[14]	not_proven	internal_only	killed	survived	blocked_cycles_0:4104	
+246	engine_ctrl	const1	A[12]	not_proven	internal_only	killed	killed	blocked_cycles_2:70503	
+251	engine_ctrl	const0	B[16]	not_proven	not_activated	survived	survived		
+254	engine_ctrl	cnot1	A[16]	not_proven	not_activated	survived	survived		
+257	engine_ctrl	const0	Y[22]	not_proven	not_activated	survived	survived		
+261	engine_ctrl	cnot1	Y[5]	not_proven	not_activated	survived	survived		
+262	engine_ctrl	const0	B[2]	equivalent	not_activated	survived	survived		
+265	engine_ctrl	const0	B[17]	equivalent	not_activated	survived	survived		
+266	engine_ctrl	cnot1	Y[10]	not_proven	not_activated	survived	survived		
+268	engine_ctrl	cnot1	D[2]	not_proven	not_activated	survived	killed		
+271	engine_ctrl	const0	Y[13]	not_proven	not_activated	survived	killed		
+275	engine_ctrl	const1	B[17]	not_proven	internal_only	killed	survived	blocked_cycles:745	
+276	engine_ctrl	cnot1	A[22]	not_proven	not_activated	survived	survived		
+277	engine_ctrl	const0	B[20]	equivalent	not_activated	survived	survived		
+279	engine_ctrl	const0	A[22]	not_proven	not_activated	survived	survived		
+282	engine_ctrl	const0	B[25]	not_proven	not_activated	survived	survived		
+284	engine_ctrl	const0	Q[17]	not_proven	internal_only	survived	survived	completed_instructions_0:5	
+285	engine_ctrl	const0	A[17]	not_proven	not_activated	survived	survived		
+287	engine_ctrl	cnot1	A[5]	not_proven	not_activated	survived	survived		
+293	engine_ctrl	cnot1	A[30]	not_proven	not_activated	survived	survived		
+297	engine_ctrl	cnot1	A[17]	not_proven	not_activated	survived	survived		
+302	engine_ctrl	const0	B[13]	not_proven	not_activated	survived	survived		
+303	engine_ctrl	const0	A[20]	not_proven	not_activated	survived	survived		
+308	engine_ctrl	const0	Y[31]	not_proven	not_activated	survived	survived		
+309	engine_ctrl	cnot1	Y[23]	not_proven	not_activated	survived	survived		
+311	engine_ctrl	cnot1	Y[7]	not_proven	internal_only	survived	survived	blocked_cycles:3506	
+312	engine_ctrl	const0	A[27]	not_proven	not_activated	survived	survived		
+313	engine_ctrl	cnot1	A[1]	not_proven	not_activated	survived	survived		
+315	engine_ctrl	const0	B[14]	not_proven	not_activated	survived	survived		
+317	engine_ctrl	const0	B[23]	not_proven	not_activated	survived	survived		
+318	engine_ctrl	const0	A[12]	not_proven	not_activated	survived	survived		
+322	engine_ctrl	const0	A[19]	not_proven	not_activated	survived	survived		
+323	engine_ctrl	cnot1	Y[10]	not_proven	not_activated	survived	survived		
+325	engine_ctrl	inv	A[9]	not_proven	internal_only	survived	survived	wait_timer_0:109066	
+326	engine_ctrl	const0	Y[21]	not_proven	not_activated	survived	survived		
+327	engine_ctrl	const0	A[19]	not_proven	not_activated	survived	survived		
+328	engine_ctrl	inv	A[28]	not_proven	internal_only	killed	survived	completed_instructions_0:13654,_3612:54	
+329	engine_ctrl	cnot1	A[19]	not_proven	not_activated	survived	survived		
+336	engine_ctrl	const1	A[23]	not_proven	internal_only	killed	killed	blocked_cycles_1:36522	
+338	engine_ctrl	cnot1	Y[13]	not_proven	not_activated	survived	survived		
+341	engine_ctrl	cnot0	A[10]	not_proven	internal_only	killed	killed	blocked_cycles_2:67341	
+344	engine_ctrl	cnot1	B[22]	equivalent	not_activated	survived	survived		
+347	engine_ctrl	const1	B[16]	not_proven	internal_only	killed	survived	blocked_cycles_1:15	
+348	engine_ctrl	const0	Y[11]	not_proven	not_activated	survived	survived		
+357	engine_ctrl	const0	A[10]	not_proven	not_activated	survived	survived		
+361	engine_ctrl	const0	B[16]	not_proven	not_activated	survived	survived		
+362	engine_ctrl	const0	Y[13]	not_proven	internal_only	survived	killed	wait_limit_1:108231	
+363	engine_ctrl	const0	B[8]	not_proven	not_activated	survived	survived		
+364	engine_ctrl	const0	A[11]	not_proven	not_activated	survived	survived		
+367	engine_ctrl	cnot1	A[7]	not_proven	not_activated	survived	survived		
+368	engine_ctrl	const0	A[21]	not_proven	not_activated	survived	survived		
+369	engine_ctrl	inv	B[3]	not_proven	internal_only	survived	survived	blocked_cycles_2:765	
+379	engine_ctrl	const0	A[31]	not_proven	internal_only	survived	survived	completed_instructions_0:5	
+387	engine_ctrl	cnot1	A[9]	not_proven	not_activated	survived	survived		
+388	engine_ctrl	cnot0	B[5]	not_proven	internal_only	killed	survived	blocked_cycles_1:31817	
+390	engine_ctrl	cnot1	A[8]	not_proven	not_activated	survived	survived		
+391	engine_ctrl	cnot1	Y[3]	equivalent	not_activated	survived	survived		
+393	engine_ctrl	const1	A[1]	not_proven	internal_only	killed	killed	blocked_cycles_1:30365	
+396	engine_ctrl	const0	Y[10]	not_proven	not_activated	survived	survived		
+398	engine_ctrl	cnot1	B[22]	not_proven	not_activated	survived	survived		
+399	engine_ctrl	const1	Y[0]	not_proven	internal_only	survived	survived	blocked_cycles_0:27871	
+406	engine_ctrl	const0	A[15]	not_proven	internal_only	survived	survived	wait_limit_1:110615	
+417	engine_ctrl	cnot0	Y[7]	not_proven	internal_only	killed	survived	blocked_cycles:34391	
+419	engine_ctrl	cnot1	Y[1]	not_proven	not_activated	killed	survived		
+420	engine_ctrl	const0	Y[16]	not_proven	not_activated	survived	survived		
+421	engine_ctrl	const0	Y[5]	not_proven	not_activated	survived	survived		
+423	engine_ctrl	const0	A[15]	not_proven	not_activated	survived	killed		
+424	engine_ctrl	const0	A[20]	not_proven	not_activated	survived	survived		
+425	engine_ctrl	inv	B[8]	not_proven	internal_only	survived	survived	wait_timer:79165	
+427	engine_ctrl	const0	Y[2]	equivalent	not_activated	survived	survived		
+429	engine_ctrl	const0	A[22]	not_proven	internal_only	survived	survived	wait_timer_1:5	
+436	engine_ctrl	cnot0	Y[4]	not_proven	internal_only	survived	killed	blocked_cycles_1:14025	
+437	engine_ctrl	const0	Y[10]	not_proven	internal_only	killed	survived	blocked_cycles_2:7521	
+438	engine_ctrl	cnot1	Y[11]	not_proven	not_activated	survived	survived		
+439	engine_ctrl	const0	A[0]	equivalent	not_activated	survived	survived		
+442	engine_ctrl	cnot1	Y[6]	not_proven	not_activated	survived	survived		
+446	engine_ctrl	cnot1	A[21]	not_proven	not_activated	survived	survived		
+447	engine_ctrl	cnot1	A[22]	not_proven	not_activated	survived	survived		
+449	engine_ctrl	const0	B[24]	not_proven	not_activated	survived	survived		
+450	engine_ctrl	cnot1	A[20]	not_proven	not_activated	survived	survived		
+451	engine_ctrl	cnot1	Y[12]	not_proven	not_activated	survived	killed		
+453	engine_ctrl	cnot1	Y[20]	not_proven	not_activated	survived	survived		
+457	engine_ctrl	const0	A[22]	not_proven	internal_only	survived	survived	wait_timer_2:5	
+458	engine_ctrl	cnot1	B[12]	not_proven	not_activated	survived	survived		
+463	engine_ctrl	cnot1	B[0]	not_proven	not_activated	survived	survived		
+466	engine_ctrl	inv	Y[13]	not_proven	internal_only	survived	survived	blocked_cycles_0:38980	
+467	engine_ctrl	const0	B[28]	not_proven	not_activated	survived	survived		
+469	engine_ctrl	cnot1	Y[18]	not_proven	not_activated	survived	survived		
+471	engine_ctrl	cnot0	Y[1]	not_proven	internal_only	killed	killed	blocked_cycles_1:65551	
+475	engine_ctrl	cnot1	A[2]	not_proven	not_activated	survived	survived		
+478	engine_ctrl	cnot0	A[5]	not_proven	internal_only	survived	killed	blocked_cycles_2:67341	
+481	engine_ctrl	cnot1	A[13]	not_proven	not_activated	survived	survived		
+483	engine_ctrl	cnot1	B[13]	not_proven	not_activated	survived	survived		
+484	engine_ctrl	cnot1	A[12]	not_proven	not_activated	survived	survived		
+486	engine_ctrl	cnot1	Y[1]	not_proven	not_activated	survived	survived		
+488	engine_ctrl	const0	S[0]	not_proven	not_activated	survived	survived		
+489	engine_ctrl	const1	A[5]	not_proven	internal_only	killed	survived	blocked_cycles_0:14692	
+491	engine_ctrl	const1	B[13]	equivalent	not_activated	survived	survived		
+494	engine_ctrl	cnot1	Y[0]	equivalent	not_activated	survived	survived		
+495	engine_ctrl	cnot1	B[0]	not_proven	not_activated	survived	survived		
+496	engine_ctrl	cnot1	A[19]	not_proven	not_activated	survived	survived		
+506	engine_ctrl	const0	Y[11]	not_proven	not_activated	survived	survived		
+508	engine_ctrl	const0	B[11]	not_proven	not_activated	survived	survived		
+512	engine_ctrl	inv	A[3]	not_proven	internal_only	survived	survived	blocked_cycles_2:39013	
+513	engine_ctrl	cnot1	B[1]	equivalent	not_activated	survived	survived		
+514	engine_ctrl	cnot1	Y[7]	not_proven	not_activated	survived	killed		
+515	engine_ctrl	const0	A[18]	equivalent	not_activated	survived	survived		
+516	engine_ctrl	const0	A[21]	not_proven	not_activated	survived	survived		
+522	engine_ctrl	const1	Y[0]	equivalent	not_activated	survived	survived		
+523	engine_ctrl	cnot1	Y[16]	not_proven	not_activated	survived	survived		
+525	engine_ctrl	const0	Y[17]	not_proven	not_activated	survived	survived		
+528	engine_ctrl	const0	A[6]	not_proven	not_activated	survived	survived		
+530	engine_ctrl	inv	Y[12]	not_proven	internal_only	killed	killed	blocked_cycles_2:67341	
+531	engine_ctrl	cnot0	B[16]	not_proven	internal_only	survived	survived	wait_limit_2:22812	
+532	engine_ctrl	cnot1	A[22]	not_proven	not_activated	survived	survived		
+537	engine_ctrl	const0	Y[12]	not_proven	internal_only	survived	survived	pc_0:5	
+538	engine_ctrl	const0	Y[16]	not_proven	not_activated	survived	survived		
+539	engine_ctrl	cnot1	A[8]	not_proven	not_activated	survived	survived		
+543	engine_ctrl	const0	A[21]	not_proven	not_activated	survived	survived		
+552	host	cnot1	A[2]	equivalent	not_activated	survived	survived		
+554	host	const1	A[0]	not_proven	not_activated	survived	survived		
+558	host	cnot1	B[0]	equivalent	not_activated	survived	survived		
+560	host	const0	B[1]	equivalent	not_activated	survived	survived		
+561	host	cnot1	A[0]	equivalent	not_activated	survived	survived		
+565	host	inv	B[0]	not_proven	internal_only	survived	survived	image_loaded_2:113642	
+570	host	inv	B[8]	not_proven	internal_only	survived	survived	image_length_0:19882	
+580	host	cnot1	B[1]	not_proven	not_activated	survived	survived		
+598	host	const0	A[11]	equivalent	internal_only	survived	survived	image_length_2:5	
+600	host	cnot1	A[0]	equivalent	not_activated	survived	survived		
+608	host	const0	A[16]	not_proven	not_activated	survived	survived		
+614	host	const0	B[58]	not_proven	not_activated	survived	survived		
+616	host	const1	A[3]	equivalent	not_activated	survived	survived		
+618	host	inv	B[10]	not_proven	internal_only	survived	survived	image_loaded_0:57453	
+621	host	const1	Y[0]	not_proven	not_activated	survived	survived		
+622	host	cnot1	S[2]	equivalent	not_activated	survived	survived		
+625	host	const0	B[0]	equivalent	not_activated	survived	survived		
+642	host	cnot1	A[10]	not_proven	not_activated	survived	survived		
+645	host	cnot1	Y[12]	equivalent	not_activated	survived	survived		
+663	host	const0	Y[9]	not_proven	not_activated	survived	survived		
+665	host	const0	A[14]	equivalent	not_activated	survived	survived		
+674	host	inv	B[10]	not_proven	internal_only	survived	survived	image_length_1:86527	
+675	host	const0	B[10]	equivalent	not_activated	survived	survived		
+682	host	cnot1	Y[0]	equivalent	not_activated	survived	survived		
+696	host	const0	A[5]	not_proven	not_activated	survived	killed		
+697	host	cnot1	A[13]	equivalent	not_activated	survived	survived		
+704	host	cnot1	Y[7]	equivalent	not_activated	survived	survived		
+705	host	cnot1	D[13]	not_proven	internal_only	killed	survived	image_length_1:17909	
+711	host	const0	Y[9]	equivalent	internal_only	survived	survived	image_length_1:5	
+717	host	inv	A[0]	not_proven	reached_pins	survived	survived	_4240:127411	out:read_nibble:89949
+722	host	cnot1	A[2]	equivalent	not_activated	survived	survived		
+727	host	cnot1	B[2]	not_proven	internal_only	killed	survived	open_drain_1:2730,host_fault:164	
+729	host	const0	A[6]	not_proven	not_activated	survived	survived		
+736	host	cnot1	A[7]	equivalent	not_activated	survived	survived		
+747	host	cnot1	A[0]	equivalent	not_activated	survived	survived		
+749	host	cnot1	A[1]	equivalent	not_activated	survived	survived		
+752	host	const0	Q[14]	equivalent	internal_only	survived	survived	image_length_3:5	
+780	host	const1	B[0]	equivalent	not_activated	survived	survived		
+818	host	const0	A[3]	not_proven	not_activated	survived	survived		
+825	host	const1	B[0]	not_proven	not_activated	survived	survived		
+829	host	cnot1	A[0]	equivalent	not_activated	survived	survived		
+832	host	const0	A[0]	equivalent	not_activated	survived	survived		
+833	host	const1	B[0]	not_proven	not_activated	killed	survived		
+851	host	cnot0	A[1]	equivalent	not_activated	survived	survived		
+852	host	cnot1	Q[7]	not_proven	not_activated	survived	killed		
+855	host	cnot1	A[7]	equivalent	not_activated	survived	survived		
+856	host	const0	B[0]	not_proven	not_activated	killed	survived		
+861	host	const0	B[0]	equivalent	not_activated	survived	survived		
+867	host	const1	A[0]	not_proven	not_activated	survived	survived		
+915	host	cnot1	Q[2]	equivalent	not_activated	survived	survived		
+932	host	const0	Y[8]	not_proven	not_activated	survived	survived		
+952	mover	const0	A[12]	not_proven	internal_only	survived	killed	route_remaining_2:5	
+955	mover	cnot1	B[9]	not_proven	not_activated	survived	survived		
+956	mover	const1	B[0]	equivalent	not_activated	survived	survived		
+959	mover	cnot1	A[9]	not_proven	not_activated	survived	survived		
+962	mover	const0	B[7]	not_proven	not_activated	survived	survived		
+964	mover	const1	Q[1]	not_proven	internal_only	survived	survived	dma_round_robin:288579,pc_0:8,completed_instructions_1:8,_5884:8,_5872:8,pc:4	
+968	mover	const1	Y[0]	not_proven	internal_only	survived	survived	dma_round_robin:50103	
+970	mover	const1	A[1]	not_proven	not_activated	killed	survived		
+979	mover	const1	A[0]	not_proven	internal_only	survived	survived	dma_round_robin:293756	
+981	mover	const0	Q[11]	not_proven	internal_only	survived	survived	route_remaining_2:5	
+985	mover	cnot1	Y[3]	not_proven	not_activated	survived	survived		
+989	mover	cnot1	Y[3]	not_proven	not_activated	survived	survived		
+990	mover	const0	B[1]	not_proven	not_activated	survived	survived		
+995	mover	const1	Y[0]	not_proven	internal_only	survived	survived	pc_0:8,completed_instructions_1:8,_5884:8,_5872:8,pc:4,dma_round_robin:4	
+996	mover	cnot0	A[1]	not_proven	internal_only	survived	survived	dma_round_robin:146957	
+997	mover	const0	A[10]	not_proven	internal_only	survived	survived	route_remaining_3:5	
+998	mover	inv	B[0]	not_proven	internal_only	survived	survived	_5841[0]:1,route_remaining_0:1,dma_round_robin:1,_5418:1,_3561:1,_3252:1	
+1000	mover	const0	A[10]	not_proven	not_activated	survived	survived		
+1005	mover	cnot1	A[4]	not_proven	not_activated	survived	survived		
+1008	mover	const0	A[0]	not_proven	not_activated	survived	survived		
+1016	mover	cnot1	A[13]	equivalent	not_activated	survived	survived		
+1022	mover	inv	Y[0]	not_proven	not_activated	survived	survived		
+1024	mover	const1	B[0]	not_proven	not_activated	survived	survived		
+1032	mover	cnot1	Y[1]	not_proven	not_activated	survived	survived		
+1036	mover	cnot1	B[14]	not_proven	not_activated	survived	survived		
+1037	mover	const1	Y[0]	not_proven	internal_only	survived	survived	_5841[0]:1,route_remaining_0:1,dma_round_robin:1,_5418:1,_3561:1,_3252:1	
+1038	mover	const0	Q[7]	not_proven	internal_only	survived	survived	route_remaining_0:5	
+1040	mover	const0	B[0]	equivalent	not_activated	survived	survived		
+1041	mover	const0	Y[10]	not_proven	not_activated	survived	survived		
+1042	mover	const1	B[0]	not_proven	not_activated	survived	survived		
+1045	mover	const0	A[0]	not_proven	not_activated	killed	survived		
+1054	mover	const0	B[0]	not_proven	not_activated	survived	survived		
+1059	mover	const0	B[0]	not_proven	not_activated	killed	survived		
+1063	mover	inv	Y[0]	not_proven	internal_only	survived	survived	route_remaining_3:1137	
+1071	mover	const0	Q[14]	not_proven	internal_only	survived	survived	route_remaining_0:5	
+1084	mover	const1	A[0]	not_proven	not_activated	survived	survived		
+1093	mover	const0	Y[0]	not_proven	not_activated	survived	survived		
+1098	mover	const1	B[0]	not_proven	not_activated	survived	survived		
+1101	mover	const0	Y[0]	not_proven	not_activated	survived	survived		
+1103	mover	const1	Y[0]	not_proven	not_activated	survived	survived		
+1104	mover	cnot1	Y[10]	not_proven	not_activated	survived	survived		
+1105	mover	const0	B[0]	not_proven	not_activated	survived	survived		
+1111	mover	inv	Y[0]	not_proven	internal_only	killed	survived	route_remaining_1:1079	
+1112	mover	const0	A[0]	not_proven	not_activated	killed	survived		
+1113	mover	const1	Y[0]	not_proven	not_activated	survived	survived		
+1114	mover	const0	B[0]	not_proven	not_activated	killed	survived		
+1116	mover	const1	B[0]	not_proven	not_activated	survived	survived		
+1124	mover	const1	B[0]	equivalent	not_activated	survived	survived		
+1126	mover	cnot1	Y[10]	not_proven	not_activated	survived	survived		
+1127	mover	const0	Y[0]	not_proven	internal_only	killed	survived	route_remaining_0:2216	
+1130	mover	const1	Y[0]	not_proven	not_activated	survived	survived		
+1131	mover	const1	Y[0]	not_proven	not_activated	survived	survived		
+1133	mover	const0	B[12]	not_proven	not_activated	survived	survived		
+1137	mover	cnot1	A[0]	equivalent	not_activated	survived	survived		
+1138	mover	const0	Y[0]	not_proven	not_activated	survived	survived		
+1152	mover	const0	Y[0]	not_proven	not_activated	survived	killed		
+1155	mover	const1	B[0]	not_proven	not_activated	survived	survived		
+1158	mover	const0	Y[0]	not_proven	internal_only	killed	survived	route_remaining_0:2216	
+1159	mover	const0	A[0]	not_proven	not_activated	killed	survived		
+1161	mover	const1	B[0]	not_proven	not_activated	survived	survived		
+1163	mover	const0	B[0]	not_proven	not_activated	survived	survived		
+1165	mover	const0	Y[0]	not_proven	not_activated	survived	survived		
+1171	mover	const1	Y[0]	not_proven	not_activated	survived	survived		
+1173	mover	cnot1	Q[10]	not_proven	not_activated	survived	survived		
+1175	mover	const0	A[0]	not_proven	internal_only	killed	survived	route_remaining_0:1137	
+1176	mover	const0	A[0]	equivalent	not_activated	survived	survived		
+1179	mover	inv	A[0]	not_proven	internal_only	survived	survived	dma_round_robin:170674	
+1183	mover	const0	Y[0]	not_proven	not_activated	survived	survived		
+1191	mover	const0	A[0]	not_proven	not_activated	survived	survived		
+1192	mover	const1	Y[0]	not_proven	not_activated	survived	survived		
+1203	events	cnot1	B[2]	not_proven	not_activated	survived	survived		
+1204	events	const1	A[0]	not_proven	not_activated	survived	survived		
+1210	events	const0	A[8]	not_proven	not_activated	survived	survived		
+1216	events	inv	B[3]	not_proven	not_activated	killed	survived		
+1218	events	const0	A[23]	not_proven	not_activated	survived	survived		
+1219	events	cnot1	A[4]	equivalent	not_activated	survived	survived		
+1220	events	const1	B[3]	not_proven	not_activated	survived	survived		
+1222	events	cnot1	A[2]	equivalent	not_activated	survived	survived		
+1225	events	const1	B[0]	not_proven	not_activated	survived	survived		
+1228	events	cnot1	A[1]	equivalent	not_activated	survived	survived		
+1233	events	const0	A[3]	not_proven	not_activated	survived	survived		
+1238	events	cnot1	B[0]	not_proven	internal_only	killed	survived	mailbox_0:13	
+1241	events	const0	A[13]	not_proven	not_activated	survived	survived		
+1244	events	const0	Q[4]	not_proven	internal_only	killed	survived	_3813:165657	
+1245	events	inv	A[2]	equivalent	not_activated	survived	survived		
+1248	events	cnot1	A[6]	equivalent	not_activated	survived	survived		
+1252	events	cnot0	A[2]	equivalent	not_activated	survived	survived		
+1257	events	cnot1	A[6]	equivalent	not_activated	survived	survived		
+1261	events	cnot1	A[1]	equivalent	not_activated	survived	survived		
+1266	events	inv	A[1]	not_proven	internal_only	killed	survived	logical_output_0:7059	
+1267	events	cnot1	A[1]	equivalent	not_activated	survived	survived		
+1271	events	cnot0	Y[6]	not_proven	internal_only	killed	survived	logical_output_0:204	
+1280	events	cnot0	A[3]	equivalent	not_activated	survived	survived		
+1281	events	cnot1	A[4]	equivalent	not_activated	survived	survived		
+1282	events	const1	Y[0]	not_proven	not_activated	survived	survived		
+1287	events	const0	A[2]	not_proven	internal_only	survived	survived	repeat_count_2:12320	
+1290	events	const1	Y[3]	not_proven	internal_only	survived	survived	logical_output_1:3250	
+1291	events	cnot0	B[6]	not_proven	not_activated	killed	survived		
+1295	events	const0	A[2]	not_proven	not_activated	killed	survived		
+1302	events	const1	A[7]	not_proven	not_activated	survived	survived		
+1311	events	cnot0	A[0]	equivalent	not_activated	survived	survived		
+1314	events	const0	A[6]	not_proven	not_activated	survived	survived		
+1317	events	cnot1	A[0]	equivalent	not_activated	survived	survived		
+1327	events	cnot1	A[2]	equivalent	not_activated	survived	survived		
+1332	events	const1	A[3]	equivalent	not_activated	survived	survived		
+1333	events	const1	A[4]	not_proven	not_activated	killed	survived		
+1337	events	const1	A[0]	not_proven	internal_only	killed	survived	logical_output_1:1426	
+1342	events	const1	A[4]	equivalent	not_activated	survived	survived		
+1343	events	const0	A[5]	not_proven	not_activated	survived	survived		
+1344	events	const0	B[1]	equivalent	not_activated	survived	survived		
+1345	events	const1	B[2]	equivalent	not_activated	survived	survived		
+1348	events	const0	B[3]	not_proven	not_activated	survived	survived		
+1349	events	const0	A[6]	equivalent	not_activated	survived	survived		
+1351	events	cnot0	A[0]	not_proven	not_activated	killed	survived		
+1356	events	cnot1	Y[3]	not_proven	internal_only	killed	survived	logical_output_2:8461	
+1358	events	cnot1	Q[6]	not_proven	internal_only	killed	survived	_3813:165274,mailbox_0:4	
+1360	events	inv	B[0]	not_proven	not_activated	survived	survived		
+1361	events	const0	A[0]	not_proven	not_activated	killed	survived		
+1368	events	const1	B[4]	not_proven	not_activated	survived	survived		
+1371	events	const0	B[2]	equivalent	not_activated	survived	survived		
+1379	events	const1	Y[0]	not_proven	not_activated	killed	survived		
+1391	events	const1	Y[0]	not_proven	not_activated	killed	survived		
+1392	events	const1	Y[1]	not_proven	internal_only	killed	survived	logical_output:3459	
+1394	events	cnot1	A[0]	equivalent	not_activated	survived	survived		
+1395	events	cnot1	A[0]	equivalent	not_activated	survived	survived		
+1398	events	const0	B[2]	equivalent	not_activated	survived	survived		
+1403	events	inv	A[0]	not_proven	not_activated	killed	survived		
+1407	events	const0	B[1]	equivalent	not_activated	survived	survived		
+1408	events	cnot1	A[1]	equivalent	not_activated	survived	survived		
+1411	events	const1	Y[7]	not_proven	internal_only	killed	survived	logical_output:8424	
+1416	events	const1	Y[0]	not_proven	not_activated	survived	killed		
+1423	events	cnot1	A[2]	equivalent	not_activated	survived	survived		
+1432	events	const1	B[4]	equivalent	not_activated	survived	survived		
+1433	events	const1	B[0]	equivalent	not_activated	survived	survived		
+1434	events	inv	A[3]	equivalent	not_activated	survived	survived		
+1436	events	const0	A[7]	not_proven	not_activated	survived	survived		
+1437	events	cnot0	A[1]	not_proven	not_activated	killed	survived		
+1451	events	cnot1	A[7]	equivalent	not_activated	survived	survived		
+1469	events	const1	Y[0]	not_proven	not_activated	survived	survived		
+1471	events	const0	A[1]	equivalent	not_activated	survived	survived		
+1474	events	inv	A[2]	not_proven	not_activated	survived	survived		
+1478	events	cnot0	A[4]	not_proven	not_activated	killed	survived		
+1480	events	const0	Y[6]	not_proven	not_activated	killed	survived		
+1481	events	cnot1	Y[7]	equivalent	not_activated	survived	survived		
+1486	events	cnot0	B[1]	not_proven	internal_only	survived	survived	logical_output_0:1096	
+1491	events	const0	A[0]	not_proven	not_activated	survived	survived		
+1494	events	const1	B[0]	not_proven	internal_only	survived	survived	_3813:242	
+1499	events	const0	A[2]	not_proven	not_activated	killed	survived		
+1501	pins	inv	A[7]	not_proven	internal_only	killed	survived	logical_enable_0:7211	
+1512	pins	const1	B[5]	not_proven	internal_only	killed	survived	logical_enable_0:18528	
+1513	pins	const1	B[1]	not_proven	internal_only	survived	survived	logical_enable_0:85399	
+1521	pins	cnot1	B[4]	not_proven	internal_only	survived	survived	logical_output_2:5155	
+1523	pins	cnot1	Q[0]	not_proven	internal_only	killed	survived	logical_output_0:7440	
+1524	pins	const1	Y[29]	equivalent	not_activated	survived	survived		
+1529	pins	cnot1	A[5]	not_proven	not_activated	survived	survived		
+1536	pins	const0	B[0]	not_proven	not_activated	killed	survived		
+1545	pins	cnot0	B[25]	equivalent	not_activated	survived	survived		
+1549	pins	inv	Y[3]	equivalent	not_activated	survived	survived		
+1550	pins	const0	B[6]	equivalent	not_activated	survived	survived		
+1552	pins	const0	A[2]	not_proven	not_activated	killed	survived		
+1555	pins	const1	A[0]	not_proven	internal_only	killed	survived	logical_output_2:23134	
+1556	pins	const1	B[4]	not_proven	not_activated	killed	survived		
+1559	pins	const1	B[2]	equivalent	not_activated	survived	survived		
+1570	pins	const1	A[1]	not_proven	internal_only	killed	survived	logical_enable_2:24677	
+1572	pins	const0	B[4]	equivalent	not_activated	survived	survived		
+1576	pins	cnot0	Y[3]	not_proven	internal_only	survived	survived	logical_output_1:21	
+1577	pins	inv	A[3]	not_proven	internal_only	survived	survived	logical_enable:114442	
+1578	pins	inv	B[0]	not_proven	internal_only	survived	survived	logical_enable:384	
+1580	pins	const1	B[7]	not_proven	internal_only	survived	survived	logical_output_1:120627	
+1582	pins	cnot1	A[4]	not_proven	internal_only	survived	survived	logical_output:180	
+1584	pins	cnot1	B[3]	not_proven	not_activated	survived	survived		
+1595	pins	const0	B[7]	not_proven	not_activated	killed	survived		
+1604	pins	const1	B[7]	not_proven	internal_only	killed	survived	logical_output_0:13342	
+1612	pins	cnot1	A[2]	not_proven	internal_only	survived	survived	logical_output_2:3385	
+1615	pins	cnot1	A[6]	not_proven	not_activated	killed	survived		
+1620	pins	const0	A[1]	not_proven	internal_only	survived	survived	logical_output_1:6542	
+1625	pins	const0	A[6]	not_proven	not_activated	killed	survived		
+1634	pins	inv	A[7]	not_proven	internal_only	survived	survived	logical_enable_2:97191	
+1636	pins	cnot0	B[7]	not_proven	not_activated	survived	survived		
+1648	pins	cnot0	Y[6]	not_proven	not_activated	survived	survived		
+1660	pins	cnot1	B[4]	not_proven	internal_only	survived	survived	logical_output:2	
+1667	pins	cnot1	A[3]	not_proven	internal_only	killed	survived	logical_enable:2900	
+1674	pins	const0	A[3]	not_proven	not_activated	killed	survived		
+1675	pins	const0	B[5]	not_proven	not_activated	killed	survived		
+1685	pins	inv	Y[5]	not_proven	not_activated	killed	survived		
+1687	pins	cnot0	Y[7]	not_proven	not_activated	survived	survived		
+1689	pins	cnot1	Y[5]	not_proven	internal_only	survived	survived	logical_output:649	
+1694	pins	cnot1	B[0]	not_proven	not_activated	killed	survived		
+1698	pins	const1	B[6]	not_proven	internal_only	killed	survived	logical_output_1:2885	
+1699	pins	cnot0	Y[5]	not_proven	not_activated	survived	survived		
+1708	pins	const0	Y[5]	not_proven	not_activated	killed	survived		
+1714	pins	const0	Y[6]	not_proven	not_activated	survived	survived		
+1717	pins	cnot1	Y[5]	not_proven	internal_only	survived	survived	logical_output_2:6604	
+1723	pins	const1	B[2]	not_proven	internal_only	killed	survived	logical_enable_1:48308	
+1725	pins	cnot1	Y[3]	not_proven	not_activated	survived	survived		
+1726	pins	const1	Y[30]	equivalent	not_activated	survived	survived		
+1727	pins	cnot1	Y[7]	not_proven	internal_only	killed	survived	logical_enable:2945	
+1730	pins	cnot1	B[2]	not_proven	internal_only	survived	survived	logical_output_2:6946	
+1737	pins	cnot0	A[1]	not_proven	not_activated	killed	survived		
+1745	pins	const0	B[0]	not_proven	not_activated	killed	survived		
+1748	pins	const0	A[4]	not_proven	not_activated	survived	survived		
+1749	pins	cnot0	B[6]	not_proven	not_activated	survived	survived		
+1751	engine_xfer	inv	B[5]	not_proven	internal_only	survived	survived	transfer_tick_1:81317	
+1753	engine_xfer	cnot1	Y[5]	not_proven	not_activated	survived	killed		
+1754	engine_xfer	const0	A[6]	not_proven	internal_only	survived	survived	transfer_period_0:5	
+1758	engine_xfer	const0	Y[7]	not_proven	not_activated	survived	killed		
+1761	engine_xfer	const0	A[2]	not_proven	internal_only	survived	survived	transfer_tick_2:4581	
+1765	engine_xfer	const0	A[2]	equivalent	not_activated	survived	survived		
+1767	engine_xfer	const0	Y[5]	not_proven	internal_only	survived	survived	transfer_period_0:5	
+1768	engine_xfer	cnot1	B[4]	not_proven	internal_only	survived	survived	transfer_tick_1:947	
+1778	engine_xfer	const0	A[6]	not_proven	not_activated	survived	survived		
+1782	engine_xfer	cnot1	Y[5]	not_proven	not_activated	survived	survived		
+1787	engine_xfer	inv	B[4]	not_proven	internal_only	survived	survived	transfer_pins:22812	
+1798	engine_xfer	cnot1	Q[0]	not_proven	not_activated	survived	survived		
+1801	engine_xfer	const1	A[3]	not_proven	internal_only	survived	survived	transfer_mode_0:186933	
+1810	engine_xfer	const0	B[4]	equivalent	not_activated	survived	survived		
+1811	engine_xfer	const1	B[4]	not_proven	internal_only	survived	survived	transfer_pins_0:74743	
+1812	engine_xfer	cnot1	B[2]	not_proven	not_activated	survived	survived		
+1817	engine_xfer	cnot1	Y[7]	not_proven	internal_only	killed	survived	transfer_pins:33736,rx:1028	
+1823	engine_xfer	cnot0	B[7]	not_proven	internal_only	killed	survived	transfer_pins_2:67426	
+1828	engine_xfer	const1	B[1]	not_proven	internal_only	survived	survived	transfer_period:132139	
+1829	engine_xfer	const0	S[0]	not_proven	not_activated	survived	survived		
+1831	engine_xfer	const0	Y[4]	not_proven	not_activated	survived	survived		
+1837	engine_xfer	cnot1	Y[3]	equivalent	not_activated	survived	survived		
+1840	engine_xfer	cnot1	B[0]	not_proven	internal_only	survived	survived	transfer_pins_1:16406	
+1841	engine_xfer	inv	A[0]	not_proven	internal_only	survived	survived	transfer_edges:107056	
+1842	engine_xfer	const0	Y[6]	not_proven	not_activated	survived	survived		
+1849	engine_xfer	const0	B[7]	equivalent	not_activated	survived	survived		
+1850	engine_xfer	cnot1	Y[1]	not_proven	not_activated	survived	killed		
+1851	engine_xfer	cnot1	Y[7]	not_proven	internal_only	killed	survived	transfer_tick_2:384	
+1855	engine_xfer	cnot1	Y[1]	not_proven	not_activated	survived	killed		
+1859	engine_xfer	inv	A[2]	not_proven	internal_only	survived	survived	transfer_mode_1:19215	
+1861	engine_xfer	const0	Y[7]	not_proven	not_activated	survived	survived		
+1862	engine_xfer	cnot1	B[0]	equivalent	not_activated	survived	survived		
+1866	engine_xfer	cnot1	B[0]	equivalent	not_activated	survived	survived		
+1873	engine_xfer	inv	A[2]	not_proven	internal_only	survived	survived	transfer_mode:107077	
+1887	engine_xfer	cnot1	Y[4]	not_proven	not_activated	survived	survived		
+1888	engine_xfer	const1	A[7]	not_proven	internal_only	survived	survived	transfer_tick_2:236097	
+1891	engine_xfer	cnot1	A[1]	not_proven	not_activated	survived	survived		
+1894	engine_xfer	const0	A[4]	not_proven	internal_only	survived	survived	transfer_tick_1:5	
+1904	engine_xfer	cnot0	Y[5]	not_proven	internal_only	killed	survived	transfer_pins:41714	
+1912	engine_xfer	const0	Y[3]	not_proven	internal_only	killed	survived	transfer_period_1:5	
+1938	engine_xfer	const0	A[3]	equivalent	not_activated	survived	survived		
+1939	engine_xfer	const0	A[4]	not_proven	not_activated	survived	survived		
+1943	engine_xfer	cnot1	Y[0]	equivalent	not_activated	survived	survived		
+1948	engine_xfer	cnot1	Y[4]	equivalent	not_activated	survived	survived		
+1949	engine_xfer	cnot1	B[0]	not_proven	internal_only	survived	survived	transfer_mode:1590	
+1957	imem	const0	A[14]	not_proven	internal_only	survived	survived	_1623:6282	
+1962	imem	cnot1	A_ADDR[3]	not_proven	not_activated	survived	survived		
+1967	imem	cnot1	A_ADDR[2]	not_proven	not_activated	survived	survived		
+1969	imem	const1	A[23]	not_proven	internal_only	survived	survived	_1623:127424	
+1974	imem	cnot1	A_DOUT[4]	not_proven	internal_only	survived	survived	_6603:5554	
+1978	imem	const1	Q[1]	not_proven	internal_only	survived	survived	_1623:282346	
+1981	imem	cnot1	A[23]	not_proven	not_activated	survived	survived		
+1984	imem	cnot1	Y[3]	not_proven	internal_only	survived	survived	_6591:102717	
+1988	imem	const1	Y[0]	not_proven	internal_only	survived	survived	_5868:1469,_5884:1391,_5875:1234	
+2009	imem	const1	Y[0]	not_proven	internal_only	survived	survived	_5150:1200,_5166:1122,_5157:956	
+2012	shared	const0	A[17]	not_proven	not_activated	survived	survived		
+2014	shared	const0	A[17]	not_proven	not_activated	survived	survived		
+2020	shared	const0	A[5]	not_proven	not_activated	survived	survived		
+2034	shared	cnot1	A[4]	equivalent	not_activated	survived	survived		
+2044	shared	const0	B[0]	equivalent	not_activated	survived	survived		
+2059	shared	const1	Y[0]	not_proven	not_activated	survived	survived		
+2082	shared	const1	B[0]	not_proven	not_activated	survived	survived		
+2091	shared	const0	A[0]	not_proven	not_activated	survived	survived		
+2098	shared	const1	Y[0]	not_proven	not_activated	survived	survived		
+2103	fifo	cnot0	WR_EN[18]	not_proven	not_activated	survived	survived		
+2110	fifo	cnot0	A[8]	not_proven	internal_only	survived	survived	_7456[7]:28901,_7456[5]:23719,_7456[6]:20517,_7456[2]:19695,_7456[4]:19601,_7456[3]:17014	
+2121	fifo	cnot1	A[3]	not_proven	internal_only	survived	survived	_7456[6]:12065,_7456[4]:10013,_7456[2]:3225,_5841[1]:1277	
+2122	fifo	inv	A[2]	equivalent	not_activated	survived	survived		
+2128	fifo	inv	A[2]	equivalent	not_activated	survived	survived		
+2134	fifo	const1	A[18]	equivalent	not_activated	survived	survived		
+2144	fifo	const1	B[0]	equivalent	not_activated	survived	survived		
+2146	fifo	cnot1	Y[28]	not_proven	internal_only	survived	survived	_7456[6]:24159,_7456[5]:21227,_7456[4]:19920,_7456[7]:12245,_6560[4]:9302,_6560[3]:9276	
+2147	fifo	const1	B[0]	equivalent	not_activated	survived	survived		
+2173	fifo	const0	A[3]	not_proven	internal_only	survived	survived	_6560[7]:7860,_6560[4]:3603	
+2215	fifo	const0	A[0]	not_proven	not_activated	survived	survived		
+2220	fifo	const1	B[0]	equivalent	not_activated	survived	survived		
+2229	fifo	const1	A[0]	equivalent	not_activated	survived	survived		
+2235	engine_data	cnot0	B[8]	not_proven	internal_only	survived	survived	x_2:85558	
+2237	engine_data	const1	B[3]	not_proven	internal_only	survived	survived	y:132139	
+2238	engine_data	const0	A[0]	not_proven	not_activated	killed	survived		
+2243	engine_data	const0	A[21]	not_proven	internal_only	killed	survived	x:1793	
+2244	engine_data	cnot1	Y[29]	not_proven	not_activated	killed	survived		
+2245	engine_data	inv	A[3]	not_proven	internal_only	survived	survived	x_2:97224	
+2258	engine_data	const0	B[0]	not_proven	not_activated	survived	survived		
+2268	engine_data	const0	A[25]	not_proven	not_activated	survived	survived		
+2279	engine_data	const0	B[15]	not_proven	not_activated	survived	killed		
+2282	engine_data	const0	A[31]	not_proven	internal_only	killed	survived	x:3651	
+2287	engine_data	cnot1	B[3]	not_proven	not_activated	survived	survived		
+2291	engine_data	const0	Y[30]	not_proven	not_activated	survived	survived		
+2296	engine_data	cnot1	B[26]	not_proven	not_activated	survived	survived		
+2306	engine_data	cnot0	A[23]	not_proven	not_activated	killed	survived		
+2310	engine_data	const0	A[31]	not_proven	internal_only	killed	survived	x:3645	
+2311	engine_data	cnot1	A[12]	not_proven	not_activated	killed	survived		
+2313	engine_data	cnot1	A[1]	equivalent	not_activated	survived	survived		
+2315	engine_data	const1	A[26]	not_proven	internal_only	killed	survived	y_2:22864	
+2316	engine_data	cnot1	B[10]	not_proven	internal_only	killed	survived	x_2:3537	
+2320	engine_data	cnot1	A[11]	not_proven	not_activated	killed	survived		
+2321	engine_data	const1	A[28]	not_proven	internal_only	survived	survived	x_1:228490	
+2326	engine_data	cnot1	Y[1]	not_proven	internal_only	killed	survived	rx_0:5	
+2335	engine_data	cnot1	Y[28]	not_proven	not_activated	killed	killed		
+2344	engine_data	const0	A[6]	not_proven	internal_only	survived	survived	tx_0:13210	
+2345	engine_data	cnot1	A[26]	not_proven	internal_only	killed	survived	y_2:634	
+2354	engine_data	const0	Y[28]	not_proven	not_activated	killed	survived		
+2364	engine_data	const0	Y[18]	not_proven	internal_only	killed	survived	rx_1:278,_3612:20	
+2366	engine_data	const0	B[22]	equivalent	not_activated	survived	survived		
+2368	engine_data	const0	A[31]	not_proven	internal_only	killed	survived	tx:1532	
+2375	engine_data	const0	B[23]	not_proven	internal_only	killed	survived	x:1793	
+2378	engine_data	const0	Y[3]	not_proven	not_activated	survived	survived		
+2385	engine_data	const0	A[18]	not_proven	not_activated	survived	survived		
+2390	engine_data	const1	A[24]	not_proven	internal_only	killed	survived	x:26063,y:1788,tx:768	
+2407	engine_data	inv	A[21]	not_proven	internal_only	survived	survived	x_2:7859	
+2417	timestamp	const0	Q[19]	not_proven	internal_only	survived	survived	timestamp:5	
+2418	timestamp	const0	Q[30]	not_proven	internal_only	survived	survived	timestamp:5	

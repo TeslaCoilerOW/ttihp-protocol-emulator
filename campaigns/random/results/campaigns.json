@@ -1,0 +1,1242 @@
+{
+ "commit": "73536f0bb6aff03e5e3579442e7fb4b5438a4d0d",
+ "netlist_sha256": "fe135632e459343797988be9848db4182bef8c39283fb33745eb5eccdde8a181",
+ "results_on_cluster": "<work dir>/vcamp/random",
+ "campaigns": {
+  "rtl-default": {
+   "slurm_array_job": "23746017",
+   "variant": "default",
+   "level": "rtl",
+   "seeds": [
+    1,
+    4096
+   ],
+   "cases_per_seed": 64,
+   "host_cycles_per_case": 2000,
+   "xcov": false,
+   "totals": {
+    "seeds": 4096,
+    "cases_run": 262144,
+    "cases_passed": 262144,
+    "cases_failed": 0,
+    "lockstep_cycles": 1018395195,
+    "wall_s": 257143.6500000006,
+    "seeds_all_pass": 4096,
+    "programs_loaded": 922535,
+    "programs_reloaded": 210106,
+    "program_words_loaded": 20572538
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 518291035,
+   "case_cycles": {
+    "min": 2584,
+    "median": 3862.0,
+    "max": 5615
+   },
+   "mover_transfers": 453518,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [
+     "BEGIN rejected",
+     "COMMIT rejected",
+     "STOP rejected",
+     "ROUTE rejected",
+     "EVENT rejected"
+    ],
+    "host_traffic": [],
+    "misc": []
+   },
+   "xcov_bins": null
+  },
+  "rtl-xcov-default": {
+   "slurm_array_job": "23750843",
+   "variant": "default",
+   "level": "rtl",
+   "seeds": [
+    4097,
+    6144
+   ],
+   "cases_per_seed": 64,
+   "host_cycles_per_case": 2000,
+   "xcov": true,
+   "totals": {
+    "seeds": 2048,
+    "cases_run": 131072,
+    "cases_passed": 131072,
+    "cases_failed": 0,
+    "lockstep_cycles": 508953932,
+    "wall_s": 148463.9399999999,
+    "seeds_all_pass": 2048,
+    "programs_loaded": 461218,
+    "programs_reloaded": 105613,
+    "program_words_loaded": 10270441
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 259520748,
+   "case_cycles": {
+    "min": 2577,
+    "median": 3860.5,
+    "max": 5508
+   },
+   "mover_transfers": 227297,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [
+     "BEGIN rejected",
+     "COMMIT rejected",
+     "STOP rejected",
+     "ROUTE rejected",
+     "EVENT rejected"
+    ],
+    "host_traffic": [],
+    "misc": [],
+    "xcov": []
+   },
+   "xcov_bins": {
+    "EVENT command and SIGNAL on same edge": 3707,
+    "FLUSH cleared an active route": 5579,
+    "HALT with output enables active": 72889,
+    "IRQ from RX data only": 32885110,
+    "IRQ from event and RX data": 276709401,
+    "IRQ from event only": 152859891,
+    "JZ not taken": 2289261,
+    "JZ taken": 36920320,
+    "LOOP fell through": 2008315,
+    "LOOP taken": 1762423,
+    "ROUTE edited an active route": 33790,
+    "RX FIFO full e0": 57645694,
+    "RX FIFO full e1": 55255030,
+    "RX FIFO full e2": 53825219,
+    "RX FIFO full e3": 50699331,
+    "STOP/BEGIN of engine inside WAIT": 10630,
+    "STOP/BEGIN of engine inside XFER": 35662,
+    "STOP/BEGIN of engine stalled on PULL/PUSH/WAITPIN/WAITEVENT": 172169,
+    "TX FIFO full e0": 140163486,
+    "TX FIFO full e1": 135978096,
+    "TX FIFO full e2": 133516002,
+    "TX FIFO full e3": 129278169,
+    "WAIT >= 20 cycles issued": 173232,
+    "WAITEVENT consumed event with simultaneous new delivery": 184026,
+    "WAITEVENT satisfied after blocking": 103399,
+    "WAITEVENT satisfied on issue": 430995,
+    "WAITPIN satisfied after blocking": 679052,
+    "WAITPIN satisfied on issue": 1821826,
+    "WAITPIN/WAITEVENT timeout with LIMIT 1": 1469,
+    "XFER issued with half-period 1": 1268726,
+    "XFER issued with half-period >= 4": 293884,
+    "engines in XFER: 2": 5273605,
+    "engines in XFER: 3": 188487,
+    "engines in XFER: 4": 2615,
+    "engines running: 0": 192072175,
+    "engines running: 1": 118708122,
+    "engines running: 2": 113592242,
+    "engines running: 3": 66712145,
+    "engines running: 4": 17598196,
+    "fault with output enables active": 177413,
+    "host RX pop + engine PUSH on same FIFO, same edge": 7338,
+    "host RX read abandoned mid-word (window change)": 31531,
+    "host TX write + engine PULL on same FIFO, same edge": 262,
+    "host fault flag cleared": 11441,
+    "host fault flag set": 122942,
+    "mover arbitration: 4 routes configured": 357682,
+    "mover arbitration: >=2 routes eligible": 222,
+    "mover blocked: dest TX FIFO full": 59331939,
+    "mover blocked: host TX write to dest, same edge": 301,
+    "mover blocked: source RX head reserved by host read": 24993,
+    "mover moved a word": 227821,
+    "mover pop + engine PUSH on same source, same edge": 13076,
+    "mover push + engine PULL on same dest, same edge": 2778,
+    "mover push into FIFO the host writes next edge (dest == selected, window 2)": 2727,
+    "mover route exhausted (count reached 0)": 25418,
+    "mover route to self moved a word": 56270,
+    "open-drain pin pulled low": 52532685,
+    "open-drain pin released (logical 1)": 39461822,
+    "push-pull pin driven high": 125077947,
+    "push-pull pin driven low": 160159416,
+    "reset/deselect inside XFER": 23743,
+    "reset/deselect with engines running": 320,
+    "strict PUSH overflow (fault 4) while host holds that RX head": 8533,
+    "synchronous start of 2 engines": 4217,
+    "synchronous start of 3 engines": 643,
+    "synchronous start of 4 engines": 47,
+    "trigger delivered to engine blocked in WAITEVENT": 46794,
+    "trigger mode 0 (rise) detected": 8470508,
+    "trigger mode 1 (fall) detected": 8560012,
+    "trigger mode 2 (high) detected": 58088744,
+    "trigger mode 3 (low) detected": 61214954
+   }
+  },
+  "rtl-long": {
+   "slurm_array_job": "23746365",
+   "variant": "default",
+   "level": "rtl",
+   "seeds": [
+    1048577,
+    1048832
+   ],
+   "cases_per_seed": 64,
+   "host_cycles_per_case": 20000,
+   "xcov": false,
+   "totals": {
+    "seeds": 256,
+    "cases_run": 16384,
+    "cases_passed": 16384,
+    "cases_failed": 0,
+    "lockstep_cycles": 358623049,
+    "wall_s": 82724.85000000003,
+    "seeds_all_pass": 256,
+    "programs_loaded": 57714,
+    "programs_reloaded": 126091,
+    "program_words_loaded": 1289767
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 321741605,
+   "case_cycles": {
+    "min": 20898,
+    "median": 21870.0,
+    "max": 23221
+   },
+   "mover_transfers": 63549,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [
+     "BEGIN rejected",
+     "COMMIT rejected",
+     "STOP rejected",
+     "ROUTE rejected",
+     "EVENT rejected"
+    ],
+    "host_traffic": [
+     "deselect (ena low)"
+    ],
+    "misc": []
+   },
+   "xcov_bins": null
+  },
+  "rtl-xlong": {
+   "slurm_array_job": "23746366",
+   "variant": "default",
+   "level": "rtl",
+   "seeds": [
+    2097153,
+    2097216
+   ],
+   "cases_per_seed": 16,
+   "host_cycles_per_case": 200000,
+   "xcov": false,
+   "totals": {
+    "seeds": 64,
+    "cases_run": 1024,
+    "cases_passed": 1024,
+    "cases_failed": 0,
+    "lockstep_cycles": 206726151,
+    "wall_s": 58309.86000000001,
+    "seeds_all_pass": 64,
+    "programs_loaded": 3591,
+    "programs_reloaded": 78286,
+    "program_words_loaded": 79723
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 229357705,
+   "case_cycles": {
+    "min": 201085,
+    "median": 201864.0,
+    "max": 202875
+   },
+   "mover_transfers": 22540,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [
+     "BEGIN rejected",
+     "COMMIT rejected",
+     "STOP rejected",
+     "ROUTE rejected",
+     "EVENT rejected"
+    ],
+    "host_traffic": [
+     "deselect (ena low)"
+    ],
+    "misc": []
+   },
+   "xcov_bins": null
+  },
+  "rtl-dense": {
+   "slurm_array_job": "23746367",
+   "variant": "dense",
+   "level": "rtl",
+   "seeds": [
+    3145729,
+    3145984
+   ],
+   "cases_per_seed": 64,
+   "host_cycles_per_case": 8000,
+   "xcov": false,
+   "totals": {
+    "seeds": 256,
+    "cases_run": 16384,
+    "cases_passed": 16384,
+    "cases_failed": 0,
+    "lockstep_cycles": 178881555,
+    "wall_s": 34650.11000000001,
+    "seeds_all_pass": 256,
+    "programs_loaded": 57737,
+    "programs_reloaded": 53102,
+    "program_words_loaded": 3047449
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 44503461,
+   "case_cycles": {
+    "min": 9199,
+    "median": 11005.0,
+    "max": 12088
+   },
+   "mover_transfers": 71997,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [
+     "BEGIN rejected",
+     "COMMIT rejected",
+     "STOP rejected",
+     "ROUTE rejected",
+     "EVENT rejected"
+    ],
+    "host_traffic": [
+     "deselect (ena low)"
+    ],
+    "misc": []
+   },
+   "xcov_bins": null
+  },
+  "rtl-xcov-dense": {
+   "slurm_array_job": "23750844",
+   "variant": "dense",
+   "level": "rtl",
+   "seeds": [
+    3145985,
+    3146240
+   ],
+   "cases_per_seed": 64,
+   "host_cycles_per_case": 8000,
+   "xcov": true,
+   "totals": {
+    "seeds": 256,
+    "cases_run": 16384,
+    "cases_passed": 16384,
+    "cases_failed": 0,
+    "lockstep_cycles": 178847322,
+    "wall_s": 44441.19000000001,
+    "seeds_all_pass": 256,
+    "programs_loaded": 57607,
+    "programs_reloaded": 53593,
+    "program_words_loaded": 3041824
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 44475241,
+   "case_cycles": {
+    "min": 9003,
+    "median": 11004.0,
+    "max": 12025
+   },
+   "mover_transfers": 72752,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [
+     "BEGIN rejected",
+     "COMMIT rejected",
+     "STOP rejected",
+     "ROUTE rejected",
+     "EVENT rejected"
+    ],
+    "host_traffic": [
+     "deselect (ena low)"
+    ],
+    "misc": [],
+    "xcov": [
+     "reset/deselect with engines running"
+    ]
+   },
+   "xcov_bins": {
+    "EVENT command and SIGNAL on same edge": 748,
+    "FLUSH cleared an active route": 3647,
+    "HALT with output enables active": 20219,
+    "IRQ from RX data only": 5509921,
+    "IRQ from event and RX data": 133167213,
+    "IRQ from event only": 32564745,
+    "JZ not taken": 777522,
+    "JZ taken": 9606584,
+    "LOOP fell through": 816139,
+    "LOOP taken": 667629,
+    "ROUTE edited an active route": 16224,
+    "RX FIFO full e0": 27115215,
+    "RX FIFO full e1": 25988273,
+    "RX FIFO full e2": 24932342,
+    "RX FIFO full e3": 24088196,
+    "STOP/BEGIN of engine inside WAIT": 2520,
+    "STOP/BEGIN of engine inside XFER": 10001,
+    "STOP/BEGIN of engine stalled on PULL/PUSH/WAITPIN/WAITEVENT": 47694,
+    "TX FIFO full e0": 88208019,
+    "TX FIFO full e1": 88789780,
+    "TX FIFO full e2": 87143728,
+    "TX FIFO full e3": 85851793,
+    "WAIT >= 20 cycles issued": 67684,
+    "WAITEVENT consumed event with simultaneous new delivery": 41717,
+    "WAITEVENT satisfied after blocking": 36693,
+    "WAITEVENT satisfied on issue": 151675,
+    "WAITPIN satisfied after blocking": 174131,
+    "WAITPIN satisfied on issue": 369575,
+    "WAITPIN/WAITEVENT timeout with LIMIT 1": 916,
+    "XFER issued with half-period 1": 325636,
+    "XFER issued with half-period >= 4": 106955,
+    "engines in XFER: 2": 2379176,
+    "engines in XFER: 3": 106495,
+    "engines in XFER: 4": 3345,
+    "engines running: 0": 57737719,
+    "engines running: 1": 57073110,
+    "engines running: 2": 42192672,
+    "engines running: 3": 18215359,
+    "engines running: 4": 3594670,
+    "fault with output enables active": 108466,
+    "host RX pop + engine PUSH on same FIFO, same edge": 4957,
+    "host RX read abandoned mid-word (window change)": 22296,
+    "host TX write + engine PULL on same FIFO, same edge": 159,
+    "host fault flag cleared": 10460,
+    "host fault flag set": 25606,
+    "mover arbitration: 4 routes configured": 903057,
+    "mover arbitration: >=2 routes eligible": 682,
+    "mover blocked: dest TX FIFO full": 52046984,
+    "mover blocked: host TX write to dest, same edge": 67,
+    "mover blocked: source RX head reserved by host read": 15795,
+    "mover moved a word": 72993,
+    "mover pop + engine PUSH on same source, same edge": 4307,
+    "mover push + engine PULL on same dest, same edge": 1254,
+    "mover push into FIFO the host writes next edge (dest == selected, window 2)": 911,
+    "mover route exhausted (count reached 0)": 9012,
+    "mover route to self moved a word": 19952,
+    "open-drain pin pulled low": 15457293,
+    "open-drain pin released (logical 1)": 10225474,
+    "push-pull pin driven high": 41297078,
+    "push-pull pin driven low": 61285185,
+    "reset/deselect inside XFER": 3119,
+    "strict PUSH overflow (fault 4) while host holds that RX head": 7234,
+    "synchronous start of 2 engines": 1772,
+    "synchronous start of 3 engines": 338,
+    "synchronous start of 4 engines": 27,
+    "trigger delivered to engine blocked in WAITEVENT": 10384,
+    "trigger mode 0 (rise) detected": 3188563,
+    "trigger mode 1 (fall) detected": 3266780,
+    "trigger mode 2 (high) detected": 22154720,
+    "trigger mode 3 (low) detected": 24315017
+   }
+  },
+  "rtl-faulty": {
+   "slurm_array_job": "23746368",
+   "variant": "faulty",
+   "level": "rtl",
+   "seeds": [
+    4194305,
+    4194560
+   ],
+   "cases_per_seed": 64,
+   "host_cycles_per_case": 8000,
+   "xcov": false,
+   "totals": {
+    "seeds": 256,
+    "cases_run": 16384,
+    "cases_passed": 16384,
+    "cases_failed": 0,
+    "lockstep_cycles": 161876329,
+    "wall_s": 51213.94000000002,
+    "seeds_all_pass": 256,
+    "programs_loaded": 57630,
+    "programs_reloaded": 45756,
+    "program_words_loaded": 1284632
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 102720654,
+   "case_cycles": {
+    "min": 8901,
+    "median": 9853.0,
+    "max": 11253
+   },
+   "mover_transfers": 32052,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [
+     "BEGIN rejected",
+     "COMMIT rejected",
+     "STOP rejected",
+     "ROUTE rejected",
+     "EVENT rejected"
+    ],
+    "host_traffic": [
+     "deselect (ena low)"
+    ],
+    "misc": []
+   },
+   "xcov_bins": null
+  },
+  "rtl-xcov-faulty": {
+   "slurm_array_job": "23750845",
+   "variant": "faulty",
+   "level": "rtl",
+   "seeds": [
+    4194561,
+    4194816
+   ],
+   "cases_per_seed": 64,
+   "host_cycles_per_case": 8000,
+   "xcov": true,
+   "totals": {
+    "seeds": 256,
+    "cases_run": 16384,
+    "cases_passed": 16384,
+    "cases_failed": 0,
+    "lockstep_cycles": 161880381,
+    "wall_s": 54318.22000000002,
+    "seeds_all_pass": 256,
+    "programs_loaded": 57745,
+    "programs_reloaded": 45438,
+    "program_words_loaded": 1284803
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 103304672,
+   "case_cycles": {
+    "min": 8901,
+    "median": 9857.0,
+    "max": 11353
+   },
+   "mover_transfers": 31543,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [
+     "BEGIN rejected",
+     "COMMIT rejected",
+     "STOP rejected",
+     "ROUTE rejected",
+     "EVENT rejected"
+    ],
+    "host_traffic": [
+     "deselect (ena low)"
+    ],
+    "misc": [],
+    "xcov": [
+     "reset/deselect with engines running"
+    ]
+   },
+   "xcov_bins": {
+    "EVENT command and SIGNAL on same edge": 1327,
+    "FLUSH cleared an active route": 3177,
+    "HALT with output enables active": 35940,
+    "IRQ from RX data only": 4326340,
+    "IRQ from event and RX data": 98093277,
+    "IRQ from event only": 52654183,
+    "JZ not taken": 718495,
+    "JZ taken": 14185686,
+    "LOOP fell through": 634640,
+    "LOOP taken": 522266,
+    "ROUTE edited an active route": 15131,
+    "RX FIFO full e0": 15302851,
+    "RX FIFO full e1": 16003549,
+    "RX FIFO full e2": 16731608,
+    "RX FIFO full e3": 15606253,
+    "STOP/BEGIN of engine inside WAIT": 1956,
+    "STOP/BEGIN of engine inside XFER": 6796,
+    "STOP/BEGIN of engine stalled on PULL/PUSH/WAITPIN/WAITEVENT": 30688,
+    "TX FIFO full e0": 89640298,
+    "TX FIFO full e1": 89921633,
+    "TX FIFO full e2": 89120354,
+    "TX FIFO full e3": 88571002,
+    "WAIT >= 20 cycles issued": 52058,
+    "WAITEVENT consumed event with simultaneous new delivery": 67206,
+    "WAITEVENT satisfied after blocking": 35771,
+    "WAITEVENT satisfied on issue": 147844,
+    "WAITPIN satisfied after blocking": 226880,
+    "WAITPIN satisfied on issue": 644363,
+    "WAITPIN/WAITEVENT timeout with LIMIT 1": 458,
+    "XFER issued with half-period 1": 461056,
+    "XFER issued with half-period >= 4": 96912,
+    "engines in XFER: 2": 1082481,
+    "engines in XFER: 3": 21414,
+    "engines in XFER: 4": 64,
+    "engines running: 0": 42534077,
+    "engines running: 1": 50130391,
+    "engines running: 2": 44466262,
+    "engines running: 3": 20765576,
+    "engines running: 4": 3950283,
+    "fault with output enables active": 210399,
+    "host RX pop + engine PUSH on same FIFO, same edge": 1828,
+    "host RX read abandoned mid-word (window change)": 11636,
+    "host TX write + engine PULL on same FIFO, same edge": 41,
+    "host fault flag cleared": 8118,
+    "host fault flag set": 23416,
+    "mover arbitration: 4 routes configured": 991931,
+    "mover arbitration: >=2 routes eligible": 73,
+    "mover blocked: dest TX FIFO full": 32132001,
+    "mover blocked: host TX write to dest, same edge": 20,
+    "mover blocked: source RX head reserved by host read": 2593,
+    "mover moved a word": 31751,
+    "mover pop + engine PUSH on same source, same edge": 1728,
+    "mover push + engine PULL on same dest, same edge": 505,
+    "mover push into FIFO the host writes next edge (dest == selected, window 2)": 252,
+    "mover route exhausted (count reached 0)": 3751,
+    "mover route to self moved a word": 8554,
+    "open-drain pin pulled low": 14000074,
+    "open-drain pin released (logical 1)": 10878858,
+    "push-pull pin driven high": 48041284,
+    "push-pull pin driven low": 59804667,
+    "reset/deselect inside XFER": 2456,
+    "strict PUSH overflow (fault 4) while host holds that RX head": 2328,
+    "synchronous start of 2 engines": 790,
+    "synchronous start of 3 engines": 102,
+    "synchronous start of 4 engines": 9,
+    "trigger delivered to engine blocked in WAITEVENT": 19161,
+    "trigger mode 0 (rise) detected": 2824726,
+    "trigger mode 1 (fall) detected": 2926071,
+    "trigger mode 2 (high) detected": 20331925,
+    "trigger mode 3 (low) detected": 21841040
+   }
+  },
+  "rtl-hostile": {
+   "slurm_array_job": "23747218",
+   "variant": "hostile",
+   "level": "rtl",
+   "seeds": [
+    5242881,
+    5243136
+   ],
+   "cases_per_seed": 64,
+   "host_cycles_per_case": 8000,
+   "xcov": false,
+   "totals": {
+    "seeds": 256,
+    "cases_run": 16384,
+    "cases_passed": 16384,
+    "cases_failed": 0,
+    "lockstep_cycles": 160799172,
+    "wall_s": 44345.52000000002,
+    "seeds_all_pass": 256,
+    "programs_loaded": 57593,
+    "programs_reloaded": 35848,
+    "program_words_loaded": 1287549
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 86821930,
+   "case_cycles": {
+    "min": 7583,
+    "median": 9815.0,
+    "max": 11274
+   },
+   "mover_transfers": 45967,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [],
+    "host_traffic": [],
+    "misc": []
+   },
+   "xcov_bins": null
+  },
+  "rtl-xcov-hostile": {
+   "slurm_array_job": "23750846",
+   "variant": "hostile",
+   "level": "rtl",
+   "seeds": [
+    5243137,
+    5243392
+   ],
+   "cases_per_seed": 64,
+   "host_cycles_per_case": 8000,
+   "xcov": true,
+   "totals": {
+    "seeds": 256,
+    "cases_run": 16384,
+    "cases_passed": 16384,
+    "cases_failed": 0,
+    "lockstep_cycles": 160820358,
+    "wall_s": 37912.940000000024,
+    "seeds_all_pass": 256,
+    "programs_loaded": 57811,
+    "programs_reloaded": 35907,
+    "program_words_loaded": 1289143
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 86343718,
+   "case_cycles": {
+    "min": 7584,
+    "median": 9816.0,
+    "max": 11520
+   },
+   "mover_transfers": 46502,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [],
+    "host_traffic": [],
+    "misc": [],
+    "xcov": []
+   },
+   "xcov_bins": {
+    "EVENT command and SIGNAL on same edge": 1120,
+    "FLUSH cleared an active route": 2288,
+    "HALT with output enables active": 20005,
+    "IRQ from RX data only": 5004809,
+    "IRQ from event and RX data": 110045341,
+    "IRQ from event only": 39619266,
+    "JZ not taken": 765684,
+    "JZ taken": 12121290,
+    "LOOP fell through": 663395,
+    "LOOP taken": 588724,
+    "ROUTE edited an active route": 11081,
+    "RX FIFO full e0": 21828531,
+    "RX FIFO full e1": 21613397,
+    "RX FIFO full e2": 20900061,
+    "RX FIFO full e3": 20810281,
+    "STOP/BEGIN of engine inside WAIT": 2556,
+    "STOP/BEGIN of engine inside XFER": 8933,
+    "STOP/BEGIN of engine stalled on PULL/PUSH/WAITPIN/WAITEVENT": 44972,
+    "TX FIFO full e0": 77286504,
+    "TX FIFO full e1": 78259752,
+    "TX FIFO full e2": 76911057,
+    "TX FIFO full e3": 76645722,
+    "WAIT >= 20 cycles issued": 49103,
+    "WAITEVENT consumed event with simultaneous new delivery": 64954,
+    "WAITEVENT satisfied after blocking": 33088,
+    "WAITEVENT satisfied on issue": 157997,
+    "WAITPIN satisfied after blocking": 231384,
+    "WAITPIN satisfied on issue": 605824,
+    "WAITPIN/WAITEVENT timeout with LIMIT 1": 454,
+    "XFER issued with half-period 1": 402727,
+    "XFER issued with half-period >= 4": 90366,
+    "engines in XFER: 2": 1678495,
+    "engines in XFER: 3": 39882,
+    "engines in XFER: 4": 407,
+    "engines running: 0": 43389253,
+    "engines running: 1": 51345603,
+    "engines running: 2": 43429614,
+    "engines running: 3": 19165214,
+    "engines running: 4": 3456329,
+    "fault with output enables active": 56981,
+    "host RX pop + engine PUSH on same FIFO, same edge": 2251,
+    "host RX read abandoned mid-word (window change)": 11798,
+    "host TX write + engine PULL on same FIFO, same edge": 79,
+    "host fault flag cleared": 7637,
+    "host fault flag set": 23641,
+    "mover arbitration: 4 routes configured": 535095,
+    "mover arbitration: >=2 routes eligible": 209,
+    "mover blocked: dest TX FIFO full": 35968191,
+    "mover blocked: host TX write to dest, same edge": 49,
+    "mover blocked: source RX head reserved by host read": 8834,
+    "mover moved a word": 46656,
+    "mover pop + engine PUSH on same source, same edge": 2693,
+    "mover push + engine PULL on same dest, same edge": 774,
+    "mover push into FIFO the host writes next edge (dest == selected, window 2)": 532,
+    "mover route exhausted (count reached 0)": 5545,
+    "mover route to self moved a word": 12383,
+    "open-drain pin pulled low": 14663577,
+    "open-drain pin released (logical 1)": 11220665,
+    "push-pull pin driven high": 43975115,
+    "push-pull pin driven low": 57088764,
+    "reset/deselect inside XFER": 2656,
+    "reset/deselect with engines running": 213,
+    "strict PUSH overflow (fault 4) while host holds that RX head": 2732,
+    "synchronous start of 2 engines": 985,
+    "synchronous start of 3 engines": 143,
+    "synchronous start of 4 engines": 10,
+    "trigger delivered to engine blocked in WAITEVENT": 19538,
+    "trigger mode 0 (rise) detected": 2812725,
+    "trigger mode 1 (fall) detected": 2800786,
+    "trigger mode 2 (high) detected": 19670498,
+    "trigger mode 3 (low) detected": 20276390
+   }
+  },
+  "rtl-xcov-deselect": {
+   "slurm_array_job": "23752081",
+   "variant": "deselect",
+   "level": "rtl",
+   "seeds": [
+    6291457,
+    6291712
+   ],
+   "cases_per_seed": 64,
+   "host_cycles_per_case": 2000,
+   "xcov": true,
+   "totals": {
+    "seeds": 256,
+    "cases_run": 16384,
+    "cases_passed": 16384,
+    "cases_failed": 0,
+    "lockstep_cycles": 63544269,
+    "wall_s": 18578.23,
+    "seeds_all_pass": 256,
+    "programs_loaded": 57707,
+    "programs_reloaded": 13296,
+    "program_words_loaded": 1282773
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 31192981,
+   "case_cycles": {
+    "min": 2627,
+    "median": 3857.0,
+    "max": 5403
+   },
+   "mover_transfers": 27857,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [
+     "BEGIN rejected",
+     "COMMIT rejected",
+     "STOP rejected",
+     "ROUTE rejected",
+     "EVENT rejected"
+    ],
+    "host_traffic": [],
+    "misc": [],
+    "xcov": []
+   },
+   "xcov_bins": {
+    "EVENT command and SIGNAL on same edge": 418,
+    "FLUSH cleared an active route": 630,
+    "HALT with output enables active": 8884,
+    "IRQ from RX data only": 3990002,
+    "IRQ from event and RX data": 32845929,
+    "IRQ from event only": 19754990,
+    "JZ not taken": 282566,
+    "JZ taken": 4418313,
+    "LOOP fell through": 235233,
+    "LOOP taken": 204269,
+    "ROUTE edited an active route": 4135,
+    "RX FIFO full e0": 6744426,
+    "RX FIFO full e1": 6497724,
+    "RX FIFO full e2": 6268953,
+    "RX FIFO full e3": 5979468,
+    "STOP/BEGIN of engine inside WAIT": 1290,
+    "STOP/BEGIN of engine inside XFER": 4145,
+    "STOP/BEGIN of engine stalled on PULL/PUSH/WAITPIN/WAITEVENT": 19908,
+    "TX FIFO full e0": 16573710,
+    "TX FIFO full e1": 15675955,
+    "TX FIFO full e2": 15380031,
+    "TX FIFO full e3": 15006796,
+    "WAIT >= 20 cycles issued": 19879,
+    "WAITEVENT consumed event with simultaneous new delivery": 22607,
+    "WAITEVENT satisfied after blocking": 14815,
+    "WAITEVENT satisfied on issue": 55244,
+    "WAITPIN satisfied after blocking": 83074,
+    "WAITPIN satisfied on issue": 222715,
+    "WAITPIN/WAITEVENT timeout with LIMIT 1": 164,
+    "XFER issued with half-period 1": 151958,
+    "XFER issued with half-period >= 4": 33763,
+    "engines in XFER: 2": 597183,
+    "engines in XFER: 3": 24202,
+    "engines in XFER: 4": 37,
+    "engines running: 0": 25321675,
+    "engines running: 1": 14693102,
+    "engines running: 2": 13402523,
+    "engines running: 3": 7954028,
+    "engines running: 4": 2135851,
+    "fault with output enables active": 21925,
+    "host RX pop + engine PUSH on same FIFO, same edge": 851,
+    "host RX read abandoned mid-word (window change)": 3615,
+    "host TX write + engine PULL on same FIFO, same edge": 33,
+    "host fault flag cleared": 1489,
+    "host fault flag set": 15710,
+    "mover arbitration: 4 routes configured": 29993,
+    "mover arbitration: >=2 routes eligible": 23,
+    "mover blocked: dest TX FIFO full": 6857647,
+    "mover blocked: host TX write to dest, same edge": 38,
+    "mover blocked: source RX head reserved by host read": 3791,
+    "mover moved a word": 27910,
+    "mover pop + engine PUSH on same source, same edge": 1628,
+    "mover push + engine PULL on same dest, same edge": 412,
+    "mover push into FIFO the host writes next edge (dest == selected, window 2)": 347,
+    "mover route exhausted (count reached 0)": 3088,
+    "mover route to self moved a word": 7061,
+    "open-drain pin pulled low": 6268330,
+    "open-drain pin released (logical 1)": 4790214,
+    "push-pull pin driven high": 15227001,
+    "push-pull pin driven low": 19031121,
+    "reset/deselect inside XFER": 3058,
+    "reset/deselect with engines running": 1475,
+    "strict PUSH overflow (fault 4) while host holds that RX head": 1007,
+    "synchronous start of 2 engines": 478,
+    "synchronous start of 3 engines": 77,
+    "synchronous start of 4 engines": 2,
+    "trigger delivered to engine blocked in WAITEVENT": 7459,
+    "trigger mode 0 (rise) detected": 1008537,
+    "trigger mode 1 (fall) detected": 1021504,
+    "trigger mode 2 (high) detected": 7021579,
+    "trigger mode 3 (low) detected": 7518028
+   }
+  },
+  "gl-default": {
+   "slurm_array_job": "23746061",
+   "variant": "default",
+   "level": "gl",
+   "seeds": [
+    1,
+    64
+   ],
+   "cases_per_seed": 8,
+   "host_cycles_per_case": 2000,
+   "xcov": false,
+   "totals": {
+    "seeds": 64,
+    "cases_run": 512,
+    "cases_passed": 512,
+    "cases_failed": 0,
+    "lockstep_cycles": 1990207,
+    "wall_s": 6742.150000000001,
+    "seeds_all_pass": 64,
+    "programs_loaded": 1833,
+    "programs_reloaded": 402,
+    "program_words_loaded": 39784
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 982956,
+   "case_cycles": {
+    "min": 2920,
+    "median": 3871.5,
+    "max": 4823
+   },
+   "mover_transfers": 935,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [
+     "BEGIN rejected",
+     "COMMIT rejected",
+     "STOP rejected",
+     "ROUTE rejected",
+     "EVENT rejected"
+    ],
+    "host_traffic": [],
+    "misc": []
+   },
+   "xcov_bins": null
+  },
+  "gl-extended": {
+   "slurm_array_job": "23746369",
+   "variant": "default",
+   "level": "gl",
+   "seeds": [
+    65,
+    320
+   ],
+   "cases_per_seed": 32,
+   "host_cycles_per_case": 2000,
+   "xcov": false,
+   "totals": {
+    "seeds": 256,
+    "cases_run": 8192,
+    "cases_passed": 8192,
+    "cases_failed": 0,
+    "lockstep_cycles": 31823649,
+    "wall_s": 88912.46,
+    "seeds_all_pass": 256,
+    "programs_loaded": 28891,
+    "programs_reloaded": 6500,
+    "program_words_loaded": 641781
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 16240618,
+   "case_cycles": {
+    "min": 2830,
+    "median": 3863.0,
+    "max": 5331
+   },
+   "mover_transfers": 14626,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [
+     "BEGIN rejected",
+     "COMMIT rejected",
+     "STOP rejected",
+     "ROUTE rejected",
+     "EVENT rejected"
+    ],
+    "host_traffic": [],
+    "misc": []
+   },
+   "xcov_bins": null
+  },
+  "gl-hostile": {
+   "slurm_array_job": "23752532",
+   "variant": "hostile",
+   "level": "gl",
+   "seeds": [
+    5242881,
+    5242944
+   ],
+   "cases_per_seed": 16,
+   "host_cycles_per_case": 8000,
+   "xcov": false,
+   "totals": {
+    "seeds": 64,
+    "cases_run": 1024,
+    "cases_passed": 1024,
+    "cases_failed": 0,
+    "lockstep_cycles": 10056054,
+    "wall_s": 31325.82,
+    "seeds_all_pass": 64,
+    "programs_loaded": 3605,
+    "programs_reloaded": 2156,
+    "program_words_loaded": 81380
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 5582457,
+   "case_cycles": {
+    "min": 8219,
+    "median": 9805.0,
+    "max": 11166
+   },
+   "mover_transfers": 2909,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [],
+    "host_traffic": [],
+    "misc": []
+   },
+   "xcov_bins": null
+  },
+  "gl-deselect": {
+   "slurm_array_job": "23752533",
+   "variant": "deselect",
+   "level": "gl",
+   "seeds": [
+    6291457,
+    6291520
+   ],
+   "cases_per_seed": 16,
+   "host_cycles_per_case": 2000,
+   "xcov": false,
+   "totals": {
+    "seeds": 64,
+    "cases_run": 1024,
+    "cases_passed": 1024,
+    "cases_failed": 0,
+    "lockstep_cycles": 3967201,
+    "wall_s": 9488.47,
+    "seeds_all_pass": 64,
+    "programs_loaded": 3619,
+    "programs_reloaded": 792,
+    "program_words_loaded": 80043
+   },
+   "infra_errors": 0,
+   "failures": 0,
+   "instructions_completed": 1836679,
+   "case_cycles": {
+    "min": 2961,
+    "median": 3848.5,
+    "max": 5181
+   },
+   "mover_transfers": 1743,
+   "holes": {
+    "opcode_x_engine": {
+     "0": [],
+     "1": [],
+     "2": [],
+     "3": []
+    },
+    "engines_without_any_completion": [],
+    "stall_kinds": [],
+    "fault_bins": [],
+    "xfer_flag_combinations": [],
+    "xfer_bit_counts": [],
+    "host_commands": [
+     "BEGIN rejected",
+     "COMMIT rejected",
+     "STOP rejected",
+     "ROUTE rejected",
+     "EVENT rejected"
+    ],
+    "host_traffic": [],
+    "misc": []
+   },
+   "xcov_bins": null
+  }
+ },
+ "negative_control": {
+  "slurm_array_job": "23749927",
+  "upstream_job": "23749932",
+  "seeds": 64,
+  "seeds_detecting": 64,
+  "cases": 4096,
+  "cases_detecting": 1536
+ },
+ "gl_vs_rtl_case_cycles": {
+  "gl-default": {
+   "rtl_campaign": "rtl-default",
+   "same_cycles": 512,
+   "different": 0,
+   "unpaired": 0
+  },
+  "gl-extended": {
+   "rtl_campaign": "rtl-default",
+   "same_cycles": 8192,
+   "different": 0,
+   "unpaired": 0
+  },
+  "gl-hostile": {
+   "rtl_campaign": "rtl-hostile",
+   "same_cycles": 1024,
+   "different": 0,
+   "unpaired": 0
+  },
+  "gl-deselect": {
+   "rtl_campaign": "rtl-xcov-deselect",
+   "same_cycles": 1024,
+   "different": 0,
+   "unpaired": 0
+  }
+ }
+}

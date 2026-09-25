@@ -1,0 +1,30 @@
+{
+ "statements": 6051,
+ "statement_regions": {
+  "engine_ctrl": 1335,
+  "engine_data": 1310,
+  "pins": 1061,
+  "events": 809,
+  "host": 418,
+  "fifo": 328,
+  "engine_xfer": 302,
+  "mover": 256,
+  "shared": 158,
+  "imem": 70,
+  "timestamp": 4
+ },
+ "cells": 3579,
+ "cell_regions": {
+  "engine_ctrl": 847,
+  "engine_data": 724,
+  "events": 579,
+  "pins": 333,
+  "host": 310,
+  "fifo": 268,
+  "engine_xfer": 232,
+  "mover": 164,
+  "shared": 83,
+  "imem": 36,
+  "timestamp": 3
+ }
+}

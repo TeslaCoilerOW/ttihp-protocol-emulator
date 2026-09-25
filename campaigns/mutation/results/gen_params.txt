@@ -1,0 +1,9 @@
+snapshot: <work dir>/vcamp/snapshot-73536f0
+quotas: engine_ctrl=550,host=400,mover=250,events=300,pins=250,engine_xfer=200,imem=60,shared=90,fifo=130,engine_data=180,timestamp=10
+seed: 20270118 (region k uses seed+k)
+cfg: -cfg weight_pq_b 0 -cfg weight_pq_mb 0 -cfg weight_pq_w 100 -cfg weight_pq_mw 100 -cfg weight_pq_c 100 -cfg weight_pq_mc 100 -cfg weight_pq_s 300 -cfg weight_pq_ms 300 -cfg weight_cover 2000 -cfg pick_cover_prcnt 90
+Yosys 0.67+111 (git sha1 4821ed17b-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+26a873db82935fe6bc79214ca1e084294d270fd5adc3cc2aab28c1adfe0d7697  core_orig.v
+cb91afa088ca7246b2a21e23cca62c8c61b4cd0285ea9bd2cf0bd6c9408c4b5d  base.il
+b83fea7ebfa1ecc554e7fa0ddc747481adf90153a5bdd45ce03d9c10a91be40b  base_roundtrip.v
+0f0a26c3a68483c57e28fdacd4586c9f1eb58eb592cc944aa123f37ce1e126ee  mutations.tsv
