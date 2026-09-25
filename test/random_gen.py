@@ -9,7 +9,7 @@ stimulus seed. ``run_case`` executes it on any Harness (DUT+model under cocotb,
 or model only). Because a case is data, a failing case can be saved, replayed
 (PE_REPLAY) and shrunk (``minimize``).
 
-Program generation follows reference/isa.md: operands are legal and pin
+Program generation follows docs/isa.md: operands are legal and pin
 writes stay inside the engine's ownership unless an instruction is a
 deliberate fault, which is annotated with its expected fault code.
 """

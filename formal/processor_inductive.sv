@@ -49,8 +49,8 @@ module processor_inductive #(parameter WIDTH=32, ENGINES=4, DEPTH=8,
     assign cover_event=(event_clear != 0);
     // Active-context witness (formerly `sat -set-at 1 cover_dma 1 -set-at 1
     // cover_event 1`): a mover grant and an event consumption in one cycle.
-    always @(posedge clk) if (past_valid) cover(cover_dma && cover_event);
     reg past_valid=0;
+    always @(posedge clk) if (past_valid) cover(cover_dma && cover_event);
     reg [7:0] all_owners, all_drains;
     integer i,j;
     always @* begin

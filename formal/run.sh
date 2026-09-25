@@ -145,6 +145,19 @@ for name in "${selected[@]}"; do
   seconds=$(( $(date +%s) - start ))
   status=$(sed -n 's/.*DONE (\([A-Z]*\), rc=.*/\1/p' "$BUILD/sby/$name.log" | tail -n 1)
   [ -n "$status" ] || status=$([ $rc -eq 124 ] && echo TIMEOUT || echo ERROR)
+  # A negative control counts only if a pin-equality assertion (one that
+  # compares the owned pins, '& own') fired, not e.g. the observation-port
+  # sanity check.
+  if [ $rc -eq 0 ] && [[ $name == *_neg_* ]]; then
+    fired=$(sed -n 's/.*Assert failed in [^:]*: \([A-Za-z0-9_]*\.sv\):\([0-9]*\)\..*/\1:\2/p' \
+      "$BUILD/sby/$name.log" | head -n 1)
+    if [ -z "$fired" ] || ! sed -n "${fired#*:}p" "$FORMAL/${fired%%:*}" | grep -q '& own'; then
+      echo "run.sh: $name failed, but not on a pin-equality assertion (${fired:-none found})" >&2
+      rc=1
+    else
+      echo "  negative control fired the pin assertion at $fired"
+    fi
+  fi
   if [ $rc -eq 0 ]; then met=yes; else met=no; failures=$((failures + 1)); fi
   grep -E "summary: (engine|successful|  failed|  reached)|DONE" "$BUILD/sby/$name.log" \
     | sed 's/^SBY [0-9:]* \[[^]]*\] /  /' || true

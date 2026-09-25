@@ -17,6 +17,11 @@ jobs:
         uses: TinyTapeout/tt-gds-action@ihp-cmos5l
         with:
           pdk: ihp-sg13cmos5l
+          # src/sram_pdn_cfg.tcl wraps OpenROAD pdngen internals as shipped in
+          # this LibreLane release (the action's current default). Pinned so a
+          # default bump cannot silently change the SRAM power hookup; see
+          # docs/hardening.md section 8 before changing it.
+          librelane-version: 3.1.0.dev3
 
   precheck:
     needs: gds

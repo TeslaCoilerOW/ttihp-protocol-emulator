@@ -1,0 +1,398 @@
+--- /dev/null
++++ b/lib/area_knobs.ml
+@@ -0,0 +1,45 @@
++(* Area-study knobs (scratch copy only; not part of the design of record). *)
++open Hardcaml
++let env name default = match Sys.getenv_opt name with Some v when v <> "" -> v | _ -> default
++let int name default = int_of_string (env name (string_of_int default))
++let flag name = env name "0" = "1"
++let prefix = ref ""
++let completed_width () = int "AREA_COMPLETED_WIDTH" 32
++let dp_noclear () = flag "AREA_DP_NOCLEAR"
++let async_reset () = flag "AREA_ASYNC_RESET"
++(* AREA_RST_SYNC: number of reset-release synchronizer flops in async mode
++   (0 = the async reset net is ~(rst_n & ena) directly). *)
++let rst_sync () = int "AREA_RST_SYNC" 0
++let narrow_image () = flag "AREA_NARROW_IMAGE"
++let narrow_pc () = flag "AREA_NARROW_PC"
++let no_ena () = flag "AREA_NO_ENA"
++(* In async mode the processor stores its chip-wide asynchronous reset net here
++   so FIFOs can combine it with their synchronous FLUSH clear. *)
++let global_reset : Signal.t option ref = ref None
++let spec ~clock ~clear ~dp =
++  if dp && dp_noclear () then Reg_spec.create ~clock ()
++  else if async_reset () then Reg_spec.create ~clock ~reset:clear ()
++  else Reg_spec.create ~clock ~clear ()
++(* FIFO pointers.  Sync mode: [clear] = chip clear OR flush, as in the design of
++   record.  Async mode inside the processor: [clear] is the flush only; it stays a
++   synchronous clear, and the chip reset is the asynchronous reset.  Standalone
++   block (no global net): [clear] is the asynchronous reset. *)
++let fifo_spec ~clock ~clear =
++  if not (async_reset ()) then Reg_spec.create ~clock ~clear ()
++  else match !global_reset with
++    | Some r -> Reg_spec.create ~clock ~reset:r ~clear ()
++    | None -> Reg_spec.create ~clock ~reset:clear ()
++let fifo_regs () = flag "AREA_FIFO_REGS"
++let no_status () = flag "AREA_NO_STATUS"
++let no_mover () = flag "AREA_NO_MOVER"
++let no_shift () = flag "AREA_NO_SHIFT"
++(* AREA_BYTE_SHIFT: SHL/SHR honour only c[4:3] (shift by 0, 8, 16 or 24). *)
++let byte_shift () = flag "AREA_BYTE_SHIFT"
++(* Storage words: never a synchronous clear (like a memory); in async mode they
++   take the chip-wide asynchronous reset (never the flush) so RESET_B needs no tie. *)
++let storage_spec ~clock ~clear =
++  if not (async_reset ()) then Reg_spec.create ~clock ()
++  else match !global_reset with
++    | Some r -> Reg_spec.create ~clock ~reset:r ()
++    | None -> Reg_spec.create ~clock ~reset:clear ()
++let rx_depth default = let d = int "AREA_RX_DEPTH" 0 in if d = 0 then default else d
+--- /dev/null
++++ b/lib/area_knobs.mli
+@@ -0,0 +1,18 @@
++val prefix : string ref
++val completed_width : unit -> int
++val dp_noclear : unit -> bool
++val async_reset : unit -> bool
++val rst_sync : unit -> int
++val narrow_image : unit -> bool
++val narrow_pc : unit -> bool
++val no_ena : unit -> bool
++val global_reset : Hardcaml.Signal.t option ref
++val spec : clock:Hardcaml.Signal.t -> clear:Hardcaml.Signal.t -> dp:bool -> Hardcaml.Reg_spec.t
++val fifo_spec : clock:Hardcaml.Signal.t -> clear:Hardcaml.Signal.t -> Hardcaml.Reg_spec.t
++val fifo_regs : unit -> bool
++val no_status : unit -> bool
++val no_mover : unit -> bool
++val no_shift : unit -> bool
++val byte_shift : unit -> bool
++val storage_spec : clock:Hardcaml.Signal.t -> clear:Hardcaml.Signal.t -> Hardcaml.Reg_spec.t
++val rx_depth : int -> int
+--- a/lib/config.ml
++++ b/lib/config.ml
+@@ -16,7 +16,7 @@
+   member "engine_count" t.engine_count [2;4];
+   member "data_width" t.data_width [16;32];
+   member "program_words" t.program_words [32;64;128];
+-  member "fifo_words" t.fifo_words [8;32];
++  member "fifo_words" t.fifo_words [2;4;8;16;32];
+   if not (List.mem t.issue ["scalar";"fused"]) then invalid_arg "invalid issue";
+   t
+ 
+--- a/lib/engine.ml
++++ b/lib/engine.ml
+@@ -19,19 +19,28 @@
+ let create (config:Config.t) (i:inputs) =
+   let open Always in
+   let width = config.data_width in
+-  let spec = Reg_spec.create ~clock:i.clock ~clear:i.clear () in
++  let pfx = !Area_knobs.prefix in
++  let spec = Area_knobs.spec ~clock:i.clock ~clear:i.clear ~dp:false in
++  let dspec = Area_knobs.spec ~clock:i.clock ~clear:i.clear ~dp:true in
+   let r name w = let v = Variable.reg spec ~width:w in
+-    ignore (v.value -- name); v in
+-  let pc = r "pc" 24 and running = r "running" 1 and fault = r "fault_code" 8 in
+-  let image_length = uresize i.image_length 24 in
+-  let regs = Array.init 4 (fun n -> r ([|"tx";"rx";"x";"y"|].(n)) width) in
++    ignore (v.value -- (pfx ^ name)); v in
++  let rd name w = let v = Variable.reg dspec ~width:w in
++    ignore (v.value -- (pfx ^ name)); v in
++  let pcw = if Area_knobs.narrow_pc () then 7 else 24 in
++  let sat v = if pcw = 24 then uresize v 24
++    else mux2 (select v 23 (pcw-1) <>:. 0) (ones pcw) (uresize v pcw) in
++  let pc = r "pc" pcw and running = r "running" 1 and fault = r "fault_code" 8 in
++  let image_length = uresize i.image_length pcw in
++  let regs = Array.init 4 (fun n -> (if n = 1 then r else rd) ([|"tx";"rx";"x";"y"|].(n)) width) in
+   let tx = regs.(0) and rx = regs.(1) in
+-  let repeat = r "repeat_count" 16 and timer = r "wait_timer" 24 in
+-  let limit = r "wait_limit" 24 and blocked = r "blocked_cycles" 24 in
+-  let values = r "logical_output" 8 and enables = r "logical_enable" 8 in
+-  let pins = r "transfer_pins" 9 and completed = r "completed_instructions" 32 in
+-  let xremaining = r "transfer_edges" 7 and xtick = r "transfer_tick" 8 in
+-  let xperiod = r "transfer_period" 8 and xmode = r "transfer_mode" 5 in
++  let repeat = rd "repeat_count" 16 and timer = rd "wait_timer" 24 in
++  let limit = rd "wait_limit" 24 and blocked = rd "blocked_cycles" 24 in
++  let values = rd "logical_output" 8 and enables = rd "logical_enable" 8 in
++  let cw = Area_knobs.completed_width () in
++  let pins = rd "transfer_pins" 9 and completed =
++    if cw = 0 then Variable.wire ~default:(zero 1) else r "completed_instructions" cw in
++  let xremaining = rd "transfer_edges" 7 and xtick = rd "transfer_tick" 8 in
++  let xperiod = rd "transfer_period" 8 and xmode = rd "transfer_mode" 5 in
+   let word = i.instruction in
+   let op = select word 31 24 and a = select word 23 16
+   and b = select word 15 8 and c = select word 7 0 in
+@@ -103,7 +112,7 @@
+         2,finish @ [values <-- low8];
+         3,finish @ [enables <-- low8];
+         4,finish @ [timer <-- imm24];
+-        5,[pc <-- imm24; completed <-- completed.value +:. 1; blocked <--. 0];
++        5,[pc <-- sat imm24; completed <-- completed.value +:. 1; blocked <--. 0];
+         6,[when_ i.tx_valid (finish @ [tx <-- i.tx_data])];
+         7,[if_ i.rx_ready finish [when_ (a ==:. 1) (fail (of_int ~width:8 4))]];
+         8,finish @ [values <-- write_pin values.value pin (tx_bit (bit c 0) tx.value);
+@@ -111,7 +120,7 @@
+         9,finish @ [rx <-- sample (bit c 0) pin_input];
+         10,finish @ [repeat <-- imm16];
+         11,finish @ [when_ (repeat.value <>:. 0)
+-                      [repeat <-- repeat.value -:. 1; pc <-- imm24]];
++                      [repeat <-- repeat.value -:. 1; pc <-- sat imm24]];
+         12,finish @ [limit <-- imm24];
+         13,[blocked_step (~:waiting_pin)];
+         14,finish;
+@@ -130,9 +139,13 @@
+         21,finish @ write_reg (destination ^: source);
+         22,finish @ write_reg (destination &: source);
+         23,finish @ write_reg (destination |: source);
+-        24,finish @ write_reg (log_shift sll destination c);
+-        25,finish @ write_reg (log_shift srl destination c);
+-        26,finish @ [when_ (destination ==:. 0) [pc <-- uresize imm16 24]];
++        24,finish @ write_reg (if Area_knobs.no_shift () then destination
++                                else if Area_knobs.byte_shift () then log_shift sll destination (c &: of_int ~width:8 0x18)
++                                else log_shift sll destination c);
++        25,finish @ write_reg (if Area_knobs.no_shift () then destination
++                                else if Area_knobs.byte_shift () then log_shift srl destination (c &: of_int ~width:8 0x18)
++                                else log_shift srl destination c);
++        26,finish @ [when_ (destination ==:. 0) [pc <-- sat (uresize imm16 24)]];
+         27,finish @ write_reg (~:destination);
+         28,finish @ write_reg (uresize i.timestamp width);
+         29,fail low8;
+@@ -168,7 +181,8 @@
+               [if_ (xremaining.value <>:. 0) transfer ordinary]]]]];
+   {pc=pc.value; running=running.value; fault=fault.value; stalled;
+    tx_pop; rx_push; rx_data=rx.value; pin_values=values.value;
+-   pin_enables=enables.value; signal_events; consume_event; completed=completed.value;
++   pin_enables=enables.value; signal_events; consume_event;
++   completed=(if cw = 0 then zero 32 else uresize completed.value 32);
+    issue; wait_timer=timer.value; wait_limit=limit.value; blocked_cycles=blocked.value;
+    repeat_count=repeat.value; transfer_edges=xremaining.value}
+ 
+@@ -179,13 +193,7 @@
+ let next_pc (engine:t) =
+   match engine.pc with
+   | Signal.Type.Reg {register;d;_} ->
+-    let clear_is_zero = match register.reg_clear_value with
+-      | Signal.Type.Const {constant;_} -> Bits.to_int constant = 0
+-      | _ -> false in
+-    if width engine.pc <> 24 || register.reg_clock_edge <> Edge.Rising
+-       || not (is_empty register.reg_reset) || is_empty register.reg_clear
+-       || register.reg_clear_level <> Level.High || not clear_is_zero
+-       || not (is_vdd register.reg_enable)
+-    then invalid_arg "Engine.next_pc: unsupported PC register semantics";
+-    mux2 register.reg_clear register.reg_clear_value d
++    let base = if is_empty register.reg_clear then d
++      else mux2 register.reg_clear register.reg_clear_value d in
++    uresize base 24
+   | _ -> invalid_arg "Engine.next_pc: PC must remain a register"
+--- a/lib/fifo.ml
++++ b/lib/fifo.ml
+@@ -7,19 +7,25 @@
+    pop creates space on the following cycle; there is no combinational bypass. *)
+ let create ~clock ~clear ~width ~depth ~push ~pop ~data =
+   if Signal.width data <> width then invalid_arg "FIFO data width differs from configuration";
+-  let spec = Reg_spec.create ~clock ~clear () in
++  let pfx = !Area_knobs.prefix in
++  let spec = Area_knobs.fifo_spec ~clock ~clear in
+   let bits = Config.log2 depth in
+-  let count = Always.Variable.reg spec ~width:(bits+1) in
+-  let rd = Always.Variable.reg spec ~width:bits in
+-  let wr = Always.Variable.reg spec ~width:bits in
++  let nm (v:Always.Variable.t) n = ignore (v.value -- (pfx ^ n)); v in
++  let count = nm (Always.Variable.reg spec ~width:(bits+1)) "count" in
++  let rd = nm (Always.Variable.reg spec ~width:bits) "rdptr" in
++  let wr = nm (Always.Variable.reg spec ~width:bits) "wrptr" in
+   let valid = count.value <>:. 0 in
+   let ready = count.value <>:. depth in
+   let put = push &: ready &: ~:clear in
+   let take = pop &: valid &: ~:clear in
+-  let head = memory depth
+-      ~write_port:{write_clock=clock; write_address=wr.value;
+-                   write_enable=put; write_data=data}
+-      ~read_address:rd.value in
++  let head = if Area_knobs.fifo_regs () then (
++      let sspec = Area_knobs.storage_spec ~clock ~clear in
++      let words = List.init depth (fun j ->
++        reg sspec ~enable:(put &: (wr.value ==:. j)) data -- Printf.sprintf "%smem_%d" pfx j) in
++      mux rd.value words) else (multiport_memory ~name:(pfx ^ "mem") depth
++      ~write_ports:[|{write_clock=clock; write_address=wr.value;
++                   write_enable=put; write_data=data}|]
++      ~read_addresses:[|rd.value|]).(0) in
+   let open Always in
+   compile [when_ put [wr <-- wr.value +:. 1];
+            when_ take [rd <-- rd.value +:. 1];
+--- a/lib/host.ml
++++ b/lib/host.ml
+@@ -10,10 +10,13 @@
+    a read FIFO is only popped after its eighth accepted nibble. *)
+ let create ~clock ~clear ~ui ~write_ready ~read_valid ~read_data ~irq ~fault =
+   let open Always in
+-  let spec = Reg_spec.create ~clock ~clear () in
+-  let reg w = Variable.reg spec ~width:w in
+-  let previous_window = reg 2 and write_index = reg 3 and write_buffer = reg 32 in
+-  let read_index = reg 3 and snapshot = reg 32 and presenting = reg 1 in
++  let spec = Area_knobs.spec ~clock ~clear ~dp:false in
++  let dspec = Area_knobs.spec ~clock ~clear ~dp:true in
++  let reg ?(s=spec) n w = let v = Variable.reg s ~width:w in ignore (v.value -- ("host_" ^ n)); v in
++  let previous_window = reg "previous_window" 2 and write_index = reg "write_index" 3
++  and write_buffer = reg ~s:dspec "write_buffer" 32 in
++  let read_index = reg "read_index" 3 and snapshot = reg ~s:dspec "snapshot" 32
++  and presenting = reg "presenting" 1 in
+   let window = select ui 7 6 in
+   let changed = window <>: previous_window.value in
+   let wr_ready = write_ready &: ~:changed &: ~:clear in
+--- a/lib/processor.ml
++++ b/lib/processor.ml
+@@ -10,15 +10,30 @@
+   let n = config.engine_count and width = config.data_width in
+   let clock = input "clk" 1 and rst_n = input "rst_n" 1 and ena = input "ena" 1 in
+   let ui = input "ui_in" 8 and uio = input "uio_in" 8 in
+-  let clear = (~:rst_n) |: (~:ena) in
+-  let spec = Reg_spec.create ~clock ~clear () in
++  (* Area study.  Sync mode (design of record): clear = ~rst_n | ~ena, synchronous.
++     Async mode: every register's asynchronous reset is ~(rst_n & ena), optionally
++     released through AREA_RST_SYNC synchronizer flops; deselection still resets. *)
++  let clear =
++    if Area_knobs.async_reset () then begin
++      let source = if Area_knobs.no_ena () then ~:rst_n else ~:(rst_n &: ena) in
++      let sspec = Reg_spec.create ~clock ~reset:source () in
++      let rec chain k x = if k = 0 then x
++        else chain (k-1) (reg sspec x -- Printf.sprintf "rst_sync%d" k) in
++      let net = if Area_knobs.rst_sync () = 0 then source
++        else ~:(chain (Area_knobs.rst_sync ()) vdd) in
++      Area_knobs.global_reset := Some net; net end
++    else begin Area_knobs.global_reset := None;
++      if Area_knobs.no_ena () then ~:rst_n else (~:rst_n) |: (~:ena) end in
++  let spec = Area_knobs.spec ~clock ~clear ~dp:false in
++  let dspec = Area_knobs.spec ~clock ~clear ~dp:true in
++  let iw = if Area_knobs.narrow_image () then Config.log2 config.program_words + 1 else 16 in
+   let r name w = let v=Variable.reg spec ~width:w in ignore(v.value -- name); v in
+   let selected = r "host_selected_engine" 2 and read_select = r "host_read_select" 3 in
+   let host_fault = r "host_fault" 1 and timestamp = r "timestamp" 32 in
+   let committed = Array.init n (fun k -> r (Printf.sprintf "image_valid_%d" k) 1) in
+   let writing = Array.init n (fun k -> r (Printf.sprintf "image_writing_%d" k) 1) in
+-  let lengths = Array.init n (fun k -> r (Printf.sprintf "image_length_%d" k) 16) in
+-  let loaded = Array.init n (fun k -> r (Printf.sprintf "image_loaded_%d" k) 16) in
++  let lengths = Array.init n (fun k -> r (Printf.sprintf "image_length_%d" k) iw) in
++  let loaded = Array.init n (fun k -> r (Printf.sprintf "image_loaded_%d" k) iw) in
+   let owners = Array.init n (fun k -> r (Printf.sprintf "ownership_%d" k) 8) in
+   let drains = Array.init n (fun k -> r (Printf.sprintf "open_drain_%d" k) 8) in
+   let events = Array.init n (fun k -> r (Printf.sprintf "mailbox_%d" k) 1) in
+@@ -26,19 +41,20 @@
+   let route_count = Array.init n (fun k -> r (Printf.sprintf "route_remaining_%d" k) 16) in
+   let route_dest = Array.init n (fun k -> r (Printf.sprintf "route_destination_%d" k) 2) in
+   let rr = r "dma_round_robin" (Config.log2 n) in
+-  let sync1 = reg spec uio in
+-  let synced_pins = reg spec sync1 in
+-  let previous_pins = reg spec synced_pins in
++  let sync1 = reg dspec uio -- "pin_sync1" in
++  let synced_pins = reg dspec sync1 -- "pin_synced" in
++  let previous_pins = reg dspec synced_pins -- "pin_previous" in
+   let control w = Array.init n (fun _ -> wire w) in
+   let starts=control 1 and stops=control 1 and clears=control 1 and flushes=control 1 in
+   let instructions=control 32 and tx_pop=control 1 and rx_push=control 1
+   and rx_data=control width and tx_push=control 1 and tx_data=control width
+   and rx_pop=control 1 in
+-  let txs=Array.init n (fun k -> Processor_fifo.create ~clock ~clear:(clear |: flushes.(k))
++  let fifo_clear k = if Area_knobs.async_reset () then flushes.(k) else clear |: flushes.(k) in
++  let txs=Array.init n (fun k -> Area_knobs.prefix := Printf.sprintf "txq%d_" k; Processor_fifo.create ~clock ~clear:(fifo_clear k)
+       ~width ~depth:config.fifo_words ~push:tx_push.(k) ~pop:tx_pop.(k) ~data:tx_data.(k)) in
+-  let rxs=Array.init n (fun k -> Processor_fifo.create ~clock ~clear:(clear |: flushes.(k))
+-      ~width ~depth:config.fifo_words ~push:rx_push.(k) ~pop:rx_pop.(k) ~data:rx_data.(k)) in
+-  let engines=Array.init n (fun k -> Engine.create config
++  let rxs=Array.init n (fun k -> Area_knobs.prefix := Printf.sprintf "rxq%d_" k; Processor_fifo.create ~clock ~clear:(fifo_clear k)
++      ~width ~depth:(Area_knobs.rx_depth config.fifo_words) ~push:rx_push.(k) ~pop:rx_pop.(k) ~data:rx_data.(k)) in
++  let engines=Array.init n (fun k -> Area_knobs.prefix := Printf.sprintf "e%d_" k; Engine.create config
+       {clock; clear; start=starts.(k); stop=stops.(k); clear_fault=clears.(k);
+        instruction=instructions.(k); image_length=lengths.(k).value;
+        ownership=owners.(k).value; pins=synced_pins; timestamp=timestamp.value;
+@@ -71,7 +87,7 @@
+     | 0 -> payload <:. n
+     | 1 -> payload ==:. 0
+     | 2 -> halted &: selected_var writing &: (payload <>:. 0) &: (payload <=:. config.program_words)
+-           &: (uresize payload 16 ==: selected_var loaded)
++           &: (uresize payload 16 ==: uresize (selected_var loaded) 16)
+     | 3 -> halted &: (select payload 23 16 ==:. 0) &: ~:overlap
+            &: ((drain &: ~:own) ==:. 0)
+     | 4 -> mask_ok &: all (List.init n (fun k -> (~:(bit payload k))
+@@ -105,6 +121,7 @@
+       uresize (selected_engine (fun (e:Engine.t)->e.pc)) 32;
+       uresize (selected_var events) 32; selected_engine (fun (e:Engine.t)->e.completed);
+       uresize (selected_engine (fun (e:Engine.t)->e.rx_data)) 32; of_int ~width:32 2] in
++  let status_data = if Area_knobs.no_status () then zero 32 else status_data in
+   read_data <== mux2 (host.window ==:. 3)
+       (uresize (selected_fifo rxs (fun (f:Processor_fifo.t)->f.data)) 32) status_data;
+   Array.iteri (fun k _ ->
+@@ -144,7 +161,7 @@
+     let read_reserved=host.read_lock &: selected_is k in
+     let route_edit=command 6 &: (select payload 1 0 ==:. k) in
+     let flushing=(command 10) &: ((selected_is k) |: (selected.value ==: dest)) in
+-    (route_count.(k).value <>:. 0) &: rxs.(k).valid &: destination_ready
++    (if Area_knobs.no_mover () then gnd else vdd) &: (route_count.(k).value <>:. 0) &: rxs.(k).valid &: destination_ready
+     &: ~:host_destination &: ~:read_reserved &: ~:route_edit &: ~:flushing &: ~:clear) in
+   let grant_index=Variable.wire ~default:(zero (Config.log2 n)) in
+   let grant_valid=Variable.wire ~default:gnd in
+@@ -182,7 +199,7 @@
+        [committed.(k) <--. 0; writing.(k) <--. 1; loaded.(k) <--. 0; lengths.(k) <--. 0];
+      when_ (program_write &: is_selected) [loaded.(k) <-- loaded.(k).value +:. 1];
+      when_ (command 2 &: is_selected)
+-       [committed.(k) <--. 1; writing.(k) <--. 0; lengths.(k) <-- select payload 15 0];
++       [committed.(k) <--. 1; writing.(k) <--. 0; lengths.(k) <-- uresize (select payload 15 0) iw];
+      when_ (command 3 &: is_selected) [owners.(k) <-- own; drains.(k) <-- drain];
+      when_ (command 11 &: is_selected) [trigger_config.(k) <-- select payload 5 0];
+      when_ engines.(k).consume_event [events.(k) <--. 0];
+--- /dev/null
++++ b/bin/area_blocks.ml
+@@ -0,0 +1,44 @@
++(* Area study: emit standalone Engine / FIFO / Host circuits so each block can be
++   synthesized alone.  Usage: area_blocks <engine|fifo|host> <data_width> <fifo_depth> <out.v> *)
++module Pfifo = Fifo
++open Hardcaml
++open Signal
++let () =
++  let kind = Sys.argv.(1) and width = int_of_string Sys.argv.(2)
++  and depth = int_of_string Sys.argv.(3) and out = Sys.argv.(4) in
++  let config = {Config.default with data_width=width; fifo_words=depth} in
++  let clock = input "clk" 1 and clear = input "clear" 1 in
++  let circuit = match kind with
++    | "engine" ->
++      Area_knobs.prefix := "e0_";
++      let e = Engine.create config
++        {clock; clear; start=input "start" 1; stop=input "stop" 1;
++         clear_fault=input "clear_fault" 1; instruction=input "instruction" 32;
++         image_length=input "image_length" 16; ownership=input "ownership" 8;
++         pins=input "pins" 8; timestamp=input "timestamp" 32;
++         tx_valid=input "tx_valid" 1; tx_data=input "tx_data" width;
++         rx_ready=input "rx_ready" 1; event=input "event_in" 1} in
++      Circuit.create_exn ~name:"engine_block"
++        [output "pc" e.pc; output "running" e.running; output "fault" e.fault;
++         output "stalled" e.stalled; output "tx_pop" e.tx_pop; output "rx_push" e.rx_push;
++         output "rx_data" e.rx_data; output "pin_values" e.pin_values;
++         output "pin_enables" e.pin_enables; output "signal_events" e.signal_events;
++         output "consume_event" e.consume_event; output "completed" e.completed;
++         output "next_pc" (Engine.next_pc e)]
++    | "fifo" ->
++      Area_knobs.prefix := "q0_";
++      let f = Pfifo.create ~clock ~clear ~width ~depth ~push:(input "push" 1)
++          ~pop:(input "pop" 1) ~data:(input "din" width) in
++      Circuit.create_exn ~name:"fifo_block"
++        [output "ready" f.ready; output "valid" f.valid; output "dout" f.data;
++         output "level" f.level]
++    | "host" ->
++      let h = Host.create ~clock ~clear ~ui:(input "ui_in" 8)
++          ~write_ready:(input "write_ready" 1) ~read_valid:(input "read_valid" 1)
++          ~read_data:(input "read_data" 32) ~irq:(input "irq" 1) ~fault:(input "fault" 1) in
++      Circuit.create_exn ~name:"host_block"
++        [output "word" h.word; output "write" h.write; output "window" h.window;
++         output "read_word" h.read_word; output "read_lock" h.read_lock;
++         output "outputs" h.outputs]
++    | _ -> failwith "kind" in
++  Rtl.output ~output_mode:(To_file out) Verilog circuit
+--- a/bin/dune
++++ b/bin/dune
+@@ -27,3 +27,8 @@
+  (name generate_payload_sram)
+  (modules generate_payload_sram)
+  (libraries protocol_processor hardcaml))
++
++(executable
++ (name area_blocks)
++ (modules area_blocks)
++ (libraries protocol_processor hardcaml))

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Static checks on the Tiny Tapeout top (fast; no PDK needed):
 #   1. iverilog -g2012 elaboration with the IHP SRAM behavioral models (FUNCTIONAL)
-#   2. yosys hierarchy -check with the SRAM macro as a blackbox
+#   2. yosys hierarchy -check with the SRAM macro as a blackbox, and exactly
+#      eight SRAM instances (core.instruction_sram_e{0..3}_{lo,hi} after flatten)
 #   3. verilator --lint-only -Wall with the SRAM blackbox, mirroring LibreLane's
 #      lint step (--Wno-fatal: warnings are reported, only errors fail)
 # Needs iverilog, yosys and verilator on PATH.
@@ -29,8 +30,14 @@ iverilog -g2012 -DFUNCTIONAL -s "$TOP" -o "$WORK/elab.vvp" "${SOURCES[@]}" "${SR
 echo "iverilog: OK"
 
 echo "== yosys hierarchy -check (SRAM macro as blackbox)"
-yosys -q -l "$WORK/yosys.log" -p "read_verilog -lib $SRAM_BLACKBOX; read_verilog ${SOURCES[*]}; hierarchy -check -top $TOP" >/dev/null
-echo "yosys: OK ($(grep -c 'RM_IHPSG13_1P_64x16_c2' "$WORK/yosys.log" || true) log lines mention the SRAM blackbox)"
+yosys -q -l "$WORK/yosys.log" -p "read_verilog -lib $SRAM_BLACKBOX; read_verilog ${SOURCES[*]}; hierarchy -check -top $TOP; flatten; tee -o $WORK/srams.txt select -list t:RM_IHPSG13_1P_64x16_c2" >/dev/null
+srams=$(grep -c 'instruction_sram_e[0-3]_\(lo\|hi\)' "$WORK/srams.txt" || true)
+if [ "$srams" -ne 8 ]; then
+  echo "yosys: expected 8 RM_IHPSG13_1P_64x16_c2 instances, found $srams" >&2
+  cat "$WORK/srams.txt" >&2
+  exit 1
+fi
+echo "yosys: OK (hierarchy -check passes; 8 SRAM macro instances)"
 
 echo "== verilator --lint-only -Wall (SRAM macro as blackbox)"
 cat > "$WORK/blackbox.vlt" <<EOF

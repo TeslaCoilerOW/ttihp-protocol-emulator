@@ -11,6 +11,8 @@ test/sim_build
 test/__pycache__/
 test/results.xml
 test/gate_level_netlist.v
+# Failing random-test cases (test/random_gen.py writes them; CI uploads them)
+test/output/
 
 # Tiny Tapeout tool checkout (tt-gds-action / local tt_tool.py runs)
 /tt/

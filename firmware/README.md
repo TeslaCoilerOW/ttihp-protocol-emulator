@@ -11,5 +11,7 @@ configuration. Other architecture choices are explicit assembler parameters.
 four engines plus an autonomous UART-RX-to-SPI-TX route. Its qualification field
 remains `UNEXECUTED_BENCH_RECIPE`: passing simulation, RTL or FPGA evidence belongs
 in separate retained execution records tied to exact source and RTL hashes.
+In this repository, `test/test_flagship.py` runs the scenario against the
+generated RTL in lockstep with the reference model (`test/README.md`).
 
 Protocol examples are project-authored code, not third-party device firmware.

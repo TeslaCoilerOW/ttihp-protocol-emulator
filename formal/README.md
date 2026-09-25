@@ -78,7 +78,13 @@ claim is for engine K, a parameter.
 `uio_in`. Engine K's program image is also shared: whenever both copies read
 the same address of engine K's instruction SRAM in the same cycle, they get
 the same word. This is an assumption on the macro outputs, implied by equal
-contents; engine K's SRAM is proven never to be written.
+contents; engine K's SRAM is proven never to be written. It covers all 64
+words, not only the committed image (addresses below `image_length`), so it is
+slightly stronger than "the same program was loaded": two real loads of the
+same image may differ in the words after it. Those words are never executed,
+because the engine faults on `pc >= image_length` before using the fetched
+word (`hardcaml/lib/engine.ml`), so the assumption hides no reachable
+behaviour.
 
 **Constrained host traffic:** each copy has its own free host port `ui_in`.
 Only the commands that control engine K are constrained:
@@ -231,6 +237,12 @@ unreachable state), so it stays a BMC job.
   timing closure or the physical macros.
 - `processor_fv.v` and `processor_debug.v` are debug variants of the circuit
   in `src/`: the same logic plus output ports. Only `reset_safety` reads the
-  committed `src/` files directly.
+  committed `src/` files directly. The equivalence of the debug variants to
+  `src/protocol_emulator_core.v` is argued from the generator (the `debug`
+  flag only adds output ports), not checked by a job.
+- The timing-isolation cover witnesses start from an arbitrary state in which
+  engine K's slice is equal in both copies, not from reset. They show that the
+  assumptions leave room for divergent traffic around engine K; they are not a
+  claim that each witness context is reachable from reset.
 - The `.sby` `chparam` values assume 4 engines, 32-bit data and 8-word FIFOs.
   `run.sh` checks this against the config before running.

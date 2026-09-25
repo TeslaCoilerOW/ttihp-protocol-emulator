@@ -1,4 +1,4 @@
-![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg) ![](../../workflows/formal/badge.svg) ![](../../workflows/regen/badge.svg)
+![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/formal/badge.svg) ![](../../workflows/regen/badge.svg)
 
 # Protocol Emulator: four concurrent programmable I/O engines
 
@@ -35,9 +35,15 @@ not be edited by hand. `src/project.v` is a thin Tiny Tapeout wrapper
 
 ## Status
 
-As of 2026-09-24, this design has **not been hardened** and there is **no
+As of 2026-09-25, this design has **not been hardened** and there is **no
 silicon**. It does not yet have a passing Tiny Tapeout gds, precheck or
-gate-level result.
+gate-level result. A local LibreLane run of the same configuration (for
+iteration only, not a TT result) placed the design at 58.4% utilization and
+finished routing with 0 DRC and 0 antenna violations. Post-route STA meets
+50 MHz at the typical and fast corners; at the slow corner setup fails by
+5.09 ns, almost entirely on paths from the `rst_n` input. Its Magic DRC and
+LVS steps had not finished when this was written. See
+[docs/hardening.md](docs/hardening.md).
 
 - **Configuration.** The first hardening target is
   `configs/instruction-sram-32.json`: 4 engines, a 32-bit datapath, 64
@@ -75,7 +81,8 @@ Milestones:
 |---|---|
 | `info.yaml` | Tiny Tapeout project metadata and pinout |
 | `docs/info.md` | Datasheet (rendered by the Tiny Tapeout docs action) |
-| `docs/hardening.md`, `docs/area-study.md` | Hardening recipe and area study (working notes) |
+| `docs/isa.md`, `docs/architecture.md`, `docs/firmware.md` | ISA and host-protocol contract, architecture notes, firmware and assembler contract |
+| `docs/hardening.md`, `docs/area-study.md` | Hardening recipe and area study (working notes; `docs/area-study/` holds the study's patch and scripts) |
 | `src/project.v` | Tiny Tapeout top module, a thin wrapper |
 | `src/protocol_emulator_core.v` | Generated from `hardcaml/`; do not edit |
 | `src/config.json`, `src/sram_pdn_cfg.tcl` | LibreLane configuration, including the SRAM macros and their power hookup |
@@ -98,7 +105,7 @@ Requirements:
 
 ```sh
 make generate            # scripts/generate.sh configs/instruction-sram-32.json
-make check-generated     # regenerate and fail if src/ differs (what the regen action checks)
+make check-generated     # regenerate and fail if the committed core differs (what the regen action checks)
 make lint                # iverilog, yosys hierarchy and verilator -Wall
 ```
 
@@ -106,15 +113,17 @@ make lint                # iverilog, yosys hierarchy and verilator -Wall
 It uses the SRAM generator for a refinement configuration and the
 register-store generator for an architecture configuration. `DUNE_BUILD_DIR`
 moves the dune build directory. The firmware assembler is `hardcaml/bin/assemble.ml`
-(`dune exec bin/assemble.exe -- --help` from `hardcaml/`). The ISA and the
-host protocol are specified in [docs/info.md](docs/info.md).
+(`dune exec bin/assemble.exe -- --help` from `hardcaml/`; see
+[docs/firmware.md](docs/firmware.md)). The ISA and the host protocol are
+specified in [docs/isa.md](docs/isa.md) and summarized in the datasheet,
+[docs/info.md](docs/info.md).
 
 ## Test (cocotb)
 
 ```sh
 cd test
 pip install -r requirements.txt   # cocotb 2.0.1, pytest 8.4.2
-make -B                           # RTL, with the IHP SRAM behavioral models
+make clean && make                # RTL, with the IHP SRAM behavioral models
 ```
 
 Every test runs the design in lockstep with an independent Python model of the
@@ -147,10 +156,12 @@ SRAM macro integration and what remains open.
 - **This project.** It is licensed under the Apache License 2.0; see
   [LICENSE](LICENSE) and [NOTICE](NOTICE). This covers the Hardcaml sources,
   the generated Verilog, the firmware, the tests and the documentation.
-- **IHP SRAM views.** The files in `macros/` and `models/` are unmodified
-  IHP-Open-PDK files, except for the interface-only blackbox. They are under
+- **IHP SRAM views.** The SRAM views in `macros/RM_IHPSG13_1P_64x16_c2/` and
+  the simulation models in `models/` are unmodified IHP-Open-PDK files;
+  `models/blackbox/` is an interface-only derivative. They are under
   Apache-2.0 from the IHP PDK Authors; see `macros/LICENSE.IHP-Open-PDK` and
-  `models/NOTICE.IHP-Open-PDK`.
+  `models/NOTICE.IHP-Open-PDK`. `macros/README.md` and
+  `macros/check_macro_floorplan.py` were written for this project.
 - **Template.** The Tiny Tapeout template is Apache-2.0.
 
 ## What is Tiny Tapeout?

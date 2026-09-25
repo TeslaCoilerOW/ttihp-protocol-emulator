@@ -1,7 +1,7 @@
 # Copied verbatim (apart from this header) from the asic-lab monorepo:
 #   projects/protocol-emulator/python/protocol_emulator/reference.py @ commit 18676a4
 # Independent pure-Python ISA2 reference (stdlib only). Keep in sync with
-# reference/isa.md; any semantic change must update RTL, assembler and model.
+# docs/isa.md; any semantic change must update RTL, assembler and model.
 # Copyright (c) 2026 TeslaCoilerOW. SPDX-License-Identifier: Apache-2.0
 """Independent executable ISA specification; no generated RTL is imported.
 

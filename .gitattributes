@@ -1,0 +1,6 @@
+# Generated from hardcaml/ by scripts/generate.sh (checked by the regen action).
+src/protocol_emulator_core.v linguist-generated=true
+# Vendored IHP-Open-PDK SRAM views and simulation models.
+macros/RM_IHPSG13_1P_64x16_c2/** linguist-vendored=true
+models/*.v linguist-vendored=true
+*.gds binary

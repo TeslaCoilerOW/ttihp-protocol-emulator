@@ -3,7 +3,7 @@
 Tests for `tt_um_teslacoilerow_protocol_emulator` (`../src/project.v` wrapping the
 Hardcaml-generated `../src/protocol_emulator_core.v`). Every test runs the DUT in
 **lockstep** with an independent pure-Python reference model of ISA v2
-(`model/reference.py`, see `../reference/isa.md`): on every 20 ns clock the harness
+(`model/reference.py`, see `../docs/isa.md`): on every 20 ns clock the harness
 compares `uo_out`, `uio_out` and `uio_oe` both after the edge and before the next
 edge (the combinational window-change bubble on ready/valid). Read nibbles are
 compared while read-valid is high, which covers every word the host reads. On top
@@ -35,7 +35,8 @@ RTL (what the TT `test` action runs):
 
 ```sh
 cd test
-make -B
+make clean
+make
 ```
 
 The RTL run compiles `../src/project.v`, `../src/protocol_emulator_core.v` and the
@@ -58,15 +59,17 @@ hardened netlist to `test/gate_level_netlist.v`):
 
 ```sh
 cp /path/to/hardened/tt_um_teslacoilerow_protocol_emulator.v gate_level_netlist.v
-make -B GATES=yes PDK_ROOT=/path/to/pdk
+make clean
+make GATES=yes PDK_ROOT=/path/to/pdk
 ```
 
 GL mode adds `$(PDK_ROOT)/ihp-sg13cmos5l/libs.ref/sg13cmos5l_{stdcell,io}/verilog`
 and the same SRAM behavioral models (the netlist keeps the eight
 `RM_IHPSG13_1P_64x16_c2` macros as instances). `GL_NETLIST=path` simulates a
 netlist kept elsewhere. The Makefile exports `PE_GATE_LEVEL=1`, which scales the
-workload down: a representative subset of the legacy replays and 2 random cases
-(override with `PE_LEGACY=all` and `PE_RANDOM_ITERS`). A quick pre-hardening check
+workload down: 8 of the 25 legacy replays (`GL_SUBSET` in `test_legacy.py`; the
+other 17 are reported as SKIP) and 2 random cases (override with `PE_LEGACY=all`
+and `PE_RANDOM_ITERS`). A quick pre-hardening check
 is possible with a Yosys netlist (`synth -flatten`, `dfflibmap`/`abc` to the
 `sg13cmos5l_stdcell` liberty, SRAM macro read as a blackbox).
 

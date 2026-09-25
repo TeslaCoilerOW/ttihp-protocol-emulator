@@ -1,14 +1,18 @@
 name: fpga
-
+# Disabled: this design does not fit the template's iCE40UP5K target. A quick
+# Yosys mapping of the core to the IHP standard cells has about 29,000 cells
+# (about 3,900 of them flip-flops), against the UP5K's 5,280 logic cells, and
+# the core instantiates eight IHP SRAM hard macros that are not part of the
+# Verilog sources. The workflow therefore runs only on manual dispatch, as a
+# non-blocking job. FPGA bring-up (task 4.1) will use a larger board with its
+# own build, not this action.
 on:
-  push:
-    # Comment out (or remove) the following line to run the FPGA workflow on every push:
-    branches: none
   workflow_dispatch:
 
 jobs:
   fpga:
     runs-on: ubuntu-24.04
+    continue-on-error: true
     steps:
       - name: checkout repo
         uses: actions/checkout@v6

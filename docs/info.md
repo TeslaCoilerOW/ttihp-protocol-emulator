@@ -29,8 +29,9 @@ Each engine has:
 
 Instructions commit on rising clock edges. An ordinary instruction takes one
 cycle, and `WAIT n` takes n + 1 cycles, so a program's pin timing is an exact
-count of system clocks. Instruction fetch is private. Apart from `START` and
-`STOP`, the host port and the queue mover never delay an engine's instructions.
+count of system clocks. Instruction fetch is private. Apart from `START`,
+`STOP` and `BEGIN` (which stops the selected engine), the host port and the
+queue mover never delay an engine's instructions.
 A program's timing can change only at its own explicit stall points:
 
 - `PULL` on an empty TX queue;
@@ -380,15 +381,17 @@ SPI and I2C peer models on the pins.
 ```
 cd test
 pip install -r requirements.txt
-make -B
+make clean
+make
 ```
 
 The cocotb suite runs the RTL (with the IHP SRAM behavioral models) in
 lockstep with an independent Python reference model of the ISA, which is in
 `test/model`. It covers loading, status, faults, UART, SPI, I2C, the flagship
 scenario and constrained-random programs. The Tiny Tapeout gl_test action
-copies the hardened netlist to `test/gate_level_netlist.v` and runs the same
-tests at gate level with `make -B GATES=yes`.
+copies the hardened netlist to `test/gate_level_netlist.v` and runs the suite
+at gate level with `make GATES=yes`. Because gate-level simulation is much
+slower, that run replays 8 of the 25 legacy workloads and 2 random cases.
 
 ### Tiny Tapeout demo board
 
@@ -498,12 +501,15 @@ gives 434 clocks per bit, which is 115,207 baud at 50 MHz.
 ## Limitations
 
 - There is no silicon yet. The design has not yet passed the Tiny Tapeout gds
-  flow, and 50 MHz is the design target, not a measured frequency.
+  flow, and 50 MHz is the design target, not a measured frequency. A local
+  post-route timing analysis meets 50 MHz at the typical and fast corners but
+  not at the slow corner, where the reset input path is the limit.
 - The host port is synchronous and its inputs are not synchronized, so the host
   must share the chip clock.
 - UART has no flow-control wire. When engine 1's RX queue is full, the strict
   `PUSH` halts `uart-rx` with fault code 4. It keeps that byte in `rx`, where
-  READ_SELECT 6 reads it. Bytes that arrive after the fault are lost, so the
+  READ_SELECT 6 reads it. Read it before `CLEAR` and `START`, because `START`
+  resets the datapath registers. Bytes that arrive after the fault are lost, so the
   sender must not send faster than the host or the mover drains the queue.
 - `WAITPIN` and `WAITEVENT` are bounded. They fault with code 3 after `LIMIT`
   blocked cycles. `LIMIT` defaults to 65535 cycles (about 1.3 ms at 50 MHz),
@@ -523,6 +529,6 @@ gives 434 clocks per bit, which is 115,207 baud at 50 MHz.
 - Each engine holds 64 instructions, and each queue holds 8 words. Programs
   cannot be changed while an engine runs.
 - Reset and deselection invalidate all program images. Reload after each one.
-- The example firmware implements the protocol subsets listed in the project's
-  firmware documentation. A protocol name does not imply every optional
-  feature of that standard.
+- The example firmware implements the protocol subsets listed in
+  `docs/firmware.md` in the project repository. A protocol name does not imply
+  every optional feature of that standard.

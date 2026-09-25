@@ -6,10 +6,15 @@ This repository is licensed under the Apache License, Version 2.0 (see LICENSE).
 Project-original code
 ---------------------
 The Hardcaml (OCaml) hardware description and generators in hardcaml/, the
-configurations in configs/, the firmware in firmware/, and any Python models
-and scripts originated in the owner's MIT-licensed asic-lab monorepo
-(projects/protocol-emulator). The same owner contributes them to this
-repository under the Apache License, Version 2.0.
+configurations in configs/, the firmware in firmware/, the Python reference
+model, host recorder and wire scoreboards in test/model/, the reset, FIFO,
+engine and processor harnesses ported into formal/, and the ISA,
+architecture and firmware documents in docs/ originated in the owner's
+asic-lab monorepo (projects/protocol-emulator), where they were written by the
+same owner. The owner contributes them to this repository under the Apache
+License, Version 2.0. The rest (scripts/, the cocotb tests, the
+timing-isolation proof, the Tiny Tapeout wrapper and LibreLane configuration,
+and the macro checker) was written for this repository.
 
 src/protocol_emulator_core.v is generated from hardcaml/ by
 scripts/generate.sh and is covered by the same license.

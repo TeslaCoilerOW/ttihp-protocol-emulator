@@ -3,16 +3,20 @@
 This document covers the recipe, the decisions and the evidence for taking
 `tt_um_teslacoilerow_protocol_emulator` through the official Tiny Tapeout
 CMOS5L gds action. The design is configured as `configs/instruction-sram-32.json`
-with eight `RM_IHPSG13_1P_64x16_c2` instruction SRAMs. Last updated 2026-09-24.
+with eight `RM_IHPSG13_1P_64x16_c2` instruction SRAMs. Last updated 2026-09-25.
 
 **Status.** The configuration is written and passes every static check we can
 run locally (section 6). A local LibreLane 3.1.0.dev3 run that mirrors the
 action got through synthesis, macro placement, the checked PDN step, placement,
 CTS and global routing (617 overflow, mostly Metal3). A second run, with the
-thread fix, was in detailed routing at the time of writing: 34,515 violations
-after iteration 0 (section 7). Routing convergence is the main open risk. Nothing in this document has been run by the
-GitHub action yet, so none of it is a TT result. Section 9 lists what only the
-action can confirm.
+thread fix, went from 34,515 detailed-routing violations after iteration 0 to
+**0 at iteration 46**, then through antenna repair with re-routes that also
+ended at 0 violations. Post-route STA meets setup and hold at the typical and
+fast corners; at the slow corner setup fails by 5.09 ns, almost entirely on
+paths from `rst_n` (section 7). Magic, LVS and the final checks had not run
+when this was written. Nothing in this document has been run by
+the GitHub action yet, so none of it is a TT result. Section 9 lists what only
+the action can confirm.
 
 ## 1. How the action consumes this repository
 
@@ -68,7 +72,7 @@ whose `gl_test` passes with an unmodified model that has no power ports.
 | `ERROR_ON_MAGIC_DRC` | false | Magic's cmos5l tech lacks the SRAM exceptions. Loom saw ~58k in-macro Magic errors. The precheck does not run Magic, and its KLayout deck passed on loom's merged GDS. |
 | `MAGIC_EXT_ABSTRACT_CELLS` | `["RM_IHPSG13_.*"]` | This blackboxes the SRAM for LVS extraction. |
 | `MAGIC_MACRO_STD_CELL_SOURCE` | `PDK` | Same as the reference projects. It is harmless if KLayout streams out. |
-| `PL_TARGET_DENSITY_PCT`, `CLOCK_PERIOD` | 60, 20 ns | Template values. Predicted utilization is ~52% (51–53%) of the core, and standard-cell density outside the macros is ~47% (`docs/area-study.md`). 20 ns matches `info.yaml` `clock_hz` 50 MHz. The macro's slow-corner clock-to-output is ~5.0–5.2 ns (Liberty), and pre-route STA of this netlist had +8.6 ns setup slack (typ). |
+| `PL_TARGET_DENSITY_PCT`, `CLOCK_PERIOD` | 60, 20 ns | Template values. The local run measured 58.4% utilization of the core and 53.7% standard-cell density outside the macros (section 7; `docs/area-study.md` section 2.4). 20 ns matches `info.yaml` `clock_hz` 50 MHz. The macro's slow-corner clock-to-output is ~5.0–5.2 ns (Liberty), and pre-route STA of this netlist had +8.6 ns setup slack (typ). |
 | `OPENROAD_THREADS` | 4 | LibreLane 3.1.0.dev3 builds OpenROAD's thread argument as `str(OPENROAD_THREADS) or ...`. When the key is unset, that is `"None"`, so every OpenROAD step is called with `-threads None` (ORD-0032) and detailed routing runs single-threaded (observed in run1, section 7). 4 matches the runner's vCPUs. This key is our addition to the template. |
 | Halos | LibreLane defaults, 10 um | Not overridden. The macro GDS NWell extends 0.225 um beyond the LEF box on the pin edge, and the halo covers it. |
 
@@ -190,7 +194,7 @@ Rules applied:
 * The top row stays clear of the I/O pin span (it starts at x 415.68).
 * Within a pair, macros are 4 stripe pitches apart: a 32.96 um gap, more
   than 2 × 10 um halo. Even k keeps every x on the 0.48 um site grid. y
-  values are row boundaries (3.78 = row 0; 638.82 = row 169).
+  values are row boundaries (3.78 = row 0; 638.82 = row 168).
 * Only N/FS: they keep the Metal4 columns vertical and at the same x.
   Mirroring about X does not move them.
 
@@ -321,13 +325,67 @@ exactly (same 617 overflow). OpenROAD now reports 4 threads, and DRT
 iteration 0 took 16 min (about 2.7× faster than run1's pace). **DRT iteration 0
 ended with 34,515 violations**, mostly Metal2: 16,466 Metal2 shorts, 5,770
 Metal2 spacing, 4,319 Metal3 shorts and 7,449 recheck. Wire length was
-0.82 m on Metal2, 1.16 m on Metal3 and only 0.21 m on Metal4. Iteration 1
-was running when this document was written (≈35 min into the job).
-For comparison, loom's small design started at 94. 34k is high. Whether
-it converges within `DRT_OPT_ITERS` 64 and the job's 180-minute limit is
-the open question. If it does not converge, apply section 8 ("Heavy GRT
-overflow"). Metal4 is under-used (21.6% GRT usage), which points at Metal2/3
-pin-access and fan-out density rather than a lack of total capacity.
+0.82 m on Metal2, 1.16 m on Metal3 and only 0.21 m on Metal4. For comparison,
+loom's small design started at 94. Metal4 is under-used (21.6% GRT usage),
+which points at Metal2/3 pin-access and fan-out density rather than a lack of
+total capacity.
+
+Detailed routing nevertheless **converged**: 1,948 violations at iteration 3,
+2 from iteration 42, and **0 at iteration 46**, about 85 minutes after DRT
+started on 4 threads. Antenna repair then ran: 62 violating nets in the first
+repair iteration, 5 in the second and 1 in the third, and each incremental
+re-route in between ended at 0 violations. The step finished at 00:40 with
+`route__drc_errors` 0, `route__antenna_violation__count` 0 and 93 antenna
+diodes; utilization 58.5% (standard cells 53.9%).
+
+**Post-route STA** (`55-openroad-stapostpnr`, RC-extracted, all three corners):
+
+| Corner | Setup WS | Setup violations | Reg-to-reg setup WS | Hold WS | Hold violations |
+|---|---:|---:|---:|---:|---:|
+| `nom_typ_1p20V_25C` | +2.94 ns | 0 | +7.33 ns | +0.29 ns | 0 |
+| `nom_fast_1p32V_m40C` | +6.34 ns | 0 | +17.52 ns | +0.11 ns | 0 |
+| `nom_slow_1p08V_125C` | **−5.09 ns** | **1,345** | −0.34 ns (2 endpoints) | +0.62 ns | 0 |
+
+The flow checks setup only at `*typ*` (`TIMING_VIOLATION_CORNERS`; hold is
+checked at every corner), so the slow-corner result does not fail the run.
+All 1,000 reported slow-corner violating paths start at the `rst_n` input
+port: the TT input-delay constraint plus the synchronous clear that fans out
+to about 3,900 flops. Only 2 register-to-register paths fail at slow, by at
+most 0.34 ns. In other words, 50 MHz holds at typical and fast; at the slow
+corner the reset path (and marginally two internal paths) limit it. The area
+study's asynchronous-reset fallback (`cn`) would remove the synchronous-clear
+fan-out from `rst_n`, but it has not been hardened. The report also lists
+max-slew (285 at slow), max-cap (84 to 88) and max-fanout (519) violations,
+which the flow treats as warnings.
+
+**Gate level on this netlist.** The unpowered netlist after fill insertion
+(`52-openroad-fillinsertion/*.nl.v`: hold buffers, antenna diodes, fill and
+decap cells, the eight SRAM instances) passed the cocotb gate-level suite with
+Icarus 13.0 and the IHP stdcell and SRAM models: `make GATES=yes`, 22 PASS,
+17 SKIP (the legacy replays outside the gate-level subset), 0 FAIL, 98 s. The
+TT `gl_test` action uses the final netlist from the action's own run instead.
+
+When this section was last updated (2026-09-25 00:47) the job was in Magic
+DRC (step 62, non-fatal on cmos5l), about 2 h 10 min into its 180-minute
+limit. LVS and the final checkers had not run yet, so their results are
+unknown. (KLayout DRC is off in the flow, `RUN_KLAYOUT_DRC 0`; the precheck
+runs it.)
+
+Two things this run exposes:
+
+* **Pin access on the flipped macros.** DRT reported 60 `DRT-0418` warnings
+  that macro signal pins are off the routing grid, 15 on each of the four
+  bottom-row (FS) macros and none on the top-row (N) macros. The pins are
+  0.26 um Metal2 squares; with the flip placed on a row boundary their y range
+  falls between Metal3 tracks. Routing still reached 0 violations, but any
+  fallback floorplan should keep an eye on this warning count.
+* **Runtime.** GitHub-hosted runner jobs stop after 6 hours. Locally, lint to
+  the end of detailed routing took about 1 h 40 min on 4 threads, and the flow
+  reached Magic DRC (step 62) about 2 h 07 min after the job started, with
+  LVS still to come. The only 6x4 SRAM reference design we found
+  (`tt_um_loom`, run 35940928210) spent 5 h 02 min in its Build GDS step, and
+  this design is larger. Whether the action finishes inside 6 hours is
+  unmeasured.
 
 Check on it with:
 
@@ -351,9 +409,9 @@ and gdstk, both in the SIF.
 |---|---|
 | `CheckMacroInstances` | The instance key must be the flattened path. Re-run `yosys ... flatten; select -list t:RM_*` on the current `src/*.v`. |
 | `SRAMPDN BAD ...` / `no stripe runs through` | The macro x is off the `11.04 + 67.44 k` lattice, or the VOFFSET/core origin changed. Run `check_macro_floorplan.py`. |
-| `SRAMPDN: pdn::... does not exist` | The action bumped LibreLane/OpenROAD. Pin `librelane-version: 3.1.0.dev3` in `gds.yaml` (the scaffold owns it), or port the wrapper. |
+| `SRAMPDN: pdn::... does not exist` | LibreLane/OpenROAD changed under the wrapper. `gds.yaml` pins `librelane-version: 3.1.0.dev3`; if that pin was changed, restore it or port the wrapper. |
 | GPL-0302 (density too low) | Raise `PL_TARGET_DENSITY_PCT` to 65–70. |
-| Heavy GRT overflow / DRT not converging | Lower `PL_TARGET_DENSITY_PCT` to 55 to spread cells. Then apply the area-study diet (async reset: about −24k um², ~50%). Then spread the macros 5 stripe pitches apart instead of 4, so the gap grows from 33 to 100 um. For example, top row k = 6, 11, 16, 21 and bottom row k = 2, 7, 13, 18; odd k is off the site grid. Re-run `check_macro_floorplan.py` after the change. |
+| Heavy GRT overflow / DRT not converging | Lower `PL_TARGET_DENSITY_PCT` to 55 to spread cells. Then apply the area study's contract-neutral fallback `cn` (asynchronous reset from `~(rst_n & ena)`, FIFO storage as reset registers, 7-bit image registers: −48.7K um² in TT synthesis, predicted 53.8%; `docs/area-study.md` section 8a). It needs simulation, formal and model updates first. Then spread the macros 5 stripe pitches apart instead of 4, so the gap grows from 33 to 100 um. For example, top row k = 6, 11, 16, 21 and bottom row k = 2, 7, 13, 18; odd k is off the site grid. Re-run `check_macro_floorplan.py` after the change. |
 | Setup violations (slow corner) | Timing sign-off is typ-only by default. Check `nom_slow` first; the SRAM output is ~5.2 ns clock-to-output at slow. |
 | Hold violations | Raise `PL_RESIZER_HOLD_SLACK_MARGIN` / `GRT_RESIZER_HOLD_SLACK_MARGIN`. |
 | `Checker.IllegalOverlap` is still fatal | The waiver key did not apply. Confirm that the overlaps are only the POWER-stripe × OBS-band crossings. |
@@ -368,8 +426,9 @@ and gdstk, both in the SIF.
   MarcosAsh use the same keys.
 * That the wrapper behaves on eight macros as it did on loom's one macro.
   Nothing in it is single-macro specific.
-* Placement, routing convergence and congestion at ~52% utilization with this
-  floorplan, and routed timing at 20 ns in all three corners.
+* Placement, routing convergence and congestion at 58.4% utilization with this
+  floorplan on the action's runner (converged locally, section 7), the
+  6-hour job limit, and routed timing at 20 ns in all three corners.
 * LVS with eight abstracted macros, antenna results, and the Magic
   illegal-overlap count.
 * The precheck, above all the KLayout SG13CMOS5L DRC over the merged GDS with

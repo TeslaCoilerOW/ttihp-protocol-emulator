@@ -1,0 +1,1 @@
+{"architecture":{"data_width":16,"engine_count":4,"fifo_words":8,"issue":"fused","prefetch":false,"program_words":64,"schema_version":"protocol-emulator.architecture.v1"},"implementation":"ihp_1p_64x16_pair_nextpc","schema_version":"protocol-emulator.refinement.v1"}
