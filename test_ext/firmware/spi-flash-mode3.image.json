@@ -1,0 +1,47 @@
+{
+  "schema_version": "protocol-emulator.firmware-image.v1",
+  "isa_version": 2,
+  "name": "spi-flash-mode3",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 2,
+  "owned_pins": 44,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "source_sha256": "f1e9a4aa0f5d30823f8dc87fae0711b14086fe31b697a579d1f21c13f509c195",
+  "bytecode_sha256": "9e30e769f6a09c6ae757eea68afa6d1750a86b4bb345b9aacbdbcdaca670f864",
+  "words": [
+    33554468, 50331692, 268435738, 100663296, 302186496, 402653208,
+    318832640, 33554436, 285745183, 117440512, 419627016, 436404227,
+    33554468, 83886083
+  ],
+  "labels": { "next_byte": 3 },
+  "timing": [
+    { "pc": 0, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 1, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 2, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 3, "minimum_cycles": 1, "blocking": "tx_fifo_unbounded" },
+    { "pc": 4, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 5, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 6, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 7, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 8, "minimum_cycles": 513, "blocking": "none" },
+    { "pc": 9, "minimum_cycles": 1, "blocking": "rx_fifo_unbounded" },
+    { "pc": 10, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 11, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 12, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 13, "minimum_cycles": 1, "blocking": "none" }
+  ],
+  "notes": [
+    "Test-only program (test_ext): SPI controller mode3 with multi-byte chip-select frames, for SPI flash peers; pins SCK2/MOSI3/MISO4/CSn5.",
+    "TX word bits7:0 = byte (MSB first); bit8 set = release CSn after this byte, clear = keep CSn asserted for the next byte. Low-byte RX words, one per byte.",
+    "Fused transfers with 32-cycle half periods; CSn is asserted at least 33 clocks before the first SCK edge."
+  ]
+}

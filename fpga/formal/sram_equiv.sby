@@ -1,0 +1,59 @@
+# Equivalence of the FPGA SRAM stand-in (fpga/rtl/pe_fpga_sram_64x16.v) with
+# the IHP behavioral model (models/RM_IHPSG13_1P_core_behavioral.v), see
+# sram_equiv_miter.sv. Run through fpga/formal/run.sh.
+#
+#   rtl_prove      unbounded proof (ABC PDR), FPGA RTL
+#   netlist_prove  unbounded proof (ABC PDR), synth_xilinx netlist of the FPGA
+#                  RTL (sram_netlist.v from synth_sram_netlist.ys) simulated
+#                  with Yosys' Xilinx cell models (+/xilinx/cells_sim.v)
+#   rtl_bmc        24-cycle bit-level BMC (ABC bmc3), a second engine
+#   netlist_bmc    12-cycle bit-level BMC (ABC bmc3) on the netlist
+#   rtl_smt        12-cycle SMT BMC (yices; memories as arrays), a third engine
+#   rtl_cover      reachability of write-through / write-hold / read / men-low
+#
+# run.sh also runs mutants of the FPGA model (mut_*: write updates dout,
+# read-first write-through, dout not held, men ignored) through the
+# rtl_mutant task (8-cycle BMC) and requires each to FAIL, so the PASS
+# results are not vacuous.
+
+[tasks]
+rtl_prove rtl prove
+netlist_prove netlist prove
+rtl_bmc rtl bmc rbmc
+netlist_bmc netlist bmc nbmc
+rtl_smt rtl smt
+rtl_cover rtl cover
+rtl_mutant rtl mutant
+
+[options]
+prove: mode prove
+bmc: mode bmc
+rbmc: depth 24
+nbmc: depth 12
+mutant: mode bmc
+mutant: depth 8
+smt: mode bmc
+smt: depth 12
+cover: mode cover
+cover: depth 16
+
+[engines]
+prove: abc pdr
+bmc: abc bmc3
+mutant: abc bmc3
+smt: smtbmc yices
+cover: smtbmc yices
+
+[script]
+read_verilog -DFUNCTIONAL RM_IHPSG13_1P_core_behavioral.v
+rtl: read_verilog pe_fpga_sram_64x16.v
+netlist: read_verilog +/xilinx/cells_sim.v
+netlist: read_verilog sram_netlist.v
+read_verilog -formal sram_equiv_miter.sv
+prep -top sram_equiv_miter
+
+[files]
+../../models/RM_IHPSG13_1P_core_behavioral.v
+sram_equiv_miter.sv
+rtl: ../rtl/pe_fpga_sram_64x16.v
+netlist: sram_netlist.v

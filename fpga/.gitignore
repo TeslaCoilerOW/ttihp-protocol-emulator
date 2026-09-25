@@ -1,0 +1,8 @@
+# local outputs of fpga/sim, fpga/formal and fpga/scripts/build.sh
+sim/sim_build/
+sim/results.xml
+sim/*.fst
+sim/*.vcd
+formal/work/
+build/
+__pycache__/

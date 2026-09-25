@@ -1,0 +1,36 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "jtag-vector",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 0,
+  "owned_pins": 11,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "instructions": [
+    { "mnemonic": "SET" },
+    { "mnemonic": "DIR", "imm": 11 },
+    { "mnemonic": "PINS", "imm": 136 },
+    { "mnemonic": "PULL", "label": "word" },
+    { "mnemonic": "LOAD", "a": 1 },
+    { "mnemonic": "COUNT", "imm": 15 },
+    { "mnemonic": "OUT", "a": 3, "label": "bit" },
+    { "mnemonic": "XFER", "a": 1, "b": 32, "c": 24 },
+    { "mnemonic": "LOOP", "target": "bit" },
+    { "mnemonic": "SHR", "a": 1, "c": 16 },
+    { "mnemonic": "PUSH" },
+    { "mnemonic": "JMP", "target": "word" }
+  ],
+  "notes": [
+    "Test-only program (test_ext): generic JTAG vector engine on TCK0/TDI1/TDO2/TMS3.",
+    "Each TX word carries 16 JTAG bits LSB first as (TMS, TDI) pairs: bit 2k = TMS, bit 2k+1 = TDI of JTAG bit k. TMS is set with OUT while TCK is low, then a one-bit fused XFER drives TDI, pulses TCK and samples TDO on the rising edge.",
+    "Each RX word returns the 16 TDO samples, bit k = TDO at the rising TCK edge of JTAG bit k. Any TAP state walk, IR scan or DR scan is a host-built vector sequence."
+  ]
+}

@@ -1,0 +1,1477 @@
+{
+ "description": "Evidence for docs/independent-peers.md (Results): per-test outcomes of the fixed-stimulus runs, the SPI wrong-mode matrix and the seeded campaign totals. Generated from the Slurm job outputs on MIT Engaging; the full logs stay there (see docs/independent-peers.md).",
+ "design_commit": "73536f0bb6aff03e5e3579442e7fb4b5438a4d0d",
+ "test_ext_sha256": "cc6d4d2a36011584c255eff310c670c63704f57ab798941630b896242ec316dc",
+ "test_ext_sha256_note": "sha256 of the sorted 'sha256  ./path' listing of test_ext/ without results/, sim_build/, __pycache__/",
+ "campaign_tree_test_ext_sha256": "cc6d4d2a36011584c255eff310c670c63704f57ab798941630b896242ec316dc",
+ "gate_level_netlist": {
+  "file": "sram-flow/run2/runs/wokwi/final/nl/tt_um_teslacoilerow_protocol_emulator.nl.v",
+  "sha256": "fe135632e459343797988be9848db4182bef8c39283fb33745eb5eccdde8a181",
+  "note": "LibreLane run hardened from the src/ of 73536f0; identical to the fill-insertion nl.v"
+ },
+ "fixed_stimulus_runs": [
+  {
+   "run": "final3-rtl",
+   "slurm_job": "23792571",
+   "simulator": "Icarus Verilog 14 + cocotb 2.0.1",
+   "dut": "RTL (src/ + models/ of 73536f0)",
+   "tree": "73536f0 snapshot",
+   "tests": 65,
+   "passed": 65,
+   "results": {
+    "test_ext_flagship.test_flagship_verilog_peers/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 153080
+    },
+    "test_ext_flagship.test_flagship_verilog_peers/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 153080
+    },
+    "test_ext_flagship.test_flagship_cocotbext_peers/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 143660
+    },
+    "test_ext_flagship.test_flagship_cocotbext_peers/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 143660
+    },
+    "test_ext_i2c.test_i2c_write_vs_verilog_slave/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 45060
+    },
+    "test_ext_i2c.test_i2c_write_vs_verilog_slave/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 45060
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=1/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=1/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_slave_stretch_defect_without_dut/value=67": {
+     "status": "PASS",
+     "sim_time_ns": 57420
+    },
+    "test_ext_i2c.test_i2c_slave_stretch_defect_without_dut/value=195": {
+     "status": "PASS",
+     "sim_time_ns": 57420
+    },
+    "test_ext_i2c.test_i2c_repeated_start_vs_verilog_slave/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 75080
+    },
+    "test_ext_i2c.test_i2c_repeated_start_vs_verilog_slave/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 75080
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_verilog_slave/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 29000
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_verilog_slave/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 29000
+    },
+    "test_ext_i2c.test_i2c_eeprom_reads_vs_cocotbext_memory/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 163920
+    },
+    "test_ext_i2c.test_i2c_eeprom_reads_vs_cocotbext_memory/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 163920
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_cocotbext_memory/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 29020
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_cocotbext_memory/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 29020
+    },
+    "test_ext_i2c.test_i2c_target_vs_verilog_master/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 161080
+    },
+    "test_ext_i2c.test_i2c_target_vs_verilog_master/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 161080
+    },
+    "test_ext_i2c.test_i2c_target_vs_cocotbext_master/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 213400
+    },
+    "test_ext_i2c.test_i2c_target_vs_cocotbext_master/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 213400
+    },
+    "test_ext_jtag.test_jtag_firmware_idcode_scan/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 107880
+    },
+    "test_ext_jtag.test_jtag_firmware_idcode_scan/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 107880
+    },
+    "test_ext_jtag.test_jtag_vector_ir_dr_scans/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 284860
+    },
+    "test_ext_jtag.test_jtag_vector_ir_dr_scans/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 284860
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=1/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=1/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=2/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=2/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=3/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=3/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_flash_read/mode=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_flash_read/mode=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_flash_read/mode=3/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_flash_read/mode=3/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=1/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=1/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=2/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=2/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=3/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=3/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=0": {
+     "status": "PASS",
+     "sim_time_ns": 72480
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=1": {
+     "status": "PASS",
+     "sim_time_ns": 72480
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=2": {
+     "status": "PASS",
+     "sim_time_ns": 69480
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=3": {
+     "status": "PASS",
+     "sim_time_ns": 75480
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=0": {
+     "status": "PASS",
+     "sim_time_ns": 86540
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=1": {
+     "status": "PASS",
+     "sim_time_ns": 87180
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=2": {
+     "status": "PASS",
+     "sim_time_ns": 86540
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=3": {
+     "status": "PASS",
+     "sim_time_ns": 87180
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=0": {
+     "status": "PASS",
+     "sim_time_ns": 80740
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=1": {
+     "status": "PASS",
+     "sim_time_ns": 80740
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=2": {
+     "status": "PASS",
+     "sim_time_ns": 77740
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=3": {
+     "status": "PASS",
+     "sim_time_ns": 83740
+    },
+    "test_ext_uart.test_uart_tx_vs_third_party_receivers": {
+     "status": "PASS",
+     "sim_time_ns": 278420
+    },
+    "test_ext_uart.test_uart_rx_vs_verilog_uart_tx": {
+     "status": "PASS",
+     "sim_time_ns": 328000
+    },
+    "test_ext_uart.test_uart_rx_vs_cocotbext_source": {
+     "status": "PASS",
+     "sim_time_ns": 326520
+    },
+    "test_ext_uart.test_uart_rx_baud_tolerance/error_percent=-3": {
+     "status": "PASS",
+     "sim_time_ns": 335880
+    },
+    "test_ext_uart.test_uart_rx_baud_tolerance/error_percent=3": {
+     "status": "PASS",
+     "sim_time_ns": 317400
+    }
+   }
+  },
+  {
+   "run": "final3-gl",
+   "slurm_job": "23792571",
+   "simulator": "Icarus Verilog 14 + cocotb 2.0.1",
+   "dut": "routed netlist (functional, no SDF)",
+   "tree": "73536f0 snapshot",
+   "tests": 65,
+   "passed": 65,
+   "results": {
+    "test_ext_flagship.test_flagship_verilog_peers/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 153080
+    },
+    "test_ext_flagship.test_flagship_verilog_peers/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 153080
+    },
+    "test_ext_flagship.test_flagship_cocotbext_peers/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 143660
+    },
+    "test_ext_flagship.test_flagship_cocotbext_peers/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 143660
+    },
+    "test_ext_i2c.test_i2c_write_vs_verilog_slave/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 45060
+    },
+    "test_ext_i2c.test_i2c_write_vs_verilog_slave/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 45060
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=1/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=1/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_slave_stretch_defect_without_dut/value=67": {
+     "status": "PASS",
+     "sim_time_ns": 57420
+    },
+    "test_ext_i2c.test_i2c_slave_stretch_defect_without_dut/value=195": {
+     "status": "PASS",
+     "sim_time_ns": 57420
+    },
+    "test_ext_i2c.test_i2c_repeated_start_vs_verilog_slave/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 75080
+    },
+    "test_ext_i2c.test_i2c_repeated_start_vs_verilog_slave/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 75080
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_verilog_slave/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 29000
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_verilog_slave/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 29000
+    },
+    "test_ext_i2c.test_i2c_eeprom_reads_vs_cocotbext_memory/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 163920
+    },
+    "test_ext_i2c.test_i2c_eeprom_reads_vs_cocotbext_memory/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 163920
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_cocotbext_memory/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 29020
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_cocotbext_memory/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 29020
+    },
+    "test_ext_i2c.test_i2c_target_vs_verilog_master/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 161080
+    },
+    "test_ext_i2c.test_i2c_target_vs_verilog_master/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 161080
+    },
+    "test_ext_i2c.test_i2c_target_vs_cocotbext_master/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 213400
+    },
+    "test_ext_i2c.test_i2c_target_vs_cocotbext_master/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 213400
+    },
+    "test_ext_jtag.test_jtag_firmware_idcode_scan/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 107880
+    },
+    "test_ext_jtag.test_jtag_firmware_idcode_scan/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 107880
+    },
+    "test_ext_jtag.test_jtag_vector_ir_dr_scans/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 284860
+    },
+    "test_ext_jtag.test_jtag_vector_ir_dr_scans/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 284860
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=1/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=1/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=2/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=2/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=3/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=3/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_flash_read/mode=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_flash_read/mode=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_flash_read/mode=3/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_flash_read/mode=3/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=1/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=1/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=2/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=2/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=3/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=3/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=0": {
+     "status": "PASS",
+     "sim_time_ns": 72480
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=1": {
+     "status": "PASS",
+     "sim_time_ns": 72480
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=2": {
+     "status": "PASS",
+     "sim_time_ns": 69480
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=3": {
+     "status": "PASS",
+     "sim_time_ns": 75480
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=0": {
+     "status": "PASS",
+     "sim_time_ns": 86540
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=1": {
+     "status": "PASS",
+     "sim_time_ns": 87180
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=2": {
+     "status": "PASS",
+     "sim_time_ns": 86540
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=3": {
+     "status": "PASS",
+     "sim_time_ns": 87180
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=0": {
+     "status": "PASS",
+     "sim_time_ns": 80740
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=1": {
+     "status": "PASS",
+     "sim_time_ns": 80740
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=2": {
+     "status": "PASS",
+     "sim_time_ns": 77740
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=3": {
+     "status": "PASS",
+     "sim_time_ns": 83740
+    },
+    "test_ext_uart.test_uart_tx_vs_third_party_receivers": {
+     "status": "PASS",
+     "sim_time_ns": 278420
+    },
+    "test_ext_uart.test_uart_rx_vs_verilog_uart_tx": {
+     "status": "PASS",
+     "sim_time_ns": 328000
+    },
+    "test_ext_uart.test_uart_rx_vs_cocotbext_source": {
+     "status": "PASS",
+     "sim_time_ns": 326520
+    },
+    "test_ext_uart.test_uart_rx_baud_tolerance/error_percent=-3": {
+     "status": "PASS",
+     "sim_time_ns": 335880
+    },
+    "test_ext_uart.test_uart_rx_baud_tolerance/error_percent=3": {
+     "status": "PASS",
+     "sim_time_ns": 317400
+    }
+   }
+  },
+  {
+   "run": "final3-iv13",
+   "slurm_job": "23792571",
+   "simulator": "Icarus Verilog 13.0 + cocotb 2.0.1",
+   "dut": "RTL",
+   "tree": "73536f0 snapshot",
+   "tests": 65,
+   "passed": 65,
+   "results": {
+    "test_ext_flagship.test_flagship_verilog_peers/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 153080
+    },
+    "test_ext_flagship.test_flagship_verilog_peers/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 153080
+    },
+    "test_ext_flagship.test_flagship_cocotbext_peers/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 143660
+    },
+    "test_ext_flagship.test_flagship_cocotbext_peers/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 143660
+    },
+    "test_ext_i2c.test_i2c_write_vs_verilog_slave/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 45060
+    },
+    "test_ext_i2c.test_i2c_write_vs_verilog_slave/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 45060
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=1/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=1/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_slave_stretch_defect_without_dut/value=67": {
+     "status": "PASS",
+     "sim_time_ns": 57420
+    },
+    "test_ext_i2c.test_i2c_slave_stretch_defect_without_dut/value=195": {
+     "status": "PASS",
+     "sim_time_ns": 57420
+    },
+    "test_ext_i2c.test_i2c_repeated_start_vs_verilog_slave/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 75080
+    },
+    "test_ext_i2c.test_i2c_repeated_start_vs_verilog_slave/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 75080
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_verilog_slave/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 29000
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_verilog_slave/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 29000
+    },
+    "test_ext_i2c.test_i2c_eeprom_reads_vs_cocotbext_memory/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 163920
+    },
+    "test_ext_i2c.test_i2c_eeprom_reads_vs_cocotbext_memory/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 163920
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_cocotbext_memory/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 29020
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_cocotbext_memory/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 29020
+    },
+    "test_ext_i2c.test_i2c_target_vs_verilog_master/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 161080
+    },
+    "test_ext_i2c.test_i2c_target_vs_verilog_master/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 161080
+    },
+    "test_ext_i2c.test_i2c_target_vs_cocotbext_master/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 213400
+    },
+    "test_ext_i2c.test_i2c_target_vs_cocotbext_master/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 213400
+    },
+    "test_ext_jtag.test_jtag_firmware_idcode_scan/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 107880
+    },
+    "test_ext_jtag.test_jtag_firmware_idcode_scan/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 107880
+    },
+    "test_ext_jtag.test_jtag_vector_ir_dr_scans/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 284860
+    },
+    "test_ext_jtag.test_jtag_vector_ir_dr_scans/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 284860
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=1/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=1/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=2/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=2/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=3/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=3/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_flash_read/mode=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_flash_read/mode=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_flash_read/mode=3/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_flash_read/mode=3/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=1/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=1/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=2/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=2/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=3/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=3/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=0": {
+     "status": "PASS",
+     "sim_time_ns": 72480
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=1": {
+     "status": "PASS",
+     "sim_time_ns": 72480
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=2": {
+     "status": "PASS",
+     "sim_time_ns": 69480
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=3": {
+     "status": "PASS",
+     "sim_time_ns": 75480
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=0": {
+     "status": "PASS",
+     "sim_time_ns": 86540
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=1": {
+     "status": "PASS",
+     "sim_time_ns": 87180
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=2": {
+     "status": "PASS",
+     "sim_time_ns": 86540
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=3": {
+     "status": "PASS",
+     "sim_time_ns": 87180
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=0": {
+     "status": "PASS",
+     "sim_time_ns": 80740
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=1": {
+     "status": "PASS",
+     "sim_time_ns": 80740
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=2": {
+     "status": "PASS",
+     "sim_time_ns": 77740
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=3": {
+     "status": "PASS",
+     "sim_time_ns": 83740
+    },
+    "test_ext_uart.test_uart_tx_vs_third_party_receivers": {
+     "status": "PASS",
+     "sim_time_ns": 278420
+    },
+    "test_ext_uart.test_uart_rx_vs_verilog_uart_tx": {
+     "status": "PASS",
+     "sim_time_ns": 328000
+    },
+    "test_ext_uart.test_uart_rx_vs_cocotbext_source": {
+     "status": "PASS",
+     "sim_time_ns": 326520
+    },
+    "test_ext_uart.test_uart_rx_baud_tolerance/error_percent=-3": {
+     "status": "PASS",
+     "sim_time_ns": 335880
+    },
+    "test_ext_uart.test_uart_rx_baud_tolerance/error_percent=3": {
+     "status": "PASS",
+     "sim_time_ns": 317400
+    }
+   }
+  },
+  {
+   "run": "final3-head",
+   "slurm_job": "23792571",
+   "simulator": "Icarus Verilog 14 + cocotb 2.0.1",
+   "dut": "RTL",
+   "tree": "commit 0ec5138 (test/harness.py with PE_FIRMWARE; same src/ and firmware/ as 73536f0)",
+   "tests": 65,
+   "passed": 65,
+   "results": {
+    "test_ext_flagship.test_flagship_verilog_peers/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 153080
+    },
+    "test_ext_flagship.test_flagship_verilog_peers/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 153080
+    },
+    "test_ext_flagship.test_flagship_cocotbext_peers/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 143660
+    },
+    "test_ext_flagship.test_flagship_cocotbext_peers/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 143660
+    },
+    "test_ext_i2c.test_i2c_write_vs_verilog_slave/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 45060
+    },
+    "test_ext_i2c.test_i2c_write_vs_verilog_slave/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 45060
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=1/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_read_vs_verilog_slave_with_stretching/first_bit=1/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 49940
+    },
+    "test_ext_i2c.test_i2c_slave_stretch_defect_without_dut/value=67": {
+     "status": "PASS",
+     "sim_time_ns": 57420
+    },
+    "test_ext_i2c.test_i2c_slave_stretch_defect_without_dut/value=195": {
+     "status": "PASS",
+     "sim_time_ns": 57420
+    },
+    "test_ext_i2c.test_i2c_repeated_start_vs_verilog_slave/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 75080
+    },
+    "test_ext_i2c.test_i2c_repeated_start_vs_verilog_slave/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 75080
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_verilog_slave/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 29000
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_verilog_slave/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 29000
+    },
+    "test_ext_i2c.test_i2c_eeprom_reads_vs_cocotbext_memory/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 163920
+    },
+    "test_ext_i2c.test_i2c_eeprom_reads_vs_cocotbext_memory/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 163920
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_cocotbext_memory/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 29020
+    },
+    "test_ext_i2c.test_i2c_address_nack_vs_cocotbext_memory/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 29020
+    },
+    "test_ext_i2c.test_i2c_target_vs_verilog_master/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 161080
+    },
+    "test_ext_i2c.test_i2c_target_vs_verilog_master/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 161080
+    },
+    "test_ext_i2c.test_i2c_target_vs_cocotbext_master/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 213400
+    },
+    "test_ext_i2c.test_i2c_target_vs_cocotbext_master/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 213400
+    },
+    "test_ext_jtag.test_jtag_firmware_idcode_scan/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 107880
+    },
+    "test_ext_jtag.test_jtag_firmware_idcode_scan/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 107880
+    },
+    "test_ext_jtag.test_jtag_vector_ir_dr_scans/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 284860
+    },
+    "test_ext_jtag.test_jtag_vector_ir_dr_scans/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 284860
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=1/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=1/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=2/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=2/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=3/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_nandland_slave/mode=3/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_flash_read/mode=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_flash_read/mode=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_flash_read/mode=3/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_flash_read/mode=3/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 371200
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=0/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=0/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=1/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=1/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=2/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=2/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=3/skew=data": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_spi_controller_vs_cocotbext_loopback/mode=3/skew=clock": {
+     "status": "PASS",
+     "sim_time_ns": 68660
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=0": {
+     "status": "PASS",
+     "sim_time_ns": 72480
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=1": {
+     "status": "PASS",
+     "sim_time_ns": 72480
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=2": {
+     "status": "PASS",
+     "sim_time_ns": 69480
+    },
+    "test_ext_spi.test_nandland_slave_vs_cocotbext_master/mode=3": {
+     "status": "PASS",
+     "sim_time_ns": 75480
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=0": {
+     "status": "PASS",
+     "sim_time_ns": 86540
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=1": {
+     "status": "PASS",
+     "sim_time_ns": 87180
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=2": {
+     "status": "PASS",
+     "sim_time_ns": 86540
+    },
+    "test_ext_spi.test_spi_target_vs_nandland_master/mode=3": {
+     "status": "PASS",
+     "sim_time_ns": 87180
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=0": {
+     "status": "PASS",
+     "sim_time_ns": 80740
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=1": {
+     "status": "PASS",
+     "sim_time_ns": 80740
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=2": {
+     "status": "PASS",
+     "sim_time_ns": 77740
+    },
+    "test_ext_spi.test_spi_target_vs_cocotbext_master/mode=3": {
+     "status": "PASS",
+     "sim_time_ns": 83740
+    },
+    "test_ext_uart.test_uart_tx_vs_third_party_receivers": {
+     "status": "PASS",
+     "sim_time_ns": 278420
+    },
+    "test_ext_uart.test_uart_rx_vs_verilog_uart_tx": {
+     "status": "PASS",
+     "sim_time_ns": 328000
+    },
+    "test_ext_uart.test_uart_rx_vs_cocotbext_source": {
+     "status": "PASS",
+     "sim_time_ns": 326520
+    },
+    "test_ext_uart.test_uart_rx_baud_tolerance/error_percent=-3": {
+     "status": "PASS",
+     "sim_time_ns": 335880
+    },
+    "test_ext_uart.test_uart_rx_baud_tolerance/error_percent=3": {
+     "status": "PASS",
+     "sim_time_ns": 317400
+    }
+   }
+  }
+ ],
+ "wrong_mode_matrix": {
+  "slurm_job": "23791858",
+  "note": "tag spi-m<X>-is-m<Y>: spi-controller-mode<Y> program under the name spi-controller-mode<X>; -none: PE_EXT_SKEW=none + PE_EXT_NO_EDGE_CHECK=1 (old board, peers only); -noedge: both skew corners, PE_EXT_NO_EDGE_CHECK=1 (peers only); -edge: default (both corners + edge checks); base-*: unmodified images",
+  "results": {
+   "base-m0-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=data": "PASS",
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=clock": "PASS"
+   },
+   "base-m0-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=data": "PASS",
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=clock": "PASS"
+   },
+   "base-m0-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=none": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=none": "PASS"
+   },
+   "base-m1-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=data": "PASS",
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=clock": "PASS"
+   },
+   "base-m1-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=data": "PASS",
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=clock": "PASS"
+   },
+   "base-m1-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=none": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=none": "PASS"
+   },
+   "base-m2-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=data": "PASS",
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=clock": "PASS"
+   },
+   "base-m2-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=data": "PASS",
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=clock": "PASS"
+   },
+   "base-m2-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=none": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=none": "PASS"
+   },
+   "base-m3-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=data": "PASS",
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=clock": "PASS"
+   },
+   "base-m3-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=data": "PASS",
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=clock": "PASS"
+   },
+   "base-m3-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=none": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=none": "PASS"
+   },
+   "spi-m0-is-m1-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=clock": "FAIL"
+   },
+   "spi-m0-is-m1-flag-edge": {
+    "test_flagship_verilog_peers/skew=data": "FAIL",
+    "test_flagship_verilog_peers/skew=clock": "FAIL",
+    "test_flagship_cocotbext_peers/skew=data": "FAIL",
+    "test_flagship_cocotbext_peers/skew=clock": "FAIL"
+   },
+   "spi-m0-is-m1-flag-noedge": {
+    "test_flagship_verilog_peers/skew=data": "FAIL",
+    "test_flagship_verilog_peers/skew=clock": "PASS",
+    "test_flagship_cocotbext_peers/skew=data": "FAIL",
+    "test_flagship_cocotbext_peers/skew=clock": "PASS"
+   },
+   "spi-m0-is-m1-flag-none": {
+    "test_flagship_verilog_peers/skew=none": "PASS",
+    "test_flagship_cocotbext_peers/skew=none": "PASS"
+   },
+   "spi-m0-is-m1-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=clock": "FAIL"
+   },
+   "spi-m0-is-m1-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=none": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=none": "FAIL"
+   },
+   "spi-m0-is-m2-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=clock": "FAIL"
+   },
+   "spi-m0-is-m2-flag-edge": {
+    "test_flagship_verilog_peers/skew=data": "FAIL",
+    "test_flagship_verilog_peers/skew=clock": "FAIL",
+    "test_flagship_cocotbext_peers/skew=data": "FAIL",
+    "test_flagship_cocotbext_peers/skew=clock": "FAIL"
+   },
+   "spi-m0-is-m2-flag-noedge": {
+    "test_flagship_verilog_peers/skew=data": "PASS",
+    "test_flagship_verilog_peers/skew=clock": "FAIL",
+    "test_flagship_cocotbext_peers/skew=data": "PASS",
+    "test_flagship_cocotbext_peers/skew=clock": "PASS"
+   },
+   "spi-m0-is-m2-flag-none": {
+    "test_flagship_verilog_peers/skew=none": "FAIL",
+    "test_flagship_cocotbext_peers/skew=none": "PASS"
+   },
+   "spi-m0-is-m2-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=data": "PASS",
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=clock": "FAIL"
+   },
+   "spi-m0-is-m2-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=none": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=none": "FAIL"
+   },
+   "spi-m0-is-m3-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=clock": "PASS"
+   },
+   "spi-m0-is-m3-flag-edge": {
+    "test_flagship_verilog_peers/skew=data": "FAIL",
+    "test_flagship_verilog_peers/skew=clock": "PASS",
+    "test_flagship_cocotbext_peers/skew=data": "FAIL",
+    "test_flagship_cocotbext_peers/skew=clock": "PASS"
+   },
+   "spi-m0-is-m3-flag-noedge": {
+    "test_flagship_verilog_peers/skew=data": "FAIL",
+    "test_flagship_verilog_peers/skew=clock": "PASS",
+    "test_flagship_cocotbext_peers/skew=data": "FAIL",
+    "test_flagship_cocotbext_peers/skew=clock": "PASS"
+   },
+   "spi-m0-is-m3-flag-none": {
+    "test_flagship_verilog_peers/skew=none": "PASS",
+    "test_flagship_cocotbext_peers/skew=none": "PASS"
+   },
+   "spi-m0-is-m3-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=clock": "PASS"
+   },
+   "spi-m0-is-m3-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=0/skew=none": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=0/skew=none": "PASS"
+   },
+   "spi-m1-is-m0-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=clock": "FAIL"
+   },
+   "spi-m1-is-m0-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=clock": "FAIL"
+   },
+   "spi-m1-is-m0-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=none": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=none": "FAIL"
+   },
+   "spi-m1-is-m2-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=clock": "PASS"
+   },
+   "spi-m1-is-m2-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=clock": "PASS"
+   },
+   "spi-m1-is-m2-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=none": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=none": "PASS"
+   },
+   "spi-m1-is-m3-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=clock": "FAIL"
+   },
+   "spi-m1-is-m3-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=data": "PASS",
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=clock": "FAIL"
+   },
+   "spi-m1-is-m3-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=1/skew=none": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=1/skew=none": "FAIL"
+   },
+   "spi-m2-is-m0-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=clock": "FAIL"
+   },
+   "spi-m2-is-m0-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=data": "PASS",
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=clock": "FAIL"
+   },
+   "spi-m2-is-m0-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=none": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=none": "PASS"
+   },
+   "spi-m2-is-m1-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=clock": "FAIL"
+   },
+   "spi-m2-is-m1-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=clock": "FAIL"
+   },
+   "spi-m2-is-m1-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=none": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=none": "FAIL"
+   },
+   "spi-m2-is-m3-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=clock": "FAIL"
+   },
+   "spi-m2-is-m3-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=data": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=clock": "FAIL"
+   },
+   "spi-m2-is-m3-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=2/skew=none": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=2/skew=none": "PASS"
+   },
+   "spi-m3-is-m0-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=clock": "FAIL"
+   },
+   "spi-m3-is-m0-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=clock": "FAIL"
+   },
+   "spi-m3-is-m0-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=none": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=none": "FAIL"
+   },
+   "spi-m3-is-m1-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=clock": "FAIL"
+   },
+   "spi-m3-is-m1-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=data": "PASS",
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=clock": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=clock": "FAIL"
+   },
+   "spi-m3-is-m1-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=none": "PASS",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=none": "FAIL"
+   },
+   "spi-m3-is-m2-edge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=clock": "FAIL"
+   },
+   "spi-m3-is-m2-noedge": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=data": "FAIL",
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=clock": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=data": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=clock": "FAIL"
+   },
+   "spi-m3-is-m2-none": {
+    "test_spi_controller_vs_cocotbext_loopback/mode=3/skew=none": "FAIL",
+    "test_spi_controller_vs_nandland_slave/mode=3/skew=none": "FAIL"
+   }
+  }
+ },
+ "seeded_campaign": {
+  "slurm_jobs": {
+   "build": "23792568",
+   "rtl_array": "23792569",
+   "gl_array": "23792570"
+  },
+  "summary": {
+   "rtl": {
+    "units": 2560,
+    "seeds_complete": 512,
+    "seed_range": [
+     1,
+     512
+    ],
+    "tests": {
+     "PASS": 33280
+    },
+    "tests_by_corner": {
+     "single corner PASS": 9728,
+     "skew=clock PASS": 11776,
+     "skew=data PASS": 11776
+    },
+    "i2c_slave_reads": {
+     "total": 3072,
+     "data_compared": 1604,
+     "self_stop_expect_0xff": 1468,
+     "data_compared_bit7_set": 112
+    },
+    "failure_count": 0,
+    "infra_count": 0,
+    "simulated_ms": 4255.4,
+    "lockstep_cycles": 212768318,
+    "unit_wall_s": 43154,
+    "slurm_jobs": [
+     "23792569"
+    ]
+   },
+   "gl": {
+    "units": 1280,
+    "seeds_complete": 256,
+    "seed_range": [
+     1,
+     256
+    ],
+    "tests": {
+     "PASS": 16640
+    },
+    "tests_by_corner": {
+     "single corner PASS": 4864,
+     "skew=clock PASS": 5888,
+     "skew=data PASS": 5888
+    },
+    "i2c_slave_reads": {
+     "total": 1536,
+     "data_compared": 810,
+     "self_stop_expect_0xff": 726,
+     "data_compared_bit7_set": 66
+    },
+    "failure_count": 0,
+    "infra_count": 0,
+    "simulated_ms": 2127.4,
+    "lockstep_cycles": 106369030,
+    "unit_wall_s": 262418,
+    "slurm_jobs": [
+     "23792570"
+    ]
+   }
+  }
+ }
+}
