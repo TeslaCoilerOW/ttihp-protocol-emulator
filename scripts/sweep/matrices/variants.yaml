@@ -1,0 +1,57 @@
+# Variant-core sweep, 2026-09-25 (docs/sweep.md, "Variant launch").
+# Cores: the variant workflow's published cores (docs/variants.md section 4),
+#   ${PE_WORK}/variants/cores/<name>.v, pinned to the
+#   sha256 in that directory's MANIFEST.sha256 (01:25): submit.py aborts if a file changed.
+# Every variant keeps module protocol_emulator_core, the same 8 SRAM instances and the
+# unchanged src/project.v wrapper, so only src/protocol_emulator_core.v differs.
+# OPENROAD_THREADS ("threads") 32 is a local-only deviation: the submission and the action use 4.
+# Submitted with --cpu-budget 768 (all pe-sweep tasks on mit_preemptable), so runs beyond the
+# free capacity are chained behind earlier pe-sweep tasks. Order below = priority.
+name: var
+defaults:
+  tiles: 8x4
+  floorplan: fp8_base
+  density: 60
+  period: 20
+  pl_hold: 0.1
+  grt_hold: 0.05
+  mode: fast
+  threads: 32
+  slurm: {partition: mit_preemptable, cpus: 32, mem: 64G, time: "10:00:00", requeue: true}
+runs:
+  # (1) 8x4 fallbacks, FULL flow (Magic DRC, SPICE extraction, illegal overlap, LVS) at 20 ns
+  - {tag: v8-full, core_tag: rstreg, core: ${PE_WORK}/variants/cores/rstreg.v,
+     core_sha256: d7e4c677fdd793e8b2a78d6080f21521a6740490ddc69d84461bfc063b15dec5,
+     mode: full, slurm: {time: "24:00:00"}}
+  - {tag: v8-full, core_tag: cn, core: ${PE_WORK}/variants/cores/cn.v,
+     core_sha256: 0416d60832990e26ad75530fab18444253fc3ef3f634a6a092f7233aeed237a4,
+     mode: full, slurm: {time: "24:00:00"}}
+  - {tag: v8-full, core_tag: cn_s2, core: ${PE_WORK}/variants/cores/cn_s2.v,
+     core_sha256: 24857b088a4d56b9dfeb070db55980b6cfec1844742118282d32ec7b96693b91,
+     mode: full, slurm: {time: "24:00:00"}}
+  # (2) diet4 at 8x4 (margin reference: same flow, same floorplan as the design of record)
+  - {tag: v8-diet-ref, core_tag: diet4, core: ${PE_WORK}/variants/cores/diet4.v,
+     core_sha256: cc27c465c877f0ab3b9491de1ae0fb2bf084e97e001a83e768fb676ac8b6ebba}
+  # (3) best 6x4 guess: diet4 (docs/area-study.md 8b "items 1-6" insurance variant), the
+  #     edge-row placement of docs/hardening.md section 4 with on-track FS pins (fp6_tworow_trk:
+  #     same topology as the 8x4 run that routed, 0 predicted DRT-0418), density 60 (as routed at
+  #     8x4); at 20 ns (also part of the grid below) and 15 ns
+  - {tag: v6-best, core_tag: diet4, core: ${PE_WORK}/variants/cores/diet4.v,
+     core_sha256: cc27c465c877f0ab3b9491de1ae0fb2bf084e97e001a83e768fb676ac8b6ebba,
+     tiles: 6x4, floorplan: fp6_tworow_trk, density: 60, period: [20, 15]}
+  # (4) 6x4 grid: diet4, diet2 x every 6x4 floorplan x density {55, 60, 65}, 20 ns
+  - {tag: v6-grid, core_tag: diet4, core: ${PE_WORK}/variants/cores/diet4.v,
+     core_sha256: cc27c465c877f0ab3b9491de1ae0fb2bf084e97e001a83e768fb676ac8b6ebba,
+     tiles: 6x4, floorplan: [fp6_tworow, fp6_tworow_trk, fp6_spread_trk, fp6_block_trk, fp6_columns_trk],
+     density: [55, 60, 65]}
+  - {tag: v6-grid, core_tag: diet2, core: ${PE_WORK}/variants/cores/diet2.v,
+     core_sha256: f885b0a0e8597840094e66ceb5f103b15ca81f49b23341a62cfe53035d758d39,
+     tiles: 6x4, floorplan: [fp6_tworow, fp6_tworow_trk, fp6_spread_trk, fp6_block_trk, fp6_columns_trk],
+     density: [55, 60, 65]}
+  # (5) 8x4 fallbacks at 15 ns (fast)
+  - {tag: v8-15ns, core_tag: rstreg, core: ${PE_WORK}/variants/cores/rstreg.v,
+     core_sha256: d7e4c677fdd793e8b2a78d6080f21521a6740490ddc69d84461bfc063b15dec5, period: 15}
+  - {tag: v8-15ns, core_tag: cn, core: ${PE_WORK}/variants/cores/cn.v,
+     core_sha256: 0416d60832990e26ad75530fab18444253fc3ef3f634a6a092f7233aeed237a4, period: 15}
+  - {tag: v8-15ns, core_tag: cn_s2, core: ${PE_WORK}/variants/cores/cn_s2.v,
+     core_sha256: 24857b088a4d56b9dfeb070db55980b6cfec1844742118282d32ec7b96693b91, period: 15}

@@ -1,0 +1,88 @@
+{
+  "id": "fp6_block_trk",
+  "tiles": "6x4",
+  "macro": "RM_IHPSG13_1P_64x16_c2",
+  "description": "Compact 2x4 block on the bottom edge: row A FS at y 3.87 (pins up), row B N at y 158.76 (pins down) facing it across a 90.5 um channel that holds logic; both rows k 2/6/10/14. Leaves the top 484 um of the core macro-free, including the I/O corner.",
+  "derivation": {
+    "row_a": {
+      "k": [
+        2,
+        6,
+        10,
+        14
+      ],
+      "y": 3.87,
+      "orient": "FS"
+    },
+    "row_b": {
+      "k": [
+        2,
+        6,
+        10,
+        14
+      ],
+      "y": 158.76,
+      "orient": "N",
+      "rule": "y = 3.78 m, m = 2 mod 8"
+    }
+  },
+  "generator": "scripts/sweep/gen_floorplans.py",
+  "instances": {
+    "core.instruction_sram_e0_lo": {
+      "location": [
+        145.92,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e0_hi": {
+      "location": [
+        415.68,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_lo": {
+      "location": [
+        685.44,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_hi": {
+      "location": [
+        955.2,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e2_lo": {
+      "location": [
+        145.92,
+        158.76
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e2_hi": {
+      "location": [
+        415.68,
+        158.76
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_lo": {
+      "location": [
+        685.44,
+        158.76
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_hi": {
+      "location": [
+        955.2,
+        158.76
+      ],
+      "orientation": "N"
+    }
+  }
+}

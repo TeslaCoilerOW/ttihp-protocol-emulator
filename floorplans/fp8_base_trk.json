@@ -1,0 +1,81 @@
+{
+  "id": "fp8_base_trk",
+  "tiles": "8x4",
+  "macro": "RM_IHPSG13_1P_64x16_c2",
+  "description": "fp8_base with the FS row raised 0.09 um to y 3.87 so every FS signal pin holds a Metal2 (68.16) and a Metal3 (68.04) y track: removes the 60 DRT-0418 off-grid pins of run2.",
+  "derivation": {
+    "bottom_k": [
+      2,
+      6,
+      14,
+      18
+    ],
+    "top_k": [
+      6,
+      10,
+      16,
+      20
+    ],
+    "fs_y": 3.87,
+    "n_y": 638.82
+  },
+  "generator": "scripts/sweep/gen_floorplans.py",
+  "instances": {
+    "core.instruction_sram_e0_lo": {
+      "location": [
+        145.92,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e0_hi": {
+      "location": [
+        415.68,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_lo": {
+      "location": [
+        955.2,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_hi": {
+      "location": [
+        1224.96,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e2_lo": {
+      "location": [
+        415.68,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e2_hi": {
+      "location": [
+        685.44,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_lo": {
+      "location": [
+        1090.08,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_hi": {
+      "location": [
+        1359.84,
+        638.82
+      ],
+      "orientation": "N"
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "id": "fp8_base",
+  "tiles": "8x4",
+  "macro": "RM_IHPSG13_1P_64x16_c2",
+  "description": "The placement in src/config.json at 73536f0 (docs/hardening.md section 4): bottom row FS on core row 0, top row N clear of the I/O pins, pairs 4 stripe pitches apart (33 um gaps).",
+  "derivation": {
+    "bottom_k": [
+      2,
+      6,
+      14,
+      18
+    ],
+    "top_k": [
+      6,
+      10,
+      16,
+      20
+    ],
+    "fs_y": 3.78,
+    "n_y": 638.82
+  },
+  "generator": "scripts/sweep/gen_floorplans.py",
+  "instances": {
+    "core.instruction_sram_e0_lo": {
+      "location": [
+        145.92,
+        3.78
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e0_hi": {
+      "location": [
+        415.68,
+        3.78
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_lo": {
+      "location": [
+        955.2,
+        3.78
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_hi": {
+      "location": [
+        1224.96,
+        3.78
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e2_lo": {
+      "location": [
+        415.68,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e2_hi": {
+      "location": [
+        685.44,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_lo": {
+      "location": [
+        1090.08,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_hi": {
+      "location": [
+        1359.84,
+        638.82
+      ],
+      "orientation": "N"
+    }
+  }
+}

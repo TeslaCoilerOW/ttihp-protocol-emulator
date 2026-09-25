@@ -1,0 +1,81 @@
+{
+  "id": "fp8_wide",
+  "tiles": "8x4",
+  "macro": "RM_IHPSG13_1P_64x16_c2",
+  "description": "docs/hardening.md section 8 troubleshooting row: macros 5 stripe pitches apart (100 um gaps). Top k 6/11/16/21, bottom k 2/7/13/18; odd k is off the 0.48 site grid.",
+  "derivation": {
+    "bottom_k": [
+      2,
+      7,
+      13,
+      18
+    ],
+    "top_k": [
+      6,
+      11,
+      16,
+      21
+    ],
+    "fs_y": 3.78,
+    "n_y": 638.82
+  },
+  "generator": "scripts/sweep/gen_floorplans.py",
+  "instances": {
+    "core.instruction_sram_e0_lo": {
+      "location": [
+        145.92,
+        3.78
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e0_hi": {
+      "location": [
+        483.12,
+        3.78
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_lo": {
+      "location": [
+        887.76,
+        3.78
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_hi": {
+      "location": [
+        1224.96,
+        3.78
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e2_lo": {
+      "location": [
+        415.68,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e2_hi": {
+      "location": [
+        752.88,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_lo": {
+      "location": [
+        1090.08,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_hi": {
+      "location": [
+        1427.28,
+        638.82
+      ],
+      "orientation": "N"
+    }
+  }
+}

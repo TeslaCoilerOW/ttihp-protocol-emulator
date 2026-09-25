@@ -1,0 +1,129 @@
+{
+  "id": "fp6_block_trk_m4obs",
+  "tiles": "6x4",
+  "macro": "RM_IHPSG13_1P_64x16_c2",
+  "description": "Compact 2x4 block on the bottom edge: row A FS at y 3.87 (pins up), row B N at y 158.76 (pins down) facing it across a 90.5 um channel that holds logic; both rows k 2/6/10/14. Leaves the top 484 um of the core macro-free, including the I/O corner. Plus a Metal4 routing obstruction over every macro footprint (ROUTING_OBSTRUCTIONS): no signal crosses a macro on Metal4.",
+  "derivation": {
+    "base": "fp6_block_trk",
+    "routing_obstructions": "Metal4 over each macro bbox (location .. location + 236.80 x 64.36 um)"
+  },
+  "generator": "scripts/sweep/gen_floorplans.py",
+  "instances": {
+    "core.instruction_sram_e0_lo": {
+      "location": [
+        145.92,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e0_hi": {
+      "location": [
+        415.68,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_lo": {
+      "location": [
+        685.44,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_hi": {
+      "location": [
+        955.2,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e2_lo": {
+      "location": [
+        145.92,
+        158.76
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e2_hi": {
+      "location": [
+        415.68,
+        158.76
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_lo": {
+      "location": [
+        685.44,
+        158.76
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_hi": {
+      "location": [
+        955.2,
+        158.76
+      ],
+      "orientation": "N"
+    }
+  },
+  "config": {
+    "ROUTING_OBSTRUCTIONS": [
+      [
+        "Metal4",
+        145.92,
+        3.87,
+        382.72,
+        68.23
+      ],
+      [
+        "Metal4",
+        415.68,
+        3.87,
+        652.48,
+        68.23
+      ],
+      [
+        "Metal4",
+        685.44,
+        3.87,
+        922.24,
+        68.23
+      ],
+      [
+        "Metal4",
+        955.2,
+        3.87,
+        1192.0,
+        68.23
+      ],
+      [
+        "Metal4",
+        145.92,
+        158.76,
+        382.72,
+        223.12
+      ],
+      [
+        "Metal4",
+        415.68,
+        158.76,
+        652.48,
+        223.12
+      ],
+      [
+        "Metal4",
+        685.44,
+        158.76,
+        922.24,
+        223.12
+      ],
+      [
+        "Metal4",
+        955.2,
+        158.76,
+        1192.0,
+        223.12
+      ]
+    ]
+  }
+}

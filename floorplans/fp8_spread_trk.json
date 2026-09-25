@@ -1,0 +1,81 @@
+{
+  "id": "fp8_spread_trk",
+  "tiles": "8x4",
+  "macro": "RM_IHPSG13_1P_64x16_c2",
+  "description": "Maximum spread along both edges: bottom k 0/7/14/21 (235 um gaps), top k 3/9/15/21 (168 um gaps, first macro just clear of the I/O pins); FS row on-track at y 3.87. Spreads the 344 macro pins over the full width instead of four 500 um pair sites.",
+  "derivation": {
+    "bottom_k": [
+      0,
+      7,
+      14,
+      21
+    ],
+    "top_k": [
+      3,
+      9,
+      15,
+      21
+    ],
+    "fs_y": 3.87,
+    "n_y": 638.82
+  },
+  "generator": "scripts/sweep/gen_floorplans.py",
+  "instances": {
+    "core.instruction_sram_e0_lo": {
+      "location": [
+        11.04,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e0_hi": {
+      "location": [
+        483.12,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_lo": {
+      "location": [
+        955.2,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_hi": {
+      "location": [
+        1427.28,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e2_lo": {
+      "location": [
+        213.36,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e2_hi": {
+      "location": [
+        618.0,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_lo": {
+      "location": [
+        1022.64,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_hi": {
+      "location": [
+        1427.28,
+        638.82
+      ],
+      "orientation": "N"
+    }
+  }
+}

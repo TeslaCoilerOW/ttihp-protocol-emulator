@@ -1,0 +1,22 @@
+# Harness smoke test: every floorplan through OpenROAD.GeneratePDN (the step
+# whose src/sram_pdn_cfg.tcl checks fail on any mis-powered macro), fast mode
+# (so the --skip step IDs are resolved by LibreLane at start-up).
+# Submit with a separate sweep root so partial runs never look complete:
+#   PE_SWEEP_ROOT=${PE_WORK}/sweep-smoke \
+#     python3 scripts/sweep/submit.py scripts/sweep/matrices/smoke-pdn.yaml
+name: smoke-pdn
+env:
+  PE_LL_EXTRA_ARGS: "--to OpenROAD.GeneratePDN"
+defaults:
+  core: src/protocol_emulator_core.v
+  core_tag: base
+  density: 60
+  period: 20
+  pl_hold: 0.1
+  grt_hold: 0.05
+  mode: fast
+  threads: 4
+  slurm: {partition: mit_preemptable, cpus: 4, mem: 16G, time: "00:40:00", requeue: true}
+runs:
+  - {tag: smoke8, tiles: 8x4, floorplan: [fp8_base, fp8_base_trk, fp8_wide, fp8_wide_trk, fp8_spread_trk]}
+  - {tag: smoke6, tiles: 6x4, floorplan: [fp6_tworow, fp6_tworow_trk, fp6_spread_trk, fp6_block_trk, fp6_columns_trk]}

@@ -1,0 +1,46 @@
+# Baseline exploration of the design of record (base core, 8x4), 2026-09-25.
+# docs/sweep.md explains every field. OPENROAD_THREADS ("threads") is a
+# local-only deviation: the submission (src/config.json) and the action use 4.
+name: base8
+defaults:
+  core: src/protocol_emulator_core.v
+  core_tag: base
+  tiles: 8x4
+  floorplan: fp8_base
+  density: 60
+  period: 20
+  pl_hold: 0.1
+  grt_hold: 0.05
+  mode: fast
+  threads: 32
+  slurm: {partition: mit_preemptable, cpus: 32, mem: 64G, time: "10:00:00", requeue: true}
+runs:
+  # (a) canary: submission config except OPENROAD_THREADS 32, full flow (Magic DRC, SPICE extraction, LVS)
+  - tag: canary-normal
+    mode: full
+    slurm: {partition: mit_normal, cpus: 32, mem: 64G, time: "12:00:00", requeue: false}
+  # the same full canary on preemptable (32 CPUs), because mit_normal is saturated
+  # (Slurm estimated the mit_normal start 7 h after submission); id suffix keeps its run dir apart
+  - tag: canary-pre32
+    mode: full
+    id_suffix: pre
+    slurm: {partition: mit_preemptable, cpus: 32, mem: 64G, time: "24:00:00", requeue: true}
+  # second full copy on preemptable with 48 threads/CPUs (scaling comparison)
+  - tag: canary-pre48
+    mode: full
+    threads: 48
+    slurm: {partition: mit_preemptable, cpus: 48, mem: 96G, time: "24:00:00", requeue: true}
+  # (b) fast-mode exploration
+  - {tag: ref-fast}                                   # fast-mode reference point (d60, 20 ns, fp8_base)
+  - {tag: density, density: [50, 55, 65]}
+  - {tag: clock, period: [16.667, 15, 12.5]}
+  - {tag: floorplan, floorplan: [fp8_wide, fp8_base_trk, fp8_wide_trk, fp8_spread_trk]}
+  - {tag: hold, hold: [[0.05, 0.02], [0, 0]]}
+  - {tag: alt-d55, floorplan: fp8_wide_trk, density: 55, period: [20, 15]}   # best-guess alternative
+  # extra points (budget allows): the density ceiling and a 100 MHz probe
+  - {tag: extra, density: 70}
+  - {tag: extra, period: 10}
+  # second batch of extras (fills the 768-CPU preemptable budget): separate the
+  # on-track-pin and spacing effects at density 55, and the alternative at 60 MHz
+  - {tag: extra2, floorplan: [fp8_base_trk, fp8_spread_trk], density: 55}
+  - {tag: extra2, floorplan: fp8_wide_trk, density: 55, period: 16.667}

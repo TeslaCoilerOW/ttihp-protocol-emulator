@@ -1,0 +1,129 @@
+{
+  "id": "fp6_columns_trk_m4obs",
+  "tiles": "6x4",
+  "macro": "RM_IHPSG13_1P_64x16_c2",
+  "description": "Columnar: two stacks of four FS macros (pins up) at the left (k 0) and right (k 15) core edges, y 3.870/168.505/333.145/497.785, ~100 um bays above each pin edge open towards the centre; the central x 258..1012 band is macro-free over the full height. Rotated (E/W) placements are not possible: the Metal4 power columns would run horizontally. Plus a Metal4 routing obstruction over every macro footprint (ROUTING_OBSTRUCTIONS): no signal crosses a macro on Metal4.",
+  "derivation": {
+    "base": "fp6_columns_trk",
+    "routing_obstructions": "Metal4 over each macro bbox (location .. location + 236.80 x 64.36 um)"
+  },
+  "generator": "scripts/sweep/gen_floorplans.py",
+  "instances": {
+    "core.instruction_sram_e0_lo": {
+      "location": [
+        11.04,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e0_hi": {
+      "location": [
+        11.04,
+        168.505
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e2_lo": {
+      "location": [
+        11.04,
+        333.145
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e2_hi": {
+      "location": [
+        11.04,
+        497.785
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_lo": {
+      "location": [
+        1022.64,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_hi": {
+      "location": [
+        1022.64,
+        168.505
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e3_lo": {
+      "location": [
+        1022.64,
+        333.145
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e3_hi": {
+      "location": [
+        1022.64,
+        497.785
+      ],
+      "orientation": "FS"
+    }
+  },
+  "config": {
+    "ROUTING_OBSTRUCTIONS": [
+      [
+        "Metal4",
+        11.04,
+        3.87,
+        247.84,
+        68.23
+      ],
+      [
+        "Metal4",
+        11.04,
+        168.505,
+        247.84,
+        232.865
+      ],
+      [
+        "Metal4",
+        11.04,
+        333.145,
+        247.84,
+        397.505
+      ],
+      [
+        "Metal4",
+        11.04,
+        497.785,
+        247.84,
+        562.145
+      ],
+      [
+        "Metal4",
+        1022.64,
+        3.87,
+        1259.44,
+        68.23
+      ],
+      [
+        "Metal4",
+        1022.64,
+        168.505,
+        1259.44,
+        232.865
+      ],
+      [
+        "Metal4",
+        1022.64,
+        333.145,
+        1259.44,
+        397.505
+      ],
+      [
+        "Metal4",
+        1022.64,
+        497.785,
+        1259.44,
+        562.145
+      ]
+    ]
+  }
+}

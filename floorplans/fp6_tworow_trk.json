@@ -1,0 +1,81 @@
+{
+  "id": "fp6_tworow_trk",
+  "tiles": "6x4",
+  "macro": "RM_IHPSG13_1P_64x16_c2",
+  "description": "fp6_tworow with the FS row at the on-track y 3.87.",
+  "derivation": {
+    "bottom_k": [
+      0,
+      4,
+      8,
+      12
+    ],
+    "top_k": [
+      3,
+      7,
+      11,
+      15
+    ],
+    "fs_y": 3.87,
+    "n_y": 638.82
+  },
+  "generator": "scripts/sweep/gen_floorplans.py",
+  "instances": {
+    "core.instruction_sram_e0_lo": {
+      "location": [
+        11.04,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e0_hi": {
+      "location": [
+        280.8,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_lo": {
+      "location": [
+        550.56,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_hi": {
+      "location": [
+        820.32,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e2_lo": {
+      "location": [
+        213.36,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e2_hi": {
+      "location": [
+        483.12,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_lo": {
+      "location": [
+        752.88,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_hi": {
+      "location": [
+        1022.64,
+        638.82
+      ],
+      "orientation": "N"
+    }
+  }
+}

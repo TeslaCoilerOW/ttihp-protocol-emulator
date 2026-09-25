@@ -1,0 +1,68 @@
+# Follow-ups to the variant sweep (matrices/variants.yaml), added 2026-09-25 from its first
+# results; see docs/sweep.md "Variant launch". Same cores (pinned sha256), same defaults.
+# Submitted with --cpu-budget 768 (chained behind earlier pe-sweep tasks) and
+# --exclude node1621,node1918 (preemptable nodes whose owners reclaimed them repeatedly).
+name: var2
+defaults:
+  core_tag: diet4
+  core: ${PE_WORK}/variants/cores/diet4.v
+  core_sha256: cc27c465c877f0ab3b9491de1ae0fb2bf084e97e001a83e768fb676ac8b6ebba
+  tiles: 6x4
+  floorplan: fp6_tworow
+  density: 65
+  period: 20
+  pl_hold: 0.1
+  grt_hold: 0.05
+  mode: fast
+  threads: 32
+  slurm: {partition: mit_preemptable, cpus: 32, mem: 64G, time: "10:00:00", requeue: true}
+runs:
+  # the first 6x4 point that routed clean (diet4-cc27c4-6x4-fp6_tworow-d65-p20, job 23751815_0:
+  # GRT overflow 166, DRT 0 after 7 iterations, typ +2.85 ns, candidate): the full flow as the
+  # action runs it (Magic DRC, SPICE extraction, illegal overlap, LVS)
+  - {tag: v6-full, mode: full, slurm: {time: "24:00:00"}}
+  # the same point at tighter clocks (base 8x4 met typ at 12.5 ns: 23749131_6)
+  - {tag: v6-clock, period: [15, 12.5]}
+  # 6x4 with Metal4 routing obstructions over every macro (floorplans/*_m4obs.json, see
+  # scripts/sweep/gen_floorplans.py): the 6x4 runs that did not route clean ended with residual
+  # DRT shorts on Metal4 inside macro footprints (nets crossing a macro against its full-height
+  # power pins). Smoke test 23767683_0-1 (sweep-smoke root) ran both obstruction styles through
+  # Odb.AddRoutingObstructions: 8 Metal4 obstructions each, PDN 8 macros, 0 BAD.
+  - {tag: v6-m4obs, floorplan: [fp6_tworow_m4obs, fp6_tworow_trk_m4obs, fp6_spread_trk_m4obs,
+                                fp6_block_trk_m4obs, fp6_columns_trk_m4obs], density: [60, 65]}
+  - {tag: v6-m4obs, core_tag: diet2, core: ${PE_WORK}/variants/cores/diet2.v,
+     core_sha256: f885b0a0e8597840094e66ceb5f103b15ca81f49b23341a62cfe53035d758d39,
+     floorplan: [fp6_tworow_m4obs, fp6_tworow_trk_m4obs, fp6_spread_trk_m4obs,
+                 fp6_block_trk_m4obs, fp6_columns_trk_m4obs], density: 60}
+  # clock headroom: the base core met typ setup at 12.5 ns (23749131_6, candidate) and failed at
+  # 10 ns (23749131_16: typ WS -1.48 ns, 194 violations), so probe the 8x4 fallbacks at 12.5 ns
+  - {tag: v8-12p5, core_tag: rstreg, core: ${PE_WORK}/variants/cores/rstreg.v,
+     core_sha256: d7e4c677fdd793e8b2a78d6080f21521a6740490ddc69d84461bfc063b15dec5,
+     tiles: 8x4, floorplan: fp8_base, density: 60, period: 12.5}
+  - {tag: v8-12p5, core_tag: cn, core: ${PE_WORK}/variants/cores/cn.v,
+     core_sha256: 0416d60832990e26ad75530fab18444253fc3ef3f634a6a092f7233aeed237a4,
+     tiles: 8x4, floorplan: fp8_base, density: 60, period: 12.5}
+  - {tag: v8-12p5, core_tag: cn_s2, core: ${PE_WORK}/variants/cores/cn_s2.v,
+     core_sha256: 24857b088a4d56b9dfeb070db55980b6cfec1844742118282d32ec7b96693b91,
+     tiles: 8x4, floorplan: fp8_base, density: 60, period: 12.5}
+  - {tag: v8-12p5, tiles: 8x4, floorplan: fp8_base, density: 60, period: 12.5}
+  # diet2 at 6x4 routed clean on fp6_tworow at d55 (23751839_0) and d60 (23751841_0): its clock headroom
+  - {tag: v6-diet2-clock, core_tag: diet2, core: ${PE_WORK}/variants/cores/diet2.v,
+     core_sha256: f885b0a0e8597840094e66ceb5f103b15ca81f49b23341a62cfe53035d758d39,
+     floorplan: fp6_tworow, density: 60, period: [15, 12.5]}
+  # the Metal4 obstruction did not clear the failing diet4 6x4 point (23768772_0, tworow_trk_m4obs
+  # d60: the residual shorts moved to Metal2/Metal3 in the same macro, same net). Every I/O pin is a
+  # Metal4 pin at x 29.8..191.0 on the top edge; lower the top row to open a channel above it
+  - {tag: v6-topchan, floorplan: [fp6_tworow_trk_top30, fp6_tworow_trk_top60], density: [60, 65]}
+  # the lowered top row routes: diet4 top30 d60 (23785361_0) GRT overflow 4, DRT clean after 26
+  # iterations, candidate; top60 d60 (23785361_2) GRT overflow 1, DRT clean after 5, 1 antenna
+  # violation (vs tworow_trk d60: overflow 1085, 3 residual shorts). Widen the evidence: density 55,
+  # 15/12.5 ns, the full flow, and diet2 on the same floorplan
+  - {tag: v6-topchan, floorplan: [fp6_tworow_trk_top30, fp6_tworow_trk_top60], density: 55}
+  - {tag: v6-topchan-full, floorplan: [fp6_tworow_trk_top30, fp6_tworow_trk_top60], density: 60, mode: full,
+     slurm: {time: "24:00:00"}}
+  - {tag: v6-topchan-clock, floorplan: [fp6_tworow_trk_top30, fp6_tworow_trk_top60], density: [60, 65], period: 15}
+  - {tag: v6-topchan-clock, floorplan: fp6_tworow_trk_top30, density: 60, period: 12.5}
+  - {tag: v6-topchan-diet2, core_tag: diet2, core: ${PE_WORK}/variants/cores/diet2.v,
+     core_sha256: f885b0a0e8597840094e66ceb5f103b15ca81f49b23341a62cfe53035d758d39,
+     floorplan: fp6_tworow_trk_top30, density: 60, period: [20, 15]}

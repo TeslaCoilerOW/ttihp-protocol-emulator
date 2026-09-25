@@ -1,0 +1,22 @@
+# Harness smoke test for the *_m4obs floorplans (ROUTING_OBSTRUCTIONS from the floorplan
+# "config" block): diet4 core, 6x4, through Odb.AddRoutingObstructions (the step right after
+# OpenROAD.GeneratePDN in the Classic flow), so a bad key or format fails in ~2 min.
+#   PE_SWEEP_ROOT=${PE_WORK}/sweep-smoke \
+#     python3 scripts/sweep/submit.py scripts/sweep/matrices/smoke-m4obs.yaml --cpu-budget 768
+name: smoke-m4obs
+env:
+  PE_LL_EXTRA_ARGS: "--to Odb.AddRoutingObstructions"
+defaults:
+  core_tag: diet4
+  core: ${PE_WORK}/variants/cores/diet4.v
+  core_sha256: cc27c465c877f0ab3b9491de1ae0fb2bf084e97e001a83e768fb676ac8b6ebba
+  tiles: 6x4
+  density: 65
+  period: 20
+  pl_hold: 0.1
+  grt_hold: 0.05
+  mode: fast
+  threads: 4
+  slurm: {partition: mit_preemptable, cpus: 4, mem: 16G, time: "00:40:00", requeue: true}
+runs:
+  - {tag: smoke-m4obs, floorplan: [fp6_tworow_m4obs, fp6_block_trk_m4obs]}
