@@ -1,0 +1,33 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "waveform",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 0,
+  "owned_pins": 1,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "instructions": [
+    { "mnemonic": "SET" },
+    { "mnemonic": "DIR", "imm": 1 },
+    { "mnemonic": "COUNT", "imm": 15 },
+    { "mnemonic": "SET", "imm": 1, "label": "pulse" },
+    { "mnemonic": "WAIT", "imm": 30 },
+    { "mnemonic": "SET" },
+    { "mnemonic": "WAIT", "imm": 61 },
+    { "mnemonic": "LOOP", "target": "pulse" },
+    { "mnemonic": "TIME", "a": 1 },
+    { "mnemonic": "PUSH" },
+    { "mnemonic": "HALT" }
+  ],
+  "notes": [
+    "Custom timed waveform: sixteen pin0 pulses, high for half-period clocks and low for twice half-period clocks; final timestamp in RX FIFO."
+  ]
+}

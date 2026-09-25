@@ -1,0 +1,12 @@
+# Pinned opam packages for the Hardcaml generator (OCaml 5.2.1).
+# Derived from hardcaml/dune-project and hardcaml/{lib,bin,test}/dune:
+# the only direct libraries are hardcaml, yojson and digestif (no ppx is used).
+# CI (.github/workflows/regen.yaml) installs exactly these and keys its opam
+# cache on this file; opam resolves the transitive closure. The committed RTL
+# was produced by a switch that also had (among 81 packages) base v0.17.3,
+# core v0.17.2, ppxlib 0.35.0, zarith 1.14, ppx_jane v0.17.0; pin those here
+# if a CI regeneration ever diverges from a local one.
+dune.3.20.2
+hardcaml.v0.17.0
+yojson.2.2.2
+digestif.1.3.1

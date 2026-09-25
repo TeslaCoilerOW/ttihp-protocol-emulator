@@ -11,3 +11,20 @@ test/sim_build
 test/__pycache__/
 test/results.xml
 test/gate_level_netlist.v
+
+# Tiny Tapeout tool checkout (tt-gds-action / local tt_tool.py runs)
+/tt/
+
+# cocotb / Python
+sim_build/
+results.xml
+__pycache__/
+*.pyc
+
+# Hardcaml / OCaml build outputs and the CI-local opam switch
+hardcaml/_build/
+_build/
+_opam/
+
+# Local-only toolchain shim for scripts/generate.sh
+scripts/ocaml-env.local.sh

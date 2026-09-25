@@ -1,0 +1,22 @@
+IHP-Open-PDK SRAM simulation models
+===================================
+
+The following files are unmodified copies from IHP-Open-PDK
+(https://github.com/IHP-GmbH/IHP-Open-PDK), revision
+2bbec755dc67ca3db0261c3d6163e15735d66710, directory
+ihp-sg13cmos5l/libs.ref/sg13cmos5l_sram/verilog/:
+
+  RM_IHPSG13_1P_64x16_c2.v
+    Copyright 2025 IHP PDK Authors. Licensed under the Apache License 2.0.
+    SHA-256 63a682d02cc35a69cb06468c8813ec114dfa8abed505bd1d7cafc84b7a6ed806
+
+  RM_IHPSG13_1P_core_behavioral.v
+    Copyright 2023 IHP PDK Authors. Licensed under the Apache License 2.0.
+    SHA-256 5aa61ac427a9c7253f5bcfbc4bf0717a6ffb28db514b1d5cad0ecb52a11d5790
+
+blackbox/RM_IHPSG13_1P_64x16_c2.v is an interface-only derivative of the
+first file (port list only, no behavior), under the same license.
+
+These are simulation models of a hard macro. They are not synthesized and
+must not be listed in info.yaml source_files. The full license text is in
+LICENSE.IHP-Open-PDK (identical to the repository LICENSE, Apache-2.0).

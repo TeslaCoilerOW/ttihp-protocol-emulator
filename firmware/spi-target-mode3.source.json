@@ -1,0 +1,44 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "spi-target-mode3",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 2,
+  "owned_pins": 16,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "instructions": [
+    { "mnemonic": "LIMIT", "imm": 32768 },
+    { "mnemonic": "SET" },
+    { "mnemonic": "DIR" },
+    { "mnemonic": "PULL", "label": "next_byte" },
+    { "mnemonic": "SHL", "c": 24 },
+    { "mnemonic": "LOAD", "a": 1 },
+    { "mnemonic": "COUNT", "imm": 7 },
+    { "mnemonic": "WAITPIN", "a": 5, "b": 1 },
+    { "mnemonic": "WAITPIN", "a": 5 },
+    { "mnemonic": "DIR", "imm": 16 },
+    { "mnemonic": "WAITPIN", "a": 2, "label": "bit" },
+    { "mnemonic": "OUT", "a": 4, "c": 1 },
+    { "mnemonic": "WAITPIN", "a": 2, "b": 1 },
+    { "mnemonic": "IN", "a": 3, "c": 1 },
+    { "mnemonic": "LOOP", "target": "bit" },
+    { "mnemonic": "WAITPIN", "a": 5, "b": 1 },
+    { "mnemonic": "DIR" },
+    { "mnemonic": "PUSH", "a": 1 },
+    { "mnemonic": "JMP", "target": "next_byte" }
+  ],
+  "notes": [
+    "SPI target mode3, MSB-first 8-bit full duplex; SCK2/MOSI3/MISO4/CSn5.",
+    "CS must be high between bytes, asserted at least 8 system clocks before first edge; each external half period at least 8 clocks.",
+    "TX word must be queued before CS assertion; CS is checked at frame boundaries, interrupted frames terminate through LIMIT timeout. MISO releases at deassertion observation.",
+    "Full RX FIFO at completed-frame delivery halts with fault4 and retains the captured byte in READ_SELECT6."
+  ]
+}

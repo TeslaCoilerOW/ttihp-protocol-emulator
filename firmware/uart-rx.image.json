@@ -1,0 +1,51 @@
+{
+  "schema_version": "protocol-emulator.firmware-image.v1",
+  "isa_version": 2,
+  "name": "uart-rx",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 1,
+  "owned_pins": 0,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "source_sha256": "ef4694001b912259d6bfcfb2c1325d97722aaa40878b4035e9f40d2270f92337",
+  "bytecode_sha256": "faf6cb17d1c4aad73b77801a999429100fc0628db798e26982988a2b55d902a5",
+  "words": [
+    201327360, 318832640, 167772167, 218169600, 218169344, 67108958,
+    151060480, 67108925, 184549382, 419495960, 302186752, 318832640,
+    151060481, 436273169, 302056192, 117506048, 83886081, 486539328
+  ],
+  "labels": { "next_byte": 1, "data": 6, "framing_error": 17 },
+  "timing": [
+    { "pc": 0, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 1, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 2, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 3, "minimum_cycles": 1, "blocking": "pin_limit" },
+    { "pc": 4, "minimum_cycles": 1, "blocking": "pin_limit" },
+    { "pc": 5, "minimum_cycles": 95, "blocking": "none" },
+    { "pc": 6, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 7, "minimum_cycles": 62, "blocking": "none" },
+    { "pc": 8, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 9, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 10, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 11, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 12, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 13, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 14, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 15, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 16, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 17, "minimum_cycles": 1, "blocking": "none" }
+  ],
+  "notes": [
+    "UART 8N1 RX on pin1, 64 clocks per bit, low-byte RX words.",
+    "Two-flop input synchronization precedes center sampling; stop-bit low produces fault64. Idle/start waits are bounded by 12 bit periods.",
+    "A full RX FIFO at completed-frame delivery halts with fault4; the captured byte remains inspectable in the RX register (READ_SELECT6)."
+  ]
+}

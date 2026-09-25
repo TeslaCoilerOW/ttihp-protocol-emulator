@@ -1,0 +1,67 @@
+name: regen
+# Regenerates src/protocol_emulator_core.v from hardcaml/ with the pinned
+# OCaml toolchain and fails if the committed file is not current.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  OCAML_COMPILER: "5.2.1"
+
+jobs:
+  regen:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Install system packages
+        shell: bash
+        run: sudo apt-get update && sudo apt-get install -y libgmp-dev pkg-config
+
+      # setup-ocaml does not cache project dependencies, so cache the local
+      # switch ourselves, keyed on the exact compiler and the pin list.
+      - name: Restore opam switch
+        uses: actions/cache@v6
+        with:
+          path: _opam
+          key: opam-${{ runner.os }}-${{ runner.arch }}-ocaml-${{ env.OCAML_COMPILER }}-${{ hashFiles('scripts/opam-deps.txt') }}
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: ${{ env.OCAML_COMPILER }}
+          cache: false
+          opam-pin: false
+
+      - name: Install pinned opam packages
+        shell: bash
+        run: |
+          opam install --yes $(grep -v '^#' scripts/opam-deps.txt)
+          opam list --installed --columns=name,version hardcaml yojson digestif dune zarith base ppxlib
+
+      - name: Regenerate core RTL
+        shell: bash
+        run: opam exec -- scripts/generate.sh configs/instruction-sram-32.json
+
+      - name: Check committed RTL is current
+        shell: bash
+        run: |
+          git status --short -- src
+          if ! git diff --exit-code --stat -- src; then
+            echo "::error::src/ is out of date with hardcaml/. Run scripts/generate.sh and commit the result."
+            exit 1
+          fi
+          untracked=$(git ls-files --others --exclude-standard -- src)
+          if [ -n "$untracked" ]; then
+            echo "::error::generation left untracked files in src/: $untracked"
+            exit 1
+          fi
+
+      - name: Upload regenerated RTL
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: regenerated-rtl
+          path: src/protocol_emulator_core.v

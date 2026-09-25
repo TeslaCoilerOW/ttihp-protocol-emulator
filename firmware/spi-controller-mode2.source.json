@@ -1,0 +1,35 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "spi-controller-mode2",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 2,
+  "owned_pins": 44,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "instructions": [
+    { "mnemonic": "SET", "imm": 36 },
+    { "mnemonic": "DIR", "imm": 44 },
+    { "mnemonic": "PINS", "imm": 282 },
+    { "mnemonic": "PULL", "label": "next_byte" },
+    { "mnemonic": "SHL", "c": 24 },
+    { "mnemonic": "LOAD", "a": 1 },
+    { "mnemonic": "SET", "imm": 4 },
+    { "mnemonic": "XFER", "a": 8, "b": 32, "c": 29 },
+    { "mnemonic": "SET", "imm": 36 },
+    { "mnemonic": "PUSH" },
+    { "mnemonic": "JMP", "target": "next_byte" }
+  ],
+  "notes": [
+    "SPI controller mode2, MSB-first 8-bit full duplex; pins SCK2/MOSI3/MISO4/CSn5.",
+    "Fused transfers have 32-cycle half periods; scalar expansion preserves mode but adds data-dependent instruction overhead between bits.",
+    "One CS assertion per FIFO byte; low-byte receive words. Input synchronization requires external return/setup margin; no maximum external rate asserted."
+  ]
+}

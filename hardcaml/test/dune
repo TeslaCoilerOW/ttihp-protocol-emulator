@@ -1,0 +1,29 @@
+(test
+ (name smoke)
+ (modules smoke)
+ (libraries protocol_processor hardcaml))
+
+(test
+ (name assembler_test)
+ (modules assembler_test)
+ (libraries protocol_processor yojson digestif))
+
+(test
+ (name isa2_test)
+ (modules isa2_test)
+ (libraries protocol_processor hardcaml))
+
+(test
+ (name instruction_sram_test)
+ (modules instruction_sram_test)
+ (libraries protocol_processor hardcaml yojson))
+
+(test
+ (name instruction_sram_formal_test)
+ (modules instruction_sram_formal_test)
+ (libraries protocol_processor hardcaml))
+
+(test
+ (name payload_sram_test)
+ (modules payload_sram_test)
+ (libraries protocol_processor hardcaml))

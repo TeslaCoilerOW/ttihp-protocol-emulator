@@ -9,6 +9,10 @@
 
   "//": "If you get stuck with this config, please open an issue or get in touch via the discord.",
 
+  "//": "protocol-emulator: the only changes to the cmos5l template are the SRAM macro block and the",
+  "//": "four FP_PDN_V* stripe keys. Recipe, derivations and risks: docs/hardening.md. Placement",
+  "//": "self-check without EDA tools: python3 macros/check_macro_floorplan.py",
+
   "//": "Here are some of the variables you may want to change:",
 
   "//": "PL_TARGET_DENSITY_PCT - You can increase this if Global Placement fails with error GPL-0302.",
@@ -30,6 +34,91 @@
   "//": "If you need a custom clock configuration, read the following documentation first:",
   "//": "https://tinytapeout.com/faq/#how-can-i-map-an-additional-external-clock-to-one-of-the-gpios",
   "CLOCK_PORT": "clk",
+
+  "//": "================= SRAM macro integration (docs/hardening.md) =================",
+
+  "//": "Eight RM_IHPSG13_1P_64x16_c2 (236.80 x 64.36 um): per engine e, instruction_sram_e<e>_lo holds",
+  "//": "instruction bits 15:0 and _hi bits 31:16. Views are vendored from IHP-Open-PDK 2bbec755",
+  "//": "(macros/README.md). Instance keys are the FLATTENED paths: wrapper instance 'core' (src/project.v),",
+  "//": "then the flat protocol_emulator_core's instance name (checked with yosys flatten).",
+  "//": "Die 8x4 = 1724.16 x 710.64; core x 2.88..1721.28, y 3.78..706.86 (tt_block_8x4_pgvdd.def).",
+  "//": "x = 11.04 + 67.44 k (k even, so also on the 0.48 um site grid) puts each macro's power columns under",
+  "//": "the FP_PDN_V* stripe grid below (src/sram_pdn_cfg.tcl fails the PDN step otherwise).",
+  "//": "Bottom row: y 3.78, FS (signal pins on the TOP edge, facing the logic). Top row: y 638.82, N",
+  "//": "(pins on the bottom edge, facing the logic; top edge 703.18 < core top 706.86). Top row starts at",
+  "//": "x 415.68, clear of the TT I/O pins at x 29.76..191.04 on the top edge. Pairs are 4 stripe pitches",
+  "//": "apart (32.96 um gap > 2 x 10 um default halo). The middle 550 um band is free of macros.",
+  "//": "lib keys name the process corner, because the cmos5l STA corners are all nom_* (see tt_um_loom).",
+  "//": "The fast lib is characterized at -55 C; STA uses it for the -40 C fast corner (conservative).",
+  "//": "nl = the interface-only blackbox (never the behavioural model).",
+  "MACROS": {
+    "RM_IHPSG13_1P_64x16_c2": {
+      "instances": {
+        "core.instruction_sram_e0_lo": { "location": [145.92, 3.78], "orientation": "FS" },
+        "core.instruction_sram_e0_hi": { "location": [415.68, 3.78], "orientation": "FS" },
+        "core.instruction_sram_e1_lo": { "location": [955.20, 3.78], "orientation": "FS" },
+        "core.instruction_sram_e1_hi": { "location": [1224.96, 3.78], "orientation": "FS" },
+        "core.instruction_sram_e2_lo": { "location": [415.68, 638.82], "orientation": "N" },
+        "core.instruction_sram_e2_hi": { "location": [685.44, 638.82], "orientation": "N" },
+        "core.instruction_sram_e3_lo": { "location": [1090.08, 638.82], "orientation": "N" },
+        "core.instruction_sram_e3_hi": { "location": [1359.84, 638.82], "orientation": "N" }
+      },
+      "gds": ["dir::../macros/RM_IHPSG13_1P_64x16_c2/RM_IHPSG13_1P_64x16_c2.gds"],
+      "lef": ["dir::../macros/RM_IHPSG13_1P_64x16_c2/RM_IHPSG13_1P_64x16_c2.lef"],
+      "lib": {
+        "*_typ_*": ["dir::../macros/RM_IHPSG13_1P_64x16_c2/RM_IHPSG13_1P_64x16_c2_typ_1p20V_25C.lib"],
+        "*_fast_*": ["dir::../macros/RM_IHPSG13_1P_64x16_c2/RM_IHPSG13_1P_64x16_c2_fast_1p32V_m55C.lib"],
+        "*_slow_*": ["dir::../macros/RM_IHPSG13_1P_64x16_c2/RM_IHPSG13_1P_64x16_c2_slow_1p08V_125C.lib"]
+      },
+      "nl": ["dir::../models/blackbox/RM_IHPSG13_1P_64x16_c2.v"],
+      "spice": ["dir::../macros/RM_IHPSG13_1P_64x16_c2/RM_IHPSG13_1P_64x16_c2.cdl"]
+    }
+  },
+
+  "//": "Macro supplies: VDD! (periphery) and VDDARRAY! (bit cells) to VPWR, VSS! to VGND (LEF pin names).",
+  "PDN_MACRO_CONNECTIONS": [
+    "core.instruction_sram_e0_lo VPWR VGND VDD! VSS!",
+    "core.instruction_sram_e0_lo VPWR VGND VDDARRAY! VSS!",
+    "core.instruction_sram_e0_hi VPWR VGND VDD! VSS!",
+    "core.instruction_sram_e0_hi VPWR VGND VDDARRAY! VSS!",
+    "core.instruction_sram_e1_lo VPWR VGND VDD! VSS!",
+    "core.instruction_sram_e1_lo VPWR VGND VDDARRAY! VSS!",
+    "core.instruction_sram_e1_hi VPWR VGND VDD! VSS!",
+    "core.instruction_sram_e1_hi VPWR VGND VDDARRAY! VSS!",
+    "core.instruction_sram_e2_lo VPWR VGND VDD! VSS!",
+    "core.instruction_sram_e2_lo VPWR VGND VDDARRAY! VSS!",
+    "core.instruction_sram_e2_hi VPWR VGND VDD! VSS!",
+    "core.instruction_sram_e2_hi VPWR VGND VDDARRAY! VSS!",
+    "core.instruction_sram_e3_lo VPWR VGND VDD! VSS!",
+    "core.instruction_sram_e3_lo VPWR VGND VDDARRAY! VSS!",
+    "core.instruction_sram_e3_hi VPWR VGND VDD! VSS!",
+    "core.instruction_sram_e3_hi VPWR VGND VDDARRAY! VSS!"
+  ],
+
+  "//": "PDN_CFG - LibreLane 3.1.0.dev3's default PDN script with its (Metal4<->TopMetal1, hence empty)",
+  "//": "macro grid replaced: Metal4 stripes run full height through same-net macro power columns, and the",
+  "//": "script fails the PDN step unless every stripe over a macro is inside same-net pins, every macro",
+  "//": "supply pin carries a stripe, every stripe meets the precheck power-port rule, and",
+  "//": "check_power_grid passes.",
+  "PDN_CFG": "dir::sram_pdn_cfg.tcl",
+
+  "//": "SRAM GDS read in full at stream-out (harmless if KLayout does the stream-out on cmos5l).",
+  "MAGIC_MACRO_STD_CELL_SOURCE": "PDK",
+
+  "//": "Magic's cmos5l DRC lacks the SRAM rule exceptions and flags thousands of in-macro errors. Magic DRC",
+  "//": "is not part of the cmos5l precheck; the precheck's KLayout SG13CMOS5L deck checks the real GDS.",
+  "ERROR_ON_MAGIC_DRC": false,
+
+  "//": "Waived for ONE known case: POWER stripes cross the LEF Metal4 OBS at each macro's VDD!/VDDARRAY!",
+  "//": "split (local y 39.085..45.205). The flattened GDS has no Metal4/Via3/TopMetal1 within 1 um of the",
+  "//": "stripes inside that band (docs/hardening.md). Expect about 32 overlap boxes (8 macros x 4 stripes,",
+  "//": "possibly split); magic__illegal_overlap__count in the metrics must stay at that scale.",
+  "ERROR_ON_ILLEGAL_OVERLAPS": false,
+
+  "//": "Blackbox the SRAM during SPICE extraction for LVS (the IHP macros are not LVS clean).",
+  "MAGIC_EXT_ABSTRACT_CELLS": ["RM_IHPSG13_.*"],
+
+  "//": "======================= end SRAM macro integration =======================",
 
   "//": "Configuration docs: https://librelane.readthedocs.io/en/latest/reference/configuration.html",
 
@@ -58,8 +147,17 @@
   "FP_IO_HLENGTH": 2,
   "FP_IO_VLENGTH": 2,
 
-  "FP_PDN_VPITCH": 50.0,
+  "//": "PDN stripes (changed from the template's VPITCH 50 so the stripes land inside the SRAM power",
+  "//": "columns; VWIDTH stays 2.1, the precheck's minimum power-port width on cmos5l):",
+  "//": "  VPITCH 67.44 = 6 x 11.24 um (macro same-net column pitch; steps over the middle band)",
+  "//": "  VSPACING 3.52: GROUND stripe centre 3.52 + 2.1 = 5.62 um right of POWER (column distance)",
+  "//": "  VOFFSET 25.40 from core xMin 2.88: POWER centres 28.28 + 67.44 n = macro x + 17.24 + 67.44 j.",
+  "//": "  (tt_um_loom uses 26.36 with x = 12 + 67.44 k; shifted 0.96 um left here so that the 26th pair",
+  "//": "  ends 0.33 um inside the 8x4 core instead of straddling its right edge. Same macro-relative geometry.)",
+  "FP_PDN_VPITCH": 67.44,
   "FP_PDN_VWIDTH": 2.1,
+  "FP_PDN_VSPACING": 3.52,
+  "FP_PDN_VOFFSET": 25.40,
 
   "//": "Clock",
   "RUN_CTS": 1,

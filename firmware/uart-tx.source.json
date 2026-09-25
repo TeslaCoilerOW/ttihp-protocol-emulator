@@ -1,0 +1,35 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "uart-tx",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 0,
+  "owned_pins": 1,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "instructions": [
+    { "mnemonic": "SET", "imm": 1 },
+    { "mnemonic": "DIR", "imm": 1 },
+    { "mnemonic": "PULL", "label": "next_byte" },
+    { "mnemonic": "COUNT", "imm": 7 },
+    { "mnemonic": "SET" },
+    { "mnemonic": "WAIT", "imm": 62 },
+    { "mnemonic": "OUT", "label": "data" },
+    { "mnemonic": "WAIT", "imm": 61 },
+    { "mnemonic": "LOOP", "target": "data" },
+    { "mnemonic": "SET", "imm": 1 },
+    { "mnemonic": "WAIT", "imm": 63 },
+    { "mnemonic": "JMP", "target": "next_byte" }
+  ],
+  "notes": [
+    "UART 8N1 TX on pin0, LSB first, exact bit period 64 clocks (50000000 Hz nominal clock).",
+    "TX FIFO low byte supplies each frame; FIFO-empty holding point is idle high; interframe idle includes loop/setup cycles."
+  ]
+}

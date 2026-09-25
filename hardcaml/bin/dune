@@ -1,0 +1,29 @@
+(executable
+ (name generate)
+ (modules generate)
+ (libraries protocol_processor hardcaml))
+
+(executable
+ (name assemble)
+ (modules assemble)
+ (libraries protocol_processor yojson digestif))
+
+(executable
+ (name generate_formal)
+ (modules generate_formal)
+ (libraries protocol_processor hardcaml))
+
+(executable
+ (name generate_refinement)
+ (modules generate_refinement)
+ (libraries protocol_processor hardcaml))
+
+(executable
+ (name generate_refinement_formal)
+ (modules generate_refinement_formal)
+ (libraries protocol_processor hardcaml))
+
+(executable
+ (name generate_payload_sram)
+ (modules generate_payload_sram)
+ (libraries protocol_processor hardcaml))

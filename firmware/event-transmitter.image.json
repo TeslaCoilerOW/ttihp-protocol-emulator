@@ -1,0 +1,36 @@
+{
+  "schema_version": "protocol-emulator.firmware-image.v1",
+  "isa_version": 2,
+  "name": "event-transmitter",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 0,
+  "owned_pins": 1,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "source_sha256": "5ba8821cb4a927bc57c9d0ad093882df873e7565e1a9b0ecd40ae6e42f870967",
+  "bytecode_sha256": "732c009c76364c9bddbd4cfe4157dc4e427ebe2204dc071675bfcce9e3f3a96f",
+  "words": [
+    33554433, 50331649, 251658240, 33554432, 67108894, 33554433, 83886082
+  ],
+  "labels": { "await": 2 },
+  "timing": [
+    { "pc": 0, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 1, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 2, "minimum_cycles": 1, "blocking": "event_limit" },
+    { "pc": 3, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 4, "minimum_cycles": 31, "blocking": "none" },
+    { "pc": 5, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 6, "minimum_cycles": 1, "blocking": "none" }
+  ],
+  "notes": [
+    "Event-triggered pin0 low pulse; mailbox delivery does not require host byte service. WAITEVENT has reset LIMIT65535."
+  ]
+}

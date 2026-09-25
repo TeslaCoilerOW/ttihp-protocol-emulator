@@ -1,0 +1,4 @@
+(library
+ (name protocol_processor)
+ (wrapped false)
+ (libraries hardcaml yojson digestif))

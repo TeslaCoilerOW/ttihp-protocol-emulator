@@ -1,0 +1,33 @@
+Protocol Emulator (Tiny Tapeout IHP CMOS5L)
+Copyright 2026 TeslaCoilerOW
+
+This repository is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Project-original code
+---------------------
+The Hardcaml (OCaml) hardware description and generators in hardcaml/, the
+configurations in configs/, the firmware in firmware/, and any Python models
+and scripts originated in the owner's MIT-licensed asic-lab monorepo
+(projects/protocol-emulator). The same owner contributes them to this
+repository under the Apache License, Version 2.0.
+
+src/protocol_emulator_core.v is generated from hardcaml/ by
+scripts/generate.sh and is covered by the same license.
+
+The Tiny Tapeout project template (TinyTapeout/ttihp-verilog-template) is
+licensed under the Apache License, Version 2.0.
+
+Third-party components
+----------------------
+models/RM_IHPSG13_1P_64x16_c2.v and models/RM_IHPSG13_1P_core_behavioral.v are
+unmodified SRAM simulation models from IHP-Open-PDK
+(https://github.com/IHP-GmbH/IHP-Open-PDK, revision
+2bbec755dc67ca3db0261c3d6163e15735d66710):
+  Copyright 2025 IHP PDK Authors (RM_IHPSG13_1P_64x16_c2.v)
+  Copyright 2023 IHP PDK Authors (RM_IHPSG13_1P_core_behavioral.v)
+  Licensed under the Apache License, Version 2.0.
+models/blackbox/RM_IHPSG13_1P_64x16_c2.v is an interface-only derivative of the
+first model. See models/NOTICE.IHP-Open-PDK and models/LICENSE.IHP-Open-PDK.
+
+The fabricated design instantiates IHP RM_IHPSG13_1P_64x16_c2 SRAM hard macros
+from the IHP-Open-PDK (Apache License, Version 2.0).

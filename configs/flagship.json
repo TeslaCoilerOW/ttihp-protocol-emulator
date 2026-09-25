@@ -1,0 +1,9 @@
+{
+  "schema_version": "protocol-emulator.architecture.v1",
+  "engine_count": 4,
+  "data_width": 32,
+  "program_words": 64,
+  "fifo_words": 8,
+  "issue": "fused",
+  "prefetch": false
+}

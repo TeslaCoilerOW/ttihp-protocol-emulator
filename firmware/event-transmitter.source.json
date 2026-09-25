@@ -1,0 +1,29 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "event-transmitter",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 0,
+  "owned_pins": 1,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "instructions": [
+    { "mnemonic": "SET", "imm": 1 },
+    { "mnemonic": "DIR", "imm": 1 },
+    { "mnemonic": "WAITEVENT", "label": "await" },
+    { "mnemonic": "SET" },
+    { "mnemonic": "WAIT", "imm": 30 },
+    { "mnemonic": "SET", "imm": 1 },
+    { "mnemonic": "JMP", "target": "await" }
+  ],
+  "notes": [
+    "Event-triggered pin0 low pulse; mailbox delivery does not require host byte service. WAITEVENT has reset LIMIT65535."
+  ]
+}
