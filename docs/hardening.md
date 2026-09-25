@@ -6,8 +6,11 @@ CMOS5L gds action. The design is configured as `configs/instruction-sram-32.json
 with eight `RM_IHPSG13_1P_64x16_c2` instruction SRAMs. Last updated 2026-09-24.
 
 **Status.** The configuration is written and passes every static check we can
-run locally (section 6). A local LibreLane run that mirrors the action has
-been queued on Slurm (section 7). Nothing in this document has been run by the
+run locally (section 6). A local LibreLane 3.1.0.dev3 run that mirrors the
+action got through synthesis, macro placement, the checked PDN step, placement,
+CTS and global routing (617 overflow, mostly Metal3). A second run, with the
+thread fix, was in detailed routing at the time of writing: 34,515 violations
+after iteration 0 (section 7). Routing convergence is the main open risk. Nothing in this document has been run by the
 GitHub action yet, so none of it is a TT result. Section 9 lists what only the
 action can confirm.
 
@@ -38,7 +41,7 @@ plugin** (see section 3).
 
 | File | Role |
 |---|---|
-| `src/config.json` | The template, plus the SRAM block (`MACROS`, `PDN_MACRO_CONNECTIONS`, `PDN_CFG`, Magic/LVS keys) and four `FP_PDN_V*` stripe keys. |
+| `src/config.json` | The template, plus the SRAM block (`MACROS`, `PDN_MACRO_CONNECTIONS`, `PDN_CFG`, Magic/LVS keys, `OPENROAD_THREADS`) and four `FP_PDN_V*` stripe keys. |
 | `src/sram_pdn_cfg.tcl` | LibreLane 3.1.0.dev3's default PDN script (verbatim), with the macro grid replaced by a checked `pdngen` wrapper. |
 | `macros/RM_IHPSG13_1P_64x16_c2/` | Vendored GDS, LEF, three Liberty corners and CDL; byte-identical to IHP-Open-PDK `2bbec755` (`macros/README.md`). |
 | `macros/LICENSE.IHP-Open-PDK` | Apache-2.0 text for those files. |
@@ -66,6 +69,7 @@ whose `gl_test` passes with an unmodified model that has no power ports.
 | `MAGIC_EXT_ABSTRACT_CELLS` | `["RM_IHPSG13_.*"]` | This blackboxes the SRAM for LVS extraction. |
 | `MAGIC_MACRO_STD_CELL_SOURCE` | `PDK` | Same as the reference projects. It is harmless if KLayout streams out. |
 | `PL_TARGET_DENSITY_PCT`, `CLOCK_PERIOD` | 60, 20 ns | Template values. Predicted utilization is ~52% (51–53%) of the core, and standard-cell density outside the macros is ~47% (`docs/area-study.md`). 20 ns matches `info.yaml` `clock_hz` 50 MHz. The macro's slow-corner clock-to-output is ~5.0–5.2 ns (Liberty), and pre-route STA of this netlist had +8.6 ns setup slack (typ). |
+| `OPENROAD_THREADS` | 4 | LibreLane 3.1.0.dev3 builds OpenROAD's thread argument as `str(OPENROAD_THREADS) or ...`. When the key is unset, that is `"None"`, so every OpenROAD step is called with `-threads None` (ORD-0032) and detailed routing runs single-threaded (observed in run1, section 7). 4 matches the runner's vCPUs. This key is our addition to the template. |
 | Halos | LibreLane defaults, 10 um | Not overridden. The macro GDS NWell extends 0.225 um beyond the LEF box on the pin edge, and the halo covers it. |
 
 ## 3. Macro power: aligned full-height Metal4 stripes, no plugin
@@ -281,37 +285,63 @@ print("BAND_HITS", bad)
 
 The scripts are in `<local work dir>/tt-work/sram-flow/`:
 
-* `setup.sh` (Slurm job **23713655**, `mit_normal`, 2 CPU, 60 min).
-  Pulls `docker://ghcr.io/librelane/librelane:3.1.0.dev3` into
+* `setup.sh` (Slurm job 23713655, COMPLETED in 19 min). Pulled
+  `docker://ghcr.io/librelane/librelane:3.1.0.dev3` into
   `librelane-3.1.0.dev3.sif`. This is the action's exact LibreLane version.
   The older `librelane-3.0.0rc1.sif` is **not** used for the flow, because its
   OpenROAD `pdngen` internals may differ from the ones the wrapper targets.
-  The job also sparse-fetches IHP-Open-PDK at `2bbec755` into `pdk/`,
-  including the symlinked `sg13g2_sram`, and clones `tt-support-tools`
-  `ihp-sg13cmos5l` into `tt/`.
-* `run.sh run1` (Slurm job **23713656**, 8 CPU, 32 GB, 180 min, runs after
-  the setup job succeeds). Copies the input snapshot `snap/` (hashes in
-  `snap/SNAPSHOT.sha256`), re-implements `create_user_config` and
-  `create_merged_config`, and runs `python3 -m librelane --pdk-root pdk --pdk
+  The job also sparse-fetched IHP-Open-PDK at `2bbec755` into `pdk/`,
+  including the 526 symlink targets outside `ihp-sg13cmos5l`, for example
+  `sg13g2_sram`. It also cloned `tt-support-tools` `ihp-sg13cmos5l`
+  (`d66cf179e`) into `tt/`. On compute nodes, apptainer is
+  `module load apptainer/1.4.2`.
+* `run.sh <tag>`: 8 CPU, 32 GB, 180 min. It copies the input snapshot `snap/`
+  (hashes in `snap/SNAPSHOT.sha256`, equal to the repository files at
+  submission), re-implements `create_user_config` and `create_merged_config`
+  (the printed user config matches `project.py`), creates `runs/wokwi` as
+  `harden()` does, and runs `python3 -m librelane --pdk-root pdk --pdk
   ihp-sg13cmos5l --manual-pdk --run-tag wokwi --force-run-dir runs/wokwi
   --hide-progress-bar --jobs 8 src/config_merged.json` inside the SIF.
-  Differences from the action: apptainer instead of docker, and `--jobs 8`
-  (the GitHub runner has 4 vCPU).
+  Differences from the action: apptainer instead of docker, and `--jobs 8`.
+
+**run1** (job 23715924, before `OPENROAD_THREADS` was added). This is the
+action's configuration otherwise. Measured results:
+
+| Step | Result |
+|---|---|
+| Lint, synthesis, CheckMacroInstances, floorplan, ManualMacroPlacement | Passed. Synthesis: 465,164 um² of standard cells, plus 8 `RM_IHPSG13_1P_64x16_c2` blackbox cells. |
+| `OpenROAD.GeneratePDN` with `sram_pdn_cfg.tcl` | **Passed.** All 8 macros are FIRM, at the configured bboxes (FS reported as MX). Each of the 24 supply pins carries 4 stripes. 64 stripe/macro crossings lie inside same-net columns. 32 POWER crossings pass the 6.64 um `VDD!`/`VDDARRAY!` gap. VPWR and VGND each have 26 full-height Metal4 stripes that meet the precheck port rule, and `check_power_grid` passed on both nets. |
+| Global placement, CTS, resizing | Instance utilization 58.4% (standard cells 53.7%, 583,689 um²; 107,541 um² of it is timing-repair buffers). Mid-PnR STA at typ: setup WS +6.59 ns, hold WS +0.27 ns. |
+| Global routing | Finished *with congestion*: 617 overflow (Metal2 24, Metal3 574, Metal4 19). Usage 58.9% on Metal2, 66.3% on Metal3 and 21.6% on Metal4. 41,558 nets, 3.12 m of wire. `GRT_ALLOW_CONGESTION 1` lets the flow continue. |
+| Detailed routing | Iteration 0 had 7,274 violations at 30–50% complete. It was still running after ~20 min in DRT, on **one thread**, because OpenROAD was called with `-threads None` (ORD-0032). This is a LibreLane 3.1.0.dev3 bug, and it affects the action too (section 2). Cancelled, and replaced by run2. |
+
+**run2** (job **23720702**) is the current configuration: `OPENROAD_THREADS 4`,
+and nothing else changed. Everything up to global routing reproduced run1
+exactly (same 617 overflow). OpenROAD now reports 4 threads, and DRT
+iteration 0 took 16 min (about 2.7× faster than run1's pace). **DRT iteration 0
+ended with 34,515 violations**, mostly Metal2: 16,466 Metal2 shorts, 5,770
+Metal2 spacing, 4,319 Metal3 shorts and 7,449 recheck. Wire length was
+0.82 m on Metal2, 1.16 m on Metal3 and only 0.21 m on Metal4. Iteration 1
+was running when this document was written (≈35 min into the job).
+For comparison, loom's small design started at 94. 34k is high. Whether
+it converges within `DRT_OPT_ITERS` 64 and the job's 180-minute limit is
+the open question. If it does not converge, apply section 8 ("Heavy GRT
+overflow"). Metal4 is under-used (21.6% GRT usage), which points at Metal2/3
+pin-access and fan-out density rather than a lack of total capacity.
 
 Check on it with:
 
 ```sh
-squeue -j 23713655,23713656
-sacct -j 23713655,23713656 --format=JobID,JobName,State,Elapsed,ExitCode
+sacct -j 23720702 --format=JobID,JobName,State,Elapsed,ExitCode
 W=<local work dir>/tt-work/sram-flow
-tail -n 30 $W/logs/setup-23713655.log $W/logs/flow-23713656.log
-ls $W/run1/runs/wokwi/                       # one directory per step
-grep -h SRAMPDN $W/run1/runs/wokwi/*-openroad-generatepdn/*.log | tail -n 40
-python3 -c "import json;m=json.load(open('$W/run1/runs/wokwi/final/metrics.json'));[print(k,v) for k,v in sorted(m.items()) if any(s in k for s in ('utilization','overflow','drc_error','lvs','illegal_overlap','ws','antenna'))]"
+grep -E "Completing|optimization iteration|Number of violations|LIBRELANE_EXIT" $W/logs/flow-23720702.log | tail
+ls $W/run2/runs/wokwi/                       # one directory per step
+grep -h SRAMPDN $W/run2/runs/wokwi/*-openroad-generatepdn/*.log | tail -n 40
+python3 -c "import json;m=json.load(open('$W/run2/runs/wokwi/final/metrics.json'));[print(k,v) for k,v in sorted(m.items()) if any(s in k for s in ('utilization','overflow','drc_error','lvs','illegal_overlap','__ws','antenna'))]"
 ```
 
 A local pass is evidence, not the result of record. After it, run the
-official precheck locally on `run1/runs/wokwi/final/gds/*.gds` (tt-support-tools
+official precheck locally on `run2/runs/wokwi/final/gds/*.gds` (tt-support-tools
 `precheck/precheck.py --gds ... --tech ihp-sg13cmos5l`). That needs KLayout
 and gdstk, both in the SIF.
 
@@ -323,7 +353,7 @@ and gdstk, both in the SIF.
 | `SRAMPDN BAD ...` / `no stripe runs through` | The macro x is off the `11.04 + 67.44 k` lattice, or the VOFFSET/core origin changed. Run `check_macro_floorplan.py`. |
 | `SRAMPDN: pdn::... does not exist` | The action bumped LibreLane/OpenROAD. Pin `librelane-version: 3.1.0.dev3` in `gds.yaml` (the scaffold owns it), or port the wrapper. |
 | GPL-0302 (density too low) | Raise `PL_TARGET_DENSITY_PCT` to 65–70. |
-| Heavy GRT overflow / DRT not converging | Lower `PL_TARGET_DENSITY_PCT` to 55 to spread cells. Then apply the area-study diet (async reset: about −24k um², ~50%). Then consider rotating the pairs further apart. |
+| Heavy GRT overflow / DRT not converging | Lower `PL_TARGET_DENSITY_PCT` to 55 to spread cells. Then apply the area-study diet (async reset: about −24k um², ~50%). Then spread the macros 5 stripe pitches apart instead of 4, so the gap grows from 33 to 100 um. For example, top row k = 6, 11, 16, 21 and bottom row k = 2, 7, 13, 18; odd k is off the site grid. Re-run `check_macro_floorplan.py` after the change. |
 | Setup violations (slow corner) | Timing sign-off is typ-only by default. Check `nom_slow` first; the SRAM output is ~5.2 ns clock-to-output at slow. |
 | Hold violations | Raise `PL_RESIZER_HOLD_SLACK_MARGIN` / `GRT_RESIZER_HOLD_SLACK_MARGIN`. |
 | `Checker.IllegalOverlap` is still fatal | The waiver key did not apply. Confirm that the overlaps are only the POWER-stripe × OBS-band crossings. |

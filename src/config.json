@@ -118,6 +118,12 @@
   "//": "Blackbox the SRAM during SPICE extraction for LVS (the IHP macros are not LVS clean).",
   "MAGIC_EXT_ABSTRACT_CELLS": ["RM_IHPSG13_.*"],
 
+  "//": "LibreLane 3.1.0.dev3 computes OpenROAD's thread count as str(OPENROAD_THREADS) or ..., and",
+  "//": "str(None) is 'None', so with this key unset every OpenROAD step runs '-threads None' (ORD-0032,",
+  "//": "falls back to one thread). Detailed routing of this ~42k-net design then runs for hours.",
+  "//": "4 = the vCPU count of the GitHub ubuntu-24.04 runner.",
+  "OPENROAD_THREADS": 4,
+
   "//": "======================= end SRAM macro integration =======================",
 
   "//": "Configuration docs: https://librelane.readthedocs.io/en/latest/reference/configuration.html",
