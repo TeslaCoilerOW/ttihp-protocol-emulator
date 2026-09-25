@@ -16,7 +16,7 @@ behavioral peers.
 |---|---|
 | `tb.v` | testbench top: instantiates the TT top, dumps `tb.fst` (TT ports only by default) |
 | `Makefile` | cocotb makefile: RTL (default) and gate level (`GATES=yes`) |
-| `harness.py` | lockstep harness (`CocotbHarness`, plus `ModelHarness` for model-only runs) and the nibble host driver: windows, ready/valid, eight little-endian nibbles per word, window-change bubble, SELECT/BEGIN/COMMIT/OWN/START/STOP/ROUTE/CLEAR/READ_SELECT/EVENT/FLUSH/TRIGGER, `firmware/*.image.json` loading with SHA-256 identity checks |
+| `harness.py` | lockstep harness (`CocotbHarness`, plus `ModelHarness` for model-only runs) and the nibble host driver: windows, ready/valid, eight little-endian nibbles per word, window-change bubble, SELECT/BEGIN/COMMIT/OWN/START/STOP/ROUTE/CLEAR/READ_SELECT/EVENT/FLUSH/TRIGGER, `firmware/*.image.json` loading with SHA-256 identity checks; the time warp (`warp`, `warp_completed`, `warp_routes`, see "Time warp") |
 | `peers.py` | pad-level peers: UART source and streaming UART monitor, SPI target (modes 0-3), wired-AND open-drain I2C bus |
 | `scenarios.py` | directed scenarios shared by the tests (runnable on the model alone) |
 | `test_smoke.py` | reset/deselect, ISA version, loader (BEGIN/OWN/COMMIT/START/STOP), status registers, host-fault rejections, checker self-test |
@@ -24,6 +24,10 @@ behavioral peers.
 | `test_flagship.py` | `../firmware/flagship-scenario.json`: four engines concurrently (UART TX, UART RX, SPI, I2C) plus the autonomous UART-RX to SPI-TX route |
 | `test_legacy.py` | lockstep replay of the 25 monorepo differential workloads (`model/verification.py`): queues, DMA congestion, SPI mode matrix, strict push, input triggers, JTAG, waveform, I2C target, UART overflow, ... |
 | `test_random.py`, `random_gen.py` | constrained-random lockstep differential test with functional coverage and a minimizer |
+| `test_directed.py` | directed tests written from the mutation campaign's survivor analysis (full-capacity image, OWN overlap, operand check, ROUTE counts above 4095, FLUSH of a routed engine, COUNT/LOOP, 40,003 completed instructions, blocked count after ALU/TIME, LIMIT 0x2108, SHR into bit 15, odd XFER half-period, far jump targets, XFER next to driven pins) |
+| `test_mover.py` | mover (DMA) arbitration: round robin among 2, 3 and 4 simultaneously eligible routes (one a self-route) and host TX priority, with an independent per-edge monitor of the arbitration rule |
+| `test_counters.py` | long-running counters read back: more than 2^16 completed instructions on every engine, a 0xFFFF-word ROUTE drained to zero, COUNT 0xFFFF loops, timestamp past 2^16, ROUTE counts draining exactly, LIMIT values with each bit 9..23 set, exact WAITPIN/WAITEVENT timeouts, exact WAIT ends |
+| `test_timewarp.py` | counter carries up to bit 31 and the 2^32 timestamp rollover by time warp: timestamp/TIME, completed counts while every opcode runs, WAIT timers, blocked counts and LIMIT timeouts, blocked-count clearing by every kind of instruction, repeat counters, ROUTE counts |
 | `model/` | the reference model, host recorder and wire scoreboards, copied from the asic-lab monorepo (stdlib only; provenance and hashes in `model/__init__.py`); `model/variant.py` (written here) adds the design variants |
 | `variants.py`, `variant_workloads.py` | design-variant selection (`PE_VARIANT`) and the legacy workloads recorded on a variant; see "Design variants" |
 
@@ -43,7 +47,9 @@ make
 The RTL run compiles `../src/project.v`, `../src/protocol_emulator_core.v` and the
 IHP SRAM behavioral models `../models/RM_IHPSG13_1P_64x16_c2.v` +
 `../models/RM_IHPSG13_1P_core_behavioral.v` with `-DFUNCTIONAL`. The full suite
-takes about 70-120 s (about 3,500 lockstep cycles/s).
+takes about 1.5 to 4 minutes (66 tests, about 0.55 M lockstep cycles at 3,500 to
+8,000 cycles/s depending on the machine; 89 s for `make clean; make` with Icarus
+13.0 on an MIT Engaging node, of which the gap-closure modules take 27 s).
 
 Useful variables:
 
@@ -70,7 +76,9 @@ and the same SRAM behavioral models (the netlist keeps the eight
 netlist kept elsewhere. The Makefile exports `PE_GATE_LEVEL=1`, which scales the
 workload down: 8 of the 25 legacy replays (`GL_SUBSET` in `test_legacy.py`; the
 other 17 are reported as SKIP) and 2 random cases (override with `PE_LEGACY=all`
-and `PE_RANDOM_ITERS`). A quick pre-hardening check
+and `PE_RANDOM_ITERS`). Of the gap-closure modules, the tests that need more than
+8,000 cycles and the time-warp tests (which need the RTL register names) are
+reported as SKIP; 14 of their 27 tests run. A quick pre-hardening check
 is possible with a Yosys netlist (`synth -flatten`, `dfflibmap`/`abc` to the
 `sg13cmos5l_stdcell` liberty, SRAM macro read as a blackbox).
 
@@ -91,13 +99,36 @@ instructions per program are deliberate faults (invalid opcode/operand, pin
 ownership, PC range, FAULT n); every fault must carry a code allowed for the
 faulting instruction and deliberate ones must carry their annotated code.
 
+Generator generation 2 (the default; `PE_RANDOM_GEN=1` draws the cases of the
+2026-09-25 verification campaigns, whose stimulus it reproduces except that the
+trailing deselect of 10% of the cases now runs) adds two things from a separate
+random stream, so every generation-1 operation is still drawn identically:
+
+- **Deselection inside the traffic.** Generation 1 appended the optional deselect
+  (10% of cases) after operations whose estimated cost already filled the
+  budget, and `run_case` stopped at the budget, so it ran in about 0.3% of cases.
+  It now sits at a random point in the first 70% of the traffic (ena drops while
+  engines run; the rest of the case runs on the deselected chip), and
+  `run_case` never skips a deselect for the budget. Measured on the model
+  (1,088 cases): 107 of 107 deselects run, 99 of them inside the budget and 101
+  with engines running (generation 1: 3 inside the budget).
+- **Command-rejection sequences.** In 70% of cases one to three sequences the
+  first generation never sends: BEGIN with a payload, COMMIT with a wrong, zero
+  or oversized length or while not loading, STOP and EVENT naming absent
+  engines, ROUTE with payload bits 21 to 23, and aborted or overfull reloads
+  (BEGIN of a running engine, START before COMMIT, a 65th program word). The
+  model decides acceptance; half of the sequences end with CLEAR bit 23. On the
+  default seed all twelve commands are now both accepted and rejected
+  (BEGIN/COMMIT/STOP/ROUTE/EVENT rejected 13/23/9/6/7 times).
+
 | variable | default | meaning |
 |---|---|---|
 | `PE_SEED` | `0x5EED2027` | base seed (`random` picks one and logs it) |
 | `PE_RANDOM_ITERS` | 64 (RTL), 2 (GL) | number of cases |
 | `PE_RANDOM_FIRST` | 0 | first case index (rerun one case with `PE_RANDOM_ITERS=1`) |
 | `PE_RANDOM_CYCLES` | 2000 | host-traffic cycles per case after START |
-| `PE_MINIMIZE` / `PE_MINIMIZE_BUDGET` | 1 / 60 | shrink a failing case (greedy delta debugging over host ops, engines, setup, instructions) |
+| `PE_RANDOM_GEN` | 2 | generator generation (1: the campaigns' cases) |
+| `PE_MINIMIZE` / `PE_MINIMIZE_BUDGET` | 1 / 60 | shrink a failing case (greedy delta debugging over host ops, engines, setup, instructions); replays are shrunk too |
 | `PE_REPLAY` | | run a saved case JSON instead of generating |
 | `PE_INJECT_MODEL_BUG` | | `xor`: corrupt the model after XOR, to demonstrate detection and minimization |
 
@@ -109,6 +140,57 @@ summary (opcodes completed per engine, stall cycles per blocking opcode, faults 
 code and instruction, deliberate faults, XFER CPOL/CPHA/bit-order/drive/sample
 combinations and bit counts, mover transfers, host commands accepted/rejected,
 host traffic) is printed at the end of every run.
+
+## Gap-closure tests
+
+The random and mutation campaigns (`../docs/verification-campaign.md`) showed
+what the suite above left unexercised: high counter bits, mover arbitration,
+command rejections and a few per-engine corner cases. Four modules close those
+gaps; every scenario is an `async def f(h)` on a Harness, so it also runs on the
+model alone, and every cycle is still compared with the model.
+
+| module | tests | cycles | what it adds |
+|---|---:|---:|---|
+| `test_directed.py` | 14 | 75,000 | the twelve directed tests of the mutation campaign (`../campaigns/mutation/directed/`), cleaned up and made variant-independent (queue depth, debug counters, byte-lane shifts), and two from the re-run of its survivors: JMP/LOOP/JZ to targets with each PC bit 6..23 set (fault 2, full target read back) and XFER on every TX pin next to driven pins |
+| `test_mover.py` | 1 | 11,000 | six phases: 2, 3 and 4 routes (one a self-route) into one destination whose TX queue is full, so all become eligible on one edge; the destination forwards the words to the host (the grant order is on the read nibbles); host TX words written while routes compete, in two phases built so that every host word meets an eligible route to the same destination. `ArbitrationMonitor` restates the arbitration rule of `../docs/isa.md` and checks every grant and the cursor; the test requires edges with 2, 3 and 4 eligible routes and host-priority collisions |
+| `test_counters.py` | 5 | 98,000 | every engine completes more than 2^16 instructions while a 0xFFFF-word route drains and COUNT 0xFFFF/0x7FFF/0x8001 loops run, READ_SELECT 1 and 5 read at checkpoints; ROUTE counts of 0x1A5B/0x1C3D drain exactly and 2^k + 2 counts stay enabled; LIMIT (1 << k) \| 24 for k = 9..23 must not time out early; exact timeouts at LIMIT 1..0x3FF; exact WAIT ends |
+| `test_timewarp.py` | 7 | 15,000 simulated | counter carries up to bit 31 and the 2^32 timestamp rollover (below) |
+
+### Time warp
+
+Brute-force simulation reaches about 2^17 cycles in the CI budget; the counters
+are 16 to 32 bits wide and the timestamp wraps after 2^32 cycles. The harness
+therefore skips time when nothing but counting can happen:
+
+- `h.warp(n)` checks on the model that the next `n` edges are pure counting
+  (every engine halted, inside a WAIT that outlasts the skip, blocked in a
+  WAITPIN/WAITEVENT short of its LIMIT, or spinning on a JMP/LOOP to itself;
+  host idle; static pins already synchronized; no trigger; no DMA move
+  possible), advances the model's timestamp, WAIT timers, blocked counts,
+  completed counts and repeat counts by that arithmetic, and adds the same
+  amounts to the core's registers at the next falling clock edge through the
+  simulator. The deposit is relative, so a DUT that had already diverged keeps
+  its divergence. Engines whose counters move must all move alike, because
+  Hardcaml's de-duplicated register names (`wait_timer`, `wait_timer_0`, ...)
+  do not follow the engine index.
+- `h.warp_completed(n)` adds `n` to every completed-instruction count (read only
+  by READ_SELECT 5 and its own update, so any engine activity may continue).
+- `h.warp_routes(n)` takes `n` words off every enabled ROUTE descriptor
+  (`route_remaining_<source>`).
+
+Each warp is followed by ordinary lockstep cycles, so each scenario walks a
+counter family across every 2^k boundary and then lets it reach an
+architectural event on the exact cycle (WAIT end, LIMIT timeout, LOOP exit,
+route expiry) or reads it back: `timestamp_rollover` (READ_SELECT 1 and TIME
+across 2^16..2^32), `completed_rollover` (READ_SELECT 5 across 2^16..2^32 while
+every engine loops through all opcodes), `blocked_paths` (each of 29 ways to
+complete an instruction, then a WAITPIN with LIMIT 0xFFFFFF warped to four
+cycles short of the limit: a count left behind times the DUT out),
+`wait_itinerary` (WAIT 0xFFFFFF), `blocked_itinerary` (LIMIT 0xFFFFFx timeouts
+and releases), `repeat_itinerary` (COUNT 0xFFFF) and `route_itinerary` (four
+0xFFFF-word routes carrying words around a ring). The warps are white-box
+stimulus; the checks stay black-box. They need the RTL register names, so the
+module is skipped at gate level; `h.warp_supported()` tells.
 
 ## Design variants (PE_VARIANT)
 

@@ -11,6 +11,7 @@ Environment:
   PE_RANDOM_ITERS      number of cases (default 64 RTL, 2 gate level)
   PE_RANDOM_FIRST      first case index (default 0); use with ITERS=1 to rerun one case
   PE_RANDOM_CYCLES     host-traffic cycles per case after START (default 2000)
+  PE_RANDOM_GEN        generator generation (default 2; 1 = the cases of the 2026-09-25 campaigns)
   PE_MINIMIZE          1 (default) shrinks a failing case; 0 disables
   PE_MINIMIZE_BUDGET   maximum re-runs for the minimizer (default 60)
   PE_REPLAY            path of a saved case JSON to run instead of generating
@@ -26,7 +27,7 @@ from pathlib import Path
 import cocotb
 
 from harness import CocotbHarness, LockstepMismatch, env_int
-from random_gen import BugInjector, Case, Coverage, make_case, minimize, run_case
+from random_gen import GENERATION, BugInjector, Case, Coverage, make_case, minimize, run_case
 
 OUTPUT = Path(__file__).resolve().parent / "output"
 
@@ -46,6 +47,7 @@ async def test_random_lockstep(dut):
     iterations = env_int("PE_RANDOM_ITERS", 2 if gate_level else 64)
     first = env_int("PE_RANDOM_FIRST", 0)
     cycles = env_int("PE_RANDOM_CYCLES", 2000)
+    generation = env_int("PE_RANDOM_GEN", GENERATION)
     replay = os.environ.get("PE_REPLAY")
     h = CocotbHarness(dut)
     if os.environ.get("PE_INJECT_MODEL_BUG") == "xor":
@@ -56,9 +58,10 @@ async def test_random_lockstep(dut):
         cases = [Case.from_json(Path(replay).read_text())]
         dut._log.info("replaying %s", replay)
     else:
-        dut._log.info("random lockstep: PE_SEED=%#x cases %d..%d, %d host cycles each",
-                      seed, first, first + iterations - 1, cycles)
-        cases = (make_case(seed, index, h.model.config, cycles=cycles) for index in range(first, first + iterations))
+        dut._log.info("random lockstep: PE_SEED=%#x cases %d..%d, %d host cycles each, generator %d",
+                      seed, first, first + iterations - 1, cycles, generation)
+        cases = (make_case(seed, index, h.model.config, cycles=cycles, generation=generation)
+                 for index in range(first, first + iterations))
     started = time.time()
     try:
         for case in cases:
@@ -82,7 +85,7 @@ async def report_failure(dut, h: CocotbHarness, case: Case, mismatch: LockstepMi
     dut._log.error("REPRODUCE: PE_SEED=%#x PE_RANDOM_FIRST=%d PE_RANDOM_ITERS=1 make COCOTB_TEST_MODULES=test_random"
                    "  (or PE_REPLAY=%s)", case.seed, case.index, OUTPUT / f"{stem}.json")
     dut._log.error("failing case:\n%s", case.describe())
-    if os.environ.get("PE_MINIMIZE", "1") == "0" or os.environ.get("PE_REPLAY"):
+    if os.environ.get("PE_MINIMIZE", "1") == "0":  # replays too: a saved campaign case can be shrunk
         return
     budget = env_int("PE_MINIMIZE_BUDGET", 60)
     dut._log.info("minimizing (budget %d re-runs) ...", budget)

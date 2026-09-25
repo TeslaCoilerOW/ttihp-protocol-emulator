@@ -589,3 +589,136 @@ The repository keeps the summaries:
 - `survivor_evidence.tsv`;
 - `sample_classification.tsv`;
 - `gen_params.txt`, with the mutation-list sha256.
+
+## Gap closure
+
+The findings above were closed in `test/` (the four gap-closure modules and
+generator generation 2, see [`test/README.md`](../test/README.md), "Gap-closure
+tests"), and the mutation score was measured again on the same 2,420 mutants.
+Job ids and per-mutant results are in `<work dir>/test-gaps/` (`manifest.json`,
+`mutation/summary_gaps.json`, `mutation/results/<stage>/<id>.json`).
+
+### Changes
+
+- **Deselect (random finding 2).** The suggested fix is right as far as it
+  goes. With `continue` instead of `break` in `run_case`, every case that draws
+  a deselect runs it, and every operation before the budget is unchanged
+  (model-only, default seed plus seeds 1 to 16, 1,088 cases: 107 of 107
+  deselects run, against 3 with `break`). But the deselect still runs after the
+  budget, just before the epilogue, so nothing but status reads follows it.
+  Generation 2 therefore also moves it to a random point in the first 70% of
+  the traffic, drawn from a separate random stream (99 of the 107 now run inside
+  the budget, 101 with engines running). `PE_RANDOM_GEN=1` draws the old cases.
+- **Rejections (random finding 3).** Generation 2 inserts one to three command
+  sequences in 70% of cases: BEGIN with a payload, bad COMMIT lengths, STOP and
+  EVENT naming absent engines, ROUTE with payload bits 21 to 23, and aborted or
+  overfull reloads. The model decides acceptance. On the default seed BEGIN,
+  COMMIT, STOP, ROUTE and EVENT are rejected 13, 23, 9, 6 and 7 times, so all
+  twelve commands are now both accepted and rejected. Finding 6: `PE_MINIMIZE`
+  now shrinks replays too.
+- **Directed tests.** The twelve directed tests are `test/test_directed.py`,
+  made variant-independent. Two tests from the re-run below were added there:
+  far JMP/LOOP/JZ targets with each PC bit 6 to 23 set, and XFER on every TX pin
+  next to driven pins.
+- **Long counters (mutation test gap 1).** `test/test_counters.py`: every
+  engine completes more than 2^16 instructions while a 0xFFFF-word route drains,
+  exact ROUTE drains, LIMIT and WAIT sweeps. `test/test_timewarp.py`: counter
+  carries up to bit 31 and the 2^32 timestamp rollover. The harness skips time
+  only in states that the model shows to be pure counting, and deposits the
+  same relative change into the RTL registers. RTL only.
+- **Mover (mutation test gap 5).** `test/test_mover.py`: 2, 3 and 4 routes
+  (one a self-route) eligible on one edge, and host TX writes against eligible
+  routes. An independent monitor checks every grant against the arbitration
+  rule. On the design of record: 258 edges with at least 2 eligible routes, 164
+  with 3, 81 with 4, and 12 host-priority collisions.
+
+### Suite
+
+The suite has 66 tests (39 before, 27 new).
+
+| run | result | job |
+|---|---|---|
+| `make clean; make` (CI), cocotb 2.0.1, Icarus 13.0 (conda-forge build of tag `v13_0`) | 66 pass; 83 s of test time, 89 s wall, of which the four new modules take 27 s | 23819699 |
+| all six variants (`PE_VARIANT`), Icarus 14 | 66 pass each | 23819698 |
+| gate level (`GATES=yes`, the campaign's routed netlist `fe135632…`) | 36 pass, 30 skip, 0 fail (long and time-warp tests skip) | 23819700 |
+
+### Mutation score
+
+Same mutants, runner and `base.il`. Only the test tree changes.
+
+- **Survivors (stage `gaps`).** The 573 survivors ran the five new or changed
+  modules. Every module ran, so that each kill can be attributed.
+- **Recheck.** The 915 mutants that the old suite killed only with
+  `test_random` (whose stimulus changed) ran the new random cases, legacy and
+  the new modules, stopping at the first failure.
+- **Stage `gaps2`.** The 415 mutants still alive ran `test_directed` with the
+  two tests added afterwards.
+- **Carried over.** The 932 kills by unchanged modules (smoke, protocols,
+  flagship, legacy) were carried over.
+- **Controls.** `orig` and mutant 0 survived every stage. None of the 116
+  proven-equivalent mutants was killed.
+
+| | old suite | extended suite |
+|---|---:|---:|
+| killed | 1,847 | 2,060 |
+| score, killed / (2,420 − 116) | 80.2% | **89.4%** |
+| score without `test_timewarp` | 80.2% | 85.8% (1,976) |
+
+- **Old survivors killed.** The extended suite kills 216 of the 457 survivors
+  that were not proven equivalent. By module: `test_timewarp` 118,
+  `test_directed` 87, `test_mover` 28, `test_counters` 23, `test_random` 2.
+  One mutant can count for several modules. 82 of the 216 are killed only by
+  the time warp.
+- **Kills lost.** Three mutants that old random cases killed survive the new
+  random stimulus (2341, 2391 and 2394, all `engine_data`).
+- **Time-warp caveat.** The time warp is white-box stimulus: it deposits
+  reachable counter values. Its kills are still observed at the pins and host
+  reads. Mutant 185 (WAIT timer, about 2.1 M cycles) and mutant 313 (completed
+  count, 2^23 instructions) are killed this way.
+
+| region | mutants | proven equivalent | killed, old suite | killed, extended suite |
+|---|---:|---:|---:|---:|
+| engine_ctrl | 550 | 23 | 343 (65.1%) | 456 (86.5%) |
+| host | 400 | 28 | 349 (93.8%) | 356 (95.7%) |
+| events | 300 | 32 | 222 (82.8%) | 236 (88.1%) |
+| mover | 250 | 6 | 180 (73.8%) | 221 (90.6%) |
+| pins | 250 | 7 | 196 (80.7%) | 221 (90.9%) |
+| engine_xfer | 200 | 9 | 155 (81.2%) | 161 (84.3%) |
+| engine_data | 180 | 2 | 146 (82.0%) | 145 (81.5%) |
+| fifo | 130 | 7 | 117 (95.1%) | 121 (98.4%) |
+| shared | 90 | 2 | 81 (92.0%) | 81 (92.0%) |
+| imem | 60 | 0 | 50 (83.3%) | 52 (86.7%) |
+| timestamp | 10 | 0 | 8 (80.0%) | 10 (100.0%) |
+
+By mode, extended suite (old suite in parentheses):
+
+| mode | score |
+|---|---:|
+| `cnot1` | 80.4% (53.3%) |
+| `const0` | 83.1% (67.4%) |
+| `const1` | 90.8% (86.4%) |
+| `inv` | 95.4% (93.3%) |
+| `cnot0` | 94.8% (90.3%) |
+
+**Survivors.** 244 survivors are neither proven equivalent nor killed.
+
+| region | survivors |
+|---|---:|
+| engine_ctrl | 71 (55 of them on blocked_cycles) |
+| engine_data | 33 |
+| events | 32 |
+| engine_xfer | 30 |
+| mover | 23 |
+| pins | 22 |
+| host | 16 |
+| imem | 8 |
+| shared | 7 |
+| fifo | 2 |
+
+The blocked_cycles survivors outlive a test that follows every way of
+completing an instruction with a bounded wait (`blocked_paths`). By the argument
+for mutant 279 above, many are likely hold-path mutations that cannot be
+observed. They were not classified here.
+
+Jobs: `gaps` 23813966, `recheck` 23813967, `gaps2` 23817415, pilot 23811152,
+final-tree controls (stage `suite`) 23819701, generator measurement 23806285.

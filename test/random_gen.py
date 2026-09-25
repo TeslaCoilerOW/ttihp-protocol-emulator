@@ -23,8 +23,8 @@ from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from harness import (CLEAR, EVENT, FLUSH, OWN, READ_SELECT, ROUTE, SELECT, START, STOP, TRIGGER, UO_FAULT,
-                     UO_IRQ, Harness, LockstepMismatch, immediate, instruction, pad_value)
+from harness import (BEGIN, CLEAR, COMMIT, EVENT, FLUSH, OWN, READ_SELECT, ROUTE, SELECT, START, STOP, TRIGGER,
+                     UO_FAULT, UO_IRQ, Harness, LockstepMismatch, immediate, instruction, pad_value)
 from model.reference import Config
 from variants import options as variant_options
 
@@ -325,7 +325,23 @@ class ProgramGenerator:
         return word, code
 
 
-def make_case(seed: int, index: int, config: Config, *, cycles: int) -> Case:
+# Generator generation. 1 draws the cases of the 2026-09-25 verification
+# campaigns (docs/verification-campaign.md); PE_RANDOM_GEN=1 selects it. Their
+# stimulus is reproduced up to the trailing deselect, which run_case no longer
+# drops at the budget. 2 adds, from a separate random stream so that every
+# generation-1 operation is still drawn identically, a mid-traffic deselect and
+# host-command sequences that the model rejects (extend_case).
+GENERATION = 2
+
+
+def make_case(seed: int, index: int, config: Config, *, cycles: int, generation: int = GENERATION) -> Case:
+    case, ownership = _make_case_v1(seed, index, config, cycles=cycles)
+    if generation >= 2:
+        extend_case(case, config, ownership, random.Random((seed * 1_000_003 + index) ^ 0x6A9C2027))
+    return case
+
+
+def _make_case_v1(seed: int, index: int, config: Config, *, cycles: int) -> tuple[Case, list[int]]:
     rng = random.Random(seed * 1_000_003 + index)
     engines = config.engines
     owner = [rng.choice([*range(engines), None, None]) for _ in range(8)]
@@ -358,7 +374,71 @@ def make_case(seed: int, index: int, config: Config, *, cycles: int) -> Case:
     if rng.random() < 0.1:
         ops.append(["deselect", rng.randint(1, 3)])
     return Case(seed, index, specs, prefill, routes, triggers, start_mask, ops,
-                pin_seed=rng.getrandbits(32), toggle=rng.choice([0.0, 0.01, 0.05, 0.2, 0.5]), cycles=cycles)
+                pin_seed=rng.getrandbits(32), toggle=rng.choice([0.0, 0.01, 0.05, 0.2, 0.5]),
+                cycles=cycles), ownership
+
+
+def extend_case(case: Case, config: Config, ownership: list[int], rng: random.Random) -> None:
+    """Generation-2 additions (docs/verification-campaign.md, "Gap closure").
+
+    1. Generation 1 appends the optional deselect (10% of cases) after operations
+       whose estimated cost already fills the budget, so it ran in 0.26% of cases.
+       It moves to a random point in the first 70% of the traffic: ena drops while
+       engines run and the rest of the case runs on the deselected state.
+    2. One to three host-command sequences in 70% of cases, inserted at random
+       points: BEGIN with a payload, bad COMMIT lengths, STOP/EVENT naming absent
+       engines, ROUTE with payload bits 21..23, and aborted or overfull reloads
+       (BEGIN of a running engine, START before COMMIT, a 65th program word).
+       Generation 1 only sends well-formed forms of these commands. Whether each
+       command is accepted is left to the model (and checked on the DUT); half of
+       the sequences end with CLEAR bit 23 so that the sticky host fault, and the
+       fault pin with it, keeps changing.
+    """
+    ops = case.ops
+    if ops and ops[-1][0] == "deselect":
+        ops.insert(rng.randrange(max(1, int((len(ops) - 1) * 0.7))), ops.pop())
+    for _ in range(rng.choice([0, 0, 0, 1, 1, 1, 1, 2, 2, 3])):
+        position = rng.randrange(max(1, int(len(ops) * 0.8)))
+        ops[position:position] = rejected_sequence(rng, config, ownership)
+
+
+def rejected_sequence(rng: random.Random, config: Config, ownership: list[int]) -> list[list[Any]]:
+    """Host operations that exercise command-rejection paths (see extend_case)."""
+    engines, capacity = config.engines, config.program_words
+    e = rng.randrange(engines)
+    kind = rng.choices(["begin", "commit", "stop", "event", "route", "reload", "overfull"],
+                       weights=[3, 3, 2, 2, 2, 3, 0.5])[0]
+    if kind == "begin":
+        sequence = [["cmd", BEGIN << 24 | rng.randint(1, 0xFFFFFF), e]]
+    elif kind == "commit":  # the engine is not being written, or the length is wrong/zero/too big
+        length = rng.choice([0, rng.randint(1, capacity), capacity + rng.randint(1, 40), rng.randint(1, 0xFF) << 16])
+        sequence = [["cmd", COMMIT << 24 | length, e]]
+    elif kind == "stop":
+        sequence = [["cmd", STOP << 24 | rng.randint(1 << engines, 0xFFFFFF), e]]
+    elif kind == "event":
+        sequence = [["cmd", EVENT << 24 | rng.randint(1 << engines, 0xFFFFFF), e]]
+    elif kind == "route":
+        sequence = [["cmd", ROUTE << 24 | 1 << rng.randint(21, 23) | rng.getrandbits(21), e]]
+    else:
+        spec = ProgramGenerator(rng, config, ownership[e], 0.03).generate(
+            capacity if kind == "overfull" else rng.randint(3, 16))
+        words = spec.words
+        sequence = [["cmd", BEGIN << 24, e]]  # legal; stops the engine if it runs
+        if kind == "overfull":
+            # A full image, one word too many (write-ready stays low: abandoned), then COMMIT/START.
+            sequence += [["prog", w] for w in words] + [["prog", rng.getrandbits(32)]]
+            sequence += [["cmd", COMMIT << 24 | len(words), e], ["cmd", START << 24 | 1 << e, e]]
+        else:
+            written = rng.randint(0, len(words))
+            sequence += [["prog", w] for w in words[:written]]
+            sequence.append(["cmd", START << 24 | 1 << e, e])  # not committed
+            sequence.append(["cmd", COMMIT << 24 | rng.choice([written + 1, max(written - 1, 0), capacity + 1]), e])
+            if rng.random() < 0.5:  # finish the load properly
+                sequence += [["prog", w] for w in words[written:]]
+                sequence += [["cmd", COMMIT << 24 | len(words), e], ["cmd", START << 24 | 1 << e, e]]
+    if rng.random() < 0.5:
+        sequence.append(["cmd", CLEAR << 24 | 1 << 23, e])
+    return sequence
 
 
 def host_op(rng: random.Random, config: Config, ownership: list[int]) -> list[Any]:
@@ -455,8 +535,10 @@ async def run_case(h: Harness, case: Case, coverage: Coverage | None = None) -> 
     start = h.cycle
     noise = random.Random(case.pin_seed ^ 0x5A5A)
     for op in case.ops:
-        if h.cycle - start >= case.cycles:
-            break
+        # Stop issuing traffic once the budget is spent, except a deselect: that
+        # still runs, so it is never lost to the budget (at most one per case).
+        if h.cycle - start >= case.cycles and op[0] != "deselect":
+            continue
         await execute(h, op, noise, coverage)
     # Epilogue: halt everything, read every engine's diagnostics, drain RX FIFOs.
     await h.command(STOP, (1 << h.model.config.engines) - 1)
@@ -499,6 +581,9 @@ async def execute(h: Harness, op: list[Any], noise: random.Random, coverage: Cov
         await h.command(SELECT, op[1])
         await h.try_read(op[2], max_wait=2, nibbles=op[3])
         tally[f"partial read abandoned (window {op[2]})"] += 1
+    elif kind == "prog":  # one program word to the selected engine (window 1), outside load()
+        written = await h.try_write(1, op[1], max_wait=2)
+        tally["program word written" if written else "program word not accepted"] += 1
     elif kind == "reload":
         spec = op[2]
         await h.load(op[1], spec["words"], ownership=spec["ownership"], open_drain=spec["open_drain"])

@@ -59,6 +59,25 @@ class LockstepMismatch(AssertionError):
     """DUT and reference model disagree on a public output."""
 
 
+class WarpError(AssertionError):
+    """Harness.warp was asked to skip time outside a pure counting state (a test bug)."""
+
+
+class WarpUnsupported(RuntimeError):
+    """The simulated design exposes no core registers to warp (gate level)."""
+
+
+# Time warp (Harness.warp): the core registers that count with time, by the names
+# Hardcaml gives them (hardcaml/lib/engine.ml, processor.ml). The per-engine
+# families carry Hardcaml's de-duplication suffixes (<name>, <name>_0, _1, _2),
+# which do not follow the engine index; warp() only ever applies one delta to a
+# whole family, so it needs no engine map. Variants without debug counters have
+# no completed_instructions registers (their READ_SELECT 5 reads 0).
+CORE_PATH = ("user_project", "core")
+WARP_FAMILIES = {"timestamp": "timestamp", "completed": "completed_instructions", "wait": "wait_timer",
+                 "blocked": "blocked_cycles", "repeat": "repeat_count"}
+
+
 @dataclass(frozen=True)
 class Step:
     cycle: int
@@ -153,6 +172,9 @@ class Harness:
         self.context: Callable[[], str] | None = None
         self.quiet = False  # suppress mismatch logging (minimizer re-runs)
         self.diverged = False  # a mismatch was raised since the last reset edge
+        self.warped = 0  # cycles skipped by warp() (not simulated)
+        self.warped_words = 0  # ROUTE words taken off by warp_routes()
+        self.warped_instructions = 0  # completed-instruction counts added by warp_completed()
 
     async def start(self, reset_cycles: int = 4) -> None:
         await self.reset(reset_cycles)
@@ -356,6 +378,152 @@ class Harness:
         faults = {i: e.fault for i, e in enumerate(self.model.engines) if e.fault}
         assert not self.model.host_fault and not faults, f"host_fault={self.model.host_fault} engine faults={faults}"
 
+    # ------------------------------------------------------------ time warp
+    def warp_deltas(self, cycles: int) -> dict[str, int]:
+        """Check that the next ``cycles`` edges would only count, and by how much.
+
+        A pure counting state, judged on the model: no reset in flight, the host
+        idle (no partially transferred word), static pins that the synchronizers
+        already hold, no input trigger configured, no DMA transfer eligible, and
+        every engine either halted/faulted, inside a WAIT that outlasts the warp,
+        blocked in a WAITPIN/WAITEVENT that neither succeeds nor reaches its LIMIT,
+        or spinning on a JMP/LOOP to its own address (LOOP with repeats to spare).
+        Over such a stretch the only architectural change is arithmetic on the
+        timestamp, the WAIT timers, the blocked-cycle counts, the completed-
+        instruction counts and the LOOP repeat counts. Returns the per-family delta
+        (one value per family: engines of one family must all move alike).
+        """
+        m = self.model
+        if cycles <= 0:
+            raise ValueError("warp needs a positive cycle count")
+        if getattr(m, "settling", False):
+            raise WarpError("a reset is still in flight")
+        if m.write_index or m.read_index or self.window != m.window:
+            raise WarpError("a host transfer is in progress")
+        if not isinstance(self.pins, int):
+            raise WarpError("warp needs static pins (h.pins must be an int)")
+        pins = self.pins & 0xFF
+        if not m.sync1 == m.sync2 == m.previous_pins == pins:
+            raise WarpError("the pin synchronizers have not settled on the static pins")
+        if any(e.trigger is not None for e in m.engines):
+            raise WarpError("an input trigger is configured")
+        for source, route in enumerate(m.routes):
+            if route is not None and m.engines[source].rx and len(m.engines[route[0]].tx) < m.config.fifo_words:
+                raise WarpError(f"route {source}->{route[0]} could move a word")
+        moves: dict[str, set[int]] = {"wait": set(), "blocked": set(), "completed": set(), "repeat": set()}
+        for index, e in enumerate(m.engines):
+            step = {"wait": 0, "blocked": 0, "completed": 0, "repeat": 0}
+            if e.running and not e.fault:
+                if e.transfer is not None:
+                    raise WarpError(f"engine {index} is inside an XFER")
+                if e.wait:
+                    if e.wait <= cycles:
+                        raise WarpError(f"engine {index}: WAIT ends within the warp ({e.wait} <= {cycles})")
+                    step["wait"] = -cycles
+                elif not (e.committed and 0 <= e.pc < len(e.program)):
+                    raise WarpError(f"engine {index} would fault (pc {e.pc})")
+                else:
+                    word = e.program[e.pc]
+                    op, a, b, c, imm24 = word >> 24, word >> 16 & 255, word >> 8 & 255, word & 255, word & 0xFFFFFF
+                    if (op == 13 and a <= 7 and b <= 1 and c == 0 and (m.sync2 >> a & 1) != b) \
+                            or (op == 15 and imm24 == 0 and not e.event):
+                        if e.blocked + cycles >= e.limit:
+                            raise WarpError(f"engine {index}: the bounded wait times out within the warp")
+                        step["blocked"] = cycles
+                    elif op == 5 and imm24 == e.pc:
+                        step["completed"] = cycles
+                    elif op == 11 and imm24 == e.pc and e.repeat > cycles:
+                        step["completed"], step["repeat"] = cycles, -cycles
+                    else:
+                        raise WarpError(f"engine {index} at pc {e.pc} ({word:08x}) is not in a counting state")
+            for family, delta in step.items():
+                moves[family].add(delta)
+        deltas = {"timestamp": cycles}
+        for family, values in moves.items():
+            if len(values) > 1:
+                raise WarpError(f"engines move their {family} counters differently ({sorted(values)})")
+            deltas[family] = values.pop()
+        return deltas
+
+    def _warp_model(self, deltas: dict[str, int]) -> None:
+        # A nonzero delta means every engine is in that counting state (warp_deltas).
+        m = self.model
+        m.timestamp = (m.timestamp + deltas["timestamp"]) & 0xFFFFFFFF
+        for e in m.engines:
+            e.wait += deltas["wait"]
+            e.blocked += deltas["blocked"]
+            e.completed = (e.completed + deltas["completed"]) & 0xFFFFFFFF
+            e.repeat += deltas["repeat"]
+
+    async def warp(self, cycles: int) -> None:
+        """Time warp: advance the design by ``cycles`` edges without simulating them.
+
+        ``warp_deltas`` checks that the stretch is pure counting; the model's
+        counters are advanced by the same arithmetic, the core's registers get the
+        same relative change (deposited at the next falling edge, so an earlier DUT
+        divergence is carried along, not overwritten), and one ordinary lockstep
+        cycle follows. RTL only (``WarpUnsupported`` at gate level). Lets a test
+        visit counter carries at bits 16..31 and the 32-bit timestamp rollover in a
+        few hundred simulated cycles instead of up to 2^32.
+        """
+        deltas = self.warp_deltas(cycles)
+        self._deposit(deltas)
+        self._warp_model(deltas)
+        self.warped += cycles
+        await self.step()
+
+    async def warp_routes(self, words: int) -> None:
+        """History warp: every enabled ROUTE descriptor counts ``words`` words fewer.
+
+        The state reached is the one in which those words had been moved (and
+        consumed downstream) earlier: FIFOs, engines and time are unchanged, so
+        any descriptor count is reachable this way. Each enabled descriptor must
+        keep at least one word. The core's route_remaining_<source> registers are
+        named by their source engine, so no map is needed. One lockstep cycle
+        follows, as for ``warp``.
+        """
+        m = self.model
+        if words <= 0:
+            raise ValueError("warp_routes needs a positive word count")
+        if m.write_index or self.window != m.window:
+            raise WarpError("a host command may be in progress")
+        enabled = [s for s, r in enumerate(m.routes) if r is not None]
+        if not enabled or any(m.routes[s][1] <= words for s in enabled):
+            raise WarpError(f"every enabled route must keep a word: {m.routes}")
+        self._deposit_routes(enabled, words)
+        self.warped_words += words
+        for source in enabled:
+            dest, count = m.routes[source]
+            m.routes[source] = (dest, count - words)
+        await self.step()
+
+    def _deposit_routes(self, sources: list[int], words: int) -> None:
+        """Queue the DUT side of warp_routes (none in the model-only harness)."""
+
+    async def warp_completed(self, instructions: int) -> None:
+        """History warp: every engine's completed-instruction count grows by ``instructions``.
+
+        The count is read only by READ_SELECT 5 and by its own update, so a larger
+        count is the state after a longer run; nothing else changes. Unlike
+        ``warp``, the engines may be doing anything, so a test can run arbitrary
+        instructions with bits 16..31 of the count set. One lockstep cycle follows.
+        """
+        if instructions <= 0:
+            raise ValueError("warp_completed needs a positive count")
+        if getattr(self.model, "settling", False):
+            raise WarpError("a reset is still in flight")
+        self._deposit({"completed": instructions})
+        for e in self.model.engines:
+            e.completed = (e.completed + instructions) & 0xFFFFFFFF
+        self.warped_instructions += instructions
+        await self.step()
+
+    def warp_supported(self) -> bool:
+        return True  # the model-only harness has nothing else to warp
+
+    def _deposit(self, deltas: dict[str, int]) -> None:
+        """Queue the DUT side of a warp (no DUT in the model-only harness)."""
+
 
 class ModelHarness(Harness):
     """Model-only backend (no simulator) for developing scenarios quickly."""
@@ -393,6 +561,7 @@ class CocotbHarness(Harness):
         self._rst_n, self._ena = dut.rst_n, dut.ena
         self._uo, self._uio_out, self._uio_oe = dut.uo_out, dut.uio_out, dut.uio_oe
         self._clock_started = False
+        self._deposits: list[tuple[Any, int]] = []  # (register handle, delta) for the next falling edge
         # Imported here so the model-only backend works outside a simulator.
         import cocotb
         from cocotb.clock import Clock
@@ -412,6 +581,59 @@ class CocotbHarness(Harness):
             self._cocotb.start_soon(self._Clock(self._clk, CLOCK_NS, unit="ns").start())
             self._clock_started = True
         await self.reset(reset_cycles)
+
+    def core_registers(self, family: str) -> list[Any]:
+        """Handles of one warp family's registers in the core (``WARP_FAMILIES``).
+
+        Raises ``WarpUnsupported`` when the core hierarchy is not visible (a
+        gate-level netlist); returns [] for a family the design does not have
+        (no completed-instruction counters on the debug_counters=false variants).
+        """
+        scope = self.dut
+        try:
+            for name in CORE_PATH:
+                scope = getattr(scope, name)
+            getattr(scope, WARP_FAMILIES["timestamp"])
+        except AttributeError as missing:
+            raise WarpUnsupported("no core registers visible (gate-level netlist?)") from missing
+        base = WARP_FAMILIES[family]
+        found = []
+        for name in (base, *(f"{base}_{k}" for k in range(8))):
+            try:
+                found.append(getattr(scope, name))
+            except AttributeError:
+                continue
+        expected = 1 if family == "timestamp" else self.model.config.engines
+        if found and len(found) != expected:
+            raise WarpUnsupported(f"core has {len(found)} {base} registers, expected {expected}")
+        return found
+
+    def warp_supported(self) -> bool:
+        try:
+            self.core_registers("timestamp")
+        except WarpUnsupported:
+            return False
+        return True
+
+    def _deposit(self, deltas: dict[str, int]) -> None:
+        for family, delta in deltas.items():
+            if delta:
+                self._deposits += [(handle, delta) for handle in self.core_registers(family)]
+
+    def _deposit_routes(self, sources: list[int], words: int) -> None:
+        self.core_registers("timestamp")  # WarpUnsupported at gate level
+        scope = self.dut
+        for name in CORE_PATH:
+            scope = getattr(scope, name)
+        for source in sources:
+            self._deposits.append((getattr(scope, f"route_remaining_{source}"), -words))
+
+    def _apply_deposits(self) -> None:
+        """At a falling edge: add each queued delta to the register's current value."""
+        for handle, delta in self._deposits:
+            width = len(handle)
+            handle.value = (handle.value.to_unsigned() + delta) % (1 << width)
+        self._deposits = []
 
     def _read(self) -> Outputs | None:
         uo, out, oe = self._uo.value, self._uio_out.value, self._uio_oe.value
@@ -456,6 +678,8 @@ class CocotbHarness(Harness):
             previous = self.history[-1] if self.history else None
             self._fail("post-edge", post, self.expected, previous.ui if previous else ui,
                        previous.pins if previous else 0)
+        if self._deposits:
+            self._apply_deposits()  # warp(): between the edges, like the model's update
         pins = self._supply(post if post is not None else self.model.outputs(), pins)
         self._ui.value = ui
         self._uio_in.value = pins
