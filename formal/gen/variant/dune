@@ -1,0 +1,7 @@
+; Formal-only generator for design variants (formal/run.sh --variant). run.sh
+; copies this directory next to a copy of hardcaml/lib only for a variant run;
+; the design-of-record run never builds it.
+(executable
+ (name generate_blocks)
+ (modules generate_blocks)
+ (libraries protocol_processor hardcaml))

@@ -24,7 +24,8 @@ behavioral peers.
 | `test_flagship.py` | `../firmware/flagship-scenario.json`: four engines concurrently (UART TX, UART RX, SPI, I2C) plus the autonomous UART-RX to SPI-TX route |
 | `test_legacy.py` | lockstep replay of the 25 monorepo differential workloads (`model/verification.py`): queues, DMA congestion, SPI mode matrix, strict push, input triggers, JTAG, waveform, I2C target, UART overflow, ... |
 | `test_random.py`, `random_gen.py` | constrained-random lockstep differential test with functional coverage and a minimizer |
-| `model/` | the reference model, host recorder and wire scoreboards, copied from the asic-lab monorepo (stdlib only; provenance and hashes in `model/__init__.py`) |
+| `model/` | the reference model, host recorder and wire scoreboards, copied from the asic-lab monorepo (stdlib only; provenance and hashes in `model/__init__.py`); `model/variant.py` (written here) adds the design variants |
+| `variants.py`, `variant_workloads.py` | design-variant selection (`PE_VARIANT`) and the legacy workloads recorded on a variant; see "Design variants" |
 
 ## Running
 
@@ -108,6 +109,90 @@ summary (opcodes completed per engine, stall cycles per blocking opcode, faults 
 code and instruction, deliberate faults, XFER CPOL/CPHA/bit-order/drive/sample
 combinations and bit counts, mover transfers, host commands accepted/rejected,
 host traffic) is printed at the end of every run.
+
+## Design variants (PE_VARIANT)
+
+The area and reset variants of `../docs/area-study.md` (defined in
+`../docs/isa.md`, "Configuration variants") run the same suite:
+
+```sh
+make PE_VARIANT=diet4                       # ../build/variants/diet4/protocol_emulator_core.v
+make PE_VARIANT=cn PE_CORE=/path/to/cn.v    # a core kept elsewhere
+```
+
+| name | reset | queue words | ISA knobs | ISA version |
+|---|---|---:|---|---:|
+| `base` (default) | `sync` | 8 | none | 2 |
+| `rstreg` | `sync_registered` | 8 | none | 2 |
+| `cn` | `async` (+ FIFO storage reset, narrow image registers) | 8 | none | 2 |
+| `cn_s2` | `async_sync_release` (+ the same) | 8 | none | 2 |
+| `diet4` | as `cn_s2` | 4 | no debug counters, 7-bit saturating PC, byte-lane shifts | 3 |
+| `diet2` | as `cn_s2` | 2 | as `diet4` | 3 |
+
+`base` is exactly the Tiny Tapeout CI run: the same file list
+(`../src/protocol_emulator_core.v`), `sim_build/rtl`, and the verbatim
+`model/reference.py`; its random cases and lockstep cycle counts are unchanged.
+For any other name:
+
+- **Core and configuration.** The core is `../build/variants/<name>/protocol_emulator_core.v`
+  (`scripts/gen_variants.sh`) or `PE_CORE`. The model is configured from
+  `../configs/variants/<name>.json`, which must match the independent table
+  `variants.SPEC` (checked at import; a mislabelled config fails every test).
+- **Firmware images.** The images reassembled for the variant
+  (`../build/variants/<name>/firmware`) when present, else `../firmware/`;
+  `PE_FIRMWARE=dir` overrides. A variant image must target the variant's
+  architecture. Every image in `../firmware/` is valid on every variant (shift
+  counts are all 24, targets at most 54).
+- **Model.** `model/variant.py` subclasses the verbatim reference: queue depth,
+  counters, saturating PC, byte-lane faults, ISA version, and the reset
+  styles, modelled with the two synchronizer flops explicitly.
+- **Reset latency.** `Harness.reset()` idles until a reset still in flight has
+  been applied and released (two extra cycles for `rstreg`, `cn_s2`, `diet*`).
+  With an asynchronous reset the pre-edge outputs are also checked to be
+  released during reset. `test_smoke` checks that write-ready stays low for
+  exactly the reset latency after `rst_n` rises.
+- **Small queues.** `uart-tx` prefills `min(8, fifo_words)` words; the SPI tests
+  top up TX and read MISO words as they arrive; `test_flagship` runs
+  `../firmware/flagship-scenario-topup.json` (the host prefills at most
+  `fifo_words` words and then polls: top up UART TX, drain SPI RX).
+  `PE_FLAGSHIP=topup` forces that scenario on any design, `PE_FLAGSHIP=prefill`
+  the original.
+- **Random test.** Byte-lane designs draw byte-lane shift counts, 15% of them
+  deliberately not a lane (expected fault code 1). Saturating-PC designs make
+  8% of jumps and branches target 128 or more. The coverage summary counts
+  byte-lane faults and saturated jumps.
+- **Legacy replays.** The monorepo workloads are recorded against the variant
+  model (`variant_workloads.py`): a host that waits out the reset latency, and
+  READ_SELECT 7 checked against the variant's version. Workloads that state a
+  base-only fact run an adapted copy (`variant_workloads.ADAPTED`; each is
+  cycle-identical to the original under the base configuration) or a live
+  substitute (`SUBSTITUTE`):
+
+  | workload | adapted for | change |
+  |---|---|---|
+  | `dma`, `congestion`, `firmware_i2c_restart`, `firmware_jtag` | queues < 3 words | at most `fifo_words` words before START, the rest after START under backpressure |
+  | `random_alu` | byte-lane shifts | shift counts rounded down to a lane |
+  | `firmware_i2c_target_write` | queues < 8 words | RX prefilled to `fifo_words` words |
+  | `firmware_waveform` | reset latency | TIME compared against the index of the last reset edge |
+  | `firmware_flagship`, `firmware_flagship_fast` | queues < 8 words | substituted by the top-up flagship scenario (mode-0 and fast SPI image) |
+
+Gate level works the same way (`make GATES=yes PE_VARIANT=<name> GL_NETLIST=...`),
+running the gate-level subset against the variant model. With a synchronous
+clear, flip-flops have `RESET_B` tied high and power up X in simulation.
+Synthesis may then implement a cleared register's next state as reconvergent
+logic that is 0 in hardware but X in simulation (for example
+`D = ~(Q | ~Q)` while the clear is active), so the register never leaves X.
+One such register was seen in a plain-Yosys netlist of `rstreg`, and it fails
+the gate-level read-back of READ_SELECT 5. The asynchronous-reset variants
+cannot hit this, because their flip-flops are reset through `RESET_B`.
+Whether a netlist has such logic depends on the synthesis script. The
+LibreLane-replica netlists (`docs/area-study/scripts/synth3.sh ll66`) of all
+six variants, `rstreg` included, pass the gate-level subset
+(`docs/variants.md` section 7.2). The hardened netlist that the Tiny Tapeout
+`gl_test` runs is a different netlist again.
+
+Model-only (no simulator) runs take the same variable:
+`PE_VARIANT=diet2 python3 -c "import harness, scenarios; print(harness.run_model(scenarios.flagship_topup).cycle)"`.
 
 ## Model-only development
 

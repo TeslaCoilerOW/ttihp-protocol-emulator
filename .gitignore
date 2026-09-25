@@ -30,3 +30,6 @@ _opam/
 
 # Local-only toolchain shim for scripts/generate.sh
 scripts/ocaml-env.local.sh
+
+# Generated RTL variants and their firmware images (scripts/gen_variants.sh)
+/build/

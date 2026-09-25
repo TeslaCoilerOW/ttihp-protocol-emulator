@@ -17,12 +17,37 @@ SRAM_MODEL_DIR ?= $(PWD)/../models
 SRAM_MODELS = $(SRAM_MODEL_DIR)/RM_IHPSG13_1P_64x16_c2.v \
               $(SRAM_MODEL_DIR)/RM_IHPSG13_1P_core_behavioral.v
 
+# Design variant (variants.py, README.md "Design variants"). The default, base,
+# simulates ../src/protocol_emulator_core.v exactly as the Tiny Tapeout actions
+# do (PE_CORE=path substitutes another design-of-record core, e.g. a published
+# copy). Another name simulates ../build/variants/<name>/protocol_emulator_core.v
+# (override with PE_CORE=path) against the reference model configured by
+# ../configs/variants/<name>.json.
+PE_VARIANT ?= base
+ifeq ($(strip $(PE_VARIANT)),)
+PE_VARIANT := base
+endif
+export PE_VARIANT
+ifeq ($(PE_VARIANT),base)
+ifdef PE_CORE
+CORE_SOURCES = $(SRC_DIR)/project.v $(PE_CORE)
+RTL_BUILD    = sim_build/rtl-base-core
+else
+CORE_SOURCES = $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))
+RTL_BUILD    = sim_build/rtl
+endif
+else
+PE_CORE      ?= $(PWD)/../build/variants/$(PE_VARIANT)/protocol_emulator_core.v
+CORE_SOURCES = $(SRC_DIR)/project.v $(PE_CORE)
+RTL_BUILD    = sim_build/rtl-$(PE_VARIANT)
+endif
+
 ifneq ($(GATES),yes)
 
 # RTL simulation:
-SIM_BUILD       ?= sim_build/rtl
+SIM_BUILD       ?= $(RTL_BUILD)
 COMPILE_ARGS    += -DFUNCTIONAL
-VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))
+VERILOG_SOURCES += $(CORE_SOURCES)
 VERILOG_SOURCES += $(SRAM_MODELS)
 
 else

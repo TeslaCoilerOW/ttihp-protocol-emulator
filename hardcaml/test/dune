@@ -27,3 +27,8 @@
  (name payload_sram_test)
  (modules payload_sram_test)
  (libraries protocol_processor hardcaml))
+
+(test
+ (name variant_test)
+ (modules variant_test)
+ (libraries protocol_processor hardcaml yojson unix))

@@ -65,4 +65,54 @@ let () =
           incr compiled
         done
       end) Firmware.names) ["scalar";"fused"]) [16;32];
-  Printf.printf "Assembler validation and %d firmware/configuration combinations passed.\n" !compiled
+  (* Variant targets: FIFO depths 2/4 and byte-lane shifts (shift=byte_lane). *)
+  let byte_lane nodes = Assembler.assemble_with ~byte_lane_shifts:true
+      ~source_bytes:(Yojson.Safe.to_string (Assembler.source_to_json (source_of_nodes nodes))) in
+  List.iter (fun c ->
+    check (Printf.sprintf "byte-lane SHL/SHR by %d accepted" c)
+      ((byte_lane [node ~a:1 ~c "SHL";node ~a:2 ~c "SHR"]).words
+       =[Int32.of_int (0x18010000 lor c);Int32.of_int (0x19020000 lor c)]);
+    check "byte-lane restriction off by default" (List.length (assemble_source (source_of_nodes [node ~c "SHL"])).words=1))
+    [0;8;16;24];
+  List.iter (fun c ->
+    rejected (Printf.sprintf "byte-lane SHL by %d" c) (fun () -> byte_lane [node ~c "SHL"]);
+    rejected (Printf.sprintf "byte-lane SHR by %d" c) (fun () -> byte_lane [node ~c "SHR"]);
+    if c<32 then check "barrel accepts every count below the width"
+      (List.length (assemble_source (source_of_nodes [node ~c "SHL"])).words=1))
+    [1;4;7;9;12;23;25;31;32];
+  let sixteen={Isa.flagship with data_width=16} in
+  rejected "byte-lane count 16 on a 16-bit datapath" (fun () ->
+    Isa.encode ~byte_lane_shifts:true sixteen ~owned_pins:0 (Isa.instruction ~c:16 "SHL"));
+  check "byte-lane count 8 on a 16-bit datapath"
+    (Isa.encode ~byte_lane_shifts:true sixteen ~owned_pins:0 (Isa.instruction ~c:8 "SHL")=0x18000008l);
+  let arch_json fifo_words = Isa.architecture_to_json {Isa.flagship with fifo_words} in
+  List.iter (fun fifo_words ->
+    check "FIFO depth accepted by the assembler"
+      ((Isa.architecture_of_json (arch_json fifo_words)).fifo_words=fifo_words)) [2;4;8;32];
+  List.iter (fun fifo_words ->
+    rejected "FIFO depth" (fun () -> Isa.architecture_of_json (arch_json fifo_words))) [1;3;16];
+  let variant_images=ref 0 in
+  List.iter (fun fifo_words -> List.iter (fun width -> List.iter (fun issue ->
+    List.iter (fun name ->
+      for mode=0 to (if name="spi-controller" || name="spi-target" then 3 else 0) do
+        let architecture={Isa.flagship with data_width=width;issue;fifo_words} in
+        if name="jtag" && issue="scalar" then
+          rejected "scalar jtag with byte-lane shifts" (fun () ->
+            Firmware.make ~architecture ~mode ~byte_lane_shifts:true name)
+        else begin
+          let source=Firmware.make ~architecture ~mode ~byte_lane_shifts:true name in
+          let image=Assembler.assemble_with ~byte_lane_shifts:true
+              ~source_bytes:(Yojson.Safe.to_string (Assembler.source_to_json source)) in
+          check ("byte-lane image binds FIFO depth "^name) (image.source.architecture.fifo_words=fifo_words);
+          check ("byte-lane image uses only lane counts "^name)
+            (List.for_all (fun (i:Isa.instruction) ->
+               not (List.mem i.mnemonic ["SHL";"SHR"]) || i.c land 7=0) image.decoded);
+          (* Fused built-ins are unchanged; scalar SPI keeps its length. *)
+          let plain=assemble_source (Firmware.make ~architecture ~mode name) in
+          if issue="fused" then check ("fused built-in unchanged "^name) (plain.words=image.words)
+          else check ("scalar built-in keeps its length "^name)
+              (List.length plain.words=List.length image.words);
+          incr variant_images
+        end
+      done) Firmware.names) ["scalar";"fused"]) [16;32]) [2;4;8];
+  Printf.printf "Assembler validation, %d firmware/configuration combinations and %d byte-lane/FIFO-depth variant images passed.\n" !compiled !variant_images

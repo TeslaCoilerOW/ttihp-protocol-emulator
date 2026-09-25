@@ -31,13 +31,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import variants
 from model.reference import Config, Outputs, Reference
 from model.scoreboards import WireSample
+from model.variant import make_reference
 
 REPO = Path(__file__).resolve().parent.parent
 FIRMWARE = REPO / "firmware"
 CLOCK_NS = 20  # 50 MHz, info.yaml clock_hz
-ISA_VERSION = 2
+# READ_SELECT 7 of the design under test: 2 for the design of record, 3 for
+# variants that restrict the ISA (PE_VARIANT, see variants.py).
+ISA_VERSION = variants.options(variants.design_config()).isa_version
 
 # Host commands (isa.md, window 0).
 SELECT, BEGIN, COMMIT, OWN, START, STOP, ROUTE, CLEAR = range(8)
@@ -85,12 +89,33 @@ def immediate(op: int, value: int = 0) -> int:
     return (op << 24) | (value & 0xFFFFFF)
 
 
+def image_dir() -> Path:
+    """Firmware image set: firmware/ for the design of record; for a variant the
+    images reassembled for it (build/variants/<name>/firmware, scripts/gen_variants.sh)
+    when present, else firmware/. PE_FIRMWARE=dir overrides."""
+    explicit = os.environ.get("PE_FIRMWARE")
+    if explicit:
+        return Path(explicit)
+    variant = variants.name()
+    candidate = REPO / "build" / "variants" / variant / "firmware"
+    return candidate if variant != "base" and candidate.is_dir() else FIRMWARE
+
+
 def load_image(name: str) -> dict[str, Any]:
-    """Load firmware/<name>.image.json and verify its source/bytecode identity."""
-    image: dict[str, Any] = json.loads((FIRMWARE / f"{name}.image.json").read_text())
-    if image["schema_version"] != "protocol-emulator.firmware-image.v1" or image["isa_version"] not in (1, 2):
+    """Load <image set>/<name>.image.json and verify its source/bytecode identity
+    (and, for a variant image set, that it was assembled for the design under test)."""
+    directory = image_dir()
+    image: dict[str, Any] = json.loads((directory / f"{name}.image.json").read_text())
+    if (image["schema_version"] != "protocol-emulator.firmware-image.v1"
+            or image["isa_version"] not in range(1, ISA_VERSION + 1)):
         raise ValueError(f"unsupported firmware image {name}")
-    source = (FIRMWARE / f"{name}.source.json").read_bytes()
+    if directory != FIRMWARE:
+        design = design_config()
+        architecture = image["architecture"]
+        if (architecture["fifo_words"], architecture["data_width"], architecture["engine_count"]) != \
+                (design.fifo_words, design.width, design.engines):
+            raise ValueError(f"firmware {name} in {directory} targets {architecture}, not the design under test")
+    source = (directory / f"{name}.source.json").read_bytes()
     if hashlib.sha256(source).hexdigest() != image["source_sha256"]:
         raise ValueError(f"firmware {name}: source identity mismatch")
     payload = b"".join(word.to_bytes(4, "little") for word in image["words"])
@@ -106,16 +131,16 @@ def model_config(architecture: dict[str, Any]) -> Config:
 
 
 def design_config() -> Config:
-    """Architecture of the design under test (configs/instruction-sram-32.json by default)."""
-    path = Path(os.environ.get("PE_CONFIG", REPO / "configs" / "instruction-sram-32.json"))
-    return model_config(json.loads(path.read_text())["architecture"])
+    """Configuration of the design under test (configs/instruction-sram-32.json by default;
+    PE_VARIANT/PE_CONFIG select another, see variants.py)."""
+    return variants.design_config()
 
 
 class Harness:
     """Host driver + reference model; subclasses supply ``step`` (one clock)."""
 
     def __init__(self, *, config: Config | None = None, history: int = 24) -> None:
-        self.model = Reference(config or design_config())
+        self.model: Reference = make_reference(config or design_config())
         self.cycle = 0
         self.window = 0
         self.pins: int | PinSupplier = 0
@@ -127,6 +152,7 @@ class Harness:
         self.last_pre = Outputs(0, 0, 0)
         self.context: Callable[[], str] | None = None
         self.quiet = False  # suppress mismatch logging (minimizer re-runs)
+        self.diverged = False  # a mismatch was raised since the last reset edge
 
     async def start(self, reset_cycles: int = 4) -> None:
         await self.reset(reset_cycles)
@@ -135,18 +161,41 @@ class Harness:
         """Reset (rst_n low) or deselect (ena low) for ``cycles`` clocks.
 
         Also resynchronizes the checker after an aborted run: comparison
-        restarts after the first reset edge.
+        restarts after the first reset edge. On variants with a reset latency
+        the checker stays on through the raw reset cycles (the chip keeps
+        running until the synchronized reset applies) unless the run diverged.
         """
         self.window = 0
-        self.checking = False
-        self.expected = None
+        if getattr(self.model, "reset_latency", 0) and self.checking and not self.diverged:
+            pass  # keep comparing: model and DUT apply the delayed reset together
+        else:
+            self.checking = False
+            self.expected = None
         for _ in range(cycles):
             if deselect:
                 await self.step(0, enabled=False)
             else:
                 await self.step(0, reset=True)
-        if deselect:
+        if deselect and not self.diverged:
             self.checking = True
+        await self.settle()
+
+    async def settle(self) -> None:
+        """Idle while a reset request is still in flight: variants with a reset
+        synchronizer apply and release reset two edges late (model/variant.py).
+        No cycles for the design of record."""
+        while getattr(self.model, "settling", False):
+            await self.step()
+
+    def clear_active(self, reset: bool, enabled: bool) -> bool | None:
+        """Is the chip-wide clear active for these raw inputs (None = unknown)?"""
+        clear = getattr(self.model, "clear_active", None)
+        return (reset or not enabled) if clear is None else clear(reset or not enabled)
+
+    @property
+    def async_assert(self) -> bool:
+        """Reset clears the state before the edge (asynchronous-assertion variants)."""
+        return bool(getattr(getattr(self.model, "options", None), "async_assert", False))
 
     def log(self, message: str, *args: Any) -> None:
         print(message % args if args else message)
@@ -159,8 +208,10 @@ class Harness:
 
     def _advance(self, ui: int, pins: int, reset: bool, enabled: bool, pre: Outputs) -> None:
         self.expected = self.model.tick(ui, pins, reset=reset, enabled=enabled)
-        if reset or not enabled:
+        applied = getattr(self.model, "reset_applied", None)
+        if (reset or not enabled) if applied is None else applied:
             self.checking = True
+            self.diverged = False
         for observer in self.observers:
             observer.after(self)
         if self.samples is not None:
@@ -383,6 +434,7 @@ class CocotbHarness(Harness):
         message = "\n".join(lines)
         if not self.quiet:
             self.dut._log.error(message)
+        self.diverged = True
         raise LockstepMismatch(message)
 
     @staticmethod
@@ -411,10 +463,17 @@ class CocotbHarness(Harness):
         self._ena.value = 1 if enabled else 0
         await self._readonly
         pre = self._read()
-        if self.checking and not reset and enabled:
-            want = self.model.outputs(ui)
-            if not self._equal(pre, want):
-                self._fail("pre-edge", pre, want, ui, pins)
+        if self.checking:
+            clear = self.clear_active(reset, enabled)
+            if not clear:
+                want = self.model.outputs(ui)
+                if not self._equal(pre, want):
+                    self._fail("pre-edge", pre, want, ui, pins)
+            elif self.async_assert:
+                # Asynchronous assertion: state and outputs are already reset.
+                want = self.model.outputs(ui, reset=reset, enabled=enabled)
+                if not self._equal(pre, want):
+                    self._fail("pre-edge (asynchronous reset)", pre, want, ui, pins)
         for observer in self.observers:
             observer.before(self, ui, pins)
         await self._rising

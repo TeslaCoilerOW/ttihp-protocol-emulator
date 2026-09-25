@@ -34,8 +34,13 @@
 //                    interaction; must produce a counterexample.
 //   NI_PINS_ONLY     assert only the pin property and the environment
 //                    sanity checks (used for the mutant negative control).
+//   RESET_SYNC       design variant with a two-flop reset synchronizer: its
+//                    flops are shared state (equal initially, and invariantly,
+//                    since both copies see the same rst_n/ena).
+// Parameters IW (image_length/image_loaded width) and PCW (PC width) follow the
+// design variant (formal/run.sh --variant); the defaults are the design of record.
 module ti_copy #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
-    LEVEL_WIDTH=$clog2(DEPTH)+1) (
+    LEVEL_WIDTH=$clog2(DEPTH)+1, IW=16, PCW=24) (
     input wire clk, rst_n, ena,
     input wire [7:0] ui_in, uio_in,
     output wire [7:0] uo_out, uio_out, uio_oe,
@@ -43,9 +48,10 @@ module ti_copy #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
     output wire [ENGINES-1:0] running_all, grant,
     output wire [ENGINES*LEVEL_WIDTH-1:0] tx_level, rx_level,
     output wire clear,
-    output wire [206+4*WIDTH-1:0] engine_state,
+    output wire [182+PCW+4*WIDTH-1:0] engine_state,
     output wire running, fault_free, dbg_running_k,
-    output wire [49:0] config_state,
+    output wire [2*IW+17:0] config_state,
+    output wire [1:0] reset_sync,
     output wire writing,
     output wire [55:0] shared_state,
     output wire [31:0] dout,
@@ -53,10 +59,12 @@ module ti_copy #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
     output wire [5:0] addr_lo, addr_hi,
     output wire touch, start, stop, clear_fault, reconfigure,
     output wire accepted, other_command, xfer_active);
-    wire [ENGINES*24-1:0] pc, wait_timer, wait_limit, blocked;
+    wire [ENGINES*PCW-1:0] pc;
+    wire [ENGINES*24-1:0] wait_timer, wait_limit, blocked;
     wire [ENGINES*8-1:0] fault, values, enables, tick, period;
     wire [ENGINES*WIDTH-1:0] tx, rx, x, y;
-    wire [ENGINES*16-1:0] repeat_count, image_loaded, image_length;
+    wire [ENGINES*16-1:0] repeat_count;
+    wire [ENGINES*IW-1:0] image_loaded, image_length;
     wire [ENGINES*9-1:0] pins;
     wire [ENGINES*32-1:0] completed, sram_dout;
     wire [ENGINES*7-1:0] edges;
@@ -91,8 +99,14 @@ module ti_copy #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
         .fv_sram_lo_a_wen(wen_lo), .fv_sram_hi_a_wen(wen_hi),
         .fv_sram_lo_a_ren(ren_lo), .fv_sram_hi_a_ren(ren_hi),
         .fv_sram_lo_a_addr(a_lo), .fv_sram_hi_a_addr(a_hi),
+`ifdef RESET_SYNC
+        .fv_reset_sync(reset_sync),
+`endif
         .fv_timestamp(timestamp), .fv_sync1(sync1));
-    assign engine_state = {pc[24*K+:24], fv_running[K], fault[8*K+:8],
+`ifndef RESET_SYNC
+    assign reset_sync = 2'b00;
+`endif
+    assign engine_state = {pc[PCW*K+:PCW], fv_running[K], fault[8*K+:8],
         tx[WIDTH*K+:WIDTH], rx[WIDTH*K+:WIDTH], x[WIDTH*K+:WIDTH], y[WIDTH*K+:WIDTH],
         repeat_count[16*K+:16], wait_timer[24*K+:24], wait_limit[24*K+:24],
         blocked[24*K+:24], values[8*K+:8], enables[8*K+:8], pins[9*K+:9],
@@ -101,8 +115,8 @@ module ti_copy #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
     assign dbg_running_k = running_all[K];
     assign fault_free = fault[8*K+:8] == 0;
     assign xfer_active = edges[7*K+:7] != 0;
-    assign config_state = {image_length[16*K+:16], image_valid[K], image_writing[K],
-        image_loaded[16*K+:16], owners[8*K+:8], drains[8*K+:8]};
+    assign config_state = {image_length[IW*K+:IW], image_valid[K], image_writing[K],
+        image_loaded[IW*K+:IW], owners[8*K+:8], drains[8*K+:8]};
     assign writing = image_writing[K];
     assign shared_state = {timestamp, sync1, synced, previous};
     assign dout = sram_dout[32*K+:32];
@@ -121,8 +135,8 @@ module ti_copy #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
 endmodule
 
 module timing_isolation #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
-    LEVEL_WIDTH=$clog2(DEPTH)+1) (input wire clk);
-    localparam SW = 206+4*WIDTH;
+    LEVEL_WIDTH=$clog2(DEPTH)+1, IW=16, PCW=24) (input wire clk);
+    localparam SW = 182+PCW+4*WIDTH;
     (* anyseq *) reg rst_n, ena;
     (* anyseq *) reg [7:0] uio_in, ui_a, ui_b;
     wire [7:0] a_uo, a_out, a_oe, b_uo, b_out, b_oe;
@@ -130,7 +144,8 @@ module timing_isolation #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
     wire [ENGINES-1:0] a_run_all, a_grant, b_run_all, b_grant;
     wire [ENGINES*LEVEL_WIDTH-1:0] a_txl, a_rxl, b_txl, b_rxl;
     wire [SW-1:0] a_state, b_state;
-    wire [49:0] a_cfg, b_cfg;
+    wire [2*IW+17:0] a_cfg, b_cfg;
+    wire [1:0] a_rsync, b_rsync;
     wire [55:0] a_shared, b_shared;
     wire [31:0] a_dout, b_dout;
     wire [5:0] a_addr_lo, a_addr_hi, b_addr_lo, b_addr_hi;
@@ -139,22 +154,24 @@ module timing_isolation #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
          a_clrf, a_reconf, a_acc, a_other, a_xfer;
     wire b_clear, b_run, b_ok, b_dbg_run, b_rd_lo, b_rd_hi, b_wr, b_touch, b_start, b_stop,
          b_clrf, b_reconf, b_acc, b_other, b_xfer;
-    ti_copy #(.K(K), .WIDTH(WIDTH), .ENGINES(ENGINES), .DEPTH(DEPTH)) a(
+    ti_copy #(.K(K), .WIDTH(WIDTH), .ENGINES(ENGINES), .DEPTH(DEPTH), .IW(IW), .PCW(PCW)) a(
         .clk(clk), .rst_n(rst_n), .ena(ena), .ui_in(ui_a), .uio_in(uio_in),
         .uo_out(a_uo), .uio_out(a_out), .uio_oe(a_oe), .owners(a_owners), .drains(a_drains),
         .running_all(a_run_all), .grant(a_grant), .tx_level(a_txl), .rx_level(a_rxl),
         .clear(a_clear), .engine_state(a_state), .running(a_run), .fault_free(a_ok),
-        .dbg_running_k(a_dbg_run), .config_state(a_cfg), .writing(a_writing), .shared_state(a_shared),
+        .dbg_running_k(a_dbg_run), .config_state(a_cfg), .reset_sync(a_rsync),
+        .writing(a_writing), .shared_state(a_shared),
         .dout(a_dout), .read_lo(a_rd_lo), .read_hi(a_rd_hi), .write_any(a_wr),
         .addr_lo(a_addr_lo), .addr_hi(a_addr_hi), .touch(a_touch), .start(a_start),
         .stop(a_stop), .clear_fault(a_clrf), .reconfigure(a_reconf), .accepted(a_acc),
         .other_command(a_other), .xfer_active(a_xfer));
-    ti_copy #(.K(K), .WIDTH(WIDTH), .ENGINES(ENGINES), .DEPTH(DEPTH)) b(
+    ti_copy #(.K(K), .WIDTH(WIDTH), .ENGINES(ENGINES), .DEPTH(DEPTH), .IW(IW), .PCW(PCW)) b(
         .clk(clk), .rst_n(rst_n), .ena(ena), .ui_in(ui_b), .uio_in(uio_in),
         .uo_out(b_uo), .uio_out(b_out), .uio_oe(b_oe), .owners(b_owners), .drains(b_drains),
         .running_all(b_run_all), .grant(b_grant), .tx_level(b_txl), .rx_level(b_rxl),
         .clear(b_clear), .engine_state(b_state), .running(b_run), .fault_free(b_ok),
-        .dbg_running_k(b_dbg_run), .config_state(b_cfg), .writing(b_writing), .shared_state(b_shared),
+        .dbg_running_k(b_dbg_run), .config_state(b_cfg), .reset_sync(b_rsync),
+        .writing(b_writing), .shared_state(b_shared),
         .dout(b_dout), .read_lo(b_rd_lo), .read_hi(b_rd_hi), .write_any(b_wr),
         .addr_lo(b_addr_lo), .addr_hi(b_addr_hi), .touch(b_touch), .start(b_start),
         .stop(b_stop), .clear_fault(b_clrf), .reconfigure(b_reconf), .accepted(b_acc),
@@ -190,6 +207,7 @@ module timing_isolation #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
             assume(a_state == b_state);
             assume(a_cfg == b_cfg);
             assume(a_shared == b_shared);
+            assume(a_rsync == b_rsync);
             assume(a_dout == b_dout);
             assume(!a_writing);  // engine K is not mid-load
             assume(valid_masks(a_owners, a_drains));
@@ -227,6 +245,7 @@ module timing_isolation #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
         assert(a_cfg == b_cfg);
         assert(!a_writing && !b_writing);
         assert(a_shared == b_shared);
+        assert(a_rsync == b_rsync);
         assert(!a_wr && !b_wr);
         assert(valid_masks(a_owners, a_drains));
         assert(valid_masks(b_owners, b_drains));

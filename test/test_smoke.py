@@ -24,6 +24,12 @@ async def test_reset_and_version(dut):
     for _ in range(3):
         await h.step(0, reset=True)
     assert h.expected.uo == 0 and h.expected.uio_oe == 0
+    # Variants with a reset synchronizer (PE_VARIANT) stay in reset for two
+    # more edges after rst_n rises: write-ready must stay low exactly that long.
+    latency = getattr(h.model, "reset_latency", 0)
+    for edge in range(latency):
+        pre = await h.step(0)
+        assert not pre.uo & UO_WREADY, f"write-ready high {edge} cycles after reset release (latency {latency})"
     # Window 0 is write-ready right after reset, read-valid follows capture.
     pre = await h.step(0)
     assert pre.uo & UO_WREADY, f"write-ready low after reset: uo={pre.uo:02x}"
@@ -61,7 +67,9 @@ async def test_program_load_commit_start(dut):
     assert h.last_pre.uio_oe & 0x02 and h.last_pre.uio_out & 0x02, "engine 1 should drive pin 1 high"
     await h.run_until(lambda: not h.engine(1).running, 200, "engine 1 HALT")
     assert await h.status(RS_PC) == len(program)  # HALT advances the PC
-    assert await h.status(RS_COUNT) == len(program)
+    # Variants without the debug counters (debug_counters=false) read 0.
+    counters = getattr(getattr(h.model, "options", None), "debug_counters", True)
+    assert await h.status(RS_COUNT) == (len(program) if counters else 0)
     assert await h.status(RS_LEVELS) == 1 << 16
     assert await h.status(RS_HELD_RX) == 0x1234
     assert h.expected.uo & UO_IRQ, "IRQ must be asserted while an RX FIFO is non-empty"

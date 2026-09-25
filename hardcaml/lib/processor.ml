@@ -4,21 +4,47 @@ open Signal
 
 type instruction_memory = Baseline | Ihp_pair | Synchronous_model
 
-let create_with_memory ?(debug=false) memory_backend (config:Config.t) =
+(* [options] (default: the design of record) selects the variant knobs;
+   docs/variants.md defines them.  [clear] is the chip reset net: a
+   synchronous clear in the synchronous styles, the asynchronous reset of every
+   register in the asynchronous styles.  Either way it keeps gating the same
+   combinational paths (outputs, ready/valid, SRAM enables, mover, triggers). *)
+let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_backend
+    (config:Config.t) =
   let config = Config.validate config in
+  let options = Variant_options.validate config options in
   let open Always in
   let n = config.engine_count and width = config.data_width in
   let clock = input "clk" 1 and rst_n = input "rst_n" 1 and ena = input "ena" 1 in
   let ui = input "ui_in" 8 and uio = input "uio_in" 8 in
-  let clear = (~:rst_n) |: (~:ena) in
-  let spec = Reg_spec.create ~clock ~clear () in
+  let async = Variant_options.asynchronous options in
+  let clear = match options.reset with
+    | Variant_options.Sync -> (~:rst_n) |: (~:ena)
+    | Sync_registered ->
+      (* Two plain flops: rst_n reaches only the first D input. *)
+      let plain = Reg_spec.create ~clock () in
+      let first = reg plain (rst_n &: ena) -- "reset_sync_1" in
+      let second = reg plain first -- "reset_sync_2" in
+      ~:second
+    | Async -> ~:(rst_n &: ena)
+    | Async_sync_release ->
+      (* Asynchronous assert; release after two edges. *)
+      let raw = ~:(rst_n &: ena) in
+      let sync = Reg_spec.create ~clock ~reset:raw () in
+      let first = reg sync vdd -- "reset_sync_1" in
+      let second = reg sync first -- "reset_sync_2" in
+      ~:second in
+  let spec = if async then Reg_spec.create ~clock ~reset:clear ()
+    else Reg_spec.create ~clock ~clear () in
   let r name w = let v=Variable.reg spec ~width:w in ignore(v.value -- name); v in
   let selected = r "host_selected_engine" 2 and read_select = r "host_read_select" 3 in
   let host_fault = r "host_fault" 1 and timestamp = r "timestamp" 32 in
   let committed = Array.init n (fun k -> r (Printf.sprintf "image_valid_%d" k) 1) in
   let writing = Array.init n (fun k -> r (Printf.sprintf "image_writing_%d" k) 1) in
-  let lengths = Array.init n (fun k -> r (Printf.sprintf "image_length_%d" k) 16) in
-  let loaded = Array.init n (fun k -> r (Printf.sprintf "image_loaded_%d" k) 16) in
+  (* Both are <= program_words by construction (COMMIT and write-ready). *)
+  let iw = if options.narrow_image_regs then Config.log2 config.program_words + 1 else 16 in
+  let lengths = Array.init n (fun k -> r (Printf.sprintf "image_length_%d" k) iw) in
+  let loaded = Array.init n (fun k -> r (Printf.sprintf "image_loaded_%d" k) iw) in
   let owners = Array.init n (fun k -> r (Printf.sprintf "ownership_%d" k) 8) in
   let drains = Array.init n (fun k -> r (Printf.sprintf "open_drain_%d" k) 8) in
   let events = Array.init n (fun k -> r (Printf.sprintf "mailbox_%d" k) 1) in
@@ -34,11 +60,19 @@ let create_with_memory ?(debug=false) memory_backend (config:Config.t) =
   let instructions=control 32 and tx_pop=control 1 and rx_push=control 1
   and rx_data=control width and tx_push=control 1 and tx_data=control width
   and rx_pop=control 1 in
-  let txs=Array.init n (fun k -> Processor_fifo.create ~clock ~clear:(clear |: flushes.(k))
-      ~width ~depth:config.fifo_words ~push:tx_push.(k) ~pop:tx_pop.(k) ~data:tx_data.(k)) in
-  let rxs=Array.init n (fun k -> Processor_fifo.create ~clock ~clear:(clear |: flushes.(k))
-      ~width ~depth:config.fifo_words ~push:rx_push.(k) ~pop:rx_pop.(k) ~data:rx_data.(k)) in
-  let engines=Array.init n (fun k -> Engine.create config
+  let storage = if not options.fifo_storage_reset then Processor_fifo.Memory
+    else if async then Processor_fifo.Registers_async_reset clear
+    else Processor_fifo.Registers_sync_clear clear in
+  (* Asynchronous styles: the chip reset is the queues' asynchronous reset and
+     FLUSH alone stays their synchronous clear. *)
+  let fifo k ~push ~pop ~data =
+    if async then Processor_fifo.create_with ~async_reset:(Some clear) ~storage ~clock
+        ~clear:flushes.(k) ~width ~depth:config.fifo_words ~push ~pop ~data
+    else Processor_fifo.create_with ~async_reset:None ~storage ~clock
+        ~clear:(clear |: flushes.(k)) ~width ~depth:config.fifo_words ~push ~pop ~data in
+  let txs=Array.init n (fun k -> fifo k ~push:tx_push.(k) ~pop:tx_pop.(k) ~data:tx_data.(k)) in
+  let rxs=Array.init n (fun k -> fifo k ~push:rx_push.(k) ~pop:rx_pop.(k) ~data:rx_data.(k)) in
+  let engines=Array.init n (fun k -> Engine.create ~options config
       {clock; clear; start=starts.(k); stop=stops.(k); clear_fault=clears.(k);
        instruction=instructions.(k); image_length=lengths.(k).value;
        ownership=owners.(k).value; pins=synced_pins; timestamp=timestamp.value;
@@ -56,7 +90,7 @@ let create_with_memory ?(debug=false) memory_backend (config:Config.t) =
   let fault_engine_mask = concat_lsb (Array.to_list (Array.map (fun (e:Engine.t)->e.fault <>:. 0) engines)) in
   let any_fault = host_fault.value |: (fault_engine_mask <>:. 0) in
   let read_data=wire 32 and read_valid=wire 1 and write_ready=wire 1 in
-  let host=Host.create ~clock ~clear ~ui ~write_ready ~read_valid ~read_data
+  let host=Host.create_with ~async ~clock ~clear ~ui ~write_ready ~read_valid ~read_data
       ~irq:(any (List.init n (fun k->events.(k).value |: rxs.(k).valid))) ~fault:any_fault in
   let code=select host.word 31 24 and payload=select host.word 23 0 in
   let selected_is k = selected.value ==:. k in
@@ -71,7 +105,9 @@ let create_with_memory ?(debug=false) memory_backend (config:Config.t) =
     | 0 -> payload <:. n
     | 1 -> payload ==:. 0
     | 2 -> halted &: selected_var writing &: (payload <>:. 0) &: (payload <=:. config.program_words)
-           &: (uresize payload 16 ==: selected_var loaded)
+           &: (if options.narrow_image_regs
+               then uresize payload 16 ==: uresize (selected_var loaded) 16
+               else uresize payload 16 ==: selected_var loaded)
     | 3 -> halted &: (select payload 23 16 ==:. 0) &: ~:overlap
            &: ((drain &: ~:own) ==:. 0)
     | 4 -> mask_ok &: all (List.init n (fun k -> (~:(bit payload k))
@@ -103,8 +139,11 @@ let create_with_memory ?(debug=false) memory_backend (config:Config.t) =
                               uresize (selected_fifo txs (fun (f:Processor_fifo.t)->f.level)) 16] in
   let status_data=mux read_select.value [status; timestamp.value; fifo_levels;
       uresize (selected_engine (fun (e:Engine.t)->e.pc)) 32;
-      uresize (selected_var events) 32; selected_engine (fun (e:Engine.t)->e.completed);
-      uresize (selected_engine (fun (e:Engine.t)->e.rx_data)) 32; of_int ~width:32 2] in
+      uresize (selected_var events) 32;
+      (if options.debug_counters then selected_engine (fun (e:Engine.t)->e.completed)
+       else zero 32);
+      uresize (selected_engine (fun (e:Engine.t)->e.rx_data)) 32;
+      of_int ~width:32 (Variant_options.isa_version options)] in
   read_data <== mux2 (host.window ==:. 3)
       (uresize (selected_fifo rxs (fun (f:Processor_fifo.t)->f.data)) 32) status_data;
   Array.iteri (fun k _ ->
@@ -182,7 +221,7 @@ let create_with_memory ?(debug=false) memory_backend (config:Config.t) =
        [committed.(k) <--. 0; writing.(k) <--. 1; loaded.(k) <--. 0; lengths.(k) <--. 0];
      when_ (program_write &: is_selected) [loaded.(k) <-- loaded.(k).value +:. 1];
      when_ (command 2 &: is_selected)
-       [committed.(k) <--. 1; writing.(k) <--. 0; lengths.(k) <-- select payload 15 0];
+       [committed.(k) <--. 1; writing.(k) <--. 0; lengths.(k) <-- select payload (iw-1) 0];
      when_ (command 3 &: is_selected) [owners.(k) <-- own; drains.(k) <-- drain];
      when_ (command 11 &: is_selected) [trigger_config.(k) <-- select payload 5 0];
      when_ engines.(k).consume_event [events.(k) <--. 0];
@@ -240,8 +279,8 @@ let create_with_memory ?(debug=false) memory_backend (config:Config.t) =
   Circuit.create_exn ~name:(if debug then "protocol_processor_debug" else "tt_um_protocol_processor")
     (outputs @ debug_outputs)
 
-let create ?debug config = create_with_memory ?debug Baseline config
+let create ?debug ?options config = create_with_memory ?debug ?options Baseline config
 let create_refinement ?debug (config:Refinement_config.t) =
-  create_with_memory ?debug Ihp_pair config.architecture
+  create_with_memory ?debug ~options:config.options Ihp_pair config.architecture
 let create_refinement_model ?debug (config:Refinement_config.t) =
-  create_with_memory ?debug Synchronous_model config.architecture
+  create_with_memory ?debug ~options:config.options Synchronous_model config.architecture

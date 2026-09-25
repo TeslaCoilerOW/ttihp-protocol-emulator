@@ -22,7 +22,7 @@ let adapter_impl ~model () =
 let engine_impl ~model (refinement:Refinement_config.t) =
   let config=refinement.architecture in
   let clock=input "clk" 1 and clear=input "clear" 1 and instruction=wire 32 in
-  let e=Engine.create config {
+  let e=Engine.create ~options:refinement.options config {
     clock;clear;instruction;start=input "start" 1;stop=input "stop" 1;
     clear_fault=input "clear_fault" 1;image_length=input "image_length" 24;
     ownership=input "ownership" 8;pins=input "pins" 8;timestamp=input "timestamp" 32;

@@ -6,7 +6,11 @@ val architecture_of_json : Yojson.Safe.t -> architecture
 val architecture_to_json : architecture -> Yojson.Safe.t
 val flagship : architecture
 val opcode : string -> int
-val encode : architecture -> owned_pins:int -> instruction -> int32
+
+(** [byte_lane_shifts] (default false) additionally rejects SHL/SHR counts
+    that are not a multiple of 8 (targets built with shift=byte_lane). *)
+val encode : ?byte_lane_shifts:bool -> architecture -> owned_pins:int -> instruction -> int32
+
 val minimum_cycles : instruction -> int
 val blocking : instruction -> string
 val instruction : ?a:int -> ?b:int -> ?c:int -> ?imm:int -> string -> instruction

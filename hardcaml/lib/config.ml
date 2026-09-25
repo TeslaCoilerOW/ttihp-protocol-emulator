@@ -16,7 +16,7 @@ let validate t =
   member "engine_count" t.engine_count [2;4];
   member "data_width" t.data_width [16;32];
   member "program_words" t.program_words [32;64;128];
-  member "fifo_words" t.fifo_words [8;32];
+  member "fifo_words" t.fifo_words [2;4;8;32];
   if not (List.mem t.issue ["scalar";"fused"]) then invalid_arg "invalid issue";
   t
 

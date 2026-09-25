@@ -16,14 +16,36 @@ type t = {
   blocked_cycles : Signal.t; repeat_count : Signal.t; transfer_edges : Signal.t;
 }
 
-let create (config:Config.t) (i:inputs) =
+(* [options] (default: the design of record) selects the variant knobs that
+   live inside an engine.  With an asynchronous reset style [i.clear] is the
+   chip-wide asynchronous reset net rather than a synchronous clear; it still
+   gates [active] combinationally, exactly as in the synchronous design. *)
+let create ?(options=Variant_options.default) (config:Config.t) (i:inputs) =
   let open Always in
   let width = config.data_width in
-  let spec = Reg_spec.create ~clock:i.clock ~clear:i.clear () in
+  let spec = if Variant_options.asynchronous options
+    then Reg_spec.create ~clock:i.clock ~reset:i.clear ()
+    else Reg_spec.create ~clock:i.clock ~clear:i.clear () in
   let r name w = let v = Variable.reg spec ~width:w in
     ignore (v.value -- name); v in
-  let pc = r "pc" 24 and running = r "running" 1 and fault = r "fault_code" 8 in
-  let image_length = uresize i.image_length 24 in
+  let pcw = Variant_options.pc_width options in
+  let pc = r "pc" pcw and running = r "running" 1 and fault = r "fault_code" 8 in
+  let image_length = uresize i.image_length pcw in
+  (* Saturating PC: a branch target >= 2^pcw becomes the all-ones PC (127),
+     which is outside every image (<= 64 words) and so still faults with
+     code 2.  Identity for the 24-bit PC. *)
+  let sat v = if pcw = 24 then v
+    else mux2 (select v 23 pcw <>:. 0) (ones pcw) (select v (pcw-1) 0) in
+  let byte_lane = options.shift = Variant_options.Byte_lane in
+  (* Byte-lane shifts: only counts 0, 8, 16, 24 (below the datapath width)
+     are valid; any other count is an invalid operand (fault code 1). *)
+  let lane_bits = Config.log2 (width / 8) in
+  let byte_shift op d c =
+    mux (select c (2 + lane_bits) 3)
+      (List.init (width / 8) (fun k -> if k = 0 then d else op d (8 * k))) in
+  let shift_valid c = if byte_lane
+    then (c <:. width) &: ((c &: of_int ~width:8 0xe7) ==:. 0)
+    else c <:. width in
   let regs = Array.init 4 (fun n -> r ([|"tx";"rx";"x";"y"|].(n)) width) in
   let tx = regs.(0) and rx = regs.(1) in
   let repeat = r "repeat_count" 16 and timer = r "wait_timer" 24 in
@@ -67,7 +89,7 @@ let create (config:Config.t) (i:inputs) =
       &: ((~:(bit c 3)) |: (ck <>: out))
     | 18|20|21|22|23 -> reg_pair
     | 19|26 -> a <:. 4
-    | 24|25 -> (a <:. 4) &: (b ==:. 0) &: (c <:. width)
+    | 24|25 -> (a <:. 4) &: (b ==:. 0) &: shift_valid c
     | 27|28 -> (a <:. 4) &: bc_zero
     | 29 -> (select word 23 8 ==:. 0) &: (low8 <>:. 0)
     | _ -> gnd)) in
@@ -103,7 +125,7 @@ let create (config:Config.t) (i:inputs) =
         2,finish @ [values <-- low8];
         3,finish @ [enables <-- low8];
         4,finish @ [timer <-- imm24];
-        5,[pc <-- imm24; completed <-- completed.value +:. 1; blocked <--. 0];
+        5,[pc <-- sat imm24; completed <-- completed.value +:. 1; blocked <--. 0];
         6,[when_ i.tx_valid (finish @ [tx <-- i.tx_data])];
         7,[if_ i.rx_ready finish [when_ (a ==:. 1) (fail (of_int ~width:8 4))]];
         8,finish @ [values <-- write_pin values.value pin (tx_bit (bit c 0) tx.value);
@@ -111,7 +133,7 @@ let create (config:Config.t) (i:inputs) =
         9,finish @ [rx <-- sample (bit c 0) pin_input];
         10,finish @ [repeat <-- imm16];
         11,finish @ [when_ (repeat.value <>:. 0)
-                      [repeat <-- repeat.value -:. 1; pc <-- imm24]];
+                      [repeat <-- repeat.value -:. 1; pc <-- sat imm24]];
         12,finish @ [limit <-- imm24];
         13,[blocked_step (~:waiting_pin)];
         14,finish;
@@ -130,9 +152,11 @@ let create (config:Config.t) (i:inputs) =
         21,finish @ write_reg (destination ^: source);
         22,finish @ write_reg (destination &: source);
         23,finish @ write_reg (destination |: source);
-        24,finish @ write_reg (log_shift sll destination c);
-        25,finish @ write_reg (log_shift srl destination c);
-        26,finish @ [when_ (destination ==:. 0) [pc <-- uresize imm16 24]];
+        24,finish @ write_reg (if byte_lane then byte_shift sll destination c
+                               else log_shift sll destination c);
+        25,finish @ write_reg (if byte_lane then byte_shift srl destination c
+                               else log_shift srl destination c);
+        26,finish @ [when_ (destination ==:. 0) [pc <-- sat (uresize imm16 24)]];
         27,finish @ write_reg (~:destination);
         28,finish @ write_reg (uresize i.timestamp width);
         29,fail low8;
@@ -168,24 +192,43 @@ let create (config:Config.t) (i:inputs) =
               [if_ (xremaining.value <>:. 0) transfer ordinary]]]]];
   {pc=pc.value; running=running.value; fault=fault.value; stalled;
    tx_pop; rx_push; rx_data=rx.value; pin_values=values.value;
-   pin_enables=enables.value; signal_events; consume_event; completed=completed.value;
+   pin_enables=enables.value; signal_events; consume_event;
+   (* Without debug counters the completed register has no reader and is not
+      emitted; READ_SELECT 5 reads zero. *)
+   completed=(if options.debug_counters then completed.value else zero 32);
    issue; wait_timer=timer.value; wait_limit=limit.value; blocked_cycles=blocked.value;
    repeat_count=repeat.value; transfer_edges=xremaining.value}
 
 (* Observe the D input compiled from the single Always control tree above.
-   Synchronous clear is register metadata, so include it explicitly.  Do not
-   reproduce instruction decoding here: every branch, hold, fault and START
-   must use precisely the same next state as the actual PC register. *)
+   Synchronous clear and asynchronous reset are register metadata, so include
+   them explicitly.  Do not reproduce instruction decoding here: every branch,
+   hold, fault and START must use precisely the same next state as the actual
+   PC register.  Two register forms are accepted: the design of record
+   (synchronous active-high clear to zero, no reset) and the asynchronous
+   variants (active-high asynchronous reset to zero, no clear).  With an
+   asynchronous reset the value after an edge at which reset is asserted is
+   the reset value.  A 7-bit (saturating) PC is zero-extended to 24 bits. *)
 let next_pc (engine:t) =
   match engine.pc with
   | Signal.Type.Reg {register;d;_} ->
-    let clear_is_zero = match register.reg_clear_value with
+    let is_zero = function
       | Signal.Type.Const {constant;_} -> Bits.to_int constant = 0
       | _ -> false in
-    if width engine.pc <> 24 || register.reg_clock_edge <> Edge.Rising
-       || not (is_empty register.reg_reset) || is_empty register.reg_clear
-       || register.reg_clear_level <> Level.High || not clear_is_zero
-       || not (is_vdd register.reg_enable)
-    then invalid_arg "Engine.next_pc: unsupported PC register semantics";
-    mux2 register.reg_clear register.reg_clear_value d
+    let clear_is_zero = is_zero register.reg_clear_value in
+    let pc_width = width engine.pc in
+    if is_empty register.reg_reset then begin
+      if pc_width <> 24 && pc_width <> 7 || register.reg_clock_edge <> Edge.Rising
+         || is_empty register.reg_clear
+         || register.reg_clear_level <> Level.High || not clear_is_zero
+         || not (is_vdd register.reg_enable)
+      then invalid_arg "Engine.next_pc: unsupported PC register semantics";
+      uresize (mux2 register.reg_clear register.reg_clear_value d) 24
+    end else begin
+      if pc_width <> 24 && pc_width <> 7 || register.reg_clock_edge <> Edge.Rising
+         || not (is_empty register.reg_clear)
+         || register.reg_reset_edge <> Edge.Rising || not (is_zero register.reg_reset_value)
+         || not (is_vdd register.reg_enable)
+      then invalid_arg "Engine.next_pc: unsupported PC register semantics";
+      uresize (mux2 register.reg_reset register.reg_reset_value d) 24
+    end
   | _ -> invalid_arg "Engine.next_pc: PC must remain a register"

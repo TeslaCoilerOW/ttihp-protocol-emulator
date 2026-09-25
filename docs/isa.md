@@ -175,3 +175,60 @@ wins simultaneous mailbox consumption. Pending bits coalesce repeated events;
 they are not edge counters. Host EVENT, engine SIGNAL and pin-trigger deliveries
 are ORed. Invalid or running-engine TRIGGER commands reject atomically with the
 ordinary sticky host fault. READ_SELECT6 zero-extends a 16-bit held RX register.
+
+## Configuration variants
+
+The sections above are the contract of the design of record
+(`configs/instruction-sram-32.json`). The area and reset variants of
+`docs/area-study.md` (sections 4, 5 and 8) are refinement configs with an
+optional `"options"` object (`configs/variants/<name>.json`). A config without
+`"options"` is the design of record. Each option changes the contract only as
+stated here. The Hardcaml RTL (`hardcaml/lib/variant_options.ml`), the
+assembler and the reference model (`test/model/variant.py`) implement this
+section.
+
+| option | values (default first) | contract change |
+|---|---|---|
+| `reset` | `sync`, `sync_registered`, `async`, `async_sync_release` | reset timing, below |
+| `fifo_storage_reset` | `false`, `true` | none: queue storage words take the chip reset; stored words are never observable while a queue is empty |
+| `narrow_image_regs` | `false`, `true` | none: the image length and loaded-word registers are log2(program words)+1 bits wide; both are at most the program capacity |
+| `debug_counters` | `true`, `false` | `false`: no completed-instruction counters; READ_SELECT 5 reads 0 |
+| `pc_bits` | `full`, `saturating_7` | `saturating_7`: a 7-bit PC. A JMP, LOOP or JZ target, or a next PC, of 128 or more becomes 127. 127 is outside every image (at most 64 words in this refinement), so the next issue faults with code 2 exactly as the unsaturated PC would; READ_SELECT 3 then reads 127 instead of the target |
+| `shift` | `barrel`, `byte_lane` | `byte_lane`: SHL/SHR accept only c = 0, 8, 16 or 24 (and c < datapath width); any other count faults with invalid-operand code 1. The assembler rejects other counts |
+
+The architecture field `fifo_words` also admits 2 and 4. Every queue rule above
+applies unchanged at that depth; a host that needs more than `fifo_words` words
+queued must top a queue up while its engine runs
+(`firmware/flagship-scenario-topup.json` is the flagship scenario written that
+way).
+
+**ISA version.** READ_SELECT 7 reads 3 when `debug_counters` is `false`,
+`pc_bits` is `saturating_7` or `shift` is `byte_lane`, and 2 otherwise. An ISA-2
+image runs unchanged on a version-3 device when all its shift counts are byte
+lanes and all its targets are below 128; every image in `firmware/` qualifies
+(all shifting images use c = 24; the largest target is 54).
+
+**Reset styles.** Let *raw* mean that `rst_n` is low or `ena` is low. Like any
+input it is sampled before a rising edge. *Reset* means the reset of the Machine
+section: release all output enables, stop all engines, invalidate program
+images, and clear queues, mailboxes and control state. While the chip is in
+reset its pin outputs and the host ready/valid bits are masked, as in the design
+of record.
+
+- `sync` (design of record): an edge sampled with raw resets.
+- `sync_registered`: raw passes through two flip-flops first. An edge resets
+  when raw was sampled two edges earlier, so both assertion and release take
+  effect two edges late; after `rst_n` rises the chip stays in reset for two
+  more edges (write-ready stays low). The two flip-flops have no reset: after
+  power-up, hold `rst_n` low for at least three edges.
+- `async`: raw resets every register asynchronously, so the state and the
+  public outputs are already reset before the first edge that samples raw. The
+  first edge sampled without raw operates normally. When the inputs change
+  between edges, the edge-by-edge behaviour equals `sync`. FLUSH stays a
+  synchronous clear.
+- `async_sync_release`: assertion as `async`; release through a two-flop
+  synchronizer. The first two edges sampled without raw still reset; the chip
+  operates normally from the third edge.
+
+With `sync_registered` and `async_sync_release` a host waits two cycles (or for
+write-ready in window 0) after reset or deselection before its first command.

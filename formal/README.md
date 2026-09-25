@@ -223,6 +223,58 @@ it unboundedly in 216 s (353 s on the login node).
 `engine_safety` is not inductive as written (k-induction depth 4 fails on an
 unreachable state), so it stays a BMC job.
 
+## Design variants
+
+```sh
+formal/run.sh --variant diet4            # generate, then every job, for configs/variants/diet4.json
+formal/run.sh --variant cn --no-generate timing_isolation_prove_k0
+VARIANT_CORES=/path/to/cores formal/run.sh --variant cn_s2   # also check the core against cores/cn_s2.v
+```
+
+`--variant NAME` (or `FORMAL_VARIANT`) runs the same 16 jobs on a design variant
+(`docs/isa.md`, "Configuration variants"). Without it nothing changes. The
+build tree is `formal/build/variants/NAME/`.
+
+- **RTL.** `processor_debug.v` and `processor_fv.v` come from the same
+  generators, which read the refinement's `"options"`. The standalone
+  `fifo.v` and `engine.v` come from `gen/variant/generate_blocks.ml`, which
+  calls `Fifo.create_with` and `Engine.create ~options` as the processor does,
+  because `hardcaml/bin/generate_formal.exe` reads an architecture config with
+  no options. In the asynchronous reset styles the FIFO has a separate
+  asynchronous chip reset `rst`, and `clear` is FLUSH. `reset_safety` reads the
+  variant core, generated with `generate_refinement.exe`. With `VARIANT_CORES`
+  it must equal the published `NAME.v` below its header line.
+- **Harness settings.** `variant_sby.py` writes the `.sby` files to
+  `formal/build/variants/NAME/sbyfiles/`, with the defines below on every
+  `read -formal` line. It sets `DEPTH` to `fifo_words`, `PCW` (engine and miter)
+  to the PC width and `IW` (miter) to the image-register width.
+
+| option | defines | harness effect |
+|---|---|---|
+| `reset: sync_registered` | `RESET_SYNC_REGISTERED CLEAR_AT_START RESET_SYNC` | `reset_safety`: outputs released after every edge that follows a raw reset request three steps back; processor BMC starts from a clearing edge (`assume(clear)`); miter: the two synchronizer flops are shared state |
+| `reset: async` | `RESET_ASYNC ASYNC_RESET` | `reset_safety` also asserts released outputs while raw is high; FIFO/engine/processor next-state assertions apply while the clear is low, and the reset state is asserted while it is high |
+| `reset: async_sync_release` | `RESET_ASYNC_SYNC_RELEASE ASYNC_RESET RESET_SYNC` | as `async`, plus outputs released after every edge within two edges of a raw request; synchronizer flops shared in the miter |
+| `debug_counters: false` | `NO_COUNTERS` | `engine_safety`: the completed count stays 0; the miter observes it as 0 (`generate_fv.ml` exports zeros) |
+| `pc_bits: saturating_7` | `PC_SAT`, `PCW=7` | `engine_safety`: a JMP target, a LOOP target (repeat count non-zero) or a taken JZ target of 128 or more gives PC 127; LOOP also decrements the repeat count, and with a zero count it falls through |
+| `shift: byte_lane` | `BYTE_LANE` | `engine_safety`: an issuable SHL/SHR with a non-lane count faults with code 1 and keeps its PC; a lane count completes, and a lane shift of RX (register 1) leaves RX shifted by the count |
+
+The PC-saturation and lane-shift assertions are checked for non-vacuity by
+three controls that are not part of the job list. Each replaces one assertion
+by a wrong expectation and must give a counterexample from that assertion:
+`-DVNEG_LOOP` (a saturating LOOP lands on `target[6:0]`), `-DVNEG_JZ` (a JZ
+to 128 or more never branches) and `-DVNEG_LANE` (a lane shift of RX leaves it
+unchanged). Add the define to the `read -formal` line of the derived
+`formal/build/variants/NAME/sbyfiles/engine_safety.sby` and run its `bmc` task.
+
+sby's default `async2sync` models an asynchronous reset as taking effect
+within the cycle in which it is asserted. The asynchronous-style assertions are
+written for that model.
+
+`generate_fv.ml` attributes 18 engine registers when there are no debug
+counters. It exports the PC and image registers at their native widths, and
+the reset synchronizer as `fv_reset_sync`. For the design of record its
+output is unchanged.
+
 ## Limits
 
 - The timing-isolation result holds for the environment above. Engine K's
@@ -245,4 +297,5 @@ unreachable state), so it stays a BMC job.
   assumptions leave room for divergent traffic around engine K; they are not a
   claim that each witness context is reachable from reset.
 - The `.sby` `chparam` values assume 4 engines, 32-bit data and 8-word FIFOs.
-  `run.sh` checks this against the config before running.
+  `run.sh` checks this against the config before running. With `--variant`
+  the FIFO depth and the variant parameters come from the config instead.

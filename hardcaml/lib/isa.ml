@@ -29,7 +29,7 @@ let architecture_of_json j =
   if not (List.mem engine_count [2;4]) then fail "engine_count must be 2 or 4";
   if not (List.mem data_width [16;32]) then fail "data_width must be 16 or 32";
   if not (List.mem program_words [32;64;128]) then fail "program_words must be 32, 64 or 128";
-  if not (List.mem fifo_words [8;32]) then fail "fifo_words must be 8 or 32";
+  if not (List.mem fifo_words [2;4;8;32]) then fail "fifo_words must be 2, 4, 8 or 32";
   if not (List.mem issue ["scalar";"fused"]) then fail "issue must be scalar or fused";
   {engine_count;data_width;program_words;fifo_words;issue;prefetch}
 let architecture_to_json t = `Assoc [
@@ -47,7 +47,9 @@ let opcode s =
 let instruction ?(a=0) ?(b=0) ?(c=0) ?(imm=0) mnemonic = {mnemonic;a;b;c;imm}
 let range name lo hi n = if n<lo || n>hi then fail "%s must be %d..%d, got %d" name lo hi n
 let zero name n = if n<>0 then fail "unused operand %s must be zero" name
-let encode arch ~owned_pins i =
+(* [byte_lane_shifts]: the target implements SHL/SHR only for counts 0, 8, 16
+   and 24 (RTL variant option shift=byte_lane); any other count is rejected. *)
+let encode ?(byte_lane_shifts=false) arch ~owned_pins i =
   let op = opcode i.mnemonic in
   range "owned_pins" 0 255 owned_pins;
   range "a" 0 255 i.a; range "b" 0 255 i.b; range "c" 0 255 i.c;
@@ -77,7 +79,9 @@ let encode arch ~owned_pins i =
       range "XFER flags" 0 31 i.c
    | 18|20|21|22|23 -> no_imm ();reg i.a;reg i.b;zero "c" i.c
    | 19 -> reg i.a;imm16 ()
-   | 24|25 -> no_imm ();reg i.a;zero "b" i.b;range "shift count" 0 (arch.data_width-1) i.c
+   | 24|25 -> no_imm ();reg i.a;zero "b" i.b;range "shift count" 0 (arch.data_width-1) i.c;
+      if byte_lane_shifts && i.c land 7<>0 then
+        fail "shift count %d is not a byte lane (0, 8, 16 or 24 below the datapath width)" i.c
    | 26 -> reg i.a;imm16 ();range "branch target" 0 (arch.program_words-1) i.imm
    | 27|28 -> no_imm ();reg i.a;zero "b" i.b;zero "c" i.c
    | 29 -> no_abc ();range "fault code" 1 255 i.imm

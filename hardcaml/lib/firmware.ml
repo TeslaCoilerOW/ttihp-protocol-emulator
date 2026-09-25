@@ -1,8 +1,13 @@
 let names = ["uart-tx";"uart-rx";"spi-controller";"spi-target";
   "i2c-write";"i2c-read";"i2c-repeated-start";"i2c-target-write";
   "i2c-target-read";"jtag";"waveform";"event-transmitter"]
+(* [byte_lane_shifts]: emit only SHL/SHR counts 0/8/16/24 (targets built with
+   shift=byte_lane).  Fused-issue built-ins already comply and are unchanged;
+   scalar SPI replaces its 1-bit shifts by ADD tx,tx and builds its MSB mask
+   from 0x80, with identical timing; scalar JTAG needs a 1-bit SHR and is
+   rejected. *)
 let make ?(architecture=Isa.flagship) ?(half_period=32) ?(mode=0)
-    ?(clock_hz=50_000_000) name =
+    ?(clock_hz=50_000_000) ?(byte_lane_shifts=false) name =
   if not (List.mem name names) then invalid_arg ("unknown firmware "^name);
   if half_period<8 || half_period>255 then invalid_arg "half-period must be 8..255";
   if mode<0 || mode>3 then invalid_arg "SPI mode must be 0..3";
@@ -51,7 +56,9 @@ let make ?(architecture=Isa.flagship) ?(half_period=32) ?(mode=0)
     e "SET" ~imm:idle;
     if architecture.issue="fused" then e "XFER" ~a:8 ~b:p ~c:(28 lor cpol lor (cpha lsl 1))
     else begin
-      e "LOAD" ~a:3 ~imm:1;e "SHL" ~a:3 ~c:(width-1);e "COUNT" ~imm:7;
+      if byte_lane_shifts then begin e "LOAD" ~a:3 ~imm:0x80;e "SHL" ~a:3 ~c:(width-8) end
+      else begin e "LOAD" ~a:3 ~imm:1;e "SHL" ~a:3 ~c:(width-1) end;
+      e "COUNT" ~imm:7;
       e "MOV" ~a:2 ~b:0 ~label:"bit";e "AND" ~a:2 ~b:3;
       e "JZ" ~a:2 ~target:"zero";
       let bit_path v =
@@ -61,7 +68,9 @@ let make ?(architecture=Isa.flagship) ?(half_period=32) ?(mode=0)
           e "SET" ~imm:(idle lor v);e "IN" ~a:miso ~c:1;wait (p-2) end in
       bit_path (pin mosi);jmp "shift";
       e "NOP" ~label:"zero";bit_path 0;
-      e "SHL" ~a:0 ~c:1 ~label:"shift";e "LOOP" ~target:"bit"
+      if byte_lane_shifts then e "ADD" ~a:0 ~b:0 ~label:"shift"
+      else e "SHL" ~a:0 ~c:1 ~label:"shift";
+      e "LOOP" ~target:"bit"
     end;
     e "SET" ~imm:(idle lor pin cs);e "PUSH";jmp "next_byte";
     2 mod architecture.engine_count,mask,0,[Printf.sprintf "SPI controller mode%d, MSB-first 8-bit full duplex; pins SCK2/MOSI3/MISO4/CSn5." mode;
@@ -191,6 +200,8 @@ let make ?(architecture=Isa.flagship) ?(half_period=32) ?(mode=0)
     e "PULL" ~label:"scan";e "LOAD" ~a:1;
     if architecture.issue="fused" then e "XFER" ~a:8 ~b:p ~c:24
     else begin
+      if byte_lane_shifts then
+        invalid_arg "jtag scalar expansion needs a 1-bit SHR, which byte-lane shifts do not provide";
       e "LOAD" ~a:3 ~imm:1;e "COUNT" ~imm:7;
       e "MOV" ~a:2 ~b:0 ~label:"bit";e "AND" ~a:2 ~b:3;
       e "JZ" ~a:2 ~target:"zero";

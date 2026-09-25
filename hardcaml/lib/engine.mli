@@ -20,8 +20,12 @@ type t = {
   repeat_count : Hardcaml.Signal.t; transfer_edges : Hardcaml.Signal.t;
 }
 
-val create : Config.t -> inputs -> t
+(** [options] (default [Variant_options.default]) selects the engine-level
+    variant knobs: reset style (synchronous clear or asynchronous reset from
+    [clear]), debug counters, PC width and shift implementation. *)
+val create : ?options:Variant_options.t -> Config.t -> inputs -> t
 
-(** Actual compiled PC D input including synchronous clear.  Rejects a changed
-    clock/reset/enable contract rather than duplicating the control decoder. *)
+(** Actual compiled PC next value (24 bits) including the synchronous clear or
+    asynchronous reset.  Rejects any other clock/reset/enable contract rather
+    than duplicating the control decoder. *)
 val next_pc : t -> Hardcaml.Signal.t

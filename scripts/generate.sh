@@ -1,13 +1,22 @@
 #!/usr/bin/env bash
 # Regenerate src/protocol_emulator_core.v from the Hardcaml sources in hardcaml/.
 #
-# Usage: scripts/generate.sh [CONFIG_JSON]
-#   CONFIG_JSON  default configs/instruction-sram-32.json. A refinement config
-#                (schema protocol-emulator.refinement.v1) uses the SRAM
-#                generator; an architecture config uses the register-store one.
+# Usage: scripts/generate.sh [CONFIG_JSON | --variant NAME] [--output FILE]
+#   CONFIG_JSON     default configs/instruction-sram-32.json. A refinement config
+#                   (schema protocol-emulator.refinement.v1, optional "options"
+#                   object with the variant knobs of docs/variants.md) uses the
+#                   SRAM generator; an architecture config uses the
+#                   register-store one.
+#   --variant NAME  use configs/variants/NAME.json and write
+#                   build/variants/NAME/protocol_emulator_core.v (gitignored)
+#                   unless an output is given.
+#   --output FILE   output file (overrides OUTPUT).
+# With no arguments the behaviour is unchanged: src/protocol_emulator_core.v
+# from configs/instruction-sram-32.json.
 #
 # Environment:
-#   OUTPUT          output file (default src/protocol_emulator_core.v)
+#   OUTPUT          output file (default src/protocol_emulator_core.v, or the
+#                   variant path above)
 #   DUNE_BUILD_DIR  dune build directory (default hardcaml/_build)
 #   DUNE_JOBS       dune parallelism (default 2)
 #   OCAML_ENV       optional shell file to source when dune is not on PATH
@@ -22,8 +31,29 @@ MODULE_NAME=protocol_emulator_core
 
 abspath() { case "$1" in /*) printf '%s\n' "$1" ;; *) printf '%s\n' "$PWD/$1" ;; esac; }
 
-CONFIG=$(abspath "${1:-$REPO/configs/instruction-sram-32.json}")
-OUTPUT=$(abspath "${OUTPUT:-$REPO/src/protocol_emulator_core.v}")
+CONFIG_ARG="" VARIANT="" OUTPUT_ARG=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --variant) [ $# -ge 2 ] || { echo "generate.sh: --variant needs a name" >&2; exit 2; }
+               VARIANT=$2; shift 2 ;;
+    --output)  [ $# -ge 2 ] || { echo "generate.sh: --output needs a file" >&2; exit 2; }
+               OUTPUT_ARG=$2; shift 2 ;;
+    -h|--help) sed -n '2,30p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -*)        echo "generate.sh: unknown option $1" >&2; exit 2 ;;
+    *)         [ -z "$CONFIG_ARG" ] || { echo "generate.sh: more than one config given" >&2; exit 2; }
+               CONFIG_ARG=$1; shift ;;
+  esac
+done
+if [ -n "$VARIANT" ]; then
+  [ -z "$CONFIG_ARG" ] || { echo "generate.sh: give either CONFIG_JSON or --variant, not both" >&2; exit 2; }
+  case "$VARIANT" in */*|.*|"") echo "generate.sh: bad variant name: $VARIANT" >&2; exit 2 ;; esac
+  CONFIG_ARG=$REPO/configs/variants/$VARIANT.json
+  DEFAULT_OUTPUT=$REPO/build/variants/$VARIANT/protocol_emulator_core.v
+else
+  DEFAULT_OUTPUT=$REPO/src/protocol_emulator_core.v
+fi
+CONFIG=$(abspath "${CONFIG_ARG:-$REPO/configs/instruction-sram-32.json}")
+OUTPUT=$(abspath "${OUTPUT_ARG:-${OUTPUT:-$DEFAULT_OUTPUT}}")
 BUILD_DIR=$(abspath "${DUNE_BUILD_DIR:-$REPO/hardcaml/_build}")
 JOBS=${DUNE_JOBS:-2}
 
@@ -61,6 +91,7 @@ esac
 (cd "$REPO/hardcaml" && dune build --root . --build-dir "$BUILD_DIR" -j "$JOBS" \
   "./bin/$GENERATOR.exe")
 
+mkdir -p "$(dirname "$OUTPUT")"
 TMP=$(mktemp "${OUTPUT}.XXXXXX")
 trap 'rm -f "$TMP" "$TMP.body"' EXIT
 "$BUILD_DIR/default/bin/$GENERATOR.exe" --config "$CONFIG" --output "$TMP.body" \

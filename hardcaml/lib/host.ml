@@ -7,10 +7,13 @@ type t = {
 }
 
 (* The host port is synchronous to clk. Snapshots survive arbitrary read stalls;
-   a read FIFO is only popped after its eighth accepted nibble. *)
-let create ~clock ~clear ~ui ~write_ready ~read_valid ~read_data ~irq ~fault =
+   a read FIFO is only popped after its eighth accepted nibble.
+   With [async] (false in [create]) [clear] is an asynchronous reset for the host
+   registers instead of a synchronous clear; it still gates ready/valid. *)
+let create_with ~async ~clock ~clear ~ui ~write_ready ~read_valid ~read_data ~irq ~fault =
   let open Always in
-  let spec = Reg_spec.create ~clock ~clear () in
+  let spec = if async then Reg_spec.create ~clock ~reset:clear ()
+    else Reg_spec.create ~clock ~clear () in
   let reg w = Variable.reg spec ~width:w in
   let previous_window = reg 2 and write_index = reg 3 and write_buffer = reg 32 in
   let read_index = reg 3 and snapshot = reg 32 and presenting = reg 1 in
@@ -36,3 +39,6 @@ let create ~clock ~clear ~ui ~write_ready ~read_valid ~read_data ~irq ~fault =
       (List.init 8 (fun n -> select snapshot.value (4*n+3) (4*n))) in
   let outputs = concat_msb [fault; irq; rd_valid; wr_ready; nibble] in
   {word; write; window; read_word; read_lock; outputs}
+
+let create ~clock ~clear ~ui ~write_ready ~read_valid ~read_data ~irq ~fault =
+  create_with ~async:false ~clock ~clear ~ui ~write_ready ~read_valid ~read_data ~irq ~fault

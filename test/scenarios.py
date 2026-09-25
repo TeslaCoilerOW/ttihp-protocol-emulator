@@ -42,12 +42,13 @@ async def uart_tx(h: Harness, words: list[int]) -> None:
     h.samples = []
     await h.load_firmware("uart-tx")
     await h.command(SELECT, 0)
-    for word in words[:8]:
+    prefill = min(8, h.model.config.fifo_words)  # 8 on the design of record
+    for word in words[:prefill]:
         await h.write(2, word)
     await h.command(START, 1)
     await h.idle(3)
     started.append(h.cycle)
-    for word in words[8:]:  # remaining bytes under TX backpressure
+    for word in words[prefill:]:  # remaining bytes under TX backpressure
         await h.write(2, word)
     limit = (len(words) + 2) * 11 * BIT_CYCLES
     await h.run_until(lambda: len(monitor.words) == len(words), limit, "UART TX frames")
@@ -108,17 +109,24 @@ async def spi_controller(h: Harness, mode: int, tx: list[int], responses: list[i
     h.samples = []
     await h.load_firmware(f"spi-controller-mode{mode}")
     await h.command(SELECT, 2)
-    for word in tx:
+    depth = h.model.config.fifo_words
+    for word in tx[:depth]:
         await h.write(2, word)
     await h.command(START, 4)
-    limit = len(tx) * (16 * 32 + 64) + 200
-    await h.run_until(lambda: len(h.engine(2).rx) == len(tx), limit, f"SPI mode{mode} transfers")
-    await h.idle(8)
+    if depth >= len(tx):  # the design of record: every word queued before START
+        limit = len(tx) * (16 * 32 + 64) + 200
+        await h.run_until(lambda: len(h.engine(2).rx) == len(tx), limit, f"SPI mode{mode} transfers")
+        await h.idle(8)
+    else:  # small queues: top up TX under backpressure, then read MISO words as they arrive
+        for word in tx[depth:]:
+            await h.write(2, word)
+        early = [await h.read(3) for _ in tx]
+        await h.idle(8)
     assert not target.violations, target.violations
     assert target.received == tx, f"SPI target received {target.received} != {tx}"
     cpol, cpha = mode >> 1, mode & 1
     assert spi_decode(h.samples, clock=2, data=3, select=5, cpol=cpol, cpha=cpha) == tx
-    got = [await h.read(3) for _ in tx]
+    got = [await h.read(3) for _ in tx] if depth >= len(tx) else early
     assert got == [r & 0xFF for r in responses[:len(tx)]], f"SPI mode{mode} MISO words {got} != {responses}"
     h.assert_no_faults()
     await h.command(STOP, 4)
@@ -255,5 +263,115 @@ async def flagship(h: Harness) -> dict[str, Any]:
     await h.command(SELECT, 2)
     got = [await h.read(3) for _ in range(total)]
     assert got == expected["engine2_rx_words"], got
+    h.assert_no_faults()
+    return {"cycles_to_complete": elapsed}
+
+
+class _NoFaults:
+    """Observer: fail as soon as the model reports a host or engine fault."""
+
+    def before(self, h: Harness, ui: int, pins: int) -> None:
+        pass
+
+    def after(self, h: Harness) -> None:
+        h.assert_no_faults()
+
+
+async def flagship_topup(h: Harness, name: str = "flagship-scenario-topup.json",
+                         spi_image: str | None = None) -> dict[str, Any]:
+    """firmware/flagship-scenario-topup.json: the flagship workload for 2..32-word queues.
+
+    The host prefills at most ``fifo_words`` words, starts all engines, then
+    polls: top up engine 0's UART TX queue, drain engine 2's RX queue (SPI MISO
+    words). Every decision is taken from the chip's ready/valid pins
+    (try_write/try_read give up after ``max_wait_cycles``), never from the model.
+    ``spi_image`` replaces engine 2's SPI controller image (e.g. spi-controller-fast).
+    """
+    scenario = json.loads((FIRMWARE / name).read_text())
+    stimulus, expected = scenario["stimulus"], scenario["expected"]
+    depth = h.model.config.fifo_words
+    assert depth == scenario["architecture"]["fifo_words"] or depth in scenario["also_valid_fifo_words"]
+    wait = scenario["host_poll"]["max_wait_cycles"]
+    await h.start()
+    peer = I2CPeer(stretch_cycles=3)
+    bus = OpenDrainI2CBus(peer)
+    spi = SpiTarget(0, [stimulus["spi_return_word"]])
+    uart_in = UartSource(stimulus["uart_rx_words"], bit_cycles=stimulus["uart_bit_cycles"],
+                         gap_cycles=stimulus["uart_interframe_idle_cycles"])
+    uart_out = UartMonitor(bit_cycles=stimulus["uart_bit_cycles"])
+
+    def pins(cycle: int, out: Outputs) -> int:
+        pads = pad_value(out, 0xFF)
+        pads = (pads & ~bus.mask) | (bus.resolve(out) & bus.mask)
+        miso = spi.update(pads)
+        pads = (pads & ~0x12) | uart_in.level(cycle) << 1 | miso << 4
+        uart_out.sample(cycle, bit(pads, 0))
+        return pads
+
+    h.pins = pins
+    h.samples = []
+    for entry in scenario["images"]:
+        image_name = entry["source"].removesuffix(".source.json")
+        if spi_image is not None and entry["engine"] == 2:
+            image_name = spi_image
+        image = await h.load_firmware(image_name)
+        assert image["engine"] == entry["engine"]
+    pending = {entry["engine"]: list(entry["words"]) for entry in scenario["host_tx"]}
+    for engine, words in pending.items():  # engines are halted: exactly min(depth, n) fit
+        await h.command(SELECT, engine)
+        for _ in range(min(depth, len(words))):
+            await h.write(2, words.pop(0))
+    for route in scenario["routes"]:
+        await h.command(ROUTE, route["source_engine"] | route["destination_engine"] << 2 | 16
+                        | route["word_count"] << 5)
+    await h.command(START, scenario["start_mask"])
+    uart_in.start = h.cycle + 96
+    started = h.cycle
+    total = len(expected["spi_mosi_words"])
+    drains = {entry["engine"]: entry["word_count"] for entry in scenario["host_rx_drain"]}
+    drained: dict[int, list[int]] = {engine: [] for engine in drains}
+    guard = _NoFaults()
+    h.observers.append(guard)
+
+    def done() -> bool:
+        return (len(uart_out.words) >= len(expected["uart_tx_words"]) and len(spi.received) >= total
+                and peer.stops >= 1 and all(len(drained[e]) >= n for e, n in drains.items())
+                and not any(pending.values()))
+
+    limit = 96 + len(uart_in.words) * uart_in.frame_cycles + 4000
+    try:
+        while not done():
+            assert h.cycle - started < limit, "top-up flagship scenario did not complete"
+            progressed = False
+            for engine, words in pending.items():
+                if words:
+                    await h.command(SELECT, engine)
+                    if await h.try_write(2, words[0], max_wait=wait):
+                        words.pop(0)
+                        progressed = True
+            for engine, count in drains.items():
+                if len(drained[engine]) < count:
+                    await h.command(SELECT, engine)
+                    value = await h.try_read(3, max_wait=wait)
+                    if value is not None:
+                        drained[engine].append(value)
+                        progressed = True
+            if not progressed:
+                await h.idle(8)
+    finally:
+        h.observers.remove(guard)
+    elapsed = h.cycle - started
+    await h.idle(BIT_CYCLES)
+    assert uart_out.words == expected["uart_tx_words"], uart_out.words
+    assert uart_decode(h.samples, pin=0, bit_cycles=BIT_CYCLES) == expected["uart_tx_words"]
+    assert spi.received == expected["spi_mosi_words"], spi.received
+    assert spi_decode(h.samples, clock=2, data=3, select=5) == expected["spi_mosi_words"]
+    assert peer.received == expected["i2c_write_words"] and peer.stops == 1
+    assert h.model.routes[1] is None, "route should be exhausted after its word count"
+    assert drained[2] == expected["engine2_rx_words"], drained
+    assert_open_drain(h.samples, 0xC0)
+    await h.command(STOP, scenario["start_mask"])
+    await h.command(SELECT, 2)
+    assert await h.status(RS_LEVELS) == 0
     h.assert_no_faults()
     return {"cycles_to_complete": elapsed}

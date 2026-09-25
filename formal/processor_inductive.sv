@@ -1,5 +1,10 @@
 // Arbitrary-valid-state preservation over production processor debug observations.
 // Packed engine arrays put engine zero in the least-significant slice.
+//
+// Design variants (formal/run.sh --variant): -DASYNC_RESET (every register is
+// asynchronously reset by the chip clear, so state already reads as reset
+// while `clear` is asserted and next-state checks apply only while it is low);
+// DEPTH follows the variant's fifo_words.
 module processor_inductive #(parameter WIDTH=32, ENGINES=4, DEPTH=8,
     LEVEL_WIDTH=$clog2(DEPTH)+1, RR_WIDTH=$clog2(ENGINES)) (input wire clk, output wire cover_dma, output wire cover_event);
     (* anyseq *) reg rst_n, ena;
@@ -49,6 +54,11 @@ module processor_inductive #(parameter WIDTH=32, ENGINES=4, DEPTH=8,
     assign cover_event=(event_clear != 0);
     // Active-context witness (formerly `sat -set-at 1 cover_dma 1 -set-at 1
     // cover_event 1`): a mover grant and an event consumption in one cycle.
+`ifdef ASYNC_RESET
+    wire settled = !clear;
+`else
+    wire settled = 1'b1;
+`endif
     reg past_valid=0;
     always @(posedge clk) if (past_valid) cover(cover_dma && cover_event);
     reg [7:0] all_owners, all_drains;
@@ -90,13 +100,19 @@ module processor_inductive #(parameter WIDTH=32, ENGINES=4, DEPTH=8,
             if ($past(clear)) begin
                 assert(events == 0);
                 assert(trigger_config == 0 && previous_pins == 0 && synced_pins == 0);
-            end else begin
+            end else if (settled) begin
                 assert(events == (($past(events) & ~$past(event_clear)) | $past(event_set)));
                 assert(previous_pins == $past(synced_pins));
             end
+`ifdef ASYNC_RESET
+            if (clear) begin
+                assert(events == 0 && running == 0);
+                assert(trigger_config == 0 && previous_pins == 0 && synced_pins == 0);
+            end
+`endif
             for (i=0;i<ENGINES;i=i+1) begin
                 assert(trigger_event[i] == (!clear && trigger_config[6*i+5] && trigger_detect[i] && !trigger_update[i]));
-                if (!$past(clear)) begin
+                if (!$past(clear) && settled) begin
                     if ($past(trigger_update[i])) assert(trigger_config[6*i+:6] == $past(command_payload[5:0]));
                     else assert(trigger_config[6*i+:6] == $past(trigger_config[6*i+:6]));
                 end
@@ -121,7 +137,7 @@ module processor_inductive #(parameter WIDTH=32, ENGINES=4, DEPTH=8,
                     assert(tx_data[WIDTH*i+:WIDTH] == dma_data);
                 end
                 if (rx_pop[i] && !(host_rx && selected == i)) assert(grant[i]);
-                if ($past(grant[i]) && !$past(clear)) assert(rr == ((i+1) % ENGINES));
+                if ($past(grant[i]) && !$past(clear) && settled) assert(rr == ((i+1) % ENGINES));
             end
         end
     end

@@ -37,7 +37,7 @@ let node ?label ?target i =
     ["a",i.a;"b",i.b;"c",i.c;"imm",i.imm] in
   let base=match label with None -> base | Some s -> base@["label",`String s] in
   let base=match target with None -> base | Some s -> base@["target",`String s] in `Assoc base
-let assemble ~source_bytes =
+let assemble_with ~byte_lane_shifts ~source_bytes =
   let source=source_of_json (Yojson.Safe.from_string source_bytes) in
   let fields=List.map (Isa.object_fields "instruction" ["mnemonic";"a";"b";"c";"imm";"label";"target"]) source.instructions in
   let labels=List.mapi (fun pc f -> match List.assoc_opt "label" f with
@@ -60,9 +60,10 @@ let assemble ~source_bytes =
         (match Hashtbl.find_opt seen target with Some n -> n | None -> fail "pc %d: undefined target %s" pc target) in
     if List.mem mnemonic ["JMP";"LOOP";"JZ"] && (imm<0 || imm>=List.length fields) then fail "pc %d: branch leaves committed image" pc;
     Isa.instruction ~a ~b ~c ~imm mnemonic) fields in
-  let words=List.mapi (fun pc i -> try Isa.encode source.architecture ~owned_pins:source.owned_pins i
+  let words=List.mapi (fun pc i -> try Isa.encode ~byte_lane_shifts source.architecture ~owned_pins:source.owned_pins i
       with Invalid_argument why -> fail "pc %d (%s): %s" pc i.mnemonic why) decoded in
   {source;words;labels;decoded;source_sha256=sha256 source_bytes}
+let assemble ~source_bytes = assemble_with ~byte_lane_shifts:false ~source_bytes
 let bytecode image =
   let b=Bytes.create (4*List.length image.words) in
   List.iteri (fun n word ->

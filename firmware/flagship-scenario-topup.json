@@ -1,0 +1,57 @@
+{
+  "schema_version": "protocol-emulator.firmware-scenario.v1",
+  "name": "concurrent-uart-spi-i2c-autonomous-bridge-host-topup",
+  "derived_from": "flagship-scenario.json",
+  "description": "The flagship scenario for 2-, 4-, 8- or 32-word queues. The same four images, pins, route and expected wire results; instead of prefilling eight UART TX words before START, the host prefills at most fifo_words words of each host_tx list, starts the engines, then polls: it tops up engine 0's TX queue whenever it has space and drains engine 2's RX queue (the SPI MISO words), so no queue has to hold more than it can. Every host decision is taken from the chip's ready/valid pins.",
+  "clock_hz": 50000000,
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 2,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "also_valid_fifo_words": [4, 8, 32],
+  "images": [
+    {"engine": 0, "source": "uart-tx.source.json"},
+    {"engine": 1, "source": "uart-rx.source.json"},
+    {"engine": 2, "source": "spi-controller-mode0.source.json"},
+    {"engine": 3, "source": "i2c-write.source.json"}
+  ],
+  "pin_connections": [
+    {"pin": 0, "signal": "uart_tx", "peer": "uart_scoreboard_rx"},
+    {"pin": 1, "signal": "uart_rx", "peer": "uart_scoreboard_tx"},
+    {"pin": 2, "signal": "spi_sck", "peer": "spi_scoreboard_sck"},
+    {"pin": 3, "signal": "spi_mosi", "peer": "spi_scoreboard_mosi"},
+    {"pin": 4, "signal": "spi_miso", "peer": "spi_scoreboard_miso"},
+    {"pin": 5, "signal": "spi_csn", "peer": "spi_scoreboard_csn"},
+    {"pin": 6, "signal": "i2c_scl", "peer": "open_drain_i2c_scl_with_pullup"},
+    {"pin": 7, "signal": "i2c_sda", "peer": "open_drain_i2c_sda_with_pullup"}
+  ],
+  "host_tx": [
+    {"engine": 0, "words": [67, 79, 78, 67, 85, 82, 82, 69]},
+    {"engine": 3, "words": [132, 90]}
+  ],
+  "host_rx_drain": [{"engine": 2, "word_count": 8}],
+  "host_poll": {"max_wait_cycles": 4},
+  "routes": [{"source_engine": 1, "destination_engine": 2, "word_count": 8}],
+  "start_mask": 15,
+  "stimulus": {
+    "uart_rx_words": [74, 65, 78, 69, 83, 84, 82, 84],
+    "uart_bit_cycles": 64,
+    "uart_interframe_idle_cycles": 64,
+    "spi_return_word": 165,
+    "i2c_ack_address": 66,
+    "i2c_ack_data": true
+  },
+  "expected": {
+    "uart_tx_words": [67, 79, 78, 67, 85, 82, 82, 69],
+    "spi_mosi_words": [74, 65, 78, 69, 83, 84, 82, 84],
+    "engine2_rx_words": [165, 165, 165, 165, 165, 165, 165, 165],
+    "i2c_write_words": [132, 90],
+    "route_accepted_transfers": 8
+  },
+  "qualification": "UNEXECUTED_BENCH_RECIPE"
+}

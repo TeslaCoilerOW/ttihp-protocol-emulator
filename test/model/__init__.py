@@ -16,5 +16,9 @@ bodies are unchanged. SHA-256 of the upstream files at copy time:
 verification.py locates firmware images at <repo>/firmware, which resolves to
 this repository's firmware/ directory from test/model/.
 
+variant.py is not a monorepo copy: it was written in this repository and
+subclasses Reference for the design variants (docs/isa.md, "Configuration
+variants"); the copied files above are unchanged.
+
 Copyright (c) 2026 TeslaCoilerOW. SPDX-License-Identifier: Apache-2.0
 """

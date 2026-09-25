@@ -1,5 +1,12 @@
 // Integration invariants over debug observations of the production processor.
 // Packed engine arrays put engine zero in the least-significant slice.
+//
+// Design variants (formal/run.sh --variant): -DASYNC_RESET (every register is
+// asynchronously reset by the chip clear, so state already reads as reset
+// while `clear` is asserted and next-state checks apply only while it is low);
+// -DCLEAR_AT_START (reset synchronizer: the first edge is a clearing edge,
+// assumed through `clear` itself because rst_n reaches the clear two edges
+// late); DEPTH follows the variant's fifo_words.
 module processor_invariants #(parameter WIDTH=32, ENGINES=4, DEPTH=8,
     LEVEL_WIDTH=$clog2(DEPTH)+1, RR_WIDTH=$clog2(ENGINES)) (input wire clk);
     (* anyseq *) reg rst_n, ena;
@@ -26,6 +33,11 @@ module processor_invariants #(parameter WIDTH=32, ENGINES=4, DEPTH=8,
         .dbg_tx_ready(tx_ready),.dbg_rx_valid(rx_valid),.dbg_rx_head(rx_head),
         .dbg_tx_level(tx_level),.dbg_rx_level(rx_level),.dbg_host_tx(host_tx),
         .dbg_host_rx(host_rx),.dbg_host_rx_reserved(rx_reserved),.dbg_host_selected(selected));
+`ifdef ASYNC_RESET
+    wire settled = !clear;
+`else
+    wire settled = 1'b1;
+`endif
     reg past_valid=0;
     reg [7:0] all_owners, all_drains;
     integer i,j;
@@ -39,7 +51,11 @@ module processor_invariants #(parameter WIDTH=32, ENGINES=4, DEPTH=8,
     end
     always @(posedge clk) begin
         past_valid<=1;
+`ifdef CLEAR_AT_START
+        if (!past_valid) assume(clear);
+`else
         if (!past_valid) assume(!rst_n);
+`endif
         if (past_valid) begin
             assert((grant & (grant-1)) == 0);
             assert((grant & ~eligible) == 0);
@@ -47,7 +63,10 @@ module processor_invariants #(parameter WIDTH=32, ENGINES=4, DEPTH=8,
             assert((uio_out & all_drains) == 0);
             if (clear) assert(uio_oe == 0 && uio_out == 0);
             if ($past(clear)) assert(events == 0);
-            else assert(events == (($past(events) & ~$past(event_clear)) | $past(event_set)));
+            else if (settled) assert(events == (($past(events) & ~$past(event_clear)) | $past(event_set)));
+`ifdef ASYNC_RESET
+            if (clear) assert(events == 0 && running == 0);
+`endif
             for (i=0;i<ENGINES;i=i+1) begin
                 assert((drains[8*i+:8] & ~owners[8*i+:8]) == 0);
                 for (j=i+1;j<ENGINES;j=j+1) assert((owners[8*i+:8] & owners[8*j+:8]) == 0);
@@ -65,7 +84,7 @@ module processor_invariants #(parameter WIDTH=32, ENGINES=4, DEPTH=8,
                     assert(tx_data[WIDTH*i+:WIDTH] == dma_data);
                 end
                 if (rx_pop[i] && !(host_rx && selected == i)) assert(grant[i]);
-                if ($past(grant[i]) && !$past(clear)) assert(rr == ((i+1) % ENGINES));
+                if ($past(grant[i]) && !$past(clear) && settled) assert(rr == ((i+1) % ENGINES));
             end
         end
     end

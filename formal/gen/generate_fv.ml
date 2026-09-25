@@ -14,7 +14,14 @@
    the [pc >= image_length] fault branch, and image_length_k feeds nothing but
    engine k). The generator fails if any register is attributed to zero or
    several engines, if any engine does not own exactly one register of each
-   name, or if the result disagrees with the dbg_running export. *)
+   name, or if the result disagrees with the dbg_running export.
+
+   Design variants (the refinement's "options"): without debug counters the
+   engines have no completed_instructions register and fv_completed_instructions
+   reads zero; the PC and image registers keep their (possibly narrower) native
+   widths; with a reset synchronizer its two flops are exported as
+   fv_reset_sync = {reset_sync_2, reset_sync_1}. The design of record's output is
+   unchanged. *)
 
 module S = Hardcaml.Signal
 module T = Hardcaml.Signal.Type
@@ -73,6 +80,9 @@ let () =
   if !config_path = "" || !output_path = "" then fail "--config and --output are required";
   let config = Refinement_config.load !config_path in
   let n = config.architecture.engine_count in
+  let engine_registers =
+    if config.options.Variant_options.debug_counters then engine_registers
+    else List.filter (fun name -> name <> "completed_instructions") engine_registers in
   let circuit = Instruction_sram_formal.processor config in
   let signals =
     Hardcaml.Signal_graph.fold (C.signal_graph circuit) ~init:[] ~f:(fun acc s ->
@@ -126,6 +136,14 @@ let () =
   let pack name get = S.output name (S.concat_lsb (List.init n get)) in
   let engine_outputs =
     List.map (fun name -> pack ("fv_" ^ name) (fun k -> List.assoc name table.(k))) engine_registers
+    @ (if List.mem "completed_instructions" engine_registers then []
+       else [ pack "fv_completed_instructions" (fun _ -> S.zero 32) ])
+  in
+  let reset_sync =
+    match List.filter (fun r -> has_name r "reset_sync_1" || has_name r "reset_sync_2") registers with
+    | [] -> []
+    | [ _; _ ] -> [ S.output "fv_reset_sync" (S.concat_msb [ named "reset_sync_2"; named "reset_sync_1" ]) ]
+    | l -> fail "expected zero or two reset synchronizer registers, found %d" (List.length l)
   in
   let processor_outputs =
     List.map
@@ -162,7 +180,7 @@ let () =
   in
   let extra =
     engine_outputs @ processor_outputs @ sram_outputs
-    @ [ S.output "fv_timestamp" (named "timestamp"); S.output "fv_sync1" sync1 ]
+    @ [ S.output "fv_timestamp" (named "timestamp"); S.output "fv_sync1" sync1 ] @ reset_sync
   in
   let fv = C.create_exn ~name:"protocol_processor_fv" (C.outputs circuit @ extra) in
   Hardcaml.Rtl.output ~output_mode:(To_file !output_path) Verilog fv;

@@ -26,6 +26,7 @@ from typing import Any
 from harness import (CLEAR, EVENT, FLUSH, OWN, READ_SELECT, ROUTE, SELECT, START, STOP, TRIGGER, UO_FAULT,
                      UO_IRQ, Harness, LockstepMismatch, immediate, instruction, pad_value)
 from model.reference import Config
+from variants import options as variant_options
 
 MNEMONIC = ["NOP", "HALT", "SET", "DIR", "WAIT", "JMP", "PULL", "PUSH", "OUT", "IN", "COUNT", "LOOP",
             "LIMIT", "WAITPIN", "SIGNAL", "WAITEVENT", "PINS", "XFER", "MOV", "LOAD", "ADD", "XOR", "AND",
@@ -121,6 +122,20 @@ class ProgramGenerator:
         self.ownership = ownership
         self.owned = [p for p in range(8) if ownership >> p & 1]
         self.fault_rate = fault_rate
+        # Variant restrictions (variants.py). The base design draws exactly the
+        # same random numbers as before variants existed.
+        options = variant_options(config)
+        self.byte_lane = options.shift == "byte_lane"
+        self.saturating_pc = options.pc_bits == "saturating_7"
+
+    def shift_count(self) -> int:
+        """An SHL/SHR count: any c < width; on byte_lane designs a byte lane (0/8/16/24),
+        or in 15% of cases a non-lane count (a deliberate code-1 fault, see generate)."""
+        if self.byte_lane:
+            if self.rng.random() < 0.15:
+                return self.rng.choice([c for c in range(1, self.config.width) if c % 8])
+            return self.rng.randrange(0, self.config.width, 8)
+        return self.rng.randrange(self.config.width)
 
     def subset(self) -> int:
         return sum(1 << p for p in self.owned if self.rng.random() < 0.5)
@@ -147,6 +162,8 @@ class ProgramGenerator:
                 for word in self.instruction(len(words), body):
                     if word >> 24 == 29:  # explicit FAULT n
                         expect[len(words)] = word & 0xFF
+                    elif self.byte_lane and word >> 24 in (24, 25) and word & 7:
+                        expect[len(words)] = 1  # non-lane shift count on a byte_lane design
                     words.append(word)
         words = words[:body]
         expect = {pc: code for pc, code in expect.items() if pc < body}
@@ -176,6 +193,8 @@ class ProgramGenerator:
         if kind == "wait":
             return [immediate(4, rng.choice([0, 0, 1, 2, rng.randint(3, 12), rng.randint(20, 120)]))]
         if kind == "jmp":
+            if self.saturating_pc and rng.random() < 0.08:  # saturates to PC 127: fault 2
+                return [immediate(5, rng.randint(128, 0xFFFFFF))]
             return [immediate(5, rng.randrange(length))]
         if kind == "pull":
             return [instruction(6)]
@@ -224,13 +243,15 @@ class ProgramGenerator:
             elif kind == "alu":
                 word = instruction(rng.choice([20, 21, 22, 23]), dest, reg())
             elif kind == "shift":
-                word = instruction(rng.choice([24, 25]), dest, 0, rng.randrange(width))
+                word = instruction(rng.choice([24, 25]), dest, 0, self.shift_count())
             elif kind == "not":
                 word = instruction(27, dest)
             else:
                 word = instruction(28, dest)
             return [word, *self.observe(dest, length)]
         if kind == "jz":
+            if self.saturating_pc and rng.random() < 0.08:  # taken: saturates to PC 127
+                return [instruction(26, reg()) | rng.randint(128, 0xFFFF)]
             return [instruction(26, reg(), 0, rng.randrange(length))]
         if kind == "fault":
             return [immediate(29, rng.randint(1, 255))]
@@ -288,6 +309,16 @@ class ProgramGenerator:
             options.append((immediate(2, 1 << pin), 1))                # SET unowned pin
             options.append((immediate(3, 1 << pin), 1))                # DIR unowned pin
             options.append((instruction(8, pin, 0, rng.randrange(2)), 1))  # OUT unowned pin
+        if self.byte_lane:
+            # SHL/SHR by a count that is not a byte lane (but < width): invalid operand.
+            count = rng.choice([c for c in range(1, self.config.width) if c % 8])
+            options += [(instruction(rng.choice([24, 25]), rng.randrange(4), 0, count), 1)] * 3
+        if self.saturating_pc:
+            # Targets beyond the 7-bit PC saturate to 127 (outside every image: fault 2 on the
+            # next issue, PC readback 127). The JZ/LOOP forms fault only when taken.
+            options += [(immediate(5, rng.choice([128, rng.randint(129, 0xFFFF), rng.randint(0x10000, 0xFFFFFF)])), 2),
+                        (instruction(26, rng.randrange(4), 0, 0) | rng.randint(128, 0xFFFF), 2),
+                        (immediate(11, rng.randint(128, 0xFFFFFF)), 2)]
         word, code = rng.choice(options)
         if code == -1:
             code = word & 0xFF
@@ -594,6 +625,8 @@ class Coverage:
                 assert e.fault in allowed, (f"engine {index} fault {e.fault} at pc {pc} ({name}) not in "
                                             f"allowed codes {sorted(allowed)}")
                 self.faults[f"code {e.fault} from {name}"] += 1
+                if op in (24, 25) and word & 7 and (word & 255) < model.config.width:
+                    self.misc["byte-lane shift count faults (code 1)"] += 1
                 spec = self._case.engines[index] if self._case else None
                 if spec is not None and program == spec.words and pc in spec.expect:
                     assert e.fault == spec.expect[pc], (f"deliberate fault at engine {index} pc {pc}: got "
@@ -609,6 +642,8 @@ class Coverage:
             if e.completed != completed:
                 if op != 17:
                     self.executed[index][name] += 1
+                if op in (5, 11, 26) and e.pc == 127 and word & (0xFFFF if op == 26 else 0xFFFFFF) > 127:
+                    self.misc["jump targets saturated to PC 127"] += 1
             elif op == 17 and e.transfer is not None:
                 c = word & 0xFF
                 self.xfer[f"CPOL{c & 1} CPHA{c >> 1 & 1} {'MSB' if c & 4 else 'LSB'}-first "

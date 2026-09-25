@@ -16,8 +16,11 @@ import os
 
 import cocotb
 
-from harness import CocotbHarness
+import scenarios
+from harness import CocotbHarness, design_config, load_image
+from model.variant import VariantConfig
 from model.verification import FIRMWARE_SCENARIOS, SCENARIOS, differential_host
+from variant_workloads import record, substitute
 
 ALL = SCENARIOS + FIRMWARE_SCENARIOS
 # Gate-level runs are much slower; replay a representative subset there
@@ -36,8 +39,24 @@ def selected() -> list[str]:
 
 
 async def replay(dut, scenario: str) -> None:
-    """Replay one monorepo differential workload in lockstep."""
-    host = differential_host(scenario)  # runs the workload's own model-level assertions
+    """Replay one monorepo differential workload in lockstep.
+
+    Design variants (PE_VARIANT) record the workload against the variant model
+    (variant_workloads.py); the few that state a base-only fact run an adapted
+    recording or a live substitute scenario, and the log says which.
+    """
+    config = design_config()
+    if isinstance(config, VariantConfig):
+        replacement = substitute(scenario, config)
+        if replacement is not None:
+            function, kwargs = replacement
+            dut._log.info("%s: variant substitute scenarios.%s(%s)", scenario, function, kwargs)
+            h = CocotbHarness(dut)
+            await getattr(scenarios, function)(h, **kwargs)
+            return
+        host = record(scenario, config, load_image)  # the variant's image set (harness.image_dir)
+    else:
+        host = differential_host(scenario)  # runs the workload's own model-level assertions
     h = CocotbHarness(dut)
     await h.start(reset_cycles=1)
     for index, cycle in enumerate(host.cycles):
