@@ -59,6 +59,9 @@ COMPILE_ARGS    += -DFUNCTIONAL
 COMPILE_ARGS    += -DSIM
 VERILOG_SOURCES += $(PDK_ROOT)/ihp-sg13cmos5l/libs.ref/sg13cmos5l_io/verilog/sg13cmos5l_io.v
 VERILOG_SOURCES += $(PDK_ROOT)/ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/verilog/sg13cmos5l_stdcell.v
+# The PDK revision the gds action installs defines the ihp_mux2/ihp_mux4 UDPs
+# used by sg13cmos5l_mux* cells in a separate file; older revisions inline them.
+VERILOG_SOURCES += $(wildcard $(PDK_ROOT)/ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/verilog/sg13cmos5l_udp.v)
 VERILOG_SOURCES += $(SRAM_MODELS)
 
 # this gets copied in by the GDS action workflow (override GL_NETLIST to
