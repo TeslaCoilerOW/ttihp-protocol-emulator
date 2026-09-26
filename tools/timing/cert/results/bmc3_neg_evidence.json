@@ -1,0 +1,42 @@
+[
+ {
+  "certificate": "cert_jtag_n0_neg_post_limit",
+  "engine": "abc bmc3",
+  "abc_result": "assertion violated",
+  "output": 8,
+  "frame": 695,
+  "abc_seconds": 418.09,
+  "slurm_job": "23989005_0",
+  "note": "ABC engine log; sby's replay of the counterexample through smtbmc was cancelled (yices runs out of memory near step 680)"
+ },
+ {
+  "certificate": "cert_waveform_n0_neg_post_limit",
+  "engine": "abc bmc3",
+  "abc_result": "assertion violated",
+  "output": 4,
+  "frame": 1541,
+  "abc_seconds": 891.87,
+  "slurm_job": "23989005_1",
+  "note": "ABC engine log; sby's replay of the counterexample through smtbmc was cancelled (yices runs out of memory near step 680)"
+ },
+ {
+  "certificate": "cert_uart_tx_n1_neg_post_limit",
+  "engine": "abc bmc3",
+  "abc_result": "assertion violated",
+  "output": 4,
+  "frame": 644,
+  "abc_seconds": 361.62,
+  "slurm_job": "23989005_2",
+  "note": "ABC engine log; sby's replay of the counterexample through smtbmc was cancelled (yices runs out of memory near step 680)"
+ },
+ {
+  "certificate": "cert_waveform_n0_neg_count_n_iterations",
+  "engine": "abc bmc3",
+  "abc_result": "assertion violated",
+  "output": 2,
+  "frame": 1444,
+  "abc_seconds": 819.78,
+  "slurm_job": "23989372_0",
+  "note": "ABC engine log; sby's replay of the counterexample through smtbmc was cancelled (yices runs out of memory near step 680)"
+ }
+]
