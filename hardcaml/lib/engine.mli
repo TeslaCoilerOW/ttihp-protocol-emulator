@@ -22,8 +22,13 @@ type t = {
 
 (** [options] (default [Variant_options.default]) selects the engine-level
     variant knobs: reset style (synchronous clear or asynchronous reset from
-    [clear]), debug counters, PC width and shift implementation. *)
-val create : ?options:Variant_options.t -> Config.t -> inputs -> t
+    [clear]), debug counters, PC width and shift implementation. [timing]
+    (default {!Timing_options.default}) applies [split_engine_issue] and
+    [split_instruction_decode]. [gate] (default [clear]) is the clear that
+    gates the next-state enable and the issue outputs; the registers always
+    take [clear]. *)
+val create : ?options:Variant_options.t -> ?timing:Timing_options.t -> ?gate:Hardcaml.Signal.t ->
+  Config.t -> inputs -> t
 
 (** Actual compiled PC next value (24 bits) including the synchronous clear or
     asynchronous reset.  Rejects any other clock/reset/enable contract rather

@@ -27,6 +27,11 @@ Knobs (the optional ``"options"`` object of a refinement config):
                             after ``raw`` falls.
 ``fifo_storage_reset``, ``narrow_image_regs``
     Contract-neutral implementation choices: no model change.
+``host_nibble_slots``, ``split_command_decode``, ``split_engine_issue``,
+``split_instruction_decode``, ``fifo_write_staging``, ``clear_outputs_only``,
+``keep_counter_increments``, ``fifo_write_free_slot``
+    Timing restructuring knobs (docs/timing-closure.md). They change how the
+    logic is built, not what it computes: no model change.
 ``fifo_words``
     Architecture field; 2 and 4 are allowed in addition to 8 and 32.
 ``debug_counters``
@@ -56,7 +61,11 @@ RESET_STYLES = ("sync", "sync_registered", "async", "async_sync_release")
 PC_BITS = ("full", "saturating_7")
 SHIFTS = ("barrel", "byte_lane")
 FIFO_WORDS = (2, 4, 8, 32)
-OPTION_KEYS = ("reset", "fifo_storage_reset", "narrow_image_regs", "debug_counters", "pc_bits", "shift")
+TIMING_KEYS = ("host_nibble_slots", "split_command_decode", "split_engine_issue",
+               "split_instruction_decode", "fifo_write_staging", "clear_outputs_only",
+               "keep_counter_increments", "fifo_write_free_slot")
+OPTION_KEYS = ("reset", "fifo_storage_reset", "narrow_image_regs", "debug_counters", "pc_bits", "shift",
+               *TIMING_KEYS)
 
 
 @dataclass(frozen=True)
@@ -67,6 +76,14 @@ class Options:
     debug_counters: bool = True
     pc_bits: str = "full"
     shift: str = "barrel"
+    host_nibble_slots: bool = False
+    split_command_decode: bool = False
+    split_engine_issue: bool = False
+    split_instruction_decode: bool = False
+    fifo_write_staging: bool = False
+    clear_outputs_only: bool = False
+    keep_counter_increments: bool = False
+    fifo_write_free_slot: bool = False
 
     def __post_init__(self) -> None:
         if self.reset not in RESET_STYLES:
@@ -75,7 +92,7 @@ class Options:
             raise ValueError(f"unsupported pc_bits {self.pc_bits!r}")
         if self.shift not in SHIFTS:
             raise ValueError(f"unsupported shift {self.shift!r}")
-        for name in ("fifo_storage_reset", "narrow_image_regs", "debug_counters"):
+        for name in ("fifo_storage_reset", "narrow_image_regs", "debug_counters", *TIMING_KEYS):
             if not isinstance(getattr(self, name), bool):
                 raise ValueError(f"option {name} must be a boolean")
 
@@ -141,8 +158,9 @@ def load_config(path: str | Path) -> VariantConfig:
 
 def describe(config: Config) -> str:
     options = config.options if isinstance(config, VariantConfig) else Options()
+    fields = {k: v for k, v in asdict(options).items() if k not in TIMING_KEYS or v}
     return (f"engines={config.engines} width={config.width} program_words={config.program_words} "
-            f"fifo_words={config.fifo_words} options={asdict(options)} isa={options.isa_version}")
+            f"fifo_words={config.fifo_words} options={fields} isa={options.isa_version}")
 
 
 class VariantReference(Reference):

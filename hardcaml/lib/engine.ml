@@ -20,7 +20,12 @@ type t = {
    live inside an engine.  With an asynchronous reset style [i.clear] is the
    chip-wide asynchronous reset net rather than a synchronous clear; it still
    gates [active] combinationally, exactly as in the synchronous design. *)
-let create ?(options=Variant_options.default) (config:Config.t) (i:inputs) =
+let create ?(options=Variant_options.default) ?(timing=Timing_options.default) ?gate
+    (config:Config.t) (i:inputs) =
+  (* [gate]: the clear that gates the next-state enable and the issue outputs
+     (constant 0 with the timing knob clear_outputs_only); [i.clear] when
+     absent. The registers always take [i.clear]. *)
+  let gate = match gate with Some g -> g | None -> i.clear in
   let open Always in
   let width = config.data_width in
   let spec = if Variant_options.asynchronous options
@@ -69,7 +74,16 @@ let create ?(options=Variant_options.default) (config:Config.t) (i:inputs) =
   let write_pin v pin bit = (v &: ~:(bitmask pin)) |: mux2 bit (bitmask pin) (zero 8) in
   let pin_input = mux pin (List.init 8 (bit i.pins)) in
   let reg_pair = (a <:. 4) &: (b <:. 4) &: (c ==:. 0) in
-  let valid = mux op (List.init 256 (fun code ->
+  let split_decode = timing.Timing_options.split_instruction_decode in
+  (* Timing knob keep_counter_increments: the incremented or decremented value
+     of each wide counter carries a keep attribute. Synthesis then keeps it as
+     a net of its own, so the counter's enable selects between two finished
+     values instead of being merged into the carry chain (ABC's area mapping
+     otherwise starts the chain with the enable). Identity without the knob. *)
+  let step s = if timing.Timing_options.keep_counter_increments
+    then Signal.add_attribute s (Rtl_attribute.create "keep" ~value:(Rtl_attribute.Value.Bool true))
+    else s in
+  let valid_rule code =
     match code with
     | 0|1|6|15 -> all_zero
     | 7 -> (a <:. 2) &: bc_zero
@@ -92,10 +106,32 @@ let create ?(options=Variant_options.default) (config:Config.t) (i:inputs) =
     | 24|25 -> (a <:. 4) &: (b ==:. 0) &: shift_valid c
     | 27|28 -> (a <:. 4) &: bc_zero
     | 29 -> (select word 23 8 ==:. 0) &: (low8 <>:. 0)
-    | _ -> gnd)) in
-  let active = running.value &: (fault.value ==:. 0) &: ~:(i.start) &: ~:(i.stop) &: ~:(i.clear) in
-  let issue = active &: (timer.value ==:. 0) &: (xremaining.value ==:. 0)
-              &: (pc.value <: image_length) &: valid in
+    | _ -> gnd in
+  let valid =
+    if not split_decode then mux op (List.init 256 valid_rule)
+    else
+      (* Timing knob split_instruction_decode: the 256-way multiplexer on the
+         opcode equals the OR over opcodes with a rule of (op = c) & rule(c);
+         every other opcode's rule is the constant gnd. *)
+      List.fold_left (fun acc (c,rule) -> if rule == gnd then acc else acc |: ((op ==:. c) &: rule))
+        gnd (List.init 256 (fun c -> c, valid_rule c)) in
+  let active, issue =
+    if not timing.Timing_options.split_engine_issue then
+      let active = running.value &: (fault.value ==:. 0) &: ~:(i.start) &: ~:(i.stop) &: ~:gate in
+      let issue = active &: (timer.value ==:. 0) &: (xremaining.value ==:. 0)
+                  &: (pc.value <: image_length) &: valid in
+      active, issue
+    else
+      (* Timing knob split_engine_issue. The next-state logic below sits in the
+         else branches of STOP and START, where both are low, so enabling it
+         with [running & fault = 0 & ~clear] computes the same next state as
+         [active]; START and STOP (host commands, late in the cycle) then gate
+         only the issue-derived outputs that act outside the engine. *)
+      let executing = running.value &: (fault.value ==:. 0) &: ~:gate in
+      let ready = executing &: (timer.value ==:. 0) &: (xremaining.value ==:. 0)
+                  &: (pc.value <: image_length) &: valid in
+      let gate = ~:(i.start) &: ~:(i.stop) in
+      executing, ready &: gate in
   let waiting_pin = pin_input <>: bit b 0 in
   let stalled = issue
                 &: (((op ==:. 6) &: ~:(i.tx_valid)) |: ((op ==:. 7) &: (a ==:. 0) &: ~:(i.rx_ready))
@@ -105,7 +141,12 @@ let create ?(options=Variant_options.default) (config:Config.t) (i:inputs) =
   let consume_event = issue &: (op ==:. 15) &: i.event in
   let signal_events = mux2 (issue &: (op ==:. 14))
       (uresize imm24 config.engine_count) (zero config.engine_count) in
-  let finish = [pc <-- pc.value +:. 1; completed <-- completed.value +:. 1; blocked <--. 0] in
+  (* With split_instruction_decode the completed-instruction counter is not
+     assigned in the instruction branches below but by its own enable (see the
+     end of this function). *)
+  let finish = if not split_decode
+    then [pc <-- step (pc.value +:. 1); completed <-- step (completed.value +:. 1); blocked <--. 0]
+    else [pc <-- step (pc.value +:. 1); blocked <--. 0] in
   let fail code = [fault <-- code; running <--. 0; enables <--. 0; xremaining <--. 0] in
   let write_reg data = List.init 4 (fun n -> when_ (dest ==:. n) [regs.(n) <-- data]) in
   let shift_tx msb = mux2 msb (sll tx.value 1) (srl tx.value 1) in
@@ -116,7 +157,7 @@ let create ?(options=Variant_options.default) (config:Config.t) (i:inputs) =
   let blocked_step condition = if_ condition finish
       [if_ (blocked.value +:. 1 >=: mux2 (limit.value ==:. 0)
                                       (of_int ~width:24 65535) limit.value)
-          (fail (of_int ~width:8 3)) [blocked <-- blocked.value +:. 1]] in
+          (fail (of_int ~width:8 3)) [blocked <-- step (blocked.value +:. 1)]] in
   let ordinary = [if_ ((pc.value >=: image_length) |: ~:valid)
       (fail (mux2 (pc.value >=: image_length) (of_int ~width:8 2) (of_int ~width:8 1)))
       [switch op (List.map (fun (code, body) -> of_int ~width:8 code, body) [
@@ -125,7 +166,9 @@ let create ?(options=Variant_options.default) (config:Config.t) (i:inputs) =
         2,finish @ [values <-- low8];
         3,finish @ [enables <-- low8];
         4,finish @ [timer <-- imm24];
-        5,[pc <-- sat imm24; completed <-- completed.value +:. 1; blocked <--. 0];
+        5,(if not split_decode
+           then [pc <-- sat imm24; completed <-- step (completed.value +:. 1); blocked <--. 0]
+           else [pc <-- sat imm24; blocked <--. 0]);
         6,[when_ i.tx_valid (finish @ [tx <-- i.tx_data])];
         7,[if_ i.rx_ready finish [when_ (a ==:. 1) (fail (of_int ~width:8 4))]];
         8,finish @ [values <-- write_pin values.value pin (tx_bit (bit c 0) tx.value);
@@ -133,7 +176,7 @@ let create ?(options=Variant_options.default) (config:Config.t) (i:inputs) =
         9,finish @ [rx <-- sample (bit c 0) pin_input];
         10,finish @ [repeat <-- imm16];
         11,finish @ [when_ (repeat.value <>:. 0)
-                      [repeat <-- repeat.value -:. 1; pc <-- sat imm24]];
+                      [repeat <-- step (repeat.value -:. 1); pc <-- sat imm24]];
         12,finish @ [limit <-- imm24];
         13,[blocked_step (~:waiting_pin)];
         14,finish;
@@ -183,13 +226,37 @@ let create ?(options=Variant_options.default) (config:Config.t) (i:inputs) =
   compile [when_ (i.clear_fault &: ~:(running.value)) [fault <--. 0];
     if_ i.stop [running <--. 0; enables <--. 0; xremaining <--. 0]
       [if_ i.start
-        ([pc <--. 0; running <--. 1; fault <--. 0; repeat <--. 0; timer <--. 0;
+        ((if not split_decode then
+          [pc <--. 0; running <--. 1; fault <--. 0; repeat <--. 0; timer <--. 0;
           limit <--. 65535; blocked <--. 0; values <--. 0; enables <--. 0;
           pins <--. 0; completed <--. 0; xremaining <--. 0; xtick <--. 0;
-          xperiod <--. 0; xmode <--. 0] @ Array.to_list (Array.map (fun r -> r <--. 0) regs))
+          xperiod <--. 0; xmode <--. 0]
+          else
+          [pc <--. 0; running <--. 1; fault <--. 0; repeat <--. 0; timer <--. 0;
+          limit <--. 65535; blocked <--. 0; values <--. 0; enables <--. 0;
+          pins <--. 0; xremaining <--. 0; xtick <--. 0;
+          xperiod <--. 0; xmode <--. 0]) @ Array.to_list (Array.map (fun r -> r <--. 0) regs))
         [when_ active
-           [if_ (timer.value <>:. 0) [timer <-- timer.value -:. 1]
+           [if_ (timer.value <>:. 0) [timer <-- step (timer.value -:. 1)]
               [if_ (xremaining.value <>:. 0) transfer ordinary]]]]];
+  if split_decode then begin
+    (* The counter increments exactly where the branches above execute
+       [finish] or JMP: in the else branches of STOP and START, with the
+       engine running without a fault and no clear, no WAIT timer pending, and
+       either the last edge of a transfer (tick <= 1, one edge left) or an
+       in-image valid instruction that completes (every opcode except XFER and
+       FAIL, PULL with TX valid, PUSH with RX ready, WAITPIN with the pin at
+       its level, WAITEVENT with an event pending). *)
+    let completes = ~:((op ==:. 17) |: (op ==:. 29))
+      &: ((op <>:. 6) |: i.tx_valid) &: ((op <>:. 7) |: i.rx_ready)
+      &: ((op <>:. 13) |: ~:waiting_pin) &: ((op <>:. 15) |: i.event) in
+    let increment = running.value &: (fault.value ==:. 0) &: ~:gate &: (timer.value ==:. 0)
+      &: mux2 (xremaining.value <>:. 0)
+           ((xtick.value <=:. 1) &: (xremaining.value ==:. 1))
+           ((pc.value <: image_length) &: valid &: completes) in
+    compile [if_ i.stop [] [if_ i.start [completed <--. 0]
+                               [when_ increment [completed <-- step (completed.value +:. 1)]]]]
+  end;
   {pc=pc.value; running=running.value; fault=fault.value; stalled;
    tx_pop; rx_push; rx_data=rx.value; pin_values=values.value;
    pin_enables=enables.value; signal_events; consume_event;

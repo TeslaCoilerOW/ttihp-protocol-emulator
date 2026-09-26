@@ -9,8 +9,8 @@ type instruction_memory = Baseline | Ihp_pair | Synchronous_model
    synchronous clear in the synchronous styles, the asynchronous reset of every
    register in the asynchronous styles.  Either way it keeps gating the same
    combinational paths (outputs, ready/valid, SRAM enables, mover, triggers). *)
-let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_backend
-    (config:Config.t) =
+let create_with_memory ?(debug=false) ?(options=Variant_options.default)
+    ?(timing=Timing_options.default) memory_backend (config:Config.t) =
   let config = Config.validate config in
   let options = Variant_options.validate config options in
   let open Always in
@@ -18,6 +18,13 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_
   let clock = input "clk" 1 and rst_n = input "rst_n" 1 and ena = input "ena" 1 in
   let ui = input "ui_in" 8 and uio = input "uio_in" 8 in
   let async = Variant_options.asynchronous options in
+  (* [gate] is the chip clear as read by the next-state logic of registers
+     (timing knob clear_outputs_only); without the knob it is [clear]. *)
+  let outputs_only = timing.Timing_options.clear_outputs_only in
+  (* keep_counter_increments, as in Engine.create *)
+  let step s = if timing.Timing_options.keep_counter_increments
+    then add_attribute s (Rtl_attribute.create "keep" ~value:(Rtl_attribute.Value.Bool true))
+    else s in
   let clear = match options.reset with
     | Variant_options.Sync -> (~:rst_n) |: (~:ena)
     | Sync_registered ->
@@ -34,6 +41,11 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_
       let first = reg sync vdd -- "reset_sync_1" in
       let second = reg sync first -- "reset_sync_2" in
       ~:second in
+  (* Every register takes [clear] as its synchronous clear or asynchronous
+     reset, so gating its next state with [clear] as well is redundant; with
+     clear_outputs_only that gating is dropped ([gate] is constant 0). The pins,
+     the host's ready/valid bits and the SRAM enables stay gated by [clear]. *)
+  let gate = if outputs_only then gnd else clear in
   let spec = if async then Reg_spec.create ~clock ~reset:clear ()
     else Reg_spec.create ~clock ~clear () in
   let r name w = let v=Variable.reg spec ~width:w in ignore(v.value -- name); v in
@@ -65,14 +77,23 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_
     else Processor_fifo.Registers_sync_clear clear in
   (* Asynchronous styles: the chip reset is the queues' asynchronous reset and
      FLUSH alone stays their synchronous clear. *)
+  let staging = timing.Timing_options.fifo_write_staging in
+  let create_fifo = if staging then Processor_fifo.create_staged
+    else if timing.Timing_options.fifo_write_free_slot then Processor_fifo.create_free_slot
+    else Processor_fifo.create_with in
   let fifo k ~push ~pop ~data =
-    if async then Processor_fifo.create_with ~async_reset:(Some clear) ~storage ~clock
+    if async then create_fifo ~async_reset:(Some clear) ~storage ~clock
         ~clear:flushes.(k) ~width ~depth:config.fifo_words ~push ~pop ~data
-    else Processor_fifo.create_with ~async_reset:None ~storage ~clock
+    else if outputs_only && (staging || timing.fifo_write_free_slot) then
+      (* registers cleared by chip clear OR FLUSH, acceptance gated by FLUSH only *)
+      (if staging then Processor_fifo.create_staged_gated else Processor_fifo.create_free_slot_gated)
+        ~gate:flushes.(k) ~async_reset:None ~storage
+        ~clock ~clear:(clear |: flushes.(k)) ~width ~depth:config.fifo_words ~push ~pop ~data
+    else create_fifo ~async_reset:None ~storage ~clock
         ~clear:(clear |: flushes.(k)) ~width ~depth:config.fifo_words ~push ~pop ~data in
   let txs=Array.init n (fun k -> fifo k ~push:tx_push.(k) ~pop:tx_pop.(k) ~data:tx_data.(k)) in
   let rxs=Array.init n (fun k -> fifo k ~push:rx_push.(k) ~pop:rx_pop.(k) ~data:rx_data.(k)) in
-  let engines=Array.init n (fun k -> Engine.create ~options config
+  let engines=Array.init n (fun k -> Engine.create ~options ~timing ~gate config
       {clock; clear; start=starts.(k); stop=stops.(k); clear_fault=clears.(k);
        instruction=instructions.(k); image_length=lengths.(k).value;
        ownership=owners.(k).value; pins=synced_pins; timestamp=timestamp.value;
@@ -90,7 +111,7 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_
   let fault_engine_mask = concat_lsb (Array.to_list (Array.map (fun (e:Engine.t)->e.fault <>:. 0) engines)) in
   let any_fault = host_fault.value |: (fault_engine_mask <>:. 0) in
   let read_data=wire 32 and read_valid=wire 1 and write_ready=wire 1 in
-  let host=Host.create_with ~async ~clock ~clear ~ui ~write_ready ~read_valid ~read_data
+  let host=Host.create_with ~timing ~strobe_gate:gate ~async ~clock ~clear ~ui ~write_ready ~read_valid ~read_data
       ~irq:(any (List.init n (fun k->events.(k).value |: rxs.(k).valid))) ~fault:any_fault in
   let code=select host.word 31 24 and payload=select host.word 23 0 in
   let selected_is k = selected.value ==:. k in
@@ -101,7 +122,7 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_
   let own=select payload 7 0 and drain=select payload 15 8 in
   let overlap = any (List.init n (fun k -> (~:(selected_is k))
       &: ((owners.(k).value &: own) <>:. 0))) in
-  let cmd_valid = mux code (List.init 256 (fun command -> match command with
+  let valid_rule command = match command with
     | 0 -> payload <:. n
     | 1 -> payload ==:. 0
     | 2 -> halted &: selected_var writing &: (payload <>:. 0) &: (payload <=:. config.program_words)
@@ -120,12 +141,43 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_
     | 8 -> payload <:. 8
     | 10 -> halted &: (payload ==:. 0)
     | 11 -> halted &: (select payload 23 6 ==:. 0)
-    | _ -> gnd)) in
-  let command_write = host.write &: (host.window ==:. 0) in
-  let accepted = command_write &: cmd_valid in
-  let command c = accepted &: (code ==:. c) in
-  let program_write = host.write &: (host.window ==:. 1) in
-  let host_tx = host.write &: (host.window ==:. 2) in
+    | _ -> gnd in
+  let split = timing.Timing_options.split_command_decode in
+  let cmd_valid, command_write, accepted, command =
+    if not split then
+      let cmd_valid = mux code (List.init 256 valid_rule) in
+      let command_write = host.write &: (host.window ==:. 0) in
+      let accepted = command_write &: cmd_valid in
+      let command c = accepted &: (code ==:. c) in
+      cmd_valid, command_write, accepted, command
+    else
+      (* Timing knob split_command_decode. Codes 12..255 are invalid, so the
+         256-way validity multiplexer equals the OR over c < 12 of
+         (code = c) & rule(c), and command c = strobe & (code = c) & rule(c).
+         The code's high nibble is the live last nibble (ui[3:0]); the rules
+         read only registers and the buffered payload. Window 0's write-ready
+         term is constant 1, so its strobe is the raw last-nibble strobe. *)
+      let code_is c = (select code 7 4 ==:. (c lsr 4)) &: (select code 3 0 ==:. (c land 15)) in
+      let hits = Array.init 12 (fun c -> code_is c &: valid_rule c) in
+      let cmd_valid = List.fold_left ( |: ) gnd (Array.to_list hits) in
+      let command_write = host.last_nibble_strobe &: (host.window ==:. 0) in
+      let accepted = command_write &: cmd_valid in
+      let commands = Array.map (fun hit -> command_write &: hit) hits in
+      let command c = commands.(c) in
+      cmd_valid, command_write, accepted, command in
+  let program_write, host_tx =
+    if not split then
+      let program_write = host.write &: (host.window ==:. 1) in
+      let host_tx = host.write &: (host.window ==:. 2) in
+      program_write, host_tx
+    else
+      (* write = write_ready & last_nibble_strobe, and write_ready is the
+         window's own term below (windows 1 and 2). *)
+      let program_write = host.last_nibble_strobe &: (host.window ==:. 1)
+        &: halted &: selected_var writing &: (selected_var loaded <:. config.program_words) in
+      let host_tx = host.last_nibble_strobe &: (host.window ==:. 2)
+        &: selected_fifo txs (fun (f:Processor_fifo.t)->f.ready) in
+      program_write, host_tx in
   let host_rx = host.read_word &: (host.window ==:. 3) in
   write_ready <== mux host.window
     [vdd; halted &: selected_var writing &: (selected_var loaded <:. config.program_words);
@@ -183,8 +235,15 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_
     let read_reserved=host.read_lock &: selected_is k in
     let route_edit=command 6 &: (select payload 1 0 ==:. k) in
     let flushing=(command 10) &: ((selected_is k) |: (selected.value ==: dest)) in
+    if not split then
     (route_count.(k).value <>:. 0) &: rxs.(k).valid &: destination_ready
-    &: ~:host_destination &: ~:read_reserved &: ~:route_edit &: ~:flushing &: ~:clear) in
+    &: ~:host_destination &: ~:read_reserved &: ~:route_edit &: ~:flushing &: ~:gate
+    else
+      (* Same conjunction; the host-command terms, late in the cycle, last. *)
+      ((route_count.(k).value <>:. 0) &: rxs.(k).valid &: destination_ready &: ~:gate)
+      &: ~:(host_destination |: read_reserved |: route_edit |: flushing)) in
+  let grants, grant_valid, grant_index =
+    if not split then
   let grant_index=Variable.wire ~default:(zero (Config.log2 n)) in
   let grant_valid=Variable.wire ~default:gnd in
   let priorities=List.init n (fun start ->
@@ -194,10 +253,28 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_
     of_int ~width:(Config.log2 n) start,choose 0) in
   compile [switch rr.value priorities];
   let grants=Array.init n (fun k -> grant_valid.value &: (grant_index.value ==:. k)) in
-  let granted_dest=mux_arr grant_index.value (fun (v:Variable.t)->v.value) route_dest in
-  let granted_data=mux_arr grant_index.value (fun (f:Processor_fifo.t)->f.data) rxs in
+      grants, grant_valid.value, grant_index.value
+    else
+      (* Rotating priority as a flat function: source k is granted when it is
+         eligible and no eligible source precedes it in the order that starts
+         at the round-robin pointer; this is the first eligible source the
+         priority chain above selects. The index is the one-hot grant
+         encoded (0 when nothing is granted, the chain's default). *)
+      let grants = Array.init n (fun k ->
+        eligible.(k) &: any (List.init n (fun start ->
+          (rr.value ==:. start)
+          &: ~:(any (List.init ((k - start + n) mod n)
+                       (fun o -> eligible.((start + o) mod n))))))) in
+      let grant_valid = any (Array.to_list eligible) in
+      let grant_index = concat_msb (List.rev (List.init (Config.log2 n) (fun b ->
+        any (List.filter_map (fun k -> if (k lsr b) land 1 = 1 then Some grants.(k) else None)
+               (List.init n Fun.id))))) in
+      grants, grant_valid, grant_index in
+  let granted_dest=mux_arr grant_index (fun (v:Variable.t)->v.value) route_dest in
+  let granted_data=mux_arr grant_index (fun (f:Processor_fifo.t)->f.data) rxs in
   Array.iteri (fun k _ ->
-    let incoming=grant_valid.value &: (granted_dest ==:. k) in
+    let incoming=if not split then grant_valid &: (granted_dest ==:. k)
+      else any (List.init n (fun j -> grants.(j) &: (route_dest.(j).value ==:. k))) in
     let from_host=host_tx &: selected_is k in
     tx_push.(k) <== (from_host |: incoming);
     tx_data.(k) <== mux2 from_host (uresize host.word width) granted_data;
@@ -212,21 +289,21 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_
     let pin_before=mux trigger_pin (List.init 8 (bit previous_pins)) in
     let condition=mux (select trigger 4 3)
         [pin_now &: ~:pin_before; ~:pin_now &: pin_before; pin_now; ~:pin_now] in
-    let external_event=bit trigger 5 &: condition &: ~:(command 11 &: is_selected) &: ~:clear in
+    let external_event=bit trigger 5 &: condition &: ~:(command 11 &: is_selected) &: ~:gate in
     pin_deliveries.(k) <- external_event;
     let delivered= external_event |: (command 9 &: bit payload k) |:
       any (Array.to_list (Array.map (fun (e:Engine.t)->bit e.signal_events k) engines)) in
     deliveries.(k) <- delivered;
     [when_ (command 1 &: is_selected)
        [committed.(k) <--. 0; writing.(k) <--. 1; loaded.(k) <--. 0; lengths.(k) <--. 0];
-     when_ (program_write &: is_selected) [loaded.(k) <-- loaded.(k).value +:. 1];
+     when_ (program_write &: is_selected) [loaded.(k) <-- step (loaded.(k).value +:. 1)];
      when_ (command 2 &: is_selected)
        [committed.(k) <--. 1; writing.(k) <--. 0; lengths.(k) <-- select payload (iw-1) 0];
      when_ (command 3 &: is_selected) [owners.(k) <-- own; drains.(k) <-- drain];
      when_ (command 11 &: is_selected) [trigger_config.(k) <-- select payload 5 0];
      when_ engines.(k).consume_event [events.(k) <--. 0];
      when_ delivered [events.(k) <--. 1];
-     when_ grants.(k) [route_count.(k) <-- route_count.(k).value -:. 1];
+     when_ grants.(k) [route_count.(k) <-- step (route_count.(k).value -:. 1)];
      when_ (command 6 &: (select payload 1 0 ==:. k))
        [route_dest.(k) <-- select payload 3 2;
         route_count.(k) <-- mux2 (bit payload 4) (select payload 20 5) (zero 16)];
@@ -237,7 +314,7 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_
             when_ (command 7 &: bit payload 23) [host_fault <--. 0];
             when_ (command 0) [selected <-- select payload 1 0];
             when_ (command 8) [read_select <-- select payload 2 0];
-            when_ grant_valid.value [rr <-- grant_index.value +:. 1]] @ control_updates);
+            when_ grant_valid [rr <-- grant_index +:. 1]] @ control_updates);
   let out=List.fold_left ( |: ) (zero 8) (List.init n (fun k ->
     let e=engines.(k) in
     e.pin_values &: owners.(k).value &: ~:(drains.(k).value)
@@ -251,29 +328,37 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_
   let debug_outputs=if not debug then [] else (
     let packed name arr = output name (concat_lsb (Array.to_list arr)) in
     let variables name arr = packed name (Array.map (fun (v:Variable.t)->v.value) arr) in
-    let engine_outputs name get = packed name (Array.map get engines) in
     let fifo_outputs name get arr = packed name (Array.map get arr) in
+    (* clear_outputs_only: next-state logic runs ungated while [clear] is
+       asserted, although the clear overrides its effect on every register.
+       The exports of that combinational activity are gated here, in the debug
+       build only, so that they report what takes effect, as without the knob. *)
+    let obs s = if outputs_only then s &: repeat (~:clear) (Signal.width s) else s in
+    let packed_obs name arr = packed name (Array.map obs arr) in
     [variables "dbg_ownership" owners; variables "dbg_open_drain" drains;
-     variables "dbg_trigger_config" trigger_config; packed "dbg_trigger_event" pin_deliveries;
+     variables "dbg_trigger_config" trigger_config; packed_obs "dbg_trigger_event" pin_deliveries;
      output "dbg_synced_pins" synced_pins; output "dbg_previous_pins" previous_pins;
-     variables "dbg_events" events; packed "dbg_event_set" deliveries;
-     engine_outputs "dbg_event_clear" (fun (e:Engine.t)->e.consume_event);
+     variables "dbg_events" events; packed_obs "dbg_event_set" deliveries;
+     packed_obs "dbg_event_clear" (Array.map (fun (e:Engine.t)->e.consume_event) engines);
      output "dbg_running" active_engine_mask; output "dbg_clear" clear;
-     packed "dbg_start" starts; packed "dbg_stop" stops;
-     packed "dbg_fifo_clear" flushes; packed "dbg_dma_grant" grants;
-     packed "dbg_dma_eligible" eligible; output "dbg_dma_destination" granted_dest;
+     packed_obs "dbg_start" starts; packed_obs "dbg_stop" stops;
+     packed_obs "dbg_fifo_clear" flushes; packed_obs "dbg_dma_grant" grants;
+     packed_obs "dbg_dma_eligible" eligible;
+     output "dbg_dma_destination"
+       (if outputs_only then mux_arr (obs grant_index) (fun (v:Variable.t)->v.value) route_dest
+        else granted_dest);
      output "dbg_dma_data" granted_data; output "dbg_round_robin" rr.value;
      variables "dbg_route_count" route_count; variables "dbg_route_destination" route_dest;
-     packed "dbg_tx_push" tx_push; packed "dbg_tx_pop" tx_pop; packed "dbg_tx_data" tx_data;
-     packed "dbg_rx_push" rx_push; packed "dbg_rx_pop" rx_pop; packed "dbg_rx_data" rx_data;
+     packed_obs "dbg_tx_push" tx_push; packed_obs "dbg_tx_pop" tx_pop; packed "dbg_tx_data" tx_data;
+     packed_obs "dbg_rx_push" rx_push; packed_obs "dbg_rx_pop" rx_pop; packed "dbg_rx_data" rx_data;
      fifo_outputs "dbg_tx_ready" (fun (f:Processor_fifo.t)->f.ready) txs;
      fifo_outputs "dbg_rx_valid" (fun (f:Processor_fifo.t)->f.valid) rxs;
      fifo_outputs "dbg_tx_level" (fun (f:Processor_fifo.t)->f.level) txs;
      fifo_outputs "dbg_rx_level" (fun (f:Processor_fifo.t)->f.level) rxs;
      fifo_outputs "dbg_rx_head" (fun (f:Processor_fifo.t)->f.data) rxs;
-     output "dbg_host_tx" host_tx; output "dbg_host_rx" host_rx;
+     output "dbg_host_tx" (obs host_tx); output "dbg_host_rx" (obs host_rx);
      output "dbg_host_rx_reserved" host.read_lock; output "dbg_host_selected" selected.value;
-     output "dbg_command_accepted" accepted; output "dbg_command_code" code;
+     output "dbg_command_accepted" (obs accepted); output "dbg_command_code" code;
      output "dbg_command_payload" payload; variables "dbg_image_valid" committed;
      variables "dbg_image_length" lengths]) in
   Circuit.create_exn ~name:(if debug then "protocol_processor_debug" else "tt_um_protocol_processor")
@@ -281,6 +366,8 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default) memory_
 
 let create ?debug ?options config = create_with_memory ?debug ?options Baseline config
 let create_refinement ?debug (config:Refinement_config.t) =
-  create_with_memory ?debug ~options:config.options Ihp_pair config.architecture
+  create_with_memory ?debug ~options:config.options ~timing:config.timing Ihp_pair
+    config.architecture
 let create_refinement_model ?debug (config:Refinement_config.t) =
-  create_with_memory ?debug ~options:config.options Synchronous_model config.architecture
+  create_with_memory ?debug ~options:config.options ~timing:config.timing Synchronous_model
+    config.architecture
