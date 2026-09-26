@@ -37,6 +37,10 @@ run_seed() {
     export PYTHONPATH=$CAMP:$SNAP/test PYTHONDONTWRITEBYTECODE=1
     export VCAMP_SEED=$seed VCAMP_RESULT=$out VCAMP_FAIL_DIR=$OUTDIR/failures VCAMP_LABEL=$LABEL
     export VCAMP_VARIANT=$VARIANT VCAMP_COMMIT=$COMMIT VCAMP_NETLIST=${NETLIST:-}
+    # Design variant (config DESIGN_VARIANT, default base) configures the model; the
+    # matching core is compiled into SIMVVP by build.sh. GENERATION pins the generator.
+    if [ -n "${DESIGN_VARIANT:-}" ]; then export PE_VARIANT=$DESIGN_VARIANT; fi
+    if [ -n "${GENERATION:-}" ]; then export VCAMP_GEN=$GENERATION; fi
     export PE_RANDOM_ITERS=$ITERS PE_RANDOM_CYCLES=$CYCLES PE_RANDOM_FIRST=0 PE_MINIMIZE=0
     if [ "$MODE" = gl ]; then export PE_GATE_LEVEL=1; fi
     # Optional negative control (config INJECT=xor): corrupt the model after XOR.

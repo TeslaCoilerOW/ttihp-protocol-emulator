@@ -1,0 +1,29 @@
+
+7. Printing statistics.
+
+=== protocol_emulator_core ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     6009 wires
+    48119 wire bits
+     5754 public wires
+    46840 public wire bits
+        8 ports
+       43 port bits
+     3387 cells
+       44   $add
+      184   $adff
+      500   $and
+      345   $eq
+      166   $logic_not
+       53   $lt
+     1635   $mux
+      189   $not
+      114   $or
+       72   $pmux
+       29   $reduce_or
+       28   $sub
+       20   $xor
+        8   RM_IHPSG13_1P_64x16_c2
+

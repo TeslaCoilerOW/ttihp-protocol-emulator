@@ -13,7 +13,10 @@
 #
 # Environment: RUNNER_ARGS (extra run_mutant.py options, e.g. --deadline 600),
 # CAMP (campaign work dir), default
-# $PE_WORK/vcamp/mutation
+# $PE_WORK/vcamp/mutation; MANIFEST (default $CAMP/../manifest.json);
+# JOB_PREFIX (Slurm job-name prefix, default pe-vcamp-mut);
+# SNAPSHOT_COMMIT (recorded in the manifest, default 73536f0).
+# The design variant is a property of $CAMP/design (variant.txt, gen_mutants.sh).
 set -euo pipefail
 STAGE=$1
 IDS=$(readlink -f "$2")
@@ -40,11 +43,12 @@ cp "$HERE/$SCRIPT.py" "$CAMP/bin/$SCRIPT-$SHA.py"
 PAR=${PAR:-1}
 RUN="$PY $CAMP/bin/$SCRIPT-$SHA.py --design $CAMP/design $STAGEARG --ids-file $IDS --out $CAMP/results/$STAGE --count $((N * PAR)) ${RUNNER_ARGS:-}"
 JOB=$(sbatch --parsable -p "$PART" --requeue --open-mode=append \
-  -J "pe-vcamp-mut-$STAGE" -c "$PAR" --mem=$((3 * PAR))G -t "$T" --array=0-$((N - 1)) \
+  -J "${JOB_PREFIX:-pe-vcamp-mut}-$STAGE" -c "$PAR" --mem=$((3 * PAR))G -t "$T" --array=0-$((N - 1)) \
   -o "$CAMP/logs/$STAGE-%A_%a.out" "$@" \
   --wrap "for j in \$(seq 0 $((PAR - 1))); do $RUN --index \$((SLURM_ARRAY_TASK_ID * $PAR + j)) & done; wait")
 echo "$JOB"
-"$PY" "$HERE/manifest.py" "$CAMP/../manifest.json" mutation \
-  job_id="$JOB" name="pe-vcamp-mut-$STAGE" stage="$STAGE" partition="$PART" array_tasks="$N" \
+"$PY" "$HERE/manifest.py" "${MANIFEST:-$CAMP/../manifest.json}" mutation \
+  job_id="$JOB" name="${JOB_PREFIX:-pe-vcamp-mut}-$STAGE" stage="$STAGE" partition="$PART" array_tasks="$N" \
   cpus_per_task="$PAR" ids_file="$IDS" ids="$(wc -w < "$IDS")" runner="bin/$SCRIPT-$SHA.py" \
-  snapshot_commit=73536f0 >/dev/null
+  snapshot_commit="${SNAPSHOT_COMMIT:-73536f0}" \
+  design_variant="$(cat "$CAMP/design/variant.txt" 2>/dev/null || echo base)" >/dev/null

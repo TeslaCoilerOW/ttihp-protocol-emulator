@@ -11,6 +11,14 @@
 #               list gets no mutants
 # SEED          base RNG seed; region k (in QUOTAS order) uses SEED+k
 #
+# Design variants (docs/variants.md; unset = the design of record, as before):
+#   PE_VARIANT=<name>  mutate SNAPSHOT_DIR/build/variants/<name>/protocol_emulator_core.v
+#                      (scripts/gen_variants.sh <name>, run in the snapshot) and pack
+#                      build/variants/<name>/ (its firmware images) into testtree.tgz;
+#                      OUT_DIR/variant.txt records the name, and run_mutant.py then runs
+#                      the suite with PE_VARIANT=<name> against the mutant core
+#   MUTATE_CORE=<file.v> mutate this core instead (with PE_VARIANT: the variant's core)
+#
 # Only src/protocol_emulator_core.v is mutated. The eight IHP SRAM macros are
 # read as an interface-only blackbox (models/blackbox/), so the macros are never
 # mutated; the nets the core drives into them and reads from them can be.
@@ -44,10 +52,23 @@ CFG="-cfg weight_pq_b 0 -cfg weight_pq_mb 0 -cfg weight_pq_w 100 -cfg weight_pq_
 -cfg weight_pq_c 100 -cfg weight_pq_mc 100 -cfg weight_pq_s 300 -cfg weight_pq_ms 300 \
 -cfg weight_cover 2000 -cfg pick_cover_prcnt 90"
 
-cp "$SNAP/src/protocol_emulator_core.v" core_orig.v
+VARIANT=${PE_VARIANT:-base}
+if [ "$VARIANT" = base ]; then
+  CORE=${MUTATE_CORE:-$SNAP/src/protocol_emulator_core.v}
+  EXTRA=()
+else
+  CORE=${MUTATE_CORE:-$SNAP/build/variants/$VARIANT/protocol_emulator_core.v}
+  [ -d "$SNAP/build/variants/$VARIANT" ] || { echo "no $SNAP/build/variants/$VARIANT (scripts/gen_variants.sh $VARIANT)" >&2; exit 1; }
+  EXTRA=("build/variants/$VARIANT")
+fi
+echo "$VARIANT" > variant.txt
+cp "$CORE" core_orig.v
 # everything a simulation task needs besides the core (the harness reads
-# ../firmware and ../configs relative to test/)
-tar -C "$SNAP" -czf testtree.tgz src/project.v test firmware models configs
+# ../firmware and ../configs relative to test/; a variant also its firmware images).
+# The variant's unmutated core is left out, so a run that failed to point PE_CORE
+# at the mutant cannot silently simulate it.
+tar -C "$SNAP" --exclude='build/variants/*/protocol_emulator_core.v' -czf testtree.tgz \
+  src/project.v test firmware models configs ${EXTRA[@]+"${EXTRA[@]}"}
 cp "$SNAP/models/blackbox/RM_IHPSG13_1P_64x16_c2.v" sram_blackbox.v
 
 yosys -q -l prep.log -p "
@@ -85,6 +106,7 @@ rm -f mutations.body
 
 {
   echo "snapshot: $SNAP"
+  echo "variant: $VARIANT"
   echo "quotas: $QUOTAS"
   echo "seed: $SEED (region k uses seed+k)"
   echo "cfg: $CFG"

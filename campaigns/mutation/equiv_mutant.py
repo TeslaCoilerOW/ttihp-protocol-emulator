@@ -23,6 +23,12 @@ input in the next cycle, hence forever. "equivalent" is reported only when
 equiv_status says every $equiv cell is proven. This is a sufficient, not a
 necessary, condition: a mutant that differs only in unreachable states is
 reported "not_proven" and must be classified by hand.
+
+Asynchronous resets (design variants cn, cn_s2, diet4, diet2): the register
+outputs of $adff cells are kept as well, and `async2sync` rewrites both copies
+after the hiding step, so SAT sees each asynchronous clear as a multiplexer on
+the register output (the named register net stays the matched point). A design
+without asynchronous flops is processed exactly as before.
 """
 from __future__ import annotations
 
@@ -42,6 +48,14 @@ YOSYS = os.path.join(os.environ["OSS_CAD_SUITE"], "bin", "yosys") if "OSS_CAD_SU
 KEEP_EXPR = ("gold/t:$dff %x:+[Q] gold/t:$dff %d gold/x:* %u "
              "gold/t:RM_IHPSG13_1P_64x16_c2 %x:+[A_DOUT,A_ADDR,A_DIN,A_MEN,A_WEN,A_REN] "
              "gold/t:RM_IHPSG13_1P_64x16_c2 %d %u")
+# the same plus the outputs of asynchronously reset registers (designs with $adff cells only)
+KEEP_EXPR_ASYNC = KEEP_EXPR + " gold/t:$adff %x:+[Q] gold/t:$adff %d %u"
+ASYNC_CELL = re.compile(r"^\s*cell \$(adff|adffe|aldff|aldffe|dffsr|dffsre)\b", re.M)
+
+
+def has_async(design: Path) -> bool:
+    """True when the prepared core (base.il) has asynchronously reset or loaded flops."""
+    return bool(ASYNC_CELL.search((design / "base.il").read_text()))
 
 
 def read_pair(design: Path, gate_v: Path) -> str:
@@ -60,7 +74,8 @@ def ensure_keep(design: Path, work: Path) -> tuple[Path, Path]:
     if gold.exists() and gate.exists():
         return gold, gate
     tmp = work / "keep.txt"
-    script = read_pair(design, design / "base_roundtrip.v") + f"select -write {tmp} {KEEP_EXPR}\n"
+    expr = KEEP_EXPR_ASYNC if has_async(design) else KEEP_EXPR
+    script = read_pair(design, design / "base_roundtrip.v") + f"select -write {tmp} {expr}\n"
     (work / "keep.ys").write_text(script)
     subprocess.run([YOSYS, "-q", "-s", str(work / "keep.ys")], check=True, cwd=work,
                    stdout=subprocess.DEVNULL)
@@ -91,6 +106,7 @@ select -read {keep_gold}
 select -set keepgold %
 select -clear
 rename -hide gold/w:* @keepgold %d
+{"async2sync" if has_async(design) else ""}
 equiv_make gold gate equiv
 hierarchy -top equiv
 equiv_simple -seq {seq}

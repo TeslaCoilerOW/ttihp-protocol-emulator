@@ -1,0 +1,10 @@
+snapshot: <work dir>/sixby4-verify/snapshot-c118027
+variant: diet4
+quotas: engine_ctrl=550,host=400,mover=250,events=300,pins=250,engine_xfer=200,imem=60,shared=90,fifo=130,engine_data=180,timestamp=10
+seed: 20270118 (region k uses seed+k)
+cfg: -cfg weight_pq_b 0 -cfg weight_pq_mb 0 -cfg weight_pq_w 100 -cfg weight_pq_mw 100 -cfg weight_pq_c 100 -cfg weight_pq_mc 100 -cfg weight_pq_s 300 -cfg weight_pq_ms 300 -cfg weight_cover 2000 -cfg pick_cover_prcnt 90
+Yosys 0.67+111 (git sha1 4821ed17b-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+cc27c465c877f0ab3b9491de1ae0fb2bf084e97e001a83e768fb676ac8b6ebba  core_orig.v
+833c7cc3c52b5cb996d5db227edfd17a950c320f9b4cad621be7c8e7d2fe9048  base.il
+e4b319c56ed47060f9c49a3a3d2f12758164577d54dfb8252acde8f99a60f5a2  base_roundtrip.v
+8a24cf1daf1ea96982f32aab9ddcede9126a3048b2477d7ac7c9c2a4979f601e  mutations.tsv

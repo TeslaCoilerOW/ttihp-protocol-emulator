@@ -29,7 +29,13 @@ Environment:
   VCAMP_VARIANT    default | dense (long programs, host traffic without idles)
                    | faulty (fault rate 0.10, more revive/clear traffic)
                    | hostile (illegal/aborted host command sequences, see hostile_host_op)
-                   | deselect (the upstream trailing deselect op moved into the traffic)
+                   | deselect (the upstream trailing deselect op moved into the traffic;
+                     on a generation-2 generator, which already does that, every case
+                     gets one mid-traffic deselect)
+  VCAMP_GEN        generator generation passed to make_case (snapshots whose make_case
+                   takes ``generation``; default: the snapshot's own default)
+  PE_VARIANT       design variant of the snapshot's test/variants.py (default base);
+                   the model is configured from it, the core is chosen at build time
   PE_RANDOM_ITERS / PE_RANDOM_FIRST / PE_RANDOM_CYCLES   as in test_random
   PE_REPLAY        run one saved case JSON instead (triage); VCAMP_SEED ignored
   PE_INJECT_MODEL_BUG  xor: corrupt the model after XOR (negative control, as in test_random)
@@ -41,6 +47,8 @@ Environment:
 
 from __future__ import annotations
 
+import dataclasses
+import inspect
 import json
 import os
 import platform
@@ -104,19 +112,51 @@ def apply_variant(name: str) -> None:
         # whose estimated cost already exceeds the cycle budget, and run_case stops at the
         # budget, so the op almost never executes. Move it to a deterministic random position
         # in the first 70% of the op list (mid-traffic, engines running).
+        # Generation 2 of the generator (random_gen.GENERATION >= 2) already moves it there,
+        # so the move would be a no-op: there, every case without a deselect gets one, drawn
+        # the same way from the same separate stream (10x the generator's own rate).
         make = random_gen.make_case
 
-        def make_with_deselect(seed, index, config, *, cycles):  # noqa: ANN001, ANN202
-            case = make(seed, index, config, cycles=cycles)
+        def make_with_deselect(seed, index, config, *, cycles, **kwargs):  # noqa: ANN001, ANN202
+            case = make(seed, index, config, cycles=cycles, **kwargs)
+            rng = random_gen.random.Random((seed * 1_000_003 + index) ^ 0xDE5E1EC7)
             if case.ops and case.ops[-1][0] == "deselect":
                 op = case.ops.pop()
-                rng = random_gen.random.Random((seed * 1_000_003 + index) ^ 0xDE5E1EC7)
+                case.ops.insert(rng.randrange(max(1, int(len(case.ops) * 0.7))), op)
+            elif generation_of(kwargs) >= 2 and not any(op[0] == "deselect" for op in case.ops):
+                op = ["deselect", rng.randint(1, 3)]
                 case.ops.insert(rng.randrange(max(1, int(len(case.ops) * 0.7))), op)
             return case
 
         random_gen.make_case = make_with_deselect
         return
     raise ValueError(f"unknown VCAMP_VARIANT {name!r}")
+
+
+def generation_of(kwargs: dict) -> int:
+    """Generator generation a make_case call uses (1 for snapshots that predate generations)."""
+    return int(kwargs.get("generation", getattr(random_gen, "GENERATION", 1)))
+
+
+def make_case_kwargs() -> dict:
+    """``generation=VCAMP_GEN`` when requested and the snapshot's make_case takes it."""
+    value = os.environ.get("VCAMP_GEN", "")
+    if not value:
+        return {}
+    if "generation" not in inspect.signature(random_gen.make_case).parameters:
+        raise ValueError("VCAMP_GEN is set but this snapshot's make_case has no generation parameter")
+    return {"generation": int(value, 0)}
+
+
+def design_info(config) -> dict:  # noqa: ANN001
+    """Design variant under test (snapshot test/variants.py, when present) and its model configuration."""
+    info = {"design_variant": os.environ.get("PE_VARIANT", "") or "base",
+            "fifo_words": getattr(config, "fifo_words", None), "model_config": type(config).__name__}
+    options = getattr(config, "options", None)
+    if options is not None:
+        info["model_options"] = (dataclasses.asdict(options) if dataclasses.is_dataclass(options)
+                                 else repr(options))
+    return info
 
 
 def hostile_host_op(host_op):  # noqa: ANN001, ANN201
@@ -228,10 +268,11 @@ async def test_random_campaign(dut):
         xcov = ExtendedCoverage(coverage)
         h.observers.append(xcov)
     await h.start()
+    gen_kwargs = make_case_kwargs()
     if replay:
         cases = [Case.from_json(Path(replay).read_text())]
     else:
-        cases = (random_gen.make_case(seed, i, h.model.config, cycles=cycles)  # variants may wrap it
+        cases = (random_gen.make_case(seed, i, h.model.config, cycles=cycles, **gen_kwargs)  # variants may wrap it
                  for i in range(first, first + iterations))
     records = []
     failed_before = False
@@ -294,6 +335,7 @@ async def test_random_campaign(dut):
         "schema": "pe-vcamp.random.v1", "label": label, "variant": variant, "seed": seed,
         "replay": replay, "first": first, "iterations": iterations, "host_cycles": cycles,
         "gate_level": gate_level, "inject_model_bug": os.environ.get("PE_INJECT_MODEL_BUG", ""),
+        "generation": generation_of(gen_kwargs), **design_info(h.model.config),
         "commit": os.environ.get("VCAMP_COMMIT", ""),
         "netlist": os.environ.get("VCAMP_NETLIST", ""),
         "host": socket.gethostname(), "slurm_job": os.environ.get("SLURM_JOB_ID", ""),

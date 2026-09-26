@@ -722,3 +722,212 @@ observed. They were not classified here.
 
 Jobs: `gaps` 23813966, `recheck` 23813967, `gaps2` 23817415, pilot 23811152,
 final-tree controls (stage `suite`) 23819701, generator measurement 23806285.
+
+## Variant diet4 (6x4) campaigns
+
+The 6x4 candidate is design variant `diet4` ([`variants.md`](variants.md);
+ISA version 3: 4-word queues built from registers, asynchronous reset with
+synchronized release, no debug counters, 7-bit saturating PC, byte-lane
+shifts). The campaigns above ran on the design of record (`base`) at
+`73536f0`. This section repeats the random lockstep campaign and the mutation
+campaign on `diet4`, with the suite and generator of `c118027` (tag
+`v0.1-hardened`: 66 tests, generator generation 2), so that both numbers exist
+for either tile size. The scripts are the ones in `campaigns/random/` and
+`campaigns/mutation/`, with the design-variant options described in each
+README ("Design variants"). Summaries:
+[`campaigns/random/results/diet4/`](../campaigns/random/results/diet4/) and
+[`campaigns/mutation/results/diet4/`](../campaigns/mutation/results/diet4/).
+Job ids: `<work dir>/sixby4-verify/manifest.json`. All runs are from
+2026-09-25 21:40 to 2026-09-26 01:00 (EDT).
+
+### Setup
+
+| item | value |
+|---|---|
+| design under test | frozen `git archive` of `c11802730ea10a9501ce16517ca6218fd8b7c43e`; `build/variants/diet4/protocol_emulator_core.v` generated in the snapshot by `scripts/gen_variants.sh diet4` (job 23974763; its checks regenerate `src/protocol_emulator_core.v` byte for byte), sha256 `cc27c465…`, the core of the diet4 runs in [`sweep.md`](sweep.md); `src/project.v` sha256 `2aacfd24…` |
+| reference model | the snapshot's `test/model/variant.py`, configured from `configs/variants/diet4.json` by `PE_VARIANT=diet4` (`test/variants.py` checks the file against its own table). Every result file records the variant, `fifo_words` 4 and the model options |
+| stimulus | `random_gen.make_case`, generation 2 (the snapshot default: mid-traffic deselect and rejected command sequences). On `diet4` the generator also draws byte-lane shift counts (15% deliberately off-lane, fault code 1) and jumps to targets of 128 or more (8%, saturated to PC 127) |
+| gate-level netlist | the routed netlist of sweep run `diet4-cc27c4-6x4-fp6_tworow-d65-p20-h0p1_0p05-full-t32` (job 23763343_0, full flow, LVS 0; [`sweep.md`](sweep.md)), `final/nl`, sha256 `98b31b96…` (gzip `c4a2ddfb…`). The eight SRAM macros are simulated with the behavioral models, the cells with the IHP `sg13cmos5l` Verilog models, zero delay. The 6x4 sign-off runs of [`6x4.md`](6x4.md) had no final netlist yet at 2026-09-26 01:00; the gate-level sample should be repeated on the netlist that is submitted |
+| simulator | Icarus Verilog 14.0 (devel, OSS CAD Suite 2026-07-29), cocotb 2.0.1, Python 3.12 |
+| compute | Slurm `mit_normal`, `mit_quicktest` and `mit_preemptable` (with `--requeue`); `mit_preemptable` started few tasks during these runs |
+
+Fidelity check (job 23975155): seed 1 through the unmodified upstream flow
+(`upstream_run.sh`, `make COCOTB_TEST_MODULES=test_random` with
+`PE_VARIANT=diet4`, which compiled its own simulation from the same sources)
+passed 64 cases. Its per-case lockstep cycle counts (64 of 64) and its
+18-line coverage summary are identical to seed 1 of `d4-rtl-default` run
+through the campaign driver.
+
+### Random lockstep campaign
+
+Generator variants as in "Random differential campaign" above. On a
+generation-2 snapshot the `deselect` variant inserts one mid-traffic deselect
+into every case that has none (generation 2 already moves the optional one),
+so that every case of `d4-rtl-xcov-deselect` has one mid-traffic deselect
+(16,384 deselects in 16,384 cases).
+
+| campaign | generator | level | seeds | cases/seed | host cycles/case | cases run | passed | failed | infra errors | lockstep cycles | sim CPU-h | Slurm array |
+|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| `d4-rtl-default` | default | RTL | 0x1..0x800 (2048) | 64 | 2,000 | 131,072 | 131,072 | 0 | 0 | 495,478,116 | 26.9 | 23974967 |
+| `d4-rtl-xcov-default` | default | RTL | 0x801..0xc00 (1024) | 64 | 2,000 | 65,536 | 65,536 | 0 | 0 | 247,744,648 | 16.6 | 23974968 |
+| `d4-rtl-long` | default | RTL | 0x100001..0x100100 (256) | 64 | 20,000 | 16,384 | 16,384 | 0 | 0 | 356,937,617 | 23.0 | 23974969 |
+| `d4-rtl-xcov-dense` | dense | RTL | 0x300001..0x300100 (256) | 64 | 8,000 | 16,384 | 16,384 | 0 | 0 | 176,974,205 | 10.9 | 23974972 |
+| `d4-rtl-xcov-faulty` | faulty | RTL | 0x400001..0x400100 (256) | 64 | 8,000 | 16,384 | 16,384 | 0 | 0 | 160,250,428 | 11.2 | 23974973 |
+| `d4-rtl-xcov-hostile` | hostile | RTL | 0x500001..0x500100 (256) | 64 | 8,000 | 16,384 | 16,384 | 0 | 0 | 158,958,462 | 12.7 | 23974974 |
+| `d4-rtl-xcov-deselect` | deselect | RTL | 0x600001..0x600100 (256) | 64 | 2,000 | 16,384 | 16,384 | 0 | 0 | 61,540,549 | 5.3 | 23974976 |
+| `d4-gl-default` | default | GL | 0x1..0x40 (64) | 8 | 2,000 | 512 | 512 | 0 | 0 | 1,941,597 | 0.7 | 23975172 |
+| `d4-gl-extended` | default | GL | 0x41..0x140 (256) | 32 | 2,000 | 8,192 | 8,192 | 0 | 0 | 30,945,971 | 9.9 | 23975174 |
+| `d4-gl-hostile` | hostile | GL | 0x500001..0x500040 (64) | 16 | 8,000 | 1,024 | 1,024 | 0 | 0 | 9,940,328 | 3.3 | 23975175 |
+| `d4-gl-deselect` | deselect | GL | 0x600001..0x600040 (64) | 16 | 2,000 | 1,024 | 1,024 | 0 | 0 | 3,845,946 | 1.2 | 23975176 |
+| **total** | | | 4,800 seeds | | | **289,280** | **289,280** | **0** | 0 | **1,704,557,867** | 121.9 | |
+
+- **RTL:** 4,352 seeds, 278,528 cases, 1,657,884,025 lockstep cycles, 0
+  failures. The required 2,048 seeds x 64 cases of the default generator are
+  `d4-rtl-default`; with `d4-rtl-xcov-default` the default generator ran 3,072
+  seeds (196,608 cases). `d4-rtl-long` ran 256 seeds at 20,000 host-traffic
+  cycles per case.
+- **Gate level:** 448 seeds, 10,752 cases, 46,673,842 lockstep cycles, 0
+  failures. Each GL case took exactly as many lockstep cycles as the same seed
+  and case at RTL (10,752 of 10,752 paired with `d4-rtl-default`,
+  `d4-rtl-xcov-hostile` and `d4-rtl-xcov-deselect`).
+- Every seed produced a result file: no timeouts, no simulator crashes, no
+  infrastructure errors. There was no failure to triage.
+
+Coverage (`random_gen.Coverage`, merged over all campaigns): no hole in any
+bin list of `merge.py`, and none in `d4-rtl-default` alone.
+
+- All 29 non-FAULT opcodes completed on each of the 4 engines (fewest:
+  engine 2 HALT, 115,927).
+- All 18 targeted fault bins were hit, the 17 of the base campaign plus
+  `code 1 from SHR` (fewest: code 1 from PINS, 37,302), and all 255 explicit
+  `FAULT n` codes.
+- XFER: 32/32 flag combinations (110,604 to 373,647 issues each) and every bit
+  count class.
+- Mover: 373,011 word transfers.
+- Host commands: all twelve both accepted and rejected, in `d4-rtl-default`
+  alone as well (BEGIN, COMMIT, STOP, ROUTE and EVENT rejected 25,316, 50,566,
+  16,830, 16,588 and 16,843 times). These are the five bins that the
+  generation-1 generator never hit on the base design (finding 3 above).
+- Host traffic: every bin, including the two program-word bins of
+  generation 2.
+- `diet4`-specific bins: 249,635 byte-lane shift faults (off-lane count,
+  code 1) and 171,894 jumps saturated to PC 127.
+- Deselect: 13,091 deselects in the 131,072 cases of `d4-rtl-default` (10.0%).
+  The xcov bin "reset/deselect with engines running" is hit 87.8 times per
+  1,000 default cases (the generation-1 base campaign: 2.4) and 889 times per
+  1,000 `deselect` cases.
+
+Extended cross coverage (`xcov.py`, 131,072 cases in five campaigns): all 71
+bins hit, 0 observer errors. The rarest, per 1,000 cases:
+
+| bin | default (65,536 cases) | best variant (16,384 cases each) |
+|---|---:|---:|
+| synchronous start of 4 engines | 0.20 (13 hits) | 1.77 (`dense`) |
+| host TX write and engine PULL on the same FIFO, same edge | 0.90 | 4.7 (`dense`) |
+| mover blocked by a host TX write to its destination on the same edge | 1.14 | 1.89 (`dense`) |
+| mover arbitration with at least 2 eligible routes | 2.75 | 39.8 (`dense`) |
+| four engines inside XFER at once | 4.12 | 48.5 (`faulty`) |
+| synchronous start of 3 engines | 4.14 | 15.7 (`dense`) |
+| WAITPIN/WAITEVENT timeout with LIMIT 1 | 8.6 | 42.9 (`dense`) |
+
+The rarest bins are largely the same as on the base design ("Coverage"
+above). In default cases the fault output `uo[7]` is high in 69.8% of lockstep
+cycles (92.2% at 20,000 host cycles per case), and no engine runs in 40.3% of
+cycles.
+
+Negative control (`PE_INJECT_MODEL_BUG=xor`, the stimulus of
+`d4-rtl-default` seeds 1 to 64, array 23974977): all 64 seeds and 1,400 of
+4,096 cases (34.2%) failed, every one a lockstep mismatch.
+
+Full tables: [`campaigns/random/results/diet4/report.md`](../campaigns/random/results/diet4/report.md).
+
+### Mutation campaign
+
+Same method as "Mutation testing" above: Yosys `mutate`, region-biased with
+the same quotas and seed (`campaigns/mutation/campaign-diet4.env`), the fast
+set, then the whole suite on the fast-set survivors, then the equivalence
+proof on the survivors. What differs:
+
+| item | value |
+|---|---|
+| mutated core | the `diet4` core above (`base.il`: 3,387 cells, against 3,579 for `base`); 2,420 mutants, `inv` 606, `const0` 599, `const1` 607, `cnot0` 315, `cnot1` 293 (job 23974949) |
+| regions | `diet4` has no FIFO memories: each queue word is an anonymous register. `region_map.py` now takes groups of anonymous registers that load the same data signal under different enables as queue storage when a core has no memory arrays; it finds the 32 words (8 queues x 4) and maps 376 cells to `fifo`. The base core's region map is unchanged, byte for byte |
+| second stage | stage `suite`: the snapshot's whole suite, the nine modules of `test/Makefile` (66 tests: smoke, protocols, flagship, legacy, random, directed, mover, counters, timewarp), defaults, stopping at the first failing module, budget 3,600 s. It replaces the 39-test `full` stage |
+| variant plumbing | every `make` gets `PE_VARIANT=diet4` and `PE_CORE=<mutant>`; the variant's firmware images are in the test tree and its unmutated core is not, so a run that did not use the mutant would fail to build |
+| equivalence | the `diet4` flops have asynchronous resets: the proof keeps the `$adff` outputs as matched points and runs `async2sync` on both copies before `equiv_make` |
+| controls | `orig` and mutant 0 pass the fast set (job 23975067) and all 66 tests of the suite with none skipped (job 23975068; `test_timewarp` runs its 7 tests on the variant). Mutant 0 is proven equivalent (job 23975069). All 40 negative controls, a random sample (`random.seed(20270118)`) of fast-killed mutants, are "not proven" (job 23976517). All 38 static no-op mutants (`noop_check.py`) are proven equivalent |
+
+**Result.** 2,028 of 2,420 mutants are killed (1,346 by the fast set, 682 more
+by the suite), 0 time out and 0 error. 107 of the 392 survivors are proven
+equivalent. The mutation score is **2,028 / (2,420 − 107) = 87.7%**. 285
+survivors are neither killed nor proven equivalent.
+
+| region | cells | mutants | killed (fast) | killed (suite) | survived | proven equivalent | not proven | score |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| engine_ctrl | 664 | 550 | 243 | 189 | 118 | 23 | 95 | 82.0% |
+| host | 286 | 400 | 345 | 25 | 30 | 13 | 17 | 95.6% |
+| events | 580 | 300 | 168 | 61 | 71 | 29 | 42 | 84.5% |
+| mover | 155 | 250 | 95 | 122 | 33 | 11 | 22 | 90.8% |
+| pins | 313 | 250 | 118 | 98 | 34 | 13 | 21 | 91.1% |
+| engine_xfer | 212 | 200 | 98 | 52 | 50 | 13 | 37 | 80.2% |
+| engine_data | 680 | 180 | 72 | 76 | 32 | 0 | 32 | 82.2% |
+| fifo | 376 | 130 | 77 | 46 | 7 | 0 | 7 | 94.6% |
+| shared | 83 | 90 | 78 | 7 | 5 | 3 | 2 | 97.7% |
+| imem | 36 | 60 | 44 | 4 | 12 | 2 | 10 | 82.8% |
+| timestamp | 2 | 10 | 8 | 2 | 0 | 0 | 0 | 100.0% |
+| **total** | 3,387 | 2,420 | 1,346 | 682 | 392 | 107 | 285 | **87.7%** |
+
+| mode | mutants | killed (fast) | killed (suite) | survived | proven equivalent | not proven | score |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| inv | 606 | 432 | 135 | 39 | 7 | 32 | 94.7% |
+| const0 | 599 | 268 | 192 | 139 | 40 | 99 | 82.3% |
+| const1 | 607 | 387 | 141 | 79 | 14 | 65 | 89.0% |
+| cnot0 | 315 | 190 | 99 | 26 | 6 | 20 | 93.5% |
+| cnot1 | 293 | 69 | 115 | 109 | 40 | 69 | 72.7% |
+| **total** | 2,420 | 1,346 | 682 | 392 | 107 | 285 | **87.7%** |
+
+Which module kills first: fast set `test_smoke` 586, `test_random` (8 cases)
+427, `test_protocols` 289, `test_flagship` 44; suite (on fast-set survivors)
+`test_random` (64 cases) 383, `test_legacy` 152, `test_directed` 58,
+`test_timewarp` 43, `test_counters` 28, `test_mover` 18.
+
+**Survivors not proven equivalent** (285), by the nearest named state that the
+mutated statement feeds (`describe.py`): `blocked_cycles` 77, `mailbox` 42,
+`transfer_tick` 13, host read/engine select 12, `dma_round_robin` 12,
+`route_remaining` 10, `logical_output` 10, the rest 9 or fewer each. They were
+not classified by hand.
+
+**Deep random** (stage `deep`: `test_random`, 256 cases, `PE_SEED=0xD33B2027`,
+on the 285): it kills 79 (`engine_data` 20, `engine_ctrl` 17, `events` 12,
+`pins` 12, `host` 8, `engine_xfer` 5, `mover` 3, `fifo` 2). With them,
+(2,028 + 79) / 2,313 = 91.1%; this is the suite plus 256 random cases of one
+more seed, not the suite. 206 survivors remain neither killed nor proven
+equivalent.
+
+**Comparison with the base campaign.** The base core scored 89.4% with the
+same 66-test suite ("Gap closure" above) and 80.2% with the 39-test suite.
+The two mutant sets are drawn with the same quotas and seed from different
+netlists, so the two scores describe two designs and are not a paired
+comparison. In both, `engine_ctrl` holds the largest group of unproven
+survivors (`diet4` 95; `base` with the same suite 71, 55 of them on
+`blocked_cycles`).
+
+Compute: fast set 11.1 CPU-hours, suite 26.8 CPU-hours, equivalence 3.6
+CPU-hours, deep random 13.2 CPU-hours (sums of per-mutant run times).
+
+With the design-variant options unused, the modified scripts reproduce the
+committed summaries of the base campaigns byte for byte
+(`campaigns/mutation/results/summary.json` and `mutant_status.tsv`,
+`campaigns/random/results/report.md`; jobs 23981605 and 23986500, the second
+with the final scripts), and `region_map.py`
+reproduces the base core's region map and selections byte for byte.
+
+| stage | job ids | tasks x CPUs | mutants |
+|---|---|---|---:|
+| mutant generation | 23974822 (stopped: no cells in region `fifo`, before the register-queue mapping), 23974949 | 1 x 2 | 2,420 |
+| controls | 23975067 (fast), 23975068 (suite), 23975069 (equivalence probe, ids 0 to 7) | 2 x 1, 2 x 1, 1 x 8 | `orig`, 0 |
+| fast set | 23975134, 23975255, 23975687, 23976372 (`mit_quicktest`); 23975133 cancelled before it started | 2 x 8, 3 x 8, 3 x 8, 2 x 8 | 2,420 |
+| suite | 23976505 (`mit_preemptable`/`mit_normal`; its preempted tasks were cancelled once their ids had run in other arrays), 23976507, 23977852, 23980054, 23982956, 23983953 (`mit_quicktest`); 23983632 cancelled before it started | 8 x 8, 4 x 8, 5 x 8, 2 x 8, 2 x 8, 1 x 4 | 1,074 |
+| equivalence | 23982705, 23983639, 23984313 | 3 x 8, 1 x 8, 1 x 4 | 392 |
+| equivalence negative controls | 23976517 | 1 x 8 | 40 |
+| deep random | 23984397 (`mit_normal`; two pending tasks cancelled once their ids had run in other arrays), 23984398, 23984950, 23985826 (`mit_quicktest`) | 4 x 8, 2 x 8, 3 x 8, 3 x 8 | 285 |

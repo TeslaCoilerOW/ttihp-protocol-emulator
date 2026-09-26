@@ -11,7 +11,9 @@ registers, the eight FIFO memories, the eight instruction-SRAM instances and
 the module outputs. The region is the most common anchor category at the
 minimum distance; when the nearest anchors span three or more categories the
 statement is labelled "shared" (reset, window decode and similar fan-out
-logic).
+logic). In cores whose queues are registers rather than memories (design
+variants with fifo_storage_reset), the queue-word registers take the place of
+the FIFO memories (register_fifo_words).
 
 Writes:
   OUT_DIR/regions.json         {line: region} for every statement line, plus stats
@@ -147,6 +149,31 @@ def parse(core: Path):
     return lines, stmts, regs, memories, seq_regs, outputs
 
 
+ENABLED_LOAD = re.compile(r"\belse\s+if\s*\(\s*(\w+)\s*\)\s*(\w+)\s*<=\s*(\w+)\s*;\s*end\s*$")
+
+
+def register_fifo_words(stmts) -> set[str]:
+    """FIFO storage built from registers (variants with fifo_storage_reset: cn, cn_s2, diet*).
+
+    Those cores have no memory arrays: every queue word is an anonymous register
+    loaded by ``if (reset) r <= 0; else if (put & wr == j) r <= data`` (hardcaml/lib/fifo.ml).
+    The words of one queue load the same data signal under different enables, so
+    a group of two or more anonymous registers, each alone in a clocked block that
+    ends in such an enabled load of one common signal, is taken as one queue's
+    storage. Only used when the core has no memory arrays, so the design of record
+    maps exactly as before.
+    """
+    groups: dict[str, list[str]] = collections.defaultdict(list)
+    for st in stmts:
+        if st.kind != "seq" or len(st.lhs) != 1:
+            continue
+        (target,) = st.lhs
+        m = ENABLED_LOAD.search(st.text)
+        if target.startswith("_") and m and m.group(2) == target:
+            groups[m.group(3)].append(target)
+    return {r for words in groups.values() if len(words) >= 2 for r in words}
+
+
 def classify(stmts, memories, seq_regs, outputs):
     consumers: dict[str, set[str]] = collections.defaultdict(set)
     for st in stmts:
@@ -239,6 +266,10 @@ def parse_il(il: Path):
 def main() -> None:
     core, il, out = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
     lines, stmts, regs, memories, seq_regs, outputs = parse(core)
+    fifo_registers: set[str] = set()
+    if not memories:  # register-based queues (see register_fifo_words)
+        fifo_registers = register_fifo_words(stmts)
+        memories = memories | fifo_registers
     classify(stmts, memories, seq_regs, outputs)
     line_region: dict[int, str] = {}
     line_stmt: dict[int, Statement] = {}
@@ -288,6 +319,8 @@ def main() -> None:
         "statement_regions": dict(stmt_regions.most_common()),
         "cells": len(cells),
         "cell_regions": dict(cell_regions.most_common()),
+        **({"fifo_storage_registers": sorted(fifo_registers, key=lambda r: int(r[1:]) if r[1:].isdigit() else 0)}
+           if fifo_registers else {}),
         "line_region": {str(k): v for k, v in sorted(line_region.items())},
         "line_anchor": {str(k): line_stmt[k].anchors[:4] for k in sorted(line_stmt)
                         if k == line_stmt[k].first},

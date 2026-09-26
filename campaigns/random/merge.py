@@ -40,6 +40,27 @@ HOST_BINS = (["tx word accepted", "tx write abandoned (full)", "rx word read", "
              + ["engine reprogrammed", "revive: cleared fault", "revive: restarted", "deselect (ena low)"])
 MISC_BINS = ["cycles with IRQ asserted", "cycles with fault output asserted", "cycles with any pin driven",
              "engine starts"]
+# Bins that only exist for some results: generator generation 2 (random_gen.GENERATION) and the
+# restricted-ISA design variants (test/variants.py: byte-lane shifts, 7-bit saturating PC).
+# They join the hole lists only when a merged result says it was run that way.
+HOST_BINS_GEN2 = ["program word written", "program word not accepted"]
+MISC_BINS_BYTE_LANE = ["byte-lane shift count faults (code 1)"]
+FAULT_BINS_BYTE_LANE = ["code 1 from SHR"]
+MISC_BINS_SATURATING_PC = ["jump targets saturated to PC 127"]
+
+
+def extra_bins(results: list[dict]) -> dict[str, list[str]]:
+    """Host, misc and fault bins that the merged results' generator generation and design variant can hit."""
+    extra: dict[str, list[str]] = {"host": [], "misc": [], "faults": []}
+    if any(int(r.get("generation") or 1) >= 2 for r in results):
+        extra["host"] += HOST_BINS_GEN2
+    options = [r.get("model_options") or {} for r in results]
+    if any(isinstance(o, dict) and o.get("shift") == "byte_lane" for o in options):
+        extra["misc"] += MISC_BINS_BYTE_LANE
+        extra["faults"] += FAULT_BINS_BYTE_LANE
+    if any(isinstance(o, dict) and o.get("pc_bits") == "saturating_7" for o in options):
+        extra["misc"] += MISC_BINS_SATURATING_PC
+    return extra
 
 
 def xfer_modes() -> list[str]:
@@ -99,18 +120,19 @@ def merge(results: list[dict]) -> dict:
                                  "case_json": case.get("case_json"), "result": r["_path"]})
     instr = sum(sum(v.values()) for v in cov["executed"].values())
     all_ops = [m for m in MNEMONIC if m != "FAULT"]
+    extra = extra_bins(ok)
     holes = {
         "opcode_x_engine": {e: [m for m in all_ops if m not in cov["executed"].get(e, {})]
                             for e in sorted(cov["executed"])},
         "engines_without_any_completion": [str(e) for e in range(4) if str(e) not in cov["executed"]],
         "stall_kinds": [s for s in STALLS if s not in cov["stalls"]],
-        "fault_bins": [b for b in FAULT_BINS if b not in cov["faults"]],
+        "fault_bins": [b for b in FAULT_BINS + extra["faults"] if b not in cov["faults"]],
         "xfer_flag_combinations": [m for m in xfer_modes() if m not in cov["xfer"]],
         "xfer_bit_counts": [b for b in ("bits=1", "bits 2..width-1", "bits=width") if b not in cov["xfer"]],
         "host_commands": [f"{c} {a}" for c in COMMANDS for a in ("accepted", "rejected")
                           if f"{c} {a}" not in cov["commands"]],
-        "host_traffic": [b for b in HOST_BINS if b not in cov["host"]],
-        "misc": [b for b in MISC_BINS if b not in cov["misc"]],
+        "host_traffic": [b for b in HOST_BINS + extra["host"] if b not in cov["host"]],
+        "misc": [b for b in MISC_BINS + extra["misc"] if b not in cov["misc"]],
     }
     if xcov_seeds:
         holes["xcov"] = [b for b in xcov_bins() if b not in xcov]
@@ -122,6 +144,9 @@ def merge(results: list[dict]) -> dict:
         "case_cycles": ({"min": min(case_cycles), "median": statistics.median(case_cycles),
                          "max": max(case_cycles)} if case_cycles else {}),
         "labels": sorted({r["label"] for r in results}),
+        **({"design_variants": sorted({r["design_variant"] for r in ok if "design_variant" in r}),
+            "generations": sorted({r["generation"] for r in ok if "generation" in r})}
+           if any("design_variant" in r for r in ok) else {}),
         "seed_range": [min(r["seed"] for r in results), max(r["seed"] for r in results)] if results else [],
         "slurm_array_jobs": sorted({r.get("slurm_array_job") or r.get("slurm_job", "") for r in results}),
         "seeds_with_zero_mover_transfers": mover_zero,

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Markdown tables for docs/verification-campaign.md from the campaign results.
 
-  report.py <vcamp/random> <label> [<label> ...] [--summary-dir DIR]
+  report.py <vcamp/random> <label> [<label> ...] [--summary-dir DIR] [--default-label LABEL]
 
 Writes DIR/summary-<label>.json (merge.py output) for each campaign and
 DIR/summary-all.json, and prints the per-campaign table, the coverage tables
@@ -40,6 +40,8 @@ def main() -> None:
     ap.add_argument("root", type=Path)
     ap.add_argument("labels", nargs="+")
     ap.add_argument("--summary-dir", type=Path)
+    ap.add_argument("--default-label", default="rtl-default",
+                    help="campaign whose holes are reported as those of the unmodified generator")
     args = ap.parse_args()
     out = []
     out.append("| campaign | generator | level | seeds | cases/seed | host cycles/case | cases run | passed | "
@@ -101,10 +103,10 @@ def main() -> None:
     out.append("Other: " + ", ".join(f"{k} {v:,}" for k, v in sorted(cov["misc"].items())))
     out.append("")
     out.append("Holes (bins never hit), all campaigns: `" + json.dumps(total["holes"]) + "`")
-    default = merge(cache["rtl-default"]) if cache.get("rtl-default") else None
+    default = merge(cache[args.default_label]) if cache.get(args.default_label) else None
     if default:
         out.append("")
-        out.append("Holes, upstream generator only (`rtl-default`): `" + json.dumps(default["holes"]) + "`")
+        out.append(f"Holes, upstream generator only (`{args.default_label}`): `" + json.dumps(default["holes"]) + "`")
     out.append("")
     out.append("Failures: " + (json.dumps(total["failures"], indent=1) if total["failures"] else "none"))
     # Extended cross coverage (xcov.py), per campaign that collected it.

@@ -17,6 +17,11 @@ explicit --ids), and whose result file OUT/<id>.json does not exist yet:
      reports a failing test (the mutant is killed);
   4. write OUT/<id>.json atomically and delete the temporary directory.
 
+Design variants: when DIR/variant.txt (written by gen_mutants.sh) names a
+variant other than base, every make call gets PE_VARIANT=<name> and
+PE_CORE=<task dir>/src/protocol_emulator_core.v (the mutant), so the snapshot's
+Makefile compiles the mutant and the harness configures the variant's model.
+
 Result status: killed (a test failed), survived (every test passed), timeout
 (the stage exceeded its time budget) or error (build/simulator error without a
 test verdict). The file is written only when the stage finished, so a
@@ -65,7 +70,28 @@ STAGES = {
     # extra random stimulus for full-suite survivors: 256 cases from another seed
     "deep": {"modules": [("test_random", {"PE_SEED": "0xD33B2027", "PE_RANDOM_ITERS": "256"})],
              "budget": 3000},
+    # the snapshot's whole suite: the default COCOTB_TEST_MODULES of its test/Makefile
+    # (66 tests in nine modules at c118027), defaults, stopping at the first failing module
+    "suite": {"modules": "makefile", "budget": 3600},
 }
+MAKEFILE_MODULES = re.compile(r"^COCOTB_TEST_MODULES\s*\?=\s*(\S.*)$", re.M)
+
+
+def stage_modules(spec: dict, test_dir: Path) -> list[tuple[str, dict]]:
+    """The stage's (module, env) list; "makefile" means the snapshot's default module list."""
+    if spec["modules"] != "makefile":
+        return spec["modules"]
+    m = MAKEFILE_MODULES.search((test_dir / "Makefile").read_text())
+    if not m:
+        raise RuntimeError("no COCOTB_TEST_MODULES default in test/Makefile")
+    return [(name.strip(), {}) for name in m.group(1).split(",") if name.strip()]
+
+
+def design_variant(design: Path) -> str:
+    path = design / "variant.txt"
+    return path.read_text().strip() if path.exists() else "base"
+
+
 COMMON_ENV = {"PE_MINIMIZE": "0", "PYTHONDONTWRITEBYTECODE": "1"}
 TOOL_PATH = [  # set PE_WORK (cluster work directory) and OSS_CAD_SUITE (tool root)
     p for p in (
@@ -200,6 +226,9 @@ def one(mutant: dict, design: Path, stage: str, out: Path, env0: dict) -> dict:
               "host": socket.gethostname(), "slurm_job": os.environ.get("SLURM_JOB_ID"),
               "slurm_array": f"{os.environ.get('SLURM_ARRAY_JOB_ID')}_{os.environ.get('SLURM_ARRAY_TASK_ID')}",
               "modules": []}
+    variant = design_variant(design)
+    if variant != "base":
+        result["design_variant"] = variant
     try:
         with tarfile.open(design / "testtree.tgz") as tf:
             tf.extractall(work, filter="data")
@@ -224,9 +253,15 @@ def one(mutant: dict, design: Path, stage: str, out: Path, env0: dict) -> dict:
             core.write_text(rip_wrapper(design, core.read_text()))
         budget = spec["budget"]
         status = "survived"
-        for module, extra in spec["modules"]:
+        modules = stage_modules(spec, work / "test")
+        for module, extra in modules:
             env = dict(env0, **COMMON_ENV, **extra)
             env["PWD"] = str(work / "test")  # test/Makefile uses $(PWD)
+            if variant != "base":
+                env["PE_VARIANT"], env["PE_CORE"] = variant, str(core)
+            else:  # the design of record, whatever the submitting shell exported
+                env.pop("PE_VARIANT", None)
+                env.pop("PE_CORE", None)
             xml = work / f"results_{module}.xml"
             mlog = work / f"log_{module}.txt"
             remaining = budget - (time.time() - t_start)
@@ -259,7 +294,7 @@ def one(mutant: dict, design: Path, stage: str, out: Path, env0: dict) -> dict:
                 break
         if spec.get("rip") and status == "survived":
             status = "ok"
-            result["rip"] = rip_collect([work / f"log_{m}.txt" for m, _ in spec["modules"]])
+            result["rip"] = rip_collect([work / f"log_{m}.txt" for m, _ in modules])
             result["tests_failed"] = sum(m["failures"] for m in result["modules"])
         result["status"] = status
         return result

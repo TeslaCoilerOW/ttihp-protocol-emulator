@@ -26,6 +26,8 @@ def cone_paths(core: Path):
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import region_map
     _, stmts, _, memories, seq_regs, outputs = region_map.parse(core)
+    if not memories:  # register-based queues of the variants, as region_map.main maps them
+        memories = region_map.register_fifo_words(stmts)
     by_lhs, consumers = {}, {}
     for st in stmts:
         for x in st.lhs:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Aggregate the mutation campaign result files into a summary.
 
-usage: summarize.py CAMP_DIR [--write-survivors FILE] [--json OUT.json]
+usage: summarize.py CAMP_DIR [--write-survivors FILE] [--json OUT.json] [--second-stage STAGE]
 
 Reads CAMP_DIR/design/mutations.tsv and CAMP_DIR/results/{fast,full,deep,equiv,directed}/<id>.json.
 Mutant 0 ("none", the Yosys round-trip of the unmodified core) and "orig" are
@@ -9,6 +9,8 @@ controls and are excluded from the counts. A mutant's final status is:
 
   killed_fast   a test of the fast set failed
   killed_full   survived the fast set, a test of the full 39-test suite failed
+                (or of the stage named by --second-stage, e.g. "suite": the
+                snapshot's whole suite, 66 tests at c118027)
   timeout       the fast or full stage exceeded its time budget (counted separately)
   error         build or simulator error without a test verdict
   survived      passed the fast set and the full suite
@@ -46,6 +48,8 @@ def main() -> None:
     ap.add_argument("--write-final-survivors", type=Path, help="ids that survived the full suite")
     ap.add_argument("--json", type=Path)
     ap.add_argument("--status-tsv", type=Path, help="one row per mutant: id, region, mode, verdicts per stage")
+    ap.add_argument("--second-stage", default="full",
+                    help="stage run on the fast-set survivors (full: the 39-test suite; suite: the snapshot's suite)")
     args = ap.parse_args()
 
     muts = {}
@@ -54,7 +58,9 @@ def main() -> None:
         mode = cmd.split("-mode ", 1)[1].split()[0]
         muts[mid] = {"region": region, "mode": mode}
     fast, full, deep, equiv, directed = (load(args.camp / "results" / s)
-                                         for s in ("fast", "full", "deep", "equiv", "directed"))
+                                         for s in ("fast", args.second_stage, "deep", "equiv", "directed"))
+    variant_file = args.camp / "design" / "variant.txt"
+    variant = variant_file.read_text().strip() if variant_file.exists() else "base"
 
     final = {}
     for mid in muts:
@@ -93,7 +99,7 @@ def main() -> None:
         by_mode[muts[mid]["mode"]][s] += 1
         src = fast.get(mid) if s == "killed_fast" else full.get(mid) if s == "killed_full" else None
         if src and src.get("killed_by"):
-            killer_module[("fast: " if s == "killed_fast" else "full: ") + src["killed_by"]["module"]] += 1
+            killer_module[("fast: " if s == "killed_fast" else f"{args.second_stage}: ") + src["killed_by"]["module"]] += 1
             killer_test[src["killed_by"]["module"] + "." + src["killed_by"]["test"]] += 1
     deep_killed = sorted((m for m, s in final.items() if s == "survived"
                           and deep.get(m, {}).get("status") == "killed"), key=int)
@@ -109,6 +115,8 @@ def main() -> None:
                 "sum_hours": round(sum(v) / 3600, 2)}
 
     summary = {
+        **({"design_variant": variant, "second_stage": args.second_stage}
+           if variant != "base" or args.second_stage != "full" else {}),
         "total_mutants": total,
         "status_counts": dict(counts),
         "killed": killed,
@@ -131,12 +139,13 @@ def main() -> None:
                                   " -- fast/full kills plus survivors killed by the deep random"
                                   " stage or the directed tests",
         "controls": {s: {k: (d.get(k) or {}).get("status") for k in ("0", "orig")}
-                     for s, d in (("fast", fast), ("full", full), ("directed", directed))},
+                     for s, d in (("fast", fast), (args.second_stage, full), ("directed", directed))},
         "runtime_seconds": {"fast_killed": secs(fast, "killed"), "fast_survived": secs(fast, "survived"),
-                            "full_killed": secs(full, "killed"), "full_survived": secs(full, "survived")},
+                            f"{args.second_stage}_killed": secs(full, "killed"),
+                            f"{args.second_stage}_survived": secs(full, "survived")},
         "slurm_array_jobs": {s: dict(collections.Counter(r["slurm_array"].split("_")[0] for r in d.values()
                                                          if r.get("slurm_array", "None_None") != "None_None"))
-                             for s, d in (("fast", fast), ("full", full), ("deep", deep), ("equiv", equiv),
+                             for s, d in (("fast", fast), (args.second_stage, full), ("deep", deep), ("equiv", equiv),
                                          ("directed", directed))},
     }
     if args.write_survivors:
@@ -148,7 +157,7 @@ def main() -> None:
         args.write_final_survivors.write_text("\n".join(ids) + "\n")
         summary["final_survivor_ids_written"] = len(ids)
     if args.status_tsv:
-        rows = ["id\tregion\tmode\tfinal\tfast\tfull\tequiv\tdeep\tdirected"]
+        rows = [f"id\tregion\tmode\tfinal\tfast\t{args.second_stage}\tequiv\tdeep\tdirected"]
         for mid in sorted(final, key=int):
             st = lambda d: (d.get(mid) or {}).get("status", "-")
             rows.append("\t".join([mid, muts[mid]["region"], muts[mid]["mode"], final[mid], st(fast), st(full),
