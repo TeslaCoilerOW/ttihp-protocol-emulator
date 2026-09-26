@@ -1,0 +1,152 @@
+name: gds_6x4
+# 6x4 fallback submission candidate: the diet4 variant (ISA version 3,
+# docs/variants.md) on a 6x4 tile floorplan. The design of record stays 8x4
+# (gds.yaml). This workflow switches a fresh workspace with
+# variants6x4/switch.py (core, src/config.json overlay, info.yaml tiles) and
+# then runs the same Tiny Tapeout gds, precheck and gl_test actions as
+# gds.yaml. Nothing is committed back. See docs/6x4.md.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: gds-6x4-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OCAML_COMPILER: "5.2.1"
+
+jobs:
+  # The committed 6x4 core must be what hardcaml/ + configs/variants/diet4.json
+  # generate now (same toolchain setup as regen.yaml).
+  core_current:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Install system packages
+        shell: bash
+        run: sudo apt-get update && sudo apt-get install -y libgmp-dev pkg-config
+
+      - name: Restore opam switch
+        uses: actions/cache@v6
+        with:
+          path: _opam
+          key: opam-${{ runner.os }}-${{ runner.arch }}-ocaml-${{ env.OCAML_COMPILER }}-${{ hashFiles('scripts/opam-deps.txt') }}
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: ${{ env.OCAML_COMPILER }}
+          cache: false
+          opam-pin: false
+
+      - name: Install pinned opam packages
+        shell: bash
+        run: opam install --yes $(grep -v '^#' scripts/opam-deps.txt)
+
+      - name: Check the committed 6x4 core is current
+        shell: bash
+        run: opam exec -- variants6x4/check_core.sh
+
+      - name: Check the 6x4 overlay against this checkout
+        shell: bash
+        run: python3 variants6x4/switch.py check
+
+  # RTL cocotb suite on the switched workspace, against the diet4 reference
+  # model (PE_VARIANT) and the core now in src/ (PE_CORE).
+  rtl_test:
+    runs-on: ubuntu-24.04
+    env:
+      PE_VARIANT: diet4
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Switch the workspace to the 6x4 build
+        shell: bash
+        run: python3 variants6x4/switch.py apply
+
+      # Same Icarus build as TinyTapeout/tt-gds-action/gl_test (test.yaml).
+      - name: Install iverilog
+        shell: bash
+        run: |
+          wget -q https://github.com/TinyTapeout/iverilog/releases/download/v13.0/iverilog_13.0-1_amd64.deb
+          sudo apt-get update -y
+          sudo apt-get install -y ./iverilog_13.0-1_amd64.deb
+
+      - name: Setup python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Python packages
+        shell: bash
+        run: pip install -r test/requirements.txt
+
+      - name: Run tests
+        shell: bash
+        run: |
+          cd test
+          make clean
+          make PE_CORE="$PWD/../src/protocol_emulator_core.v"
+          test -f results.xml
+          ! grep failure results.xml
+
+      - name: Test Summary
+        uses: test-summary/action@v2.4
+        with:
+          paths: "test/results.xml"
+        if: always()
+
+  gds:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Switch the workspace to the 6x4 build
+        shell: bash
+        run: python3 variants6x4/switch.py apply
+
+      - name: Build GDS
+        uses: TinyTapeout/tt-gds-action@ihp-cmos5l
+        with:
+          pdk: ihp-sg13cmos5l
+          # Pinned for src/sram_pdn_cfg.tcl, as in gds.yaml (docs/hardening.md section 8).
+          librelane-version: 3.1.0.dev3
+
+  precheck:
+    needs: gds
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Run Tiny Tapeout Precheck
+        uses: TinyTapeout/tt-gds-action/precheck@ihp-cmos5l
+
+  # The gl_test action downloads this run's tt_submission artifact (the 6x4
+  # netlist, plus the switched src/ and info.yaml) and runs `GATES=yes make` in
+  # test/. PE_VARIANT selects the diet4 reference model (test/variants.py); the
+  # gate-level netlist replaces src/project.v and the core.
+  gl_test:
+    needs: gds
+    runs-on: ubuntu-24.04
+    env:
+      PE_VARIANT: diet4
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Switch the workspace to the 6x4 build
+        shell: bash
+        run: python3 variants6x4/switch.py apply
+
+      - name: GL test
+        uses: TinyTapeout/tt-gds-action/gl_test@ihp-cmos5l

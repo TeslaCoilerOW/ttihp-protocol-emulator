@@ -1,0 +1,75 @@
+{
+  "//": "6x4 overlay: an RFC 7386 JSON merge patch on src/config.json, applied by variants6x4/switch.py. Signed-off point (docs/6x4.md section 4): floorplans/fp6_tworow_trk_top30_edgeobs.json at density 60, 20 ns, OPENROAD_THREADS 4. MACROS: the 6x4 placement (bottom FS row k 0/4/8/12 at y 3.87, top N row k 3/7/11/15 lowered to y 612.36). FP_OBSTRUCTIONS: no CoreSite rows in the stripe-free gap between the top row's last macro and the right core edge, so no short VPWR/VGND strap is generated. PL_TARGET_DENSITY_PCT and FP_MACRO_HORIZONTAL_HALO restate the signed-off values (equal to src/config.json's at c118027), so a later change there does not silently change the 6x4 build. Every other key is src/config.json's.",
+  "PL_TARGET_DENSITY_PCT": 60,
+  "FP_MACRO_HORIZONTAL_HALO": 16.48,
+  "FP_OBSTRUCTIONS": [
+    [
+      1259.44,
+      602.36,
+      1286.4,
+      706.86
+    ]
+  ],
+  "MACROS": {
+    "RM_IHPSG13_1P_64x16_c2": {
+      "instances": {
+        "core.instruction_sram_e0_lo": {
+          "location": [
+            11.04,
+            3.87
+          ],
+          "orientation": "FS"
+        },
+        "core.instruction_sram_e0_hi": {
+          "location": [
+            280.8,
+            3.87
+          ],
+          "orientation": "FS"
+        },
+        "core.instruction_sram_e1_lo": {
+          "location": [
+            550.56,
+            3.87
+          ],
+          "orientation": "FS"
+        },
+        "core.instruction_sram_e1_hi": {
+          "location": [
+            820.32,
+            3.87
+          ],
+          "orientation": "FS"
+        },
+        "core.instruction_sram_e2_lo": {
+          "location": [
+            213.36,
+            612.36
+          ],
+          "orientation": "N"
+        },
+        "core.instruction_sram_e2_hi": {
+          "location": [
+            483.12,
+            612.36
+          ],
+          "orientation": "N"
+        },
+        "core.instruction_sram_e3_lo": {
+          "location": [
+            752.88,
+            612.36
+          ],
+          "orientation": "N"
+        },
+        "core.instruction_sram_e3_hi": {
+          "location": [
+            1022.64,
+            612.36
+          ],
+          "orientation": "N"
+        }
+      }
+    }
+  }
+}

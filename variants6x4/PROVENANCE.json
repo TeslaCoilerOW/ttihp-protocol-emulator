@@ -1,0 +1,21 @@
+{
+  "//": "Provenance of the committed 6x4 core. variants6x4/check_core.sh regenerates it and compares; variants6x4/switch.py checks core_sha256 before it copies the core into src/.",
+  "core_file": "variants6x4/protocol_emulator_core.v",
+  "core_sha256": "cc27c465c877f0ab3b9491de1ae0fb2bf084e97e001a83e768fb676ac8b6ebba",
+  "module": "protocol_emulator_core",
+  "variant": "diet4",
+  "config": "configs/variants/diet4.json",
+  "config_sha256": "e8d5c1f7fdcead40a0031c997fce854574fde0b8c419cb85cf9fd53080871d5b",
+  "generator": "scripts/generate.sh configs/variants/diet4.json --output variants6x4/protocol_emulator_core.v (same bytes as scripts/generate.sh --variant diet4)",
+  "generated_from_commit": "c11802730ea10a9501ce16517ca6218fd8b7c43e",
+  "generated_from_trees": {
+    "hardcaml": "21723c038830afc129d51bbfaccfb897f3c8335c",
+    "configs/variants/diet4.json": "af1950c62c3241294616b597497b14a25c0cc0e9",
+    "scripts/generate.sh": "8169d3a43f2ecc7b2a7861d41689a78df16ea3dc"
+  },
+  "toolchain": "OCaml 5.2.1, dune 3.20.2, hardcaml v0.17.0, yojson 2.2.2, digestif 1.3.1 (scripts/opam-deps.txt)",
+  "same_core_as": "the diet4 core verified in docs/variants.md section 7.2 and swept in docs/sweep.md (sha256 cc27c465...)",
+  "overlay_new_keys": [
+    "FP_OBSTRUCTIONS"
+  ]
+}

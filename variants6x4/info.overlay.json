@@ -1,0 +1,9 @@
+{
+  "//": "Applied by variants6x4/switch.py: each scalar project key replaces the value on its info.yaml line, and project_comments replaces that line's trailing comment; every other line of info.yaml is kept.",
+  "project": {
+    "tiles": "6x4"
+  },
+  "project_comments": {
+    "tiles": "6x4 (1289.28 x 710.64 um) fallback build of the diet4 variant; see docs/6x4.md"
+  }
+}

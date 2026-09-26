@@ -1,0 +1,86 @@
+{
+  "id": "fp6_tworow_trk_top60_edgeobs",
+  "tiles": "6x4",
+  "macro": "RM_IHPSG13_1P_64x16_c2",
+  "description": "fp6_tworow_trk_top60 with one FP_OBSTRUCTIONS box over the stripe-free gap between the top row's last macro (e3_hi, right edge x 1259.44) and the right core edge (1286.40). OpenROAD makes no CoreSite row under the box, so pdngen adds no short power strap there; the 32.96 um pair gaps are closed by src/config.json's FP_MACRO_HORIZONTAL_HALO 16.48, which this floorplan keeps (docs/6x4.md section 2).",
+  "derivation": {
+    "base_floorplan": "fp6_tworow_trk_top60",
+    "rule": "x from the top row's last macro edge to the core right edge; y from that macro's y minus the 10 um vertical halo to the core top edge",
+    "obstruction_um": [
+      1259.44,
+      572.12,
+      1286.4,
+      706.86
+    ],
+    "top_row_y": 582.12
+  },
+  "generator": "hand-derived (docs/6x4.md section 2); variants6x4/row_islands.py models the obstruction",
+  "instances": {
+    "core.instruction_sram_e0_lo": {
+      "location": [
+        11.04,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e0_hi": {
+      "location": [
+        280.8,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_lo": {
+      "location": [
+        550.56,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_hi": {
+      "location": [
+        820.32,
+        3.87
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e2_lo": {
+      "location": [
+        213.36,
+        582.12
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e2_hi": {
+      "location": [
+        483.12,
+        582.12
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_lo": {
+      "location": [
+        752.88,
+        582.12
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_hi": {
+      "location": [
+        1022.64,
+        582.12
+      ],
+      "orientation": "N"
+    }
+  },
+  "config": {
+    "FP_OBSTRUCTIONS": [
+      [
+        1259.44,
+        572.12,
+        1286.4,
+        706.86
+      ]
+    ]
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "id": "fp6_tworow_h26p96",
+  "tiles": "6x4",
+  "macro": "RM_IHPSG13_1P_64x16_c2",
+  "description": "fp6_tworow with FP_MACRO_HORIZONTAL_HALO 26.96: the smallest halo that leaves no CoreSite row segment without a VPWR/VGND lattice stripe, so pdngen adds no short power strap (docs/6x4.md). Placement unchanged.",
+  "derivation": {
+    "base_floorplan": "fp6_tworow",
+    "rule": "halo >= half of every stripe-free macro-to-macro gap and >= every stripe-free macro-to-core-edge gap",
+    "binding_gaps_um": [
+      [
+        "core.instruction_sram_e3_hi",
+        "core right edge",
+        1259.44,
+        1286.4
+      ]
+    ],
+    "islands_at_repo_halo": 21,
+    "model_island_free_from_um": 26.49
+  },
+  "generator": "variants6x4/row_islands.py --derive --emit",
+  "instances": {
+    "core.instruction_sram_e0_lo": {
+      "location": [
+        11.04,
+        3.78
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e0_hi": {
+      "location": [
+        280.8,
+        3.78
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_lo": {
+      "location": [
+        550.56,
+        3.78
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e1_hi": {
+      "location": [
+        820.32,
+        3.78
+      ],
+      "orientation": "FS"
+    },
+    "core.instruction_sram_e2_lo": {
+      "location": [
+        213.36,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e2_hi": {
+      "location": [
+        483.12,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_lo": {
+      "location": [
+        752.88,
+        638.82
+      ],
+      "orientation": "N"
+    },
+    "core.instruction_sram_e3_hi": {
+      "location": [
+        1022.64,
+        638.82
+      ],
+      "orientation": "N"
+    }
+  },
+  "config": {
+    "FP_MACRO_HORIZONTAL_HALO": 26.96
+  }
+}
