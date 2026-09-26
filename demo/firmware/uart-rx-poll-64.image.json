@@ -1,0 +1,63 @@
+{
+  "schema_version": "protocol-emulator.firmware-image.v1",
+  "isa_version": 2,
+  "name": "uart-rx-poll-64",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 1,
+  "owned_pins": 0,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "source_sha256": "9b15ba4f892b180688c18d79ad1b4985a65a0a15da36a308e8ab87936f3a2973",
+  "bytecode_sha256": "7a56bc2139fa481bfdb3ff03f35248e6ccde2032d7f65cb9f8e0d9d6f76a4c27",
+  "words": [
+    167772167, 318832640, 151060481, 436273153, 318832640, 151060481,
+    436273160, 83886084, 318832640, 67108956, 151060480, 67108925, 184549386,
+    419495960, 302186752, 318832640, 151060481, 436273173, 302056192,
+    117506048, 83886080, 486539328
+  ],
+  "labels": {
+    "next_byte": 0,
+    "idle": 1,
+    "wait_start": 4,
+    "start": 8,
+    "data": 10,
+    "framing_error": 21
+  },
+  "timing": [
+    { "pc": 0, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 1, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 2, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 3, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 4, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 5, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 6, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 7, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 8, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 9, "minimum_cycles": 93, "blocking": "none" },
+    { "pc": 10, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 11, "minimum_cycles": 62, "blocking": "none" },
+    { "pc": 12, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 13, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 14, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 15, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 16, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 17, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 18, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 19, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 20, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 21, "minimum_cycles": 1, "blocking": "none" }
+  ],
+  "notes": [
+    "UART 8N1 RX on pin1, 64 clocks per bit, low-byte RX words.",
+    "Idle and start-bit waits poll the synchronized line with no bound (no WAITPIN, no LIMIT), so the line may stay idle indefinitely; start detection has up to three clocks of polling latency.",
+    "Stop-bit low produces fault64; a full RX FIFO at frame delivery halts with fault4 (strict PUSH), as in the built-in uart-rx."
+  ]
+}

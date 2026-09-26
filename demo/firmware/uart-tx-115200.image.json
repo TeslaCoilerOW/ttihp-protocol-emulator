@@ -1,0 +1,44 @@
+{
+  "schema_version": "protocol-emulator.firmware-image.v1",
+  "isa_version": 2,
+  "name": "uart-tx-115200",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 0,
+  "owned_pins": 1,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "source_sha256": "63a41fa112c389533b7ee87b8ecc22549dc4f0d4ad4e67a06d0134134951fd33",
+  "bytecode_sha256": "5364a4b97c535a310345403d0cb9d0d05919c0df514b672873c5bf842e12e2da",
+  "words": [
+    33554433, 50331649, 100663296, 167772167, 33554432, 67109296, 134217728,
+    67109295, 184549382, 33554433, 67109297, 83886082
+  ],
+  "labels": { "next_byte": 2, "data": 6 },
+  "timing": [
+    { "pc": 0, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 1, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 2, "minimum_cycles": 1, "blocking": "tx_fifo_unbounded" },
+    { "pc": 3, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 4, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 5, "minimum_cycles": 433, "blocking": "none" },
+    { "pc": 6, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 7, "minimum_cycles": 432, "blocking": "none" },
+    { "pc": 8, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 9, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 10, "minimum_cycles": 434, "blocking": "none" },
+    { "pc": 11, "minimum_cycles": 1, "blocking": "none" }
+  ],
+  "notes": [
+    "UART 8N1 TX on pin0, LSB first, exact bit period 434 clocks (50000000 Hz nominal clock).",
+    "TX FIFO low byte supplies each frame; FIFO-empty holding point is idle high; interframe idle includes loop/setup cycles.",
+    "Built-in uart-tx with --half-period 217 (docs/demo.md), renamed uart-tx-115200."
+  ]
+}

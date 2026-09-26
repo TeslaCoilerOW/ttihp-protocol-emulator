@@ -1,0 +1,64 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "spi-xfer32",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 2,
+  "owned_pins": 44,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "instructions": [
+    {
+      "mnemonic": "SET",
+      "imm": 32
+    },
+    {
+      "mnemonic": "DIR",
+      "imm": 44
+    },
+    {
+      "mnemonic": "PINS",
+      "imm": 282
+    },
+    {
+      "mnemonic": "PULL",
+      "label": "next"
+    },
+    {
+      "mnemonic": "LOAD",
+      "a": 1,
+      "imm": 0
+    },
+    {
+      "mnemonic": "SET"
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 32,
+      "b": 16,
+      "c": 28
+    },
+    {
+      "mnemonic": "SET",
+      "imm": 32
+    },
+    {
+      "mnemonic": "PUSH"
+    },
+    {
+      "mnemonic": "JMP",
+      "target": "next"
+    }
+  ],
+  "notes": [
+    "SPI controller mode0, one 32-bit full-duplex transaction per TX word with CSn held low; pins SCK2/MOSI3/MISO4/CSn5, 16-cycle half period.",
+    "TX word 0x9F000000 reads a SPI flash JEDEC ID: the RX word's low three bytes are manufacturer, memory type and capacity."
+  ]
+}

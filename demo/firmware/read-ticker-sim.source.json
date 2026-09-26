@@ -1,0 +1,40 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "read-ticker-sim",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 1,
+  "owned_pins": 0,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "instructions": [
+    {
+      "mnemonic": "LOAD",
+      "a": 1,
+      "imm": 145
+    },
+    {
+      "mnemonic": "PUSH",
+      "label": "tick"
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 39997
+    },
+    {
+      "mnemonic": "JMP",
+      "target": "tick"
+    }
+  ],
+  "notes": [
+    "Pushes the I2C address byte 0x91 into its RX FIFO every 40000 clocks (blocking PUSH, so a full queue pauses it); no pins.",
+    "Used with a ROUTE from this engine to an i2c-read engine: a host-free periodic sensor read request."
+  ]
+}

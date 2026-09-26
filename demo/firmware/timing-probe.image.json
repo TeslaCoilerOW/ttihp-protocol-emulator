@@ -1,0 +1,52 @@
+{
+  "schema_version": "protocol-emulator.firmware-image.v1",
+  "isa_version": 2,
+  "name": "timing-probe",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 3,
+  "owned_pins": 192,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "source_sha256": "6c2b5faba2d8ae69ba4681c124ea76b687e3707275d302e6495c62a0a76767b8",
+  "bytecode_sha256": "08f23cdcdf7e0b7cadc0700ce1a918c62ae7ca2507f66c1899e0995d5c2411ba",
+  "words": [
+    33554432, 50331840, 268435966, 33554496, 67108874, 33554432, 67108884,
+    167772162, 33554560, 67108867, 33554432, 67108869, 184549384, 318813349,
+    402653200, 286263052, 33554432, 67108904, 83886083
+  ],
+  "labels": { "frame": 3, "burst": 8 },
+  "timing": [
+    { "pc": 0, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 1, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 2, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 3, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 4, "minimum_cycles": 11, "blocking": "none" },
+    { "pc": 5, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 6, "minimum_cycles": 21, "blocking": "none" },
+    { "pc": 7, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 8, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 9, "minimum_cycles": 4, "blocking": "none" },
+    { "pc": 10, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 11, "minimum_cycles": 6, "blocking": "none" },
+    { "pc": 12, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 13, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 14, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 15, "minimum_cycles": 225, "blocking": "none" },
+    { "pc": 16, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 17, "minimum_cycles": 41, "blocking": "none" },
+    { "pc": 18, "minimum_cycles": 1, "blocking": "none" }
+  ],
+  "notes": [
+    "Timing probe for the timing-isolation demonstration (docs/demo.md): engine 3 drives pins 6 and 7 push-pull in an endless 344-cycle frame.",
+    "Frame: pin6 high 12 cycles, three pin7 pulses (5 high, 8 low), then a fused XFER of the constant 0xB4A5 (16 bits, MSB first, CPOL0/CPHA0, clock pin6 and data pin7, 7-cycle half period, no sampling).",
+    "No PULL, PUSH, WAITPIN or WAITEVENT: the program never interacts with its FIFOs, mailbox or input pins, so the whole run stays inside the window of the formal timing-isolation property (formal/README.md)."
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "uart-rx-poll-115200",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 1,
+  "owned_pins": 0,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "instructions": [
+    {
+      "mnemonic": "COUNT",
+      "imm": 7,
+      "label": "next_byte"
+    },
+    {
+      "mnemonic": "LOAD",
+      "a": 1,
+      "imm": 0,
+      "label": "idle"
+    },
+    {
+      "mnemonic": "IN",
+      "a": 1,
+      "c": 1
+    },
+    {
+      "mnemonic": "JZ",
+      "a": 1,
+      "target": "idle"
+    },
+    {
+      "mnemonic": "LOAD",
+      "a": 1,
+      "imm": 0,
+      "label": "wait_start"
+    },
+    {
+      "mnemonic": "IN",
+      "a": 1,
+      "c": 1
+    },
+    {
+      "mnemonic": "JZ",
+      "a": 1,
+      "target": "start"
+    },
+    {
+      "mnemonic": "JMP",
+      "target": "wait_start"
+    },
+    {
+      "mnemonic": "LOAD",
+      "a": 1,
+      "imm": 0,
+      "label": "start"
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 647
+    },
+    {
+      "mnemonic": "IN",
+      "a": 1,
+      "label": "data"
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 431
+    },
+    {
+      "mnemonic": "LOOP",
+      "target": "data"
+    },
+    {
+      "mnemonic": "SHR",
+      "a": 1,
+      "c": 24
+    },
+    {
+      "mnemonic": "MOV",
+      "a": 3,
+      "b": 1
+    },
+    {
+      "mnemonic": "LOAD",
+      "a": 1,
+      "imm": 0
+    },
+    {
+      "mnemonic": "IN",
+      "a": 1,
+      "c": 1
+    },
+    {
+      "mnemonic": "JZ",
+      "a": 1,
+      "target": "framing_error"
+    },
+    {
+      "mnemonic": "MOV",
+      "a": 1,
+      "b": 3
+    },
+    {
+      "mnemonic": "PUSH",
+      "a": 1
+    },
+    {
+      "mnemonic": "JMP",
+      "target": "next_byte"
+    },
+    {
+      "mnemonic": "FAULT",
+      "imm": 64,
+      "label": "framing_error"
+    }
+  ],
+  "notes": [
+    "UART 8N1 RX on pin1, 434 clocks per bit, low-byte RX words.",
+    "Idle and start-bit waits poll the synchronized line with no bound (no WAITPIN, no LIMIT), so the line may stay idle indefinitely; start detection has up to three clocks of polling latency.",
+    "Stop-bit low produces fault64; a full RX FIFO at frame delivery halts with fault4 (strict PUSH), as in the built-in uart-rx."
+  ]
+}

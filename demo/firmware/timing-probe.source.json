@@ -1,0 +1,102 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "timing-probe",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 3,
+  "owned_pins": 192,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "instructions": [
+    {
+      "mnemonic": "SET"
+    },
+    {
+      "mnemonic": "DIR",
+      "imm": 192
+    },
+    {
+      "mnemonic": "PINS",
+      "imm": 510
+    },
+    {
+      "mnemonic": "SET",
+      "imm": 64,
+      "label": "frame"
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 10
+    },
+    {
+      "mnemonic": "SET"
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 20
+    },
+    {
+      "mnemonic": "COUNT",
+      "imm": 2
+    },
+    {
+      "mnemonic": "SET",
+      "imm": 128,
+      "label": "burst"
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 3
+    },
+    {
+      "mnemonic": "SET"
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 5
+    },
+    {
+      "mnemonic": "LOOP",
+      "target": "burst"
+    },
+    {
+      "mnemonic": "LOAD",
+      "a": 0,
+      "imm": 46245
+    },
+    {
+      "mnemonic": "SHL",
+      "a": 0,
+      "c": 16
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 16,
+      "b": 7,
+      "c": 12
+    },
+    {
+      "mnemonic": "SET"
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 40
+    },
+    {
+      "mnemonic": "JMP",
+      "target": "frame"
+    }
+  ],
+  "notes": [
+    "Timing probe for the timing-isolation demonstration (docs/demo.md): engine 3 drives pins 6 and 7 push-pull in an endless 344-cycle frame.",
+    "Frame: pin6 high 12 cycles, three pin7 pulses (5 high, 8 low), then a fused XFER of the constant 0xB4A5 (16 bits, MSB first, CPOL0/CPHA0, clock pin6 and data pin7, 7-cycle half period, no sampling).",
+    "No PULL, PUSH, WAITPIN or WAITEVENT: the program never interacts with its FIFOs, mailbox or input pins, so the whole run stays inside the window of the formal timing-isolation property (formal/README.md)."
+  ]
+}

@@ -1,0 +1,276 @@
+# Copyright (c) 2026 TeslaCoilerOW
+# SPDX-License-Identifier: Apache-2.0
+"""Unit tests of demo/pe_capture.py (standard library only).
+
+    python3 -m unittest discover -s demo/tests -v
+
+With SIGROK_CLI set to a sigrok-cli command, the readers are also checked
+against files that sigrok-cli itself writes (its demo driver, and conversion
+of one capture to VCD and CSV).
+"""
+
+import argparse
+import contextlib
+import io
+import json
+import os
+import random
+import shlex
+import subprocess
+import sys
+import tempfile
+import unittest
+import zipfile
+from fractions import Fraction
+from pathlib import Path
+
+DEMO = Path(__file__).resolve().parents[1]
+REPO = DEMO.parent
+sys.path.insert(0, str(DEMO))
+import pe_capture as pc  # noqa: E402
+
+
+def schedule(frames=40, period=100, base=1000):
+    """A periodic two-channel edge schedule: (cycle, channel, level)."""
+    frame = [(0, 0, 1), (12, 0, 0), (30, 1, 1), (35, 1, 0), (48, 1, 1), (53, 1, 0), (70, 0, 1), (77, 0, 0)]
+    return [(base + f * period + o, ch, v) for f in range(frames) for o, ch, v in frame]
+
+
+def write_vcd(path, events, clock=None, timescale="1ps"):
+    """Exact-time VCD with probe channels p0/p1 (and optionally clk)."""
+    changes = {}
+    for t, ch, v in events:
+        changes.setdefault(t, []).append((v, "!\""[ch]))
+    if clock:
+        for t, v in clock:
+            changes.setdefault(t, []).append((v, "#"))
+    lines = [f"$timescale {timescale} $end", "$scope module tb $end", "$var wire 1 ! p0 $end",
+             "$var wire 1 \" p1 $end", "$var reg 1 # clk $end", "$upscope $end", "$enddefinitions $end",
+             "#0", "$dumpvars", "0!", "0\"", "0#", "$end"]
+    for t in sorted(changes):
+        lines.append(f"#{t}")
+        lines += [f"{v}{ident}" for v, ident in changes[t]]
+    Path(path).write_text("\n".join(lines) + "\n")
+
+
+def analyze(**kw):
+    defaults = dict(format=None, samplerate=None, channels="p0=p0,p1=p1", context=None, clock=None,
+                    clock_edge="rising", fclk=None, force=False, reference=None, uart=None, uart_expect=None,
+                    skip_cycles=0, max_cycles=0, window_ns=None, gate=None, label=None, tolerance_ns=2.0)
+    defaults.update(kw)
+    return pc.analyze(argparse.Namespace(**defaults))
+
+
+def quiet(fn, *a):
+    with contextlib.redirect_stdout(io.StringIO()):
+        return fn(*a)
+
+
+class Readers(unittest.TestCase):
+    def test_srzip_roundtrip_and_probe_bits(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "c.sr"
+            changes = [(0, 0b00), (10, 0b01), (25, 0b11), (40, 0b10)]
+            pc.write_srzip(path, Fraction(24_000_000), ["D0", "D1"], changes, 50)
+            cap = pc.read_capture(path)
+            self.assertEqual(cap.samplerate, 24_000_000)
+            self.assertEqual(pc.edges_of(cap.resolve("D0"))[0], [(10, 1), (40, 0)])
+            self.assertEqual(pc.edges_of(cap.resolve("D1"))[0], [(25, 1)])
+            # probeN is bit N-1 even when the enabled channels are not contiguous
+            meta = "[device 1]\ncapturefile=logic-1\nsamplerate=1 MHz\nprobe3=D2\nprobe8=D7\nunitsize=1\n"
+            with zipfile.ZipFile(Path(tmp) / "d.sr", "w") as z:
+                z.writestr("version", "2")
+                z.writestr("metadata", meta)
+                z.writestr("logic-1-1", bytes([0x00, 0x04, 0x84, 0x80]))
+                z.writestr("logic-1-2", bytes([0x00]))
+            cap = pc.read_capture(Path(tmp) / "d.sr")
+            self.assertEqual(pc.edges_of(cap.resolve("D2"))[0], [(1, 1), (3, 0)])
+            self.assertEqual(pc.edges_of(cap.resolve("D7"))[0], [(2, 1), (4, 0)])
+
+    def test_vcd_vectors_scopes_and_sigrok_rate(self):
+        text = ("$timescale 1ns $end\n$scope module tb $end\n$var wire 8 # pads [7:0] $end\n"
+                "$var reg 1 ! clk $end\n$upscope $end\n$enddefinitions $end\n#0\n$dumpvars\nbxxxxxxxx #\n0!\n$end\n"
+                "#5\nb11000000 #\n1!\n#10\nb01000000 #\n0!\n#15\nb1000000 #\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "a.vcd"
+            p.write_text(text)
+            cap = pc.read_capture(p)
+            self.assertEqual(pc.edges_of(cap.resolve("tb.pads[7]"))[0], [(10, 0)])
+            self.assertEqual(pc.edges_of(cap.resolve("pads[6]"))[0], [])
+            self.assertEqual(cap.resolve("pads[6]")[0], (0, None))
+            sig = ("$comment\n  Acquisition with 2/8 channels at 24 MHz\n$end\n$timescale 100 ps $end\n"
+                   "$scope module libsigrok $end\n$var wire 1 ! D0 $end\n$upscope $end\n$enddefinitions $end\n"
+                   "#0 0!\n#417 1!\n#1250 0!\n")
+            p.write_text(sig)
+            cap = pc.read_capture(p)
+            self.assertEqual(cap.samplerate, 24_000_000)
+            self.assertEqual(pc.edges_of(cap.resolve("D0"))[0], [(1, 1), (3, 0)])
+
+    def test_csv(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "a.csv"
+            p.write_text("; CSV generated by libsigrok\n; Channels (2/8): D0, D1\n; Samplerate: 1 MHz\n"
+                         "D0,D1\n0,0\n1,0\n1,1\n0,1\n")
+            cap = pc.read_capture(p)
+            self.assertEqual(pc.edges_of(cap.resolve("D0"))[0], [(1, 1), (3, 0)])
+            p.write_text("; Samplerate: 1 MHz\nTime,D0\n1,0\n2,1\n")
+            with self.assertRaises(pc.CaptureError):
+                pc.read_capture(p)
+
+
+class CycleConversion(unittest.TestCase):
+    def test_clock_mode_is_exact_under_irregular_clock(self):
+        rng = random.Random(1)
+        edges, t = [], 0
+        for _ in range(5000):
+            t += rng.randint(300, 3000)
+            edges.append(t)
+        clock = [(e, 1) for e in edges] + [(e + 150, 0) for e in edges]
+        events = [(edges[c - 1], ch, v) for c, ch, v in schedule()]
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "s.vcd"
+            write_vcd(p, events, sorted(clock))
+            rep = analyze(captures=[str(p)], clock="clk")
+        self.assertEqual(rep["frames"]["frames_identical"], rep["frames"]["frames_complete"])
+        self.assertEqual(rep["pattern"]["period_cycles"], 100)
+        self.assertIsNone(rep["frames"]["grid_departure"])
+
+    def recovered(self, ratio, ppm, jitter=0.0, seed=0, shift=None):
+        rng = random.Random(seed)
+        r = ratio * (1 + ppm * 1e-6)
+        phase = rng.random() * 10
+        cycles = [c for c, _, _ in schedule(frames=300)]
+        if shift is not None:
+            cycles = [c + (1 if i >= shift else 0) for i, c in enumerate(cycles)]
+        samples = sorted({int(-(-(phase + r * c + rng.gauss(0, jitter)) // 1)) for c in cycles})
+        ns, info = pc.recover_cycles(samples, ratio)
+        return cycles, samples, ns, info
+
+    def test_realtime_recovery_exact(self):
+        for ratio in (2.5, 3.0, 4.0, 10.0):
+            for ppm in (-120, -3, 40, 150):
+                cycles, samples, ns, info = self.recovered(ratio, ppm, seed=int(ratio * 10 + ppm))
+                uniq = sorted(set(cycles))
+                self.assertEqual([n - ns[0] for n in ns], [c - uniq[0] for c in uniq], (ratio, ppm))
+                self.assertTrue(info["consistent"], (ratio, ppm, info))
+
+    def test_ratio_two_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "c.sr"
+            pc.write_srzip(p, Fraction(24_000_000), ["D0", "D1"], [(0, 0), (10, 1), (40, 0)], 60)
+            with self.assertRaises(pc.CaptureError):
+                analyze(captures=[str(p)], channels="p0=D0,p1=D1", fclk=12e6)
+
+    def test_resample_then_recover_matches_exact(self):
+        period_ps = 83333
+        events = [(c * period_ps, ch, v) for c, ch, v in schedule(frames=200)]
+        clock = sorted([(c * period_ps, 1) for c in range(900, 21000)] +
+                       [(c * period_ps + period_ps // 2, 0) for c in range(900, 21000)])
+        with tempfile.TemporaryDirectory() as tmp:
+            vcd = Path(tmp) / "e.vcd"
+            write_vcd(vcd, events, clock)
+            exact = analyze(captures=[str(vcd)], clock="clk")
+            sr = Path(tmp) / "r.sr"
+            quiet(pc.resample, argparse.Namespace(input=str(vcd), format=None, channels="D0=p0,D1=p1",
+                                                  rate=Fraction(120_000_000), ppm=-37.0, phase=0.3,
+                                                  jitter_ps=100.0, seed=1, output=str(sr), segment_samples=None,
+                                                  window_ns=None))
+            rt = analyze(captures=[str(sr)], channels="p0=D0,p1=D1", fclk=12e6)
+        self.assertTrue(rt["conversion"][0]["consistent"])
+        self.assertEqual(rt["histograms"], exact["histograms"])
+        self.assertEqual(rt["frames"]["frames_identical"], exact["frames"]["frames_identical"])
+
+
+class FramesAndVerdicts(unittest.TestCase):
+    def frames_of(self, events):
+        evs = [pc.Event(c, ch, v, c) for c, ch, v in events]
+        pattern, period = pc.detect_pattern(evs)
+        return pc.frames_against(evs, pattern, period), pattern, period
+
+    def test_one_cycle_disturbance_is_detected(self):
+        events = schedule(frames=60)
+        (info, frames), pattern, period = self.frames_of(events)
+        self.assertEqual(info["frames_identical"], info["frames_complete"])
+        disturbed = [(c + (1 if i >= 30 * 8 + 3 else 0), ch, v) for i, (c, ch, v) in enumerate(events)]
+        evs = [pc.Event(c, ch, v, c) for c, ch, v in disturbed]
+        info2, _ = pc.frames_against(evs, pattern, period)
+        self.assertEqual(info2["frames_complete"] - info2["frames_identical"], 1)
+        self.assertIsNotNone(info2["grid_departure"])
+        self.assertEqual(info2["grid_departure"]["frame"], 29)
+
+    def test_compare_expectations(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reports = []
+            for name, shift in (("a", None), ("b", None), ("c", 100)):
+                events = schedule(frames=60)
+                if shift:
+                    events = [(c + (2 if i >= shift else 0), ch, v) for i, (c, ch, v) in enumerate(events)]
+                p = Path(tmp) / f"{name}.vcd"
+                write_vcd(p, [(c * 10, ch, v) for c, ch, v in events],
+                          sorted([(t * 10 - 5, 1) for t in range(1, 7000)] + [(t * 10, 0) for t in range(1, 7000)]))
+                rep = analyze(captures=[str(p)], clock="clk")
+                out = Path(tmp) / f"{name}.json"
+                out.write_text(json.dumps(rep))
+                reports.append(str(out))
+            args = argparse.Namespace(analyses=reports, labels="a,b,c", expect="same,same,different",
+                                      reference=None, plot=None, title=None, text=None, json=None, tv_limit=0.05)
+            self.assertEqual(quiet(pc.compare, args), 0)
+            args.expect = "same,same,same"
+            self.assertEqual(quiet(pc.compare, args), 1)
+
+    def test_uart_decode(self):
+        bit = 64
+        frames = []
+        c = 100
+        for byte in (0x55, 0xA3, 0x00, 0xFF):
+            bits = [0] + [byte >> i & 1 for i in range(8)] + [1]
+            level = 1
+            for k, b in enumerate(bits):
+                if b != level:
+                    frames.append(pc.Event(c + k * bit, -1, b, 0))
+                    level = b
+            c += 10 * bit + 7
+        data, errors = pc.decode_uart(frames, 1, bit)
+        self.assertEqual(data, [0x55, 0xA3, 0x00, 0xFF])
+        self.assertEqual(errors, 0)
+
+    def test_predict_matches_probe_frame(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "p.json"
+            quiet(pc.predict, argparse.Namespace(image=str(DEMO / "firmware" / "timing-probe.image.json"),
+                                                 channels="probe6=6,probe7=7", json=str(out)))
+            pat = json.loads(out.read_text())["pattern"]
+        self.assertEqual((pat["period_cycles"], pat["events_per_frame"]), (344, 54))
+
+
+@unittest.skipUnless(os.environ.get("SIGROK_CLI"), "set SIGROK_CLI to check against sigrok-cli output")
+class AgainstSigrokCli(unittest.TestCase):
+    def test_formats_agree(self):
+        cli = shlex.split(os.environ["SIGROK_CLI"])
+        with tempfile.TemporaryDirectory() as tmp:
+            sr = Path(tmp) / "demo.sr"
+            subprocess.run(cli + ["-d", "demo:analog_channels=0", "--config", "samplerate=24m", "--samples", "5000",
+                                  "--channels", "D0,D1,D2", "-o", str(sr)], check=True, capture_output=True)
+            vcd, csv = Path(tmp) / "demo.vcd", Path(tmp) / "demo.csv"
+            subprocess.run(cli + ["-i", str(sr), "-O", "vcd", "-o", str(vcd)], check=True, capture_output=True)
+            subprocess.run(cli + ["-i", str(sr), "-O", "csv:label=channel", "-o", str(csv)], check=True,
+                           capture_output=True)
+            caps = [pc.read_capture(p) for p in (sr, vcd, csv)]
+            for ch in ("D0", "D1", "D2"):
+                edges = [pc.edges_of(c.resolve(ch))[0] for c in caps]
+                self.assertGreater(len(edges[0]), 10)
+                self.assertEqual(edges[0], edges[1], ch)
+                self.assertEqual(edges[0], edges[2], ch)
+            self.assertEqual({c.samplerate for c in caps}, {24_000_000})
+            # A pe_capture srzip opens in sigrok-cli and converts back unchanged.
+            ours = Path(tmp) / "ours.sr"
+            pc.write_srzip(ours, Fraction(24_000_000), ["D0", "D1"], [(0, 0), (7, 1), (19, 3), (30, 2)], 40)
+            back = Path(tmp) / "back.vcd"
+            subprocess.run(cli + ["-i", str(ours), "-O", "vcd", "-o", str(back)], check=True, capture_output=True)
+            cap = pc.read_capture(back)
+            self.assertEqual(pc.edges_of(cap.resolve("D0"))[0], [(7, 1), (30, 0)])
+            self.assertEqual(pc.edges_of(cap.resolve("D1"))[0], [(19, 1)])
+
+
+if __name__ == "__main__":
+    unittest.main()

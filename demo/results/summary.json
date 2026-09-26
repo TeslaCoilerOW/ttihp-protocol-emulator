@@ -1,0 +1,2718 @@
+{
+ "reference": {
+  "source": "pe_timing:timing-probe.image.json",
+  "period_cycles": 344,
+  "events_per_frame": 54
+ },
+ "cases": [
+  {
+   "tag": "bridge-idle-base-1",
+   "tb": "bridge",
+   "mode": "idle",
+   "core": "base",
+   "seed": 1,
+   "cycles": 600000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 41,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983474",
+   "lockstep": false,
+   "host_operations": 0,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "same",
+   "exact": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 94189,
+    "frames": 1743,
+    "identical": 1743,
+    "frame_lengths": {
+     "344": 1743
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 674006
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.0,
+    "host_write_valid_edges": 0,
+    "sck_edges": 0,
+    "match": true
+   },
+   "la": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 94188,
+    "frames": 1728,
+    "identical": 1728,
+    "frame_lengths": {
+     "344": 1728
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999893764232873,
+      "relative_offset_ppm": -10.623576712776028,
+      "max_arc_samples": 1.0210319578764029,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999893376409979,
+      "relative_offset_ppm": -10.662359002155952,
+      "max_arc_samples": 1.024759323692706,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999894820460366,
+      "relative_offset_ppm": -10.517953963451454,
+      "max_arc_samples": 1.0108805554264109,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.9998980652992,
+      "relative_offset_ppm": -10.193470079911116,
+      "max_arc_samples": 1.019490113016218,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.99989934670041,
+      "relative_offset_ppm": -10.065329959063618,
+      "max_arc_samples": 1.0305074183488614,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999896699406712,
+      "relative_offset_ppm": -10.330059328822472,
+      "max_arc_samples": 1.0057317896280438,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999894140254213,
+      "relative_offset_ppm": -10.585974578702917,
+      "max_arc_samples": 1.0174180167523446,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999893332161358,
+      "relative_offset_ppm": -10.66678386418829,
+      "max_arc_samples": 1.0244379223149735,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.9998943220734,
+      "relative_offset_ppm": -10.567792659954556,
+      "max_arc_samples": 1.0155648746222141,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999897151201033,
+      "relative_offset_ppm": -10.284879896738097,
+      "max_arc_samples": 1.0105945539289678,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.99989908194438,
+      "relative_offset_ppm": -10.09180556210687,
+      "max_arc_samples": 1.0293701410482754,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.99989757721277,
+      "relative_offset_ppm": -10.242278722927267,
+      "max_arc_samples": 1.014180672907969,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999894548591788,
+      "relative_offset_ppm": -10.545140821216492,
+      "max_arc_samples": 1.0127553244528826,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999893360501583,
+      "relative_offset_ppm": -10.663949841727138,
+      "max_arc_samples": 1.0239524637872819,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999894038459674,
+      "relative_offset_ppm": -10.596154032649352,
+      "max_arc_samples": 1.0160652101913001,
+      "consistent": true
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": null,
+    "host_write_valid_edges": null,
+    "sck_edges": 0,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "bridge-idle-host-fetch-1",
+   "tb": "bridge",
+   "mode": "idle",
+   "core": "host-fetch",
+   "seed": 1,
+   "cycles": 600000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 39,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983480",
+   "lockstep": false,
+   "host_operations": 0,
+   "probe_running_at_end": false,
+   "probe_fault_at_end": 2,
+   "expected": "different",
+   "exact": {
+    "verdict": "different",
+    "reasons": [
+     "no complete frame"
+    ],
+    "events": 0,
+    "frames": 0,
+    "identical": 0,
+    "frame_lengths": {},
+    "jitter_pp_cycles": null,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 674006
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.0,
+    "host_write_valid_edges": 0,
+    "sck_edges": 0,
+    "match": true
+   },
+   "la": {
+    "verdict": "different",
+    "reasons": [
+     "no complete frame"
+    ],
+    "events": 0,
+    "frames": 0,
+    "identical": 0,
+    "frame_lengths": {},
+    "jitter_pp_cycles": null,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": null,
+    "host_write_valid_edges": null,
+    "sck_edges": 0,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "bridge-idle-timer-host-1",
+   "tb": "bridge",
+   "mode": "idle",
+   "core": "timer-host",
+   "seed": 1,
+   "cycles": 600000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 42,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983477",
+   "lockstep": false,
+   "host_operations": 0,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "same",
+   "exact": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 94189,
+    "frames": 1743,
+    "identical": 1743,
+    "frame_lengths": {
+     "344": 1743
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 674006
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.0,
+    "host_write_valid_edges": 0,
+    "sck_edges": 0,
+    "match": true
+   },
+   "la": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 94188,
+    "frames": 1727,
+    "identical": 1727,
+    "frame_lengths": {
+     "344": 1727
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.99928784638239,
+      "relative_offset_ppm": -71.21536176091237,
+      "max_arc_samples": 1.0000305492430925,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287963710932,
+      "relative_offset_ppm": -71.20362890677967,
+      "max_arc_samples": 0.9996989498613402,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287942736876,
+      "relative_offset_ppm": -71.20572631236222,
+      "max_arc_samples": 0.9998972495377529,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287857728529,
+      "relative_offset_ppm": -71.21422714706505,
+      "max_arc_samples": 1.0005107794058858,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287951949702,
+      "relative_offset_ppm": -71.20480502975646,
+      "max_arc_samples": 0.9997154626180418,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287972172441,
+      "relative_offset_ppm": -71.20278275585257,
+      "max_arc_samples": 0.9996870698814746,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287847360545,
+      "relative_offset_ppm": -71.21526394548994,
+      "max_arc_samples": 1.000161375850439,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287906520898,
+      "relative_offset_ppm": -71.20934791016165,
+      "max_arc_samples": 0.9997792446665699,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287809090195,
+      "relative_offset_ppm": -71.21909098051216,
+      "max_arc_samples": 0.9999160373699851,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287966759473,
+      "relative_offset_ppm": -71.20332405263774,
+      "max_arc_samples": 0.9996946696992381,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999288045219965,
+      "relative_offset_ppm": -71.19547800349402,
+      "max_arc_samples": 0.9995845111698145,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287933857362,
+      "relative_offset_ppm": -71.20661426385233,
+      "max_arc_samples": 0.9997408642666414,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999288060545373,
+      "relative_offset_ppm": -71.19394546273305,
+      "max_arc_samples": 0.9991115470911609,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999288181314654,
+      "relative_offset_ppm": -71.18186853460884,
+      "max_arc_samples": 0.999393434227386,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287978912427,
+      "relative_offset_ppm": -71.20210875721789,
+      "max_arc_samples": 0.9996776069747284,
+      "consistent": true
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": null,
+    "host_write_valid_edges": null,
+    "sck_edges": 0,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "bridge-loaded-base-1",
+   "tb": "bridge",
+   "mode": "loaded",
+   "core": "base",
+   "seed": 1,
+   "cycles": 600000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 51,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983475",
+   "lockstep": false,
+   "host_operations": 212,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "same",
+   "exact": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 94479,
+    "frames": 1749,
+    "identical": 1749,
+    "frame_lengths": {
+     "344": 1749
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 760419
+     }
+    ],
+    "uart_bytes": 922,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.005624054004210149,
+    "host_write_valid_edges": 6770,
+    "sck_edges": 14747,
+    "match": true
+   },
+   "la": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 94478,
+    "frames": 1733,
+    "identical": 1733,
+    "frame_lengths": {
+     "344": 1733
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.9998965390528,
+      "relative_offset_ppm": -10.346094719948518,
+      "max_arc_samples": 0.9990153358667158,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999893974724037,
+      "relative_offset_ppm": -10.602527596326183,
+      "max_arc_samples": 1.018266750354087,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999893334749732,
+      "relative_offset_ppm": -10.666525026792328,
+      "max_arc_samples": 1.0251597203314304,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999894487367945,
+      "relative_offset_ppm": -10.551263205593742,
+      "max_arc_samples": 1.0140819066728,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.99989747331078,
+      "relative_offset_ppm": -10.252668922072772,
+      "max_arc_samples": 1.0137957763799932,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999899428653613,
+      "relative_offset_ppm": -10.05713463864133,
+      "max_arc_samples": 1.0312967916079288,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999897329976587,
+      "relative_offset_ppm": -10.267002341302067,
+      "max_arc_samples": 1.0125197148008738,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999894418293803,
+      "relative_offset_ppm": -10.55817061978992,
+      "max_arc_samples": 1.014745778287761,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999893309077173,
+      "relative_offset_ppm": -10.669092282755699,
+      "max_arc_samples": 1.0254064593027579,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999893997861243,
+      "relative_offset_ppm": -10.600213875777698,
+      "max_arc_samples": 1.0184685491840355,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999896598039332,
+      "relative_offset_ppm": -10.340196066827012,
+      "max_arc_samples": 1.004032314835058,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999899149318063,
+      "relative_offset_ppm": -10.085068193665947,
+      "max_arc_samples": 1.0300181411348603,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999898253273171,
+      "relative_offset_ppm": -10.17467268282779,
+      "max_arc_samples": 1.021399981342256,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999894971379886,
+      "relative_offset_ppm": -10.502862011430025,
+      "max_arc_samples": 1.0094300679047592,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999893425101334,
+      "relative_offset_ppm": -10.657489866616743,
+      "max_arc_samples": 1.0241847761935787,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": 0.0,
+      "consistent": true
+     }
+    ],
+    "uart_bytes": 892,
+    "uart_framing_errors": 10,
+    "uart_bytes_outside_loop": 20,
+    "host_write_valid_high": null,
+    "host_write_valid_edges": null,
+    "sck_edges": 14747,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "bridge-loaded-base-2",
+   "tb": "bridge",
+   "mode": "loaded",
+   "core": "base",
+   "seed": 2,
+   "cycles": 600000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 51,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983476",
+   "lockstep": false,
+   "host_operations": 213,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "same",
+   "exact": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 94365,
+    "frames": 1746,
+    "identical": 1746,
+    "frame_lengths": {
+     "344": 1746
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 759663
+     }
+    ],
+    "uart_bytes": 921,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.006269983597230494,
+    "host_write_valid_edges": 7538,
+    "sck_edges": 14728,
+    "match": true
+   },
+   "la": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 94364,
+    "frames": 1729,
+    "identical": 1729,
+    "frame_lengths": {
+     "344": 1729
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999545360196436,
+      "relative_offset_ppm": -45.46398035643051,
+      "max_arc_samples": 1.006701084697852,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999545502685079,
+      "relative_offset_ppm": -45.44973149211984,
+      "max_arc_samples": 1.0069851041462243,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999546157654997,
+      "relative_offset_ppm": -45.38423450028972,
+      "max_arc_samples": 1.0011950981570408,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999546759011363,
+      "relative_offset_ppm": -45.32409886370825,
+      "max_arc_samples": 1.0054346842844097,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999546330016583,
+      "relative_offset_ppm": -45.36699834167823,
+      "max_arc_samples": 1.002936489181593,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999545644543021,
+      "relative_offset_ppm": -45.43554569791386,
+      "max_arc_samples": 1.0029442975937854,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999545430837944,
+      "relative_offset_ppm": -45.45691620561065,
+      "max_arc_samples": 1.0047543177061016,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999545498391168,
+      "relative_offset_ppm": -45.45016088319809,
+      "max_arc_samples": 1.0048752558832348,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999545966992349,
+      "relative_offset_ppm": -45.403300765078924,
+      "max_arc_samples": 0.9993420485698152,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999546730578253,
+      "relative_offset_ppm": -45.326942174739315,
+      "max_arc_samples": 1.0082315139225102,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999546640898462,
+      "relative_offset_ppm": -45.33591015376537,
+      "max_arc_samples": 1.007389217877062,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.99954582373655,
+      "relative_offset_ppm": -45.41762634491242,
+      "max_arc_samples": 1.00028839634615,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999545464846095,
+      "relative_offset_ppm": -45.453515390425636,
+      "max_arc_samples": 1.0053184533899184,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999545413151896,
+      "relative_offset_ppm": -45.45868481042881,
+      "max_arc_samples": 1.004274155580788,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999545869641802,
+      "relative_offset_ppm": -45.41303581984124,
+      "max_arc_samples": 1.0013277323550938,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.99872318832767,
+      "relative_offset_ppm": -127.68116723305134,
+      "max_arc_samples": 0.9910623182936433,
+      "consistent": true
+     }
+    ],
+    "uart_bytes": 891,
+    "uart_framing_errors": 10,
+    "uart_bytes_outside_loop": 20,
+    "host_write_valid_high": null,
+    "host_write_valid_edges": null,
+    "sck_edges": 14728,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "bridge-loaded-host-fetch-1",
+   "tb": "bridge",
+   "mode": "loaded",
+   "core": "host-fetch",
+   "seed": 1,
+   "cycles": 600000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 55,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983481",
+   "lockstep": false,
+   "host_operations": 212,
+   "probe_running_at_end": false,
+   "probe_fault_at_end": 2,
+   "expected": "different",
+   "exact": {
+    "verdict": "different",
+    "reasons": [
+     "no complete frame"
+    ],
+    "events": 0,
+    "frames": 0,
+    "identical": 0,
+    "frame_lengths": {},
+    "jitter_pp_cycles": null,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 760419
+     }
+    ],
+    "uart_bytes": 922,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.005630939726487707,
+    "host_write_valid_edges": 6770,
+    "sck_edges": 14747,
+    "match": true
+   },
+   "la": {
+    "verdict": "different",
+    "reasons": [
+     "no complete frame"
+    ],
+    "events": 0,
+    "frames": 0,
+    "identical": 0,
+    "frame_lengths": {},
+    "jitter_pp_cycles": null,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": null,
+      "consistent": true
+     }
+    ],
+    "uart_bytes": 891,
+    "uart_framing_errors": 10,
+    "uart_bytes_outside_loop": 20,
+    "host_write_valid_high": null,
+    "host_write_valid_edges": null,
+    "sck_edges": 14747,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "bridge-loaded-timer-engine-1",
+   "tb": "bridge",
+   "mode": "loaded",
+   "core": "timer-engine",
+   "seed": 1,
+   "cycles": 600000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 50,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983479",
+   "lockstep": false,
+   "host_operations": 212,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "different",
+   "exact": {
+    "verdict": "different",
+    "reasons": [
+     "departs from the periodic schedule",
+     "1077 frames differ"
+    ],
+    "events": 67637,
+    "frames": 1252,
+    "identical": 175,
+    "frame_lengths": {
+     "344": 175,
+     "408": 154,
+     "409": 153,
+     "415": 1,
+     "428": 153,
+     "452": 154,
+     "516": 154,
+     "537": 1,
+     "580": 153,
+     "599": 1,
+     "727": 153
+    },
+    "jitter_pp_cycles": 319,
+    "departure_frame": 22,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 760419
+     }
+    ],
+    "uart_bytes": 922,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.005624147447368115,
+    "host_write_valid_edges": 6770,
+    "sck_edges": 14747,
+    "match": true
+   },
+   "la": {
+    "verdict": "different",
+    "reasons": [
+     "departs from the periodic schedule",
+     "1062 frames differ"
+    ],
+    "events": 67636,
+    "frames": 1235,
+    "identical": 173,
+    "frame_lengths": {
+     "344": 173,
+     "408": 152,
+     "409": 151,
+     "415": 1,
+     "428": 151,
+     "452": 152,
+     "516": 152,
+     "537": 1,
+     "580": 150,
+     "599": 1,
+     "727": 151
+    },
+    "jitter_pp_cycles": 319,
+    "departure_frame": 22,
+    "conversion": [
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000089321209895,
+      "relative_offset_ppm": 8.932120989513237,
+      "max_arc_samples": 1.0031665083370171,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000086704962715,
+      "relative_offset_ppm": 8.670496271623307,
+      "max_arc_samples": 1.0058408975164639,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000087468393756,
+      "relative_offset_ppm": 8.74683937568399,
+      "max_arc_samples": 1.0249636689731858,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000089753677463,
+      "relative_offset_ppm": 8.975367746355545,
+      "max_arc_samples": 1.0041641434654593,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000088062294168,
+      "relative_offset_ppm": 8.806229416791211,
+      "max_arc_samples": 1.0097395020711701,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.00009098273256,
+      "relative_offset_ppm": 9.098273256125111,
+      "max_arc_samples": 1.0215541211655363,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000088385445936,
+      "relative_offset_ppm": 8.838544593547937,
+      "max_arc_samples": 1.006635973128141,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000089911142178,
+      "relative_offset_ppm": 8.991114217815621,
+      "max_arc_samples": 1.009252570947865,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000088336141932,
+      "relative_offset_ppm": 8.833614193237693,
+      "max_arc_samples": 1.006571747828275,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000088630660043,
+      "relative_offset_ppm": 8.863066004227704,
+      "max_arc_samples": 1.0065191943049285,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000087658598293,
+      "relative_offset_ppm": 8.765859829340528,
+      "max_arc_samples": 1.0129641832318157,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000087557081203,
+      "relative_offset_ppm": 8.755708120311567,
+      "max_arc_samples": 1.0159459643618902,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000089940331737,
+      "relative_offset_ppm": 8.994033173781446,
+      "max_arc_samples": 1.0100299254409038,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000088185679854,
+      "relative_offset_ppm": 8.818567985402481,
+      "max_arc_samples": 0.997593377091107,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.000090715822706,
+      "relative_offset_ppm": 9.07158227070326,
+      "max_arc_samples": 1.0189201206667349,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 10.0,
+      "relative_offset_ppm": 0.0,
+      "max_arc_samples": 0.0,
+      "consistent": true
+     }
+    ],
+    "uart_bytes": 892,
+    "uart_framing_errors": 10,
+    "uart_bytes_outside_loop": 20,
+    "host_write_valid_high": null,
+    "host_write_valid_edges": null,
+    "sck_edges": 14747,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "bridge-loaded-timer-host-1",
+   "tb": "bridge",
+   "mode": "loaded",
+   "core": "timer-host",
+   "seed": 1,
+   "cycles": 600000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 51,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983478",
+   "lockstep": false,
+   "host_operations": 212,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "different",
+   "exact": {
+    "verdict": "different",
+    "reasons": [
+     "departs from the periodic schedule",
+     "145 frames differ"
+    ],
+    "events": 94316,
+    "frames": 1746,
+    "identical": 1601,
+    "frame_lengths": {
+     "344": 1601,
+     "345": 2,
+     "346": 3,
+     "347": 2,
+     "348": 1,
+     "349": 20,
+     "350": 26,
+     "351": 27,
+     "352": 49,
+     "353": 11,
+     "356": 1,
+     "366": 1,
+     "367": 1,
+     "372": 1
+    },
+    "jitter_pp_cycles": 28,
+    "departure_frame": 4,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 760419
+     }
+    ],
+    "uart_bytes": 922,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.00562403531595116,
+    "host_write_valid_edges": 6770,
+    "sck_edges": 14747,
+    "match": true
+   },
+   "la": {
+    "verdict": "different",
+    "reasons": [
+     "departs from the periodic schedule",
+     "144 frames differ"
+    ],
+    "events": 94315,
+    "frames": 1730,
+    "identical": 1586,
+    "frame_lengths": {
+     "344": 1586,
+     "345": 2,
+     "346": 3,
+     "347": 2,
+     "348": 1,
+     "349": 20,
+     "350": 25,
+     "351": 27,
+     "352": 49,
+     "353": 11,
+     "356": 1,
+     "366": 1,
+     "367": 1,
+     "372": 1
+    },
+    "jitter_pp_cycles": 28,
+    "departure_frame": 4,
+    "conversion": [
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999288265162747,
+      "relative_offset_ppm": -71.17348372531751,
+      "max_arc_samples": 1.0001129829361162,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999288157518622,
+      "relative_offset_ppm": -71.18424813779001,
+      "max_arc_samples": 0.9996023518324364,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287867548952,
+      "relative_offset_ppm": -71.21324510472871,
+      "max_arc_samples": 1.0009741262183525,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287985845852,
+      "relative_offset_ppm": -71.20141541483437,
+      "max_arc_samples": 0.9996678723837249,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999288031841052,
+      "relative_offset_ppm": -71.19681589473626,
+      "max_arc_samples": 0.9996032951603411,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999288384414909,
+      "relative_offset_ppm": -71.16155850916961,
+      "max_arc_samples": 1.0039358762260235,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999288309666989,
+      "relative_offset_ppm": -71.16903330106616,
+      "max_arc_samples": 1.0035225003957748,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999288030333293,
+      "relative_offset_ppm": -71.19696667068354,
+      "max_arc_samples": 0.9996054120711051,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287937442727,
+      "relative_offset_ppm": -71.20625572731853,
+      "max_arc_samples": 0.999735830409918,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287868989208,
+      "relative_offset_ppm": -71.21310107915946,
+      "max_arc_samples": 1.0002478360911482,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999288083714436,
+      "relative_offset_ppm": -71.19162855639959,
+      "max_arc_samples": 0.9995304649346508,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999288207812222,
+      "relative_offset_ppm": -71.17921877775046,
+      "max_arc_samples": 1.002098906647916,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999288280235575,
+      "relative_offset_ppm": -71.17197644246343,
+      "max_arc_samples": 1.0010827605437953,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999288185840635,
+      "relative_offset_ppm": -71.18141593642768,
+      "max_arc_samples": 1.0008302648730023,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999287951814747,
+      "relative_offset_ppm": -71.20481852529448,
+      "max_arc_samples": 0.9998613613206544,
+      "consistent": true
+     },
+     {
+      "mode": "realtime",
+      "estimated_ratio": 9.999168581109977,
+      "relative_offset_ppm": -83.1418890022695,
+      "max_arc_samples": 0.9941800677697756,
+      "consistent": true
+     }
+    ],
+    "uart_bytes": 892,
+    "uart_framing_errors": 10,
+    "uart_bytes_outside_loop": 20,
+    "host_write_valid_high": null,
+    "host_write_valid_edges": null,
+    "sck_edges": 14747,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "pins-idle-base-1",
+   "tb": "pins",
+   "mode": "idle",
+   "core": "base",
+   "seed": 1,
+   "cycles": 200000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 46,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983461",
+   "lockstep": true,
+   "host_operations": 0,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "same",
+   "exact": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 31396,
+    "frames": 580,
+    "identical": 580,
+    "frame_lengths": {
+     "344": 580
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200841
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.0,
+    "host_write_valid_edges": 0,
+    "sck_edges": 0,
+    "match": true
+   },
+   "la": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 31396,
+    "frames": 580,
+    "identical": 580,
+    "frame_lengths": {
+     "344": 580
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200000
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.0,
+    "host_write_valid_edges": 0,
+    "sck_edges": 0,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "pins-idle-host-fetch-1",
+   "tb": "pins",
+   "mode": "idle",
+   "core": "host-fetch",
+   "seed": 1,
+   "cycles": 200000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 41,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983470",
+   "lockstep": false,
+   "host_operations": 0,
+   "probe_running_at_end": false,
+   "probe_fault_at_end": 2,
+   "expected": "different",
+   "exact": {
+    "verdict": "different",
+    "reasons": [
+     "no complete frame"
+    ],
+    "events": 0,
+    "frames": 0,
+    "identical": 0,
+    "frame_lengths": {},
+    "jitter_pp_cycles": null,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200841
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.0,
+    "host_write_valid_edges": 0,
+    "sck_edges": 0,
+    "match": true
+   },
+   "la": {
+    "verdict": "different",
+    "reasons": [
+     "no complete frame"
+    ],
+    "events": 0,
+    "frames": 0,
+    "identical": 0,
+    "frame_lengths": {},
+    "jitter_pp_cycles": null,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200000
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.0,
+    "host_write_valid_edges": 0,
+    "sck_edges": 0,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "pins-idle-timer-engine-1",
+   "tb": "pins",
+   "mode": "idle",
+   "core": "timer-engine",
+   "seed": 1,
+   "cycles": 200000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 43,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983467",
+   "lockstep": false,
+   "host_operations": 0,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "same",
+   "exact": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 31396,
+    "frames": 580,
+    "identical": 580,
+    "frame_lengths": {
+     "344": 580
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200841
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.0,
+    "host_write_valid_edges": 0,
+    "sck_edges": 0,
+    "match": true
+   },
+   "la": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 31396,
+    "frames": 580,
+    "identical": 580,
+    "frame_lengths": {
+     "344": 580
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200000
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.0,
+    "host_write_valid_edges": 0,
+    "sck_edges": 0,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "pins-idle-timer-host-1",
+   "tb": "pins",
+   "mode": "idle",
+   "core": "timer-host",
+   "seed": 1,
+   "cycles": 200000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 44,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983465",
+   "lockstep": false,
+   "host_operations": 0,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "same",
+   "exact": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 31396,
+    "frames": 580,
+    "identical": 580,
+    "frame_lengths": {
+     "344": 580
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200841
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.0,
+    "host_write_valid_edges": 0,
+    "sck_edges": 0,
+    "match": true
+   },
+   "la": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 31396,
+    "frames": 580,
+    "identical": 580,
+    "frame_lengths": {
+     "344": 580
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200000
+     }
+    ],
+    "uart_bytes": 0,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.0,
+    "host_write_valid_edges": 0,
+    "sck_edges": 0,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "pins-loaded-base-1",
+   "tb": "pins",
+   "mode": "loaded",
+   "core": "base",
+   "seed": 1,
+   "cycles": 200000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 50,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983462",
+   "lockstep": true,
+   "host_operations": 9612,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "same",
+   "exact": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 31396,
+    "frames": 580,
+    "identical": 580,
+    "frame_lengths": {
+     "344": 580
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 201796
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6330331651658259,
+    "host_write_valid_edges": 32560,
+    "sck_edges": 4953,
+    "match": true
+   },
+   "la": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 31396,
+    "frames": 580,
+    "identical": 580,
+    "frame_lengths": {
+     "344": 580
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200000
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6330313303133032,
+    "host_write_valid_edges": 32559,
+    "sck_edges": 4953,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "pins-loaded-base-2",
+   "tb": "pins",
+   "mode": "loaded",
+   "core": "base",
+   "seed": 2,
+   "cycles": 200000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 50,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983463",
+   "lockstep": true,
+   "host_operations": 9714,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "same",
+   "exact": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 31397,
+    "frames": 580,
+    "identical": 580,
+    "frame_lengths": {
+     "344": 580
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 201802
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6325960221193364,
+    "host_write_valid_edges": 32550,
+    "sck_edges": 4954,
+    "match": true
+   },
+   "la": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 31397,
+    "frames": 580,
+    "identical": 580,
+    "frame_lengths": {
+     "344": 580
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200006
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6325941851453714,
+    "host_write_valid_edges": 32549,
+    "sck_edges": 4954,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "pins-loaded-base-3",
+   "tb": "pins",
+   "mode": "loaded",
+   "core": "base",
+   "seed": 3,
+   "cycles": 200000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 50,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983464",
+   "lockstep": true,
+   "host_operations": 9746,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "same",
+   "exact": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 31400,
+    "frames": 580,
+    "identical": 580,
+    "frame_lengths": {
+     "344": 580
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 201820
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6339166083391661,
+    "host_write_valid_edges": 32656,
+    "sck_edges": 4954,
+    "match": true
+   },
+   "la": {
+    "verdict": "same",
+    "reasons": [],
+    "events": 31400,
+    "frames": 580,
+    "identical": 580,
+    "frame_lengths": {
+     "344": 580
+    },
+    "jitter_pp_cycles": 0,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200024
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6339147780960809,
+    "host_write_valid_edges": 32655,
+    "sck_edges": 4954,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "pins-loaded-engine-fetch-1",
+   "tb": "pins",
+   "mode": "loaded",
+   "core": "engine-fetch",
+   "seed": 1,
+   "cycles": 200000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 47,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983472",
+   "lockstep": false,
+   "host_operations": 9612,
+   "probe_running_at_end": false,
+   "probe_fault_at_end": 2,
+   "expected": "different",
+   "exact": {
+    "verdict": "different",
+    "reasons": [
+     "no complete frame"
+    ],
+    "events": 60,
+    "frames": 0,
+    "identical": 0,
+    "frame_lengths": {},
+    "jitter_pp_cycles": null,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 201796
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6330553222128885,
+    "host_write_valid_edges": 32560,
+    "sck_edges": 4953,
+    "match": true
+   },
+   "la": {
+    "verdict": "different",
+    "reasons": [
+     "no complete frame"
+    ],
+    "events": 60,
+    "frames": 0,
+    "identical": 0,
+    "frame_lengths": {},
+    "jitter_pp_cycles": null,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200000
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6330534874069333,
+    "host_write_valid_edges": 32559,
+    "sck_edges": 4953,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "pins-loaded-host-fetch-1",
+   "tb": "pins",
+   "mode": "loaded",
+   "core": "host-fetch",
+   "seed": 1,
+   "cycles": 200000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 45,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983471",
+   "lockstep": false,
+   "host_operations": 9612,
+   "probe_running_at_end": false,
+   "probe_fault_at_end": 2,
+   "expected": "different",
+   "exact": {
+    "verdict": "different",
+    "reasons": [
+     "no complete frame"
+    ],
+    "events": 0,
+    "frames": 0,
+    "identical": 0,
+    "frame_lengths": {},
+    "jitter_pp_cycles": null,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 201796
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6330553222128885,
+    "host_write_valid_edges": 32560,
+    "sck_edges": 4953,
+    "match": true
+   },
+   "la": {
+    "verdict": "different",
+    "reasons": [
+     "no complete frame"
+    ],
+    "events": 0,
+    "frames": 0,
+    "identical": 0,
+    "frame_lengths": {},
+    "jitter_pp_cycles": null,
+    "departure_frame": null,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200000
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6330406432514601,
+    "host_write_valid_edges": 32559,
+    "sck_edges": 4953,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "pins-loaded-timer-engine-1",
+   "tb": "pins",
+   "mode": "loaded",
+   "core": "timer-engine",
+   "seed": 1,
+   "cycles": 200000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 45,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983468",
+   "lockstep": false,
+   "host_operations": 9612,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "different",
+   "exact": {
+    "verdict": "different",
+    "reasons": [
+     "departs from the periodic schedule",
+     "361 frames differ"
+    ],
+    "events": 22412,
+    "frames": 413,
+    "identical": 52,
+    "frame_lengths": {
+     "344": 52,
+     "405": 1,
+     "407": 1,
+     "408": 51,
+     "409": 51,
+     "428": 51,
+     "452": 51,
+     "499": 1,
+     "516": 52,
+     "580": 51,
+     "727": 51
+    },
+    "jitter_pp_cycles": 319,
+    "departure_frame": 2,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 201796
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6330553222128885,
+    "host_write_valid_edges": 32560,
+    "sck_edges": 4953,
+    "match": true
+   },
+   "la": {
+    "verdict": "different",
+    "reasons": [
+     "departs from the periodic schedule",
+     "361 frames differ"
+    ],
+    "events": 22412,
+    "frames": 413,
+    "identical": 52,
+    "frame_lengths": {
+     "344": 52,
+     "405": 1,
+     "407": 1,
+     "408": 51,
+     "409": 51,
+     "428": 51,
+     "452": 51,
+     "499": 1,
+     "516": 52,
+     "580": 51,
+     "727": 51
+    },
+    "jitter_pp_cycles": 319,
+    "departure_frame": 2,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200000
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6330534874069333,
+    "host_write_valid_edges": 32559,
+    "sck_edges": 4953,
+    "match": true
+   },
+   "simulation_ok": true
+  },
+  {
+   "tag": "pins-loaded-timer-host-1",
+   "tb": "pins",
+   "mode": "loaded",
+   "core": "timer-host",
+   "seed": 1,
+   "cycles": 200000,
+   "test": "test_isolation",
+   "make_status": 0,
+   "wall_seconds": 47,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983466",
+   "lockstep": false,
+   "host_operations": 9612,
+   "probe_running_at_end": true,
+   "probe_fault_at_end": 0,
+   "expected": "different",
+   "exact": {
+    "verdict": "different",
+    "reasons": [
+     "departs from the periodic schedule",
+     "376 frames differ"
+    ],
+    "events": 20395,
+    "frames": 376,
+    "identical": 0,
+    "frame_lengths": {
+     "454": 1,
+     "461": 1,
+     "466": 2,
+     "469": 2,
+     "470": 1,
+     "471": 1,
+     "472": 1,
+     "473": 2,
+     "474": 2,
+     "478": 4,
+     "479": 2,
+     "480": 1,
+     "482": 1,
+     "483": 2,
+     "484": 6,
+     "485": 1,
+     "486": 4,
+     "487": 4,
+     "489": 3,
+     "490": 1,
+     "491": 2,
+     "492": 1,
+     "493": 1,
+     "494": 2,
+     "495": 2,
+     "496": 3,
+     "497": 6,
+     "498": 2,
+     "499": 2,
+     "500": 7,
+     "501": 6,
+     "502": 5,
+     "503": 4,
+     "504": 1,
+     "505": 7,
+     "506": 7,
+     "507": 8,
+     "508": 2,
+     "509": 8,
+     "510": 10,
+     "511": 11,
+     "512": 1,
+     "513": 5,
+     "514": 4,
+     "515": 4,
+     "516": 3,
+     "517": 5,
+     "518": 5,
+     "519": 5,
+     "520": 4,
+     "521": 4,
+     "522": 3,
+     "523": 7,
+     "524": 5,
+     "525": 6,
+     "526": 2,
+     "527": 8,
+     "528": 4,
+     "529": 7,
+     "530": 4,
+     "531": 4,
+     "532": 5,
+     "533": 2,
+     "534": 7,
+     "535": 2,
+     "536": 4,
+     "537": 1,
+     "538": 5,
+     "539": 2,
+     "540": 3,
+     "541": 3,
+     "542": 3,
+     "543": 2,
+     "544": 4,
+     "545": 4,
+     "546": 4,
+     "547": 3,
+     "548": 1,
+     "550": 2,
+     "551": 3,
+     "552": 2,
+     "553": 1,
+     "554": 2,
+     "555": 5,
+     "556": 3,
+     "557": 2,
+     "558": 3,
+     "559": 1,
+     "560": 2,
+     "561": 1,
+     "562": 2,
+     "563": 1,
+     "564": 4,
+     "565": 1,
+     "566": 1,
+     "567": 3,
+     "568": 1,
+     "569": 2,
+     "570": 1,
+     "571": 3,
+     "573": 3,
+     "575": 1,
+     "576": 3,
+     "577": 2,
+     "580": 1,
+     "581": 1,
+     "582": 2,
+     "583": 2,
+     "584": 1,
+     "587": 1,
+     "588": 1,
+     "589": 1,
+     "590": 1,
+     "594": 1,
+     "595": 1,
+     "597": 1,
+     "599": 4,
+     "601": 2,
+     "602": 1,
+     "603": 1,
+     "605": 1,
+     "606": 1,
+     "607": 1,
+     "613": 1,
+     "615": 1,
+     "616": 1,
+     "618": 1,
+     "624": 1,
+     "628": 1,
+     "629": 1,
+     "638": 1,
+     "641": 1,
+     "642": 1,
+     "652": 1,
+     "659": 1
+    },
+    "jitter_pp_cycles": 165,
+    "departure_frame": 0,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 201796
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6330394955924339,
+    "host_write_valid_edges": 32560,
+    "sck_edges": 4953,
+    "match": true
+   },
+   "la": {
+    "verdict": "different",
+    "reasons": [
+     "departs from the periodic schedule",
+     "376 frames differ"
+    ],
+    "events": 20395,
+    "frames": 376,
+    "identical": 0,
+    "frame_lengths": {
+     "454": 1,
+     "461": 1,
+     "466": 2,
+     "469": 2,
+     "470": 1,
+     "471": 1,
+     "472": 1,
+     "473": 2,
+     "474": 2,
+     "478": 4,
+     "479": 2,
+     "480": 1,
+     "482": 1,
+     "483": 2,
+     "484": 6,
+     "485": 1,
+     "486": 4,
+     "487": 4,
+     "489": 3,
+     "490": 1,
+     "491": 2,
+     "492": 1,
+     "493": 1,
+     "494": 2,
+     "495": 2,
+     "496": 3,
+     "497": 6,
+     "498": 2,
+     "499": 2,
+     "500": 7,
+     "501": 6,
+     "502": 5,
+     "503": 4,
+     "504": 1,
+     "505": 7,
+     "506": 7,
+     "507": 8,
+     "508": 2,
+     "509": 8,
+     "510": 10,
+     "511": 11,
+     "512": 1,
+     "513": 5,
+     "514": 4,
+     "515": 4,
+     "516": 3,
+     "517": 5,
+     "518": 5,
+     "519": 5,
+     "520": 4,
+     "521": 4,
+     "522": 3,
+     "523": 7,
+     "524": 5,
+     "525": 6,
+     "526": 2,
+     "527": 8,
+     "528": 4,
+     "529": 7,
+     "530": 4,
+     "531": 4,
+     "532": 5,
+     "533": 2,
+     "534": 7,
+     "535": 2,
+     "536": 4,
+     "537": 1,
+     "538": 5,
+     "539": 2,
+     "540": 3,
+     "541": 3,
+     "542": 3,
+     "543": 2,
+     "544": 4,
+     "545": 4,
+     "546": 4,
+     "547": 3,
+     "548": 1,
+     "550": 2,
+     "551": 3,
+     "552": 2,
+     "553": 1,
+     "554": 2,
+     "555": 5,
+     "556": 3,
+     "557": 2,
+     "558": 3,
+     "559": 1,
+     "560": 2,
+     "561": 1,
+     "562": 2,
+     "563": 1,
+     "564": 4,
+     "565": 1,
+     "566": 1,
+     "567": 3,
+     "568": 1,
+     "569": 2,
+     "570": 1,
+     "571": 3,
+     "573": 3,
+     "575": 1,
+     "576": 3,
+     "577": 2,
+     "580": 1,
+     "581": 1,
+     "582": 2,
+     "583": 2,
+     "584": 1,
+     "587": 1,
+     "588": 1,
+     "589": 1,
+     "590": 1,
+     "594": 1,
+     "595": 1,
+     "597": 1,
+     "599": 4,
+     "601": 2,
+     "602": 1,
+     "603": 1,
+     "605": 1,
+     "606": 1,
+     "607": 1,
+     "613": 1,
+     "615": 1,
+     "616": 1,
+     "618": 1,
+     "624": 1,
+     "628": 1,
+     "629": 1,
+     "638": 1,
+     "641": 1,
+     "642": 1,
+     "652": 1,
+     "659": 1
+    },
+    "jitter_pp_cycles": 165,
+    "departure_frame": 0,
+    "conversion": [
+     {
+      "mode": "clock",
+      "clock_edges": 200000
+     }
+    ],
+    "uart_bytes": 309,
+    "uart_framing_errors": 0,
+    "uart_bytes_outside_loop": 0,
+    "host_write_valid_high": 0.6330376607532151,
+    "host_write_valid_edges": 32559,
+    "sck_edges": 4953,
+    "match": true
+   },
+   "simulation_ok": true
+  }
+ ],
+ "comparisons": [
+  {
+   "tb": "pins",
+   "view": "exact",
+   "runs": [
+    "idle-base-1",
+    "loaded-base-1",
+    "loaded-base-2",
+    "loaded-base-3",
+    "loaded-engine-fetch-1",
+    "idle-host-fetch-1",
+    "loaded-host-fetch-1",
+    "idle-timer-engine-1",
+    "loaded-timer-engine-1",
+    "idle-timer-host-1",
+    "loaded-timer-host-1"
+   ],
+   "pass": true,
+   "text": "compare-pins-exact.txt"
+  },
+  {
+   "tb": "pins",
+   "view": "la",
+   "runs": [
+    "idle-base-1",
+    "loaded-base-1",
+    "loaded-base-2",
+    "loaded-base-3",
+    "loaded-engine-fetch-1",
+    "idle-host-fetch-1",
+    "loaded-host-fetch-1",
+    "idle-timer-engine-1",
+    "loaded-timer-engine-1",
+    "idle-timer-host-1",
+    "loaded-timer-host-1"
+   ],
+   "pass": true,
+   "text": "compare-pins-la.txt"
+  },
+  {
+   "tb": "bridge",
+   "view": "exact",
+   "runs": [
+    "idle-base-1",
+    "loaded-base-1",
+    "loaded-base-2",
+    "idle-host-fetch-1",
+    "loaded-host-fetch-1",
+    "loaded-timer-engine-1",
+    "idle-timer-host-1",
+    "loaded-timer-host-1"
+   ],
+   "pass": true,
+   "text": "compare-bridge-exact.txt"
+  },
+  {
+   "tb": "bridge",
+   "view": "la",
+   "runs": [
+    "idle-base-1",
+    "loaded-base-1",
+    "loaded-base-2",
+    "idle-host-fetch-1",
+    "loaded-host-fetch-1",
+    "loaded-timer-engine-1",
+    "idle-timer-host-1",
+    "loaded-timer-host-1"
+   ],
+   "pass": true,
+   "text": "compare-bridge-la.txt"
+  }
+ ],
+ "other_tests": [
+  {
+   "tag": "bridge-chain-1",
+   "tb": "pins",
+   "mode": "-",
+   "core": "base",
+   "seed": 1,
+   "cycles": 130000,
+   "test": "test_bridge_chain",
+   "make_status": 0,
+   "wall_seconds": 36,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983483",
+   "simulation_ok": true,
+   "result": {
+    "uart_text": "19\r\n1A\r\nF6\r\n",
+    "readings": [
+     25,
+     26,
+     246
+    ],
+    "i2c_received": [
+     145,
+     145,
+     145,
+     145
+    ],
+    "lockstep": true
+   }
+  },
+  {
+   "tag": "four-1",
+   "tb": "pins",
+   "mode": "-",
+   "core": "base",
+   "seed": 1,
+   "cycles": 0,
+   "test": "test_four",
+   "make_status": 0,
+   "wall_seconds": 22,
+   "tests": 3,
+   "failures": 0,
+   "job": "23983482",
+   "simulation_ok": true,
+   "result": {
+    "spi_words": [
+     4293869592
+    ],
+    "i2c_bytes": [
+     25
+    ],
+    "uart_tx_bytes": [
+     79,
+     75,
+     104,
+     105,
+     13,
+     10
+    ],
+    "flash_commands": [
+     159
+    ],
+    "i2c_received": [
+     145
+    ],
+    "lockstep": true
+   },
+   "sigrok_decode": {
+    "uart-tx": [
+     "uart-1: 4F",
+     "uart-1: 4B",
+     "uart-1: 68",
+     "uart-1: 69",
+     "uart-1: 0D",
+     "uart-1: 0A"
+    ],
+    "uart-rx": [
+     "uart-1: 68",
+     "uart-1: 69",
+     "uart-1: 0D",
+     "uart-1: 0A"
+    ],
+    "spi": [
+     "spi-1: FF",
+     "spi-1: 9F",
+     "spi-1: EF",
+     "spi-1: 00",
+     "spi-1: 40",
+     "spi-1: 00",
+     "spi-1: 18",
+     "spi-1: 00"
+    ],
+    "i2c": [
+     "i2c-1: Start",
+     "i2c-1: Read",
+     "i2c-1: Address read: 48",
+     "i2c-1: ACK",
+     "i2c-1: Data read: 19",
+     "i2c-1: NACK",
+     "i2c-1: Stop"
+    ]
+   }
+  }
+ ],
+ "pass": true
+}

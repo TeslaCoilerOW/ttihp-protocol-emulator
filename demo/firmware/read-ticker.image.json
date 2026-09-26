@@ -1,0 +1,32 @@
+{
+  "schema_version": "protocol-emulator.firmware-image.v1",
+  "isa_version": 2,
+  "name": "read-ticker",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 1,
+  "owned_pins": 0,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "source_sha256": "33aece6689df26402e415d990e3b0e1b413a41c13b6f980b7a92e3f616115ed0",
+  "bytecode_sha256": "e0196622345949d56590a13d561bf301d82afb7a78f663652bc202e20a29b812",
+  "words": [ 318832785, 117440512, 72108861, 83886081 ],
+  "labels": { "tick": 1 },
+  "timing": [
+    { "pc": 0, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 1, "minimum_cycles": 1, "blocking": "rx_fifo_unbounded" },
+    { "pc": 2, "minimum_cycles": 4999998, "blocking": "none" },
+    { "pc": 3, "minimum_cycles": 1, "blocking": "none" }
+  ],
+  "notes": [
+    "Pushes the I2C address byte 0x91 into its RX FIFO every 5000000 clocks (blocking PUSH, so a full queue pauses it); no pins.",
+    "Used with a ROUTE from this engine to an i2c-read engine: a host-free periodic sensor read request."
+  ]
+}
