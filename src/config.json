@@ -17,14 +17,14 @@
 
   "//": "PL_TARGET_DENSITY_PCT - You can increase this if Global Placement fails with error GPL-0302.",
   "//": "Users have reported that values up to 80 worked well for them.",
-  "PL_TARGET_DENSITY_PCT": 60,
+  "PL_TARGET_DENSITY_PCT": 61,
 
   "//": "CLOCK_PERIOD - Increase this in case you are getting setup time violations.",
   "//": "The value is in nanoseconds, so 20ns == 50MHz.",
   "CLOCK_PERIOD": 20,
 
   "//": "Hold slack margin - Increase them in case you are getting hold violations.",
-  "PL_RESIZER_HOLD_SLACK_MARGIN": 0.1,
+  "PL_RESIZER_HOLD_SLACK_MARGIN": 0.15,
   "GRT_RESIZER_HOLD_SLACK_MARGIN": 0.05,
 
   "//": "RUN_LINTER, LINTER_INCLUDE_PDK_MODELS - Disabling the linter is not recommended!",
@@ -44,24 +44,72 @@
   "//": "Die 8x4 = 1724.16 x 710.64; core x 2.88..1721.28, y 3.78..706.86 (tt_block_8x4_pgvdd.def).",
   "//": "x = 11.04 + 67.44 k (k even, so also on the 0.48 um site grid) puts each macro's power columns under",
   "//": "the FP_PDN_V* stripe grid below (src/sram_pdn_cfg.tcl fails the PDN step otherwise).",
-  "//": "Bottom row: y 3.78, FS (signal pins on the TOP edge, facing the logic). Top row: y 638.82, N",
-  "//": "(pins on the bottom edge, facing the logic; top edge 703.18 < core top 706.86). Top row starts at",
-  "//": "x 415.68, clear of the TT I/O pins at x 29.76..191.04 on the top edge. Pairs are 4 stripe pitches",
-  "//": "apart (32.96 um gap > 2 x 10 um default halo). The middle 550 um band is free of macros.",
+  "//": "Placement = floorplans/fp8_spread_trk.json (chosen by the optimizer, docs/optimization.md): bottom",
+  "//": "row k 0/7/14/21 at y 3.87, FS (on the Metal2 track; signal pins on the TOP edge, facing the logic);",
+  "//": "top row k 3/9/15/21 at y 638.82, N (pins on the bottom edge), first macro clear of the TT I/O pins",
+  "//": "on the top edge. Macros are spread over the full width (168-235 um gaps) instead of paired.",
   "//": "lib keys name the process corner, because the cmos5l STA corners are all nom_* (see tt_um_loom).",
   "//": "The fast lib is characterized at -55 C; STA uses it for the -40 C fast corner (conservative).",
   "//": "nl = the interface-only blackbox (never the behavioural model).",
   "MACROS": {
     "RM_IHPSG13_1P_64x16_c2": {
       "instances": {
-        "core.instruction_sram_e0_lo": { "location": [145.92, 3.78], "orientation": "FS" },
-        "core.instruction_sram_e0_hi": { "location": [415.68, 3.78], "orientation": "FS" },
-        "core.instruction_sram_e1_lo": { "location": [955.20, 3.78], "orientation": "FS" },
-        "core.instruction_sram_e1_hi": { "location": [1224.96, 3.78], "orientation": "FS" },
-        "core.instruction_sram_e2_lo": { "location": [415.68, 638.82], "orientation": "N" },
-        "core.instruction_sram_e2_hi": { "location": [685.44, 638.82], "orientation": "N" },
-        "core.instruction_sram_e3_lo": { "location": [1090.08, 638.82], "orientation": "N" },
-        "core.instruction_sram_e3_hi": { "location": [1359.84, 638.82], "orientation": "N" }
+        "core.instruction_sram_e0_lo": {
+          "location": [
+            11.04,
+            3.87
+          ],
+          "orientation": "FS"
+        },
+        "core.instruction_sram_e0_hi": {
+          "location": [
+            483.12,
+            3.87
+          ],
+          "orientation": "FS"
+        },
+        "core.instruction_sram_e1_lo": {
+          "location": [
+            955.2,
+            3.87
+          ],
+          "orientation": "FS"
+        },
+        "core.instruction_sram_e1_hi": {
+          "location": [
+            1427.28,
+            3.87
+          ],
+          "orientation": "FS"
+        },
+        "core.instruction_sram_e2_lo": {
+          "location": [
+            213.36,
+            638.82
+          ],
+          "orientation": "N"
+        },
+        "core.instruction_sram_e2_hi": {
+          "location": [
+            618.0,
+            638.82
+          ],
+          "orientation": "N"
+        },
+        "core.instruction_sram_e3_lo": {
+          "location": [
+            1022.64,
+            638.82
+          ],
+          "orientation": "N"
+        },
+        "core.instruction_sram_e3_hi": {
+          "location": [
+            1427.28,
+            638.82
+          ],
+          "orientation": "N"
+        }
       },
       "gds": ["dir::../macros/RM_IHPSG13_1P_64x16_c2/RM_IHPSG13_1P_64x16_c2.gds"],
       "lef": ["dir::../macros/RM_IHPSG13_1P_64x16_c2/RM_IHPSG13_1P_64x16_c2.lef"],
@@ -112,9 +160,9 @@
   "//": "of the GitHub runner's 6 h limit. KLayout DRC in the precheck is the sign-off check.",
   "RUN_MAGIC_DRC": false,
 
-  "//": "Half the 32.96 um gap between paired macros: the halos meet, so no std-cell rows and no short",
-  "//": "VPWR/VGND Metal4 straps (which fail the precheck Pin check) are generated between them.",
-  "FP_MACRO_HORIZONTAL_HALO": 16.48,
+  "//": "Macro halo 20 um (optimizer choice for fp8_spread_trk). No short VPWR/VGND Metal4 straps, which",
+  "//": "would fail the precheck Pin check, are generated (checked by tools/opt checks.py and the precheck).",
+  "FP_MACRO_HORIZONTAL_HALO": 20,
 
   "//": "Waived for ONE known case: POWER stripes cross the LEF Metal4 OBS at each macro's VDD!/VDDARRAY!",
   "//": "split (local y 39.085..45.205). The flattened GDS has no Metal4/Via3/TopMetal1 within 1 um of the",
@@ -134,6 +182,21 @@
   "//": "======================= end SRAM macro integration =======================",
 
   "//": "Configuration docs: https://librelane.readthedocs.io/en/latest/reference/configuration.html",
+
+  "//": "Timing/repair settings chosen by the physical-design optimizer (tools/opt, docs/optimization.md):",
+  "//": "promotion p010-dor, trial dor-26a873-c8bf57e#94; full run 24010051 (LVS 0), TT precheck 24011934 (9/9),",
+  "//": "gate-level 24011935 (0 fail). Floorplan fp8_spread_trk with FP_MACRO_HORIZONTAL_HALO 20 (no short straps).",
+  "CTS_MAX_CAP": 0.2,
+  "CTS_OBSTRUCTION_AWARE": true,
+  "CTS_SINK_CLUSTERING_SIZE": 16,
+  "DESIGN_REPAIR_MAX_CAP_PCT": 50,
+  "DESIGN_REPAIR_MAX_SLEW_PCT": 35,
+  "DESIGN_REPAIR_MAX_WIRE_LENGTH": 300,
+  "GRT_LAYER_ADJUSTMENTS": [0, 0.2, 0, 0.1, 0],
+  "MAX_FANOUT_CONSTRAINT": 8,
+  "PL_RESIZER_SETUP_SLACK_MARGIN": 5.75,
+  "PL_TIMING_DRIVEN": true,
+  "SYNTH_STRATEGY": "DELAY 4",
 
   "//": "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
   "//": "!!! DO NOT CHANGE ANYTHING BELOW THIS POINT !!!",
