@@ -10,6 +10,9 @@
 # SRAM with synth_xilinx (synth_sram_netlist.ys) and runs the SymbiYosys tasks
 # of sram_equiv.sby (default: all). Requires yosys, sby, yosys-abc and
 # bitwuzla on PATH (OSS CAD Suite). Exit status is non-zero if any task fails.
+# The synthesis options of fpga/scripts/build.sh (SYNTH_OPTS, ABC9_W,
+# ABC9_SCRIPT; environment) apply to the mapping here too, so the netlist
+# proof covers the mapping of a build made with them.
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -28,7 +31,16 @@ cp "$repo/fpga/rtl/pe_fpga_sram_64x16.v" "$work/fpga/rtl/"
 cp "$repo/models/RM_IHPSG13_1P_core_behavioral.v" "$work/models/"
 
 cd "$work/fpga/formal"
-yosys -q -l synth_sram_netlist.log synth_sram_netlist.ys
+{
+  if [ -n "${ABC9_W:-}" ]; then echo "scratchpad -set synth_xilinx.abc9.W $ABC9_W"; fi
+  if [ -n "${ABC9_SCRIPT:-}" ]; then
+    sed "s/{W}/-W ${ABC9_W:-300}/g; s/{D}//g; s/{R}//g" "$repo/fpga/scripts/abc9/${ABC9_SCRIPT}.abc" > "$PWD/abc9.script"
+    echo "scratchpad -set abc9.script $PWD/abc9.script"
+  fi
+  sed "s/^synth_xilinx -flatten -abc9 /synth_xilinx -flatten -abc9 ${SYNTH_OPTS:-} /" synth_sram_netlist.ys
+} > synth_sram_netlist.run.ys
+echo "== synth_xilinx options: ${SYNTH_OPTS:-} ABC9_W=${ABC9_W:-} ABC9_SCRIPT=${ABC9_SCRIPT:-} =="
+yosys -q -l synth_sram_netlist.log synth_sram_netlist.run.ys
 echo "== synth_xilinx netlist of pe_fpga_sram_64x16 =="
 grep -E '^ +[0-9]+ +(RAM|FD|LUT|MUX|CARRY)' sram_netlist.stat || true
 

@@ -1,0 +1,11 @@
+# Published bitstreams: name, board, clock, PLACER:SEED, build.sh options
+# (space-separated K=V, no spaces inside a value; "-" for none).
+# fpga/scripts/release.sh NAME OUT_DIR rebuilds one. The seeds come from the
+# sweeps in docs/fpga.md ("Build results").
+pe_cmod_a7_pll50	cmod_a7	pll50	heap:41	SYNTH_OPTS=-nowidelut ABC9_SCRIPT=flow3mfs ABC9_W=1000 TIMING_WEIGHT=80 ROUTER=router1
+pe_cmod_a7_pll50_bridgeonly	cmod_a7	pll50	heap:190	BRIDGE_ONLY=1 SYNTH_OPTS=-nowidelut ABC9_SCRIPT=flow3mfs ABC9_W=1000 TIMING_WEIGHT=80
+pe_cmod_a7_pll40	cmod_a7	pll40	heap:214	SYNTH_OPTS=-nowidelut ABC9_SCRIPT=flow3mfs ABC9_W=1000 TIMING_WEIGHT=160
+pe_cmod_a7_osc12	cmod_a7	osc12	heap:30	SYNTH_OPTS=-nowidelut ABC9_SCRIPT=flow3mfs ABC9_W=1000 TIMING_WEIGHT=80 ROUTER=router1
+pe_cmod_a7_host	cmod_a7	host	heap:124	ABC9_SCRIPT=flow3mfs ABC9_W=1000 TIMING_WEIGHT=80 ROUTER=router1
+pe_urbana_pll50	urbana	pll50	heap:23	ABC9_SCRIPT=flow3mfs ABC9_W=1000 TIMING_WEIGHT=160 ROUTER=router1
+pe_urbana_host	urbana	host	heap:15	SYNTH_OPTS=-nowidelut ABC9_SCRIPT=flow3mfs ABC9_W=1000 TIMING_WEIGHT=160 ROUTER=router1

@@ -27,8 +27,8 @@ Each test ends with `SELFTEST PASS` / `LOOPBACK PASS`. The loopback test needs
 jumpers from protocol pin 0 to pin 1 and from pin 3 to pin 4 (docs/fpga.md).
 The bitstreams, with SHA-256 sums, are in
 `$PE_WORK/fpga/bitstreams/`, or you can build
-them yourself (below). docs/fpga.md lists which builds meet 50 MHz in
-nextpnr's timing model.
+them yourself (below). docs/fpga.md lists the fmax of each build in
+nextpnr's timing model; all of them meet their clock target.
 
 ## Layout
 
@@ -41,7 +41,11 @@ nextpnr's timing model.
 | `rtl/pe_fpga_sram_64x16.v` | FPGA stand-in for the IHP `RM_IHPSG13_1P_64x16_c2` SRAM (LUT RAM + output register) |
 | `rtl/RM_IHPSG13_1P_64x16_c2_fpga.v` | drop-in module with the macro's name and ports |
 | `constraints/` | board XDCs (pins) and per-build clock constraints |
-| `scripts/build.sh`, `scripts/summarize.py` | openXC7 flow: Yosys, nextpnr-xilinx, fasm2frames, xc7frames2bit; build summary |
+| `scripts/build.sh`, `scripts/pnr_run.sh`, `scripts/summarize.py` | openXC7 flow: Yosys, nextpnr-xilinx (one `pnr_run.sh` call per seed), fasm2frames, xc7frames2bit; build summary |
+| `scripts/release.tsv`, `scripts/release.sh` | the options and placer seed of each published bitstream; rebuild one with `release.sh NAME OUT_DIR` |
+| `scripts/abc9/` | Yosys ABC9 LUT-mapping scripts selectable with `ABC9_SCRIPT` |
+| `scripts/region.py` | nextpnr pre-place script: confine slice cells to a rectangle (`REGION=`) |
+| `scripts/sweep/` | seed and option sweeps on Slurm: `plan.py`, `worker.sbatch`, `run_task.sh`, `collect.py` |
 | `scripts/readback.sh`, `scripts/bit_readback.py` | bit-level readback: the `.bit` must hold exactly the FASM's frames |
 | `formal/` | SRAM stand-in vs IHP model: SymbiYosys equivalence (RTL and synthesized netlist), mutants |
 | `sim/` | cocotb simulations of the full FPGA top: `test/` lockstep suite, UART bridge + host tool, Pico driver |
@@ -53,8 +57,9 @@ nextpnr's timing model.
 
 ```sh
 export OPENXC7=/path/to/openxc7          # unpacked tools-openxc7 package + chipdb (docs/fpga.md)
-fpga/scripts/build.sh cmod_a7 pll50 build/cmod_a7_pll50 heap:1 heap:2 heap:3 heap:4
-fpga/scripts/build.sh urbana  pll50 build/urbana_pll50  heap:1 heap:2 heap:3 heap:4
+fpga/scripts/release.sh --list           # the published builds: seed and options of each
+fpga/scripts/release.sh pe_cmod_a7_pll50 build/pe_cmod_a7_pll50
+fpga/scripts/build.sh urbana pll50 build/urbana_pll50 heap:1 heap:2 heap:3 heap:4   # default options
 ```
 
 `CLOCK` selects the core clock:
@@ -66,14 +71,21 @@ fpga/scripts/build.sh urbana  pll50 build/urbana_pll50  heap:1 heap:2 heap:3 hea
 
 `BRIDGE_ONLY=1` (Cmod A7 bridge builds) leaves the DIP pin-host pins unused.
 Several `PLACER:SEED` runs go in parallel, and the fastest becomes the
-bitstream.
+bitstream. Implementation options (synthesis and placer settings) are
+environment variables listed at the top of `scripts/build.sh`;
+`scripts/release.tsv` records those of each published bitstream, and
+`scripts/sweep/` runs seed and option sweeps on Slurm (docs/fpga.md,
+"Seed and option sweeps").
 
 ## Checks
 
 ```sh
 fpga/formal/run.sh /tmp/fpga-formal                 # SRAM equivalence (SymbiYosys)
+SYNTH_OPTS=-nowidelut ABC9_SCRIPT=flow3mfs ABC9_W=1000 \
+  fpga/formal/run.sh /tmp/fpga-formal-f3m netlist_prove  # the SRAM mapped with a build's synthesis options
 make -C fpga/sim                                    # test_smoke + test_flagship on the FPGA top
 make -C fpga/sim FPGA_TB=bridge                     # UART bridge + pe_host.py bring-up tests
 make -C fpga/sim COCOTB_TEST_MODULES=test_fpga_pico # Pico driver, host-clocked
 python3 fpga/host/test_pico_host.py                 # Pico driver vs reference model
+make -C fpga/sim FPGA_CLOCK=pll50 FPGA_NETLIST=$PWD/build/pe_cmod_a7_pll50/synth_netlist.v  # after synthesis
 ```

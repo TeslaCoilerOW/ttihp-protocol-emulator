@@ -1,6 +1,7 @@
 # Map the FPGA SRAM stand-in with the same synth_xilinx options as the board
 # build (fpga/scripts/build.sh), then write the netlist for the formal
 # equivalence check against the IHP behavioral model (sram_equiv.sby).
+# run.sh adds the build's SYNTH_OPTS, ABC9_W and ABC9_SCRIPT (environment).
 read_verilog ../rtl/pe_fpga_sram_64x16.v
 # -noiopad -noclkbuf: the module is not a chip top here, so no pad or clock
 # buffers are inserted (they are identities in the cell models anyway).

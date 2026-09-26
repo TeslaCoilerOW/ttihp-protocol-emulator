@@ -1,0 +1,1 @@
+&scorr; &sweep;&if {W} {D}; &save; &st; &syn2; &if {W} {D} {R} -v; &save; &load;&st; &if -g -K 6; &dch -f; &if {W} {D} {R} -v; &save; &load;&st; &if -g -K 6; &synch2; &if {W} {D} {R} -v; &save; &load;&mfs

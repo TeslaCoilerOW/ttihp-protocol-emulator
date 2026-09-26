@@ -16,16 +16,42 @@
 #          pins unused (PE_NO_PIN_HOST); output <name>_bridgeonly.
 #   PLACER:SEED  nextpnr runs to try (default "heap:1"), e.g. heap:1 heap:2 sa:1.
 #          Synthesis runs once; the place-and-route runs go in parallel
-#          (JOBS, default: number of CPUs) and the run with the highest fmax
-#          for the core clock becomes the bitstream.
+#          (JOBS, default: number of CPUs; each run is single-threaded,
+#          OMP_NUM_THREADS=1) and the run with the highest fmax for the core
+#          clock becomes the bitstream.
+#
+# Implementation options (environment; unset = the flow of the 2026-09-25
+# builds). fpga/scripts/release.tsv records the options of each published
+# bitstream, and fpga/scripts/release.sh rebuilds one from it.
+#   TIMING_WEIGHT=N     nextpnr HeAP placer setting placerHeap/timingWeight
+#                       (nextpnr default 10): weight of timing-critical
+#                       connections in the analytic placement.
+#   PNR_SETTINGS=JSON   further nextpnr settings as a JSON object, e.g.
+#                       '{"router2/estimateWeight": "1.25"}'.
+#   ROUTER=router1      nextpnr router (default router2).
+#   SYNTH_OPTS=OPTS     extra synth_xilinx options, e.g. -nowidelut (no
+#                       MUXF7/MUXF8: LUTs of at most 6 inputs).
+#   ABC9_W=PS           ABC9 wire delay for LUT mapping (Yosys default 300 ps
+#                       for xc7); larger values favour fewer LUT levels.
+#   ABC9_SCRIPT=NAME    ABC9 script fpga/scripts/abc9/NAME.abc (Yosys'
+#                       abc9.script.NAME with {W} = -W ABC9_W) instead of the
+#                       default script.
+#   REGION=X0,Y0,X1,Y1  place every slice cell in SLICE_X<X0..X1>Y<Y0..Y1>
+#                       (fpga/scripts/region.py, --pre-place).
+#   PNR_PERIOD=NS       core-clock period given to the placer and router
+#                       (over-constraint); fmax is still the achieved value.
+#   NEXTPNR_PLACER_BETA, NEXTPNR_PLACER_ALPHA, NEXTPNR_SPREAD_SCALE_X/_Y:
+#                       openXC7 nextpnr-xilinx HeAP knobs, passed through.
+#   SYNTH_ONLY=1        stop after synthesis (for fpga/scripts/sweep/).
+# Place and route of each run is fpga/scripts/pnr_run.sh.
 #
 # Tools: yosys on PATH (OSS CAD Suite; 0.67 for the recorded builds) and
 # OPENXC7 = unpacked FPGAwars tools-openxc7 package (nextpnr-xilinx,
 # fasm2frames, xc7frames2bit, prjxray-db) with the part's chipdb in
 # $OPENXC7/chipdb/ (docs/fpga.md, "Toolchain").
 #
-# Outputs in OUT_DIR: src/ (exact inputs), inputs.sha256, synth_stat.txt,
-# synth_netlist.v (for fpga/sim FPGA_NETLIST=...),
+# Outputs in OUT_DIR: src/ (exact inputs), inputs.sha256, recipe.json,
+# synth_stat.txt, synth_netlist.v (for fpga/sim FPGA_NETLIST=...),
 # board.xdc, pnr/<placer>_<seed>/ (report.json, nextpnr.log), the best run's
 # <name>.fasm and <name>.bit (+ .sha256), readback.json (readback.sh),
 # summary.json, logs/.
@@ -38,6 +64,10 @@ shift 3
 runs=("$@")
 [ ${#runs[@]} -gt 0 ] || runs=(heap:1)
 jobs="${JOBS:-$(nproc)}"
+# nextpnr's analytic placer solves with Eigen; with several runs in parallel,
+# extra solver threads only oversubscribe the CPUs (one run then took minutes
+# instead of seconds). Results do not depend on the thread count.
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 fpga="$(cd "$here/.." && pwd)"
@@ -70,6 +100,7 @@ freq=50
 [ "$clock" = pll40 ] && freq=40
 
 mkdir -p "$out/logs" "$out/src" "$out/pnr"
+out="$(cd "$out" && pwd)"
 sources=(
   "$repo/src/project.v"
   "$repo/src/protocol_emulator_core.v"
@@ -82,15 +113,29 @@ sources=(
   "$fpga/rtl/pe_top_${board}.v"
 )
 for f in "${sources[@]}"; do cp "$f" "$out/src/"; done
+if [ -n "${ABC9_SCRIPT:-}" ]; then
+  cp "$here/abc9/${ABC9_SCRIPT}.abc" "$out/src/"
+  sed "s/{W}/-W ${ABC9_W:-300}/g; s/{D}//g; s/{R}//g" "$here/abc9/${ABC9_SCRIPT}.abc" > "$out/abc9.script"
+fi
 cat "$fpga/constraints/$xdc" "$fpga/constraints/clock_${board}_${clock}.xdc" > "$out/board.xdc"
-(cd "$out/src" && sha256sum ./*.v > ../inputs.sha256)
+(cd "$out/src" && sha256sum ./* > ../inputs.sha256)
 sha256sum "$out/board.xdc" "$chipdb" >> "$out/inputs.sha256"
+
+# The implementation options of this build, as recorded in summary.json.
+python3 - "$out/recipe.json" <<'PY'
+import json, os, sys
+keys = ["BRIDGE_ONLY", "SYNTH_OPTS", "ABC9_W", "ABC9_SCRIPT", "TIMING_WEIGHT", "PNR_SETTINGS", "ROUTER", "REGION", "PNR_PERIOD",
+        "NEXTPNR_PLACER_BETA", "NEXTPNR_PLACER_ALPHA", "NEXTPNR_SPREAD_SCALE_X", "NEXTPNR_SPREAD_SCALE_Y"]
+json.dump({k: os.environ[k] for k in keys if os.environ.get(k)}, open(sys.argv[1], "w"), indent=1, sort_keys=True)
+PY
 
 cd "$out"
 t0=$(date +%s)
 {
   echo "read_verilog $defines $(for f in "${sources[@]}"; do printf 'src/%s ' "$(basename "$f")"; done)"
-  echo "synth_xilinx -flatten -abc9 -arch xc7 -top $top"
+  if [ -n "${ABC9_W:-}" ]; then echo "scratchpad -set synth_xilinx.abc9.W $ABC9_W"; fi
+  if [ -n "${ABC9_SCRIPT:-}" ]; then echo "scratchpad -set abc9.script $out/abc9.script"; fi
+  echo "synth_xilinx -flatten -abc9 ${SYNTH_OPTS:-} -arch xc7 -top $top"
   echo "tee -o synth_stat.txt stat"
   echo "write_json synth.json"
   echo "write_verilog -noattr synth_netlist.v"
@@ -98,20 +143,20 @@ t0=$(date +%s)
 yosys -q -l logs/yosys.log synth.ys
 t1=$(date +%s)
 
-pnr_one() {  # PLACER:SEED
-  local placer="${1%%:*}" seed="${1##*:}" dir="pnr/${1%%:*}_${1##*:}"
-  mkdir -p "$dir"
-  if "$OPENXC7/bin/nextpnr-xilinx" --chipdb "$chipdb" --xdc board.xdc --json synth.json \
-      --fasm "$dir/$name.fasm" --report "$dir/report.json" --placer "$placer" --seed "$seed" \
-      --freq "$freq" --timing-allow-fail -l "$dir/nextpnr.log" > /dev/null 2>&1; then
-    echo "$1 $(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['fmax']['clk']['achieved'])" "$dir/report.json")"
-  else
-    echo "$1 FAILED"
-  fi
-}
-export -f pnr_one
-export OPENXC7 chipdb name freq
-printf '%s\n' "${runs[@]}" | xargs -P "$jobs" -I{} bash -c 'pnr_one {}' | sort > pnr/results.txt
+cat > build.env <<ENV
+chipdb=$chipdb
+name=$name
+freq=$freq
+ENV
+if [ "${SYNTH_ONLY:-0}" = 1 ]; then
+  echo "synthesis done (SYNTH_ONLY=1): $out"
+  exit 0
+fi
+
+# Place and route: one pnr_run.sh call per PLACER:SEED, JOBS at a time.
+printf '%s\n' "${runs[@]}" |
+  xargs -P "$jobs" -I{} sh -c 'bash "$1" "$2" "$3" "$2/pnr/$(echo "$3" | tr : _)" fasm' _ "$here/pnr_run.sh" "$out" {} |
+  sort > pnr/results.txt
 t2=$(date +%s)
 cat pnr/results.txt
 best=$(awk '$2 != "FAILED" {print $2, $1}' pnr/results.txt | sort -g -r | head -n 1 | cut -d' ' -f2)
@@ -121,6 +166,7 @@ echo "best run: $best"
 cp "$bestdir/$name.fasm" "$bestdir/report.json" .
 cp "$bestdir/nextpnr.log" logs/nextpnr.log
 for d in pnr/*/; do [ "$d" = "$bestdir/" ] || rm -f "$d"/*.fasm; done
+rm -f pnr-*.json
 
 # fasm2frames prints a file-locking warning on stdout on some network file
 # systems; keep only frame lines.

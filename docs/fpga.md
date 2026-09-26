@@ -12,18 +12,19 @@ FPGA-only additions:
 - a replacement for the IHP SRAM macro, proved cycle-equivalent to the IHP model;
 - a USB-UART bridge, so a PC can act as the host with no extra hardware.
 
-**Status (2026-09-25).** Bitstreams exist for both boards (open-source openXC7
+**Status (2026-09-26).** Bitstreams exist for both boards (open-source openXC7
 flow). They have been checked in simulation and formal verification only. No
 board has been programmed yet, so nothing on this page is a hardware
 observation. The "Verification" section lists what was run and where.
 
 Start with these bitstreams:
 
-- **Cmod A7**: `pe_cmod_a7_pll50_bridgeonly.bit` (PC over USB, 50 MHz) or
-  `pe_cmod_a7_host.bit` (Pico clocks the design).
+- **Cmod A7**: `pe_cmod_a7_pll50_bridgeonly.bit` or `pe_cmod_a7_pll50.bit`
+  (PC over USB, 50 MHz), or `pe_cmod_a7_host.bit` (Pico clocks the design).
 - **Urbana**: `pe_urbana_pll50.bit` or `pe_urbana_host.bit`.
 
-All four meet 50 MHz in nextpnr's timing model. See "Build results".
+All seven bitstreams meet their clock target in nextpnr's timing model; the
+50 MHz builds reach 76–87 MHz there. See "Build results".
 
 ## Contents of the FPGA image
 
@@ -131,82 +132,160 @@ PC clock.
 
 ### Build results
 
-All bitstreams were built on MIT Engaging through Slurm on 2026-09-25, from
-this tree with the openXC7 2026-09-24 toolchain. The table comes from each
-build's `summary.json`.
+The bitstreams below were built on MIT Engaging through Slurm on 2026-09-26
+with the openXC7 2026-09-24 toolchain, from the design sources of commit
+be7dbda (`src/` unchanged since 27ae5e1) and this `fpga/` tree.
 
-- **fmax** is nextpnr-xilinx's post-route estimate for the core clock `clk`,
-  using prjxray's -1 timing data. It is not a Vivado sign-off.
-- **Runs** are independent HeAP-placer seeds; the fastest is kept.
+- **fmax** is nextpnr-xilinx's post-route estimate for the core clock `clk`
+  (its `--report`, for the finished design), using prjxray's -1 timing data.
+  It is not a Vivado sign-off.
+- **Options** are the `build.sh` options of each bitstream, recorded in
+  `fpga/scripts/release.tsv`:
+  - synthesis: ABC9 script `flow3mfs` with a 1000 ps wire delay
+    (`ABC9_SCRIPT=flow3mfs ABC9_W=1000`), with or without `-nowidelut`
+    (`SYNTH_OPTS`), whichever had the higher median fmax for that build in a
+    first sweep of 32 seeds at each of the timing weights 80, 160 and 320
+    (job 23993904);
+  - placement: `TIMING_WEIGHT`, nextpnr's `placerHeap/timingWeight`;
+  - routing: nextpnr's default `router2`, or `router1` (`ROUTER=router1`).
+  See "Implementation study" for how these were found.
+- **Placer seed** is the fastest run of the seed sweeps with the build's
+  synthesis option set (repository sweep harness, `fpga/scripts/sweep/`;
+  second table below). Each bitstream was rebuilt from scratch with
+  `fpga/scripts/release.sh` (job 23998703): every rebuild gave the same fmax
+  as its sweep run, and its `synth_netlist.v` is byte-identical to the
+  netlist simulated under "Verification".
+- **2026-09-25** is the fmax of the previous bitstream (default options, best
+  of 8 or 16 seeds; build jobs 23760779, 23760777, 23763553, 23760781,
+  23763555, 23760780 and 23763558 in table order, readback job 23767112).
 - **LUT cells** are nextpnr's placed LUT bels, which include LUT RAM and
   route-through LUTs. Percentages are against the part's datasheet capacity:
   20,800 LUTs and 41,600 FFs for the xc7a35t; 32,600 and 65,200 for the
-  xc7s50.
+  xc7s50. Resource use is within 3 % of the 2026-09-25 builds.
 - No block RAM and no DSP are used. The eight SRAM stand-ins take
-  128 RAM64X1S. The core's other small memories take 48 RAM32M and 6 RAM64M
-  (Yosys cell counts).
+  128 RAM64X1S; the core's other small memories take 48 RAM32M and 6 RAM64M
+  (Yosys cell counts; "LUT RAM" counts these cells). The `pll50` and `pll40`
+  builds use one MMCM.
 
-| Build | Job | fmax, best run | Target | Runs: fmax range (MHz) | LUT cells | FFs | CARRY4 | LUT RAM cells | IO pads | MMCM |
-|---|---|---|---|---|---|---|---|---|---|---|
-| `cmod_a7 pll50` + `BRIDGE_ONLY=1` | 23760777 | **55.82 MHz, met** | 50 MHz | 16: 44.41–55.82 | 9,687 (46.6%) | 2,469 (5.9%) | 316 | 182 | 38 | 1 |
-| `cmod_a7 pll50` | 23760779 | **46.39 MHz, not met** | 50 MHz | 16: 40.09–46.39 | 9,797 (47.1%) | 2,471 (5.9%) | 320 | 182 | 38 | 1 |
-| `cmod_a7 pll40` | 23763553 | 50.83 MHz, met | 40 MHz | 16: 44.16–50.83 | 9,720 (46.7%) | 2,471 (5.9%) | 319 | 182 | 38 | 1 |
-| `cmod_a7 osc12` | 23760781 | 46.20 MHz, met | 12 MHz | 8: 41.95–46.20 | 9,749 (46.9%) | 2,471 (5.9%) | 320 | 182 | 38 | 0 |
-| `cmod_a7 host` | 23763555 | 51.42 MHz, met | 50 MHz | 16: 43.86–51.42 | 8,715 (41.9%) | 2,030 (4.9%) | 260 | 176 | 38 | 0 |
-| `urbana pll50` | 23760780 | 54.35 MHz, met | 50 MHz | 16: 45.17–54.35 | 9,829 (30.2%) | 2,471 (3.8%) | 322 | 182 | 63 | 1 |
-| `urbana host` | 23763558 | 61.92 MHz, met | 50 MHz | 16: 51.46–61.92 | 8,756 (26.9%) | 2,030 (3.1%) | 259 | 176 | 63 | 0 |
+| Build | Options | Placer seed | **fmax** | Target | 2026-09-25 | LUT cells | FFs | CARRY4 | LUT RAM | IO pads | Jobs (sweeps; build) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `cmod_a7 pll50` | `flow3mfs` W 1000, `-nowidelut`; timing weight 80; router1 | 41 | **79.69 MHz** | 50 MHz | 46.39 MHz | 9,777 (47.0%) | 2,471 (5.9%) | 318 | 182 | 38 | 23993904, 23994656, 23997747; 23998703 |
+| `cmod_a7 pll50` + `BRIDGE_ONLY=1` | `flow3mfs` W 1000, `-nowidelut`; timing weight 80; router2 | 190 | **78.38 MHz** | 50 MHz | 55.82 MHz | 9,646 (46.4%) | 2,469 (5.9%) | 316 | 182 | 38 | 23993904, 23994656; 23998703 |
+| `cmod_a7 pll40` | `flow3mfs` W 1000, `-nowidelut`; timing weight 160; router2 | 214 | **73.91 MHz** | 40 MHz | 50.83 MHz | 9,596 (46.1%) | 2,471 (5.9%) | 316 | 182 | 38 | 23993904, 23994656; 23998703 |
+| `cmod_a7 osc12` | `flow3mfs` W 1000, `-nowidelut`; timing weight 80; router1 | 30 | **76.45 MHz** | 12 MHz | 46.20 MHz | 9,745 (46.9%) | 2,471 (5.9%) | 316 | 182 | 38 | 23993904, 23994656, 23997747; 23998703 |
+| `cmod_a7 host` | `flow3mfs` W 1000; timing weight 80; router1 | 124 | **80.43 MHz** | 50 MHz | 51.42 MHz | 8,970 (43.1%) | 2,030 (4.9%) | 261 | 176 | 38 | 23993904, 23994656, 23997747; 23998703 |
+| `urbana pll50` | `flow3mfs` W 1000; timing weight 160; router1 | 23 | **86.95 MHz** | 50 MHz | 54.35 MHz | 10,120 (31.0%) | 2,471 (3.8%) | 319 | 182 | 63 | 23993904, 23994656, 23997747; 23998703 |
+| `urbana host` | `flow3mfs` W 1000, `-nowidelut`; timing weight 160; router1 | 15 | **76.44 MHz** | 50 MHz | 61.92 MHz | 8,703 (26.7%) | 2,030 (3.1%) | 261 | 176 | 63 | 23993904, 23994656, 23997747; 23998703 |
+
+Seed distributions of the final synthesis option set of each build, per
+timing weight and router (sweeps 23993904, 23994656 and, for router1,
+23997747). "Completed" excludes router1 runs stopped at the 25-minute limit
+and nextpnr runs that ended in an error:
+
+| Build | Synthesis | `TIMING_WEIGHT` | Router | Runs | Completed | fmax min / median / max (MHz) | Completed runs ≥ target |
+|---|---|---|---|---|---|---|---|
+| `cmod_a7 pll50` | `flow3mfs` W 1000, `-nowidelut` | 80 | router1 | 48 | 14 | 65.98 / 71.00 / 79.69 | 14 |
+| `cmod_a7 pll50` | `flow3mfs` W 1000, `-nowidelut` | 80 | router2 | 432 | 432 | 54.32 / 70.60 / 79.66 | 432 |
+| `cmod_a7 pll50` | `flow3mfs` W 1000, `-nowidelut` | 160 | router2 | 432 | 432 | 58.38 / 70.45 / 79.53 | 432 |
+| `cmod_a7 pll50` | `flow3mfs` W 1000, `-nowidelut` | 320 | router2 | 32 | 32 | 56.89 / 67.03 / 78.03 | 32 |
+| `cmod_a7 pll50` + `BRIDGE_ONLY=1` | `flow3mfs` W 1000, `-nowidelut` | 80 | router1 | 48 | 28 | 59.69 / 71.46 / 77.29 | 28 |
+| `cmod_a7 pll50` + `BRIDGE_ONLY=1` | `flow3mfs` W 1000, `-nowidelut` | 80 | router2 | 432 | 432 | 54.83 / 68.94 / 78.38 | 432 |
+| `cmod_a7 pll50` + `BRIDGE_ONLY=1` | `flow3mfs` W 1000, `-nowidelut` | 160 | router2 | 432 | 432 | 56.63 / 70.14 / 78.20 | 432 |
+| `cmod_a7 pll50` + `BRIDGE_ONLY=1` | `flow3mfs` W 1000, `-nowidelut` | 320 | router2 | 32 | 32 | 59.21 / 68.52 / 76.62 | 32 |
+| `cmod_a7 pll40` | `flow3mfs` W 1000, `-nowidelut` | 80 | router1 | 76 | 47 | 55.61 / 66.53 / 72.61 | 47 |
+| `cmod_a7 pll40` | `flow3mfs` W 1000, `-nowidelut` | 80 | router2 | 432 | 432 | 54.08 / 65.25 / 71.92 | 432 |
+| `cmod_a7 pll40` | `flow3mfs` W 1000, `-nowidelut` | 160 | router2 | 432 | 432 | 50.70 / 63.36 / 73.91 | 432 |
+| `cmod_a7 pll40` | `flow3mfs` W 1000, `-nowidelut` | 320 | router2 | 32 | 32 | 52.33 / 62.00 / 67.63 | 32 |
+| `cmod_a7 osc12` | `flow3mfs` W 1000, `-nowidelut` | 80 | router1 | 135 | 115 | 64.10 / 70.14 / 76.45 | 115 |
+| `cmod_a7 osc12` | `flow3mfs` W 1000, `-nowidelut` | 80 | router2 | 432 | 432 | 57.61 / 66.17 / 72.94 | 432 |
+| `cmod_a7 osc12` | `flow3mfs` W 1000, `-nowidelut` | 160 | router2 | 432 | 432 | 52.22 / 66.62 / 75.99 | 432 |
+| `cmod_a7 osc12` | `flow3mfs` W 1000, `-nowidelut` | 320 | router2 | 32 | 32 | 53.73 / 62.45 / 71.49 | 32 |
+| `cmod_a7 host` | `flow3mfs` W 1000 | 80 | router1 | 226 | 167 | 54.70 / 69.88 / 80.43 | 167 |
+| `cmod_a7 host` | `flow3mfs` W 1000 | 80 | router2 | 432 | 432 | 53.03 / 66.58 / 76.98 | 432 |
+| `cmod_a7 host` | `flow3mfs` W 1000 | 160 | router2 | 432 | 432 | 53.26 / 66.19 / 79.83 | 432 |
+| `cmod_a7 host` | `flow3mfs` W 1000 | 320 | router2 | 32 | 32 | 54.97 / 64.18 / 75.32 | 32 |
+| `urbana pll50` | `flow3mfs` W 1000 | 160 | router1 | 48 | 13 | 67.22 / 80.78 / 86.95 | 13 |
+| `urbana pll50` | `flow3mfs` W 1000 | 80 | router2 | 432 | 430 | 65.16 / 74.53 / 82.19 | 430 |
+| `urbana pll50` | `flow3mfs` W 1000 | 160 | router2 | 432 | 427 | 58.61 / 76.41 / 84.65 | 427 |
+| `urbana pll50` | `flow3mfs` W 1000 | 320 | router2 | 32 | 30 | 56.74 / 70.28 / 80.97 | 30 |
+| `urbana host` | `flow3mfs` W 1000, `-nowidelut` | 160 | router1 | 48 | 30 | 60.35 / 71.03 / 76.44 | 30 |
+| `urbana host` | `flow3mfs` W 1000, `-nowidelut` | 80 | router2 | 32 | 32 | 55.60 / 63.38 / 71.67 | 32 |
+| `urbana host` | `flow3mfs` W 1000, `-nowidelut` | 160 | router2 | 432 | 432 | 54.32 / 67.93 / 76.12 | 432 |
+| `urbana host` | `flow3mfs` W 1000, `-nowidelut` | 320 | router2 | 432 | 432 | 54.28 / 67.47 / 75.44 | 432 |
 
 **Timing findings.**
 
-- In the Cmod A7 `pll50` runs inspected, the critical path is inside the core.
-  It runs from the host-selected-engine register through 12–13 LUT levels to a
-  clock enable: about 1.7 ns of logic and 19–21 ns of routing.
-- On the Cmod A7, a `pll50` build that keeps the DIP pin-host port misses
-  50 MHz for every seed; the best run is 46.39 MHz. Leaving the DIP host pins
-  unused (`BRIDGE_ONLY=1`) raises the best run to 55.82 MHz. The likely reason
-  is that those pins are spread over three I/O banks (16, 34 and 35) and pull
-  the placement apart; this was not analysed further.
-- The recommended Cmod A7 bitstreams are:
-  - `pe_cmod_a7_pll50_bridgeonly.bit` for the PC over USB at 50 MHz;
-  - `pe_cmod_a7_host.bit` for a Pico or other host-clocked pin host;
-  - `pe_cmod_a7_pll40.bit` for a pin host synchronous to a forwarded 40 MHz
-    clock.
-- `pe_cmod_a7_pll50.bit` is kept for completeness. nextpnr's model says it
-  does not meet 50 MHz.
-- The Urbana builds meet 50 MHz with their pin host included.
-- The simulated-annealing placer (`sa`) was also tried on the Cmod `pll50`
-  build (job 23757415) and was much worse: 31–34 MHz.
+- Every build meets its clock target in nextpnr's model, and so does every
+  completed run of the final option sets (second table). The chosen runs are
+  53–74 % above 50 MHz for the 50 MHz builds (76.44–86.95 MHz).
+- The Cmod A7 `pll50` build with the DIP pin host went from 46.39 MHz (best of
+  16 seeds; 0 of 398 seeds reached 50 MHz with the 2026-09-25 options, job
+  23992344) to a median of 70.60 MHz over 432 seeds at timing weight 80,
+  lowest run 54.32 MHz. The pin host no longer costs fmax: the bridge-only
+  build has a median of 68.94 MHz with the same options.
+- The gain comes from the implementation options measured in
+  "Implementation study": the placer's timing weight (median over seeds
+  43.95 → 51.66 MHz), the LUT mapping (→ 69.05 MHz) and the router (about
+  +3 MHz on the same placement). The published runs are the fastest seeds of
+  these distributions.
+- In the final router2 builds the critical path starts at a core register
+  (net `shell.tt.core._1623`) and has 1.7–1.8 ns of logic and 10.9–11.8 ns of
+  routing, against 1.7 ns and 19.9 ns in the 2026-09-25 Cmod A7 `pll50` build.
+- **router1.** On the same placement (same options and seed), router1 gave a
+  higher fmax than the default router2 in 383 of 414 paired runs (median
+  +3.04 MHz). It is less predictable: of 629 router1 runs, 414 completed,
+  each within 4.2 minutes, 3 ended in a nextpnr placement error, and 212 had
+  not finished after the 25-minute limit (`SWEEP_RUN_TIMEOUT`). Five of the
+  seven published bitstreams come from router1 runs; their place and route
+  takes 2.5–3.2 minutes.
+- **Reported fmax.** All fmax values here are nextpnr's `--report` for the
+  finished design. With router1, this nextpnr version also prints router1's
+  own timing analysis, made before constant-net routing and the post-route
+  fixups; it is higher than the report (95.18 against 79.69 MHz for the
+  published Cmod A7 `pll50` run) and is not used. With router2, the last
+  printed analysis and the report agree.
 
-**Bitstreams.** They are stored with their summaries and readback reports in
-`$PE_WORK/fpga/bitstreams/` (not in git).
+**Recommended bitstreams.**
 
-Rebuilding a configuration reproduces the same placement and fmax. The only
-difference is the build time in the `.bit` header. Two rebuilds of
-`urbana host` (jobs 23767384 and 23768209) differed from the recorded file in
-3 and 4 header bytes, and job 23768209 read back the same 403,931
-configuration bits. Compare configuration data, not file hashes, when
-checking a rebuild. Job 23768209 also ran the final `build.sh` end to end,
-including its readback step.
+- PC over USB at 50 MHz: `pe_cmod_a7_pll50_bridgeonly.bit` or
+  `pe_cmod_a7_pll50.bit` (Cmod A7), `pe_urbana_pll50.bit` (Urbana).
+- Pico or another host-clocked pin host: `pe_cmod_a7_host.bit`,
+  `pe_urbana_host.bit`.
+- A pin host synchronous to the forwarded 50 MHz clock: `pe_cmod_a7_pll50.bit`
+  (its core now meets 50 MHz in nextpnr's model with the DIP pin host
+  included; the pin paths themselves are not timed, see "Limitations"), or
+  `pe_cmod_a7_pll40.bit` at 40 MHz.
+- `pe_cmod_a7_osc12.bit` if the MMCM does not come up on hardware.
 
-| File | Bytes | SHA-256 |
-|---|---|---|
-| `pe_cmod_a7_pll50_bridgeonly.bit` | 2,192,137 | `b698acd0ae0d5cab7d4e16e4dea39945c7c36098e7b266cd46fe83f067dd1c26` |
-| `pe_cmod_a7_pll50.bit` | 2,192,126 | `96e54c9792686bad3bb971f4a24393b82e6cef0ba7a025bc85b51f84b652a380` |
-| `pe_cmod_a7_pll40.bit` | 2,192,126 | `b4c2371fe358ac3fa6038a6b03a7b486c13f8cd143168c6f7e213c7aa5a1205c` |
-| `pe_cmod_a7_osc12.bit` | 2,192,126 | `a42b446a5b4fa455771fd811da85e7a86c332e9a702c6cddae6010bedebc545e` |
-| `pe_cmod_a7_host.bit` | 2,192,125 | `cd079c749b3680f6d0612ca892545a309f55af0713b913f86e8030ef9c604071` |
-| `pe_urbana_pll50.bit` | 2,192,125 | `31c0300578721442565eebc2298cc32a3c3ef4e8a3b3217e238eaad78b7af16e` |
-| `pe_urbana_host.bit` | 2,192,124 | `6489dd088f82318fb175cc07cb468c18f2d3757d5b57c56882f15adbaee851e1` |
+**Bitstreams.** They are stored with their summaries (`.summary.json`),
+options (`.recipe.json`) and readback reports in `$PE_WORK/fpga/bitstreams/`
+(not in git). The 2026-09-25 set is kept in
+`$PE_WORK/fpga/bitstreams/v1-2026-09-25/` with its own `SHA256SUMS`.
+
+A rebuild reproduces the same placement and fmax: each release build above
+reproduced the fmax of its sweep run. The `.bit` header also carries the build
+time, so compare configuration data (`readback.json`), not file hashes; two
+rebuilds of the 2026-09-25 `urbana host` bitstream (jobs 23767384 and
+23768209) differed from the recorded file in 3 and 4 header bytes only.
+
+| File | Bytes | SHA-256 | Readback: configuration bits, frames |
+|---|---|---|---|
+| `pe_cmod_a7_pll50_bridgeonly.bit` | 2,192,137 | `593e7494417c99f38fb26c2cf4b93d528e466ebff471670e32021f024808a28c` | 438,587 bits, 2,351 frames: 0 missing, 0 extra |
+| `pe_cmod_a7_pll50.bit` | 2,192,126 | `d1fb0c12d6e228e2c92914c115967e133a9c786368f32029e451102f34fa76da` | 467,129 bits, 1,688 frames: 0 missing, 0 extra |
+| `pe_cmod_a7_pll40.bit` | 2,192,126 | `fb54de691047845f18c2ec3275e694c27a88b1737cff95bcefab986aacf2c4df` | 444,056 bits, 1,830 frames: 0 missing, 0 extra |
+| `pe_cmod_a7_osc12.bit` | 2,192,126 | `ee9d36ca3e203eb8700d49af1d6db2224ff6bb47435510eaf886682cafdefbef` | 460,743 bits, 1,666 frames: 0 missing, 0 extra |
+| `pe_cmod_a7_host.bit` | 2,192,125 | `09728304cadfbbfb1d8c9a18137cb638db84c2ccd4757c955cea410bed2d1437` | 422,606 bits, 2,128 frames: 0 missing, 0 extra |
+| `pe_urbana_pll50.bit` | 2,192,125 | `f1fd42dcfc202b171c2698b91b5bc70d6961797627263de0e5026a7afdc8c1eb` | 471,834 bits, 2,030 frames: 0 missing, 0 extra |
+| `pe_urbana_host.bit` | 2,192,124 | `f09aab8e77e92fa3c43210a0faa9e3bcff12e7d878be5927d7b2643adcd016a5` | 408,430 bits, 1,835 frames: 0 missing, 0 extra |
 
 **Readback.** `fpga/scripts/readback.sh` checks each bitstream at the bit
-level (job 23767112, all 7 PASS):
+level; `build.sh` runs it after bit generation (job 23998703, all 7 PASS):
 
 - It decodes the `.bit` with prjxray's `bitread`.
 - It compares the set bits with the frames `fasm2frames` produces from
   nextpnr's FASM.
-- Each bitstream carries exactly those configuration bits, 0 missing and 0
-  extra (for example 442,476 bits in 2,388 frames for the bridge-only Cmod
-  build).
+- Each bitstream must carry exactly those configuration bits, 0 missing and 0
+  extra.
 - `bitread` ignores the per-frame ECC word.
 
 This checks bitstream assembly, not the FASM semantics.
@@ -215,9 +294,128 @@ The MMCM counter settings in the final FASM match the intended divisors:
 
 | Build | DIVCLK | CLKFBOUT high/low | CLKOUT0 high/low |
 |---|---|---|---|
-| Urbana `pll50` | no-count (÷1) | 5/5 (×10) | 10/10 (÷20) |
-| Cmod A7 `pll50` | no-count (÷1) | 25/25 (×50) | 6/6 (÷12) |
+| Cmod A7 `pll50`, `pll50` + `BRIDGE_ONLY=1` | no-count (÷1) | 25/25 (×50) | 6/6 (÷12) |
 | Cmod A7 `pll40` | no-count (÷1) | 25/25 (×50) | 7/8 with EDGE (÷15) |
+| Urbana `pll50` | no-count (÷1) | 5/5 (×10) | 10/10 (÷20) |
+
+### Implementation study
+
+The 2026-09-25 flow (default synthesis and placer settings, best of 16
+seeds) left the Cmod A7 `pll50` build with the DIP pin host at 46.39 MHz. The
+study below used that build to find which implementation options move its
+fmax. It ran on MIT Engaging through Slurm on 2026-09-26: 5,121 nextpnr runs
+of 1–3 minutes each, one CPU per run, up to 250 at a time (jobs 23992344,
+23992656, 23993321 and 23993322); the final seed sweeps of all seven builds
+("Build results") added 7,573. Each row below is a set of placer seeds with
+one option changed. The design sources are those of commit be7dbda (`src/`
+unchanged since 27ae5e1).
+
+**Runtime.** In the 2026-09-25 build jobs (16 runs in parallel in one 16-CPU
+job), nextpnr's analytic placer spent 373 s in its equation solver (job
+23760779). With one CPU per run it spends 3–4 s, and a whole run takes 1–2
+minutes instead of about 7; the result is the same (seed 1: 44.88 MHz in both,
+jobs 23760779 and 23991965). `build.sh` now sets `OMP_NUM_THREADS=1`.
+
+**Placer timing weight.** nextpnr's HeAP placer weights each connection by
+`1 + timingWeight × criticality^7` (nextpnr default `timingWeight` 10). Raising
+it moves the whole seed distribution:
+
+| `TIMING_WEIGHT` | Seeds | Min | Median | Max | Runs ≥ 50 MHz | Job |
+|---|---|---|---|---|---|---|
+| 3 | 45 | 39.22 | 42.80 | 46.47 | 0 | 23992344 |
+| 10 (nextpnr default) | 398 | 38.34 | 43.95 | 49.50 | 0 | 23992344 |
+| 20 | 42 | 41.99 | 46.01 | 49.85 | 0 | 23992344 |
+| 40 | 28 | 43.31 | 49.08 | 53.99 | 10 | 23992344 |
+| 80 | 48 | 46.66 | 50.95 | 57.48 | 28 | 23992656 |
+| 160 | 48 | 46.10 | 51.66 | 57.92 | 36 | 23992656 |
+| 320 | 48 | 43.62 | 50.26 | 58.83 | 25 | 23992656 |
+| 640 | 48 | 41.11 | 47.75 | 56.07 | 11 | 23992656 |
+| 1280 | 48 | 40.44 | 47.04 | 54.83 | 8 | 23992656 |
+| 2560 | 48 | 42.43 | 46.72 | 53.90 | 11 | 23992656 |
+
+**LUT mapping.** The critical path starts at the core register
+`host_selected_engine` in 68 of 79 inspected default runs and passes 12–13
+LUTs, with about 1.7 ns of logic and 20 ns of routing. Yosys' ABC9 maps the
+combinational logic between registers; its wire-delay parameter `-W`
+(default 300 ps for xc7) and its script decide how many LUT levels a path gets.
+ABC reports 15 LUT levels for the default mapping and 8 for the `flow3mfs`
+script (Yosys' `abc9.script.flow3mfs`) with `-W 1000`, for 2 % more LUTs.
+ABC9 does not move registers, and ABC checks every mapped network against its
+input ("Networks are equivalent"). `-nowidelut` maps to LUTs of at most six
+inputs (no MUXF7/MUXF8). Results at timing weight 160, seeds 1–32 per row,
+best first (job 23993321). Except for the first synthesis batch (job
+23991872: the default script at W 300–2000, `flow2` and `flow3mfs` at W 300,
+`flow2` at W 1000, and `-nowidelut` alone), the exploration netlists were
+synthesized from a working copy whose Cmod A7 top also held the disabled
+I/O-register option described below; that changes source line numbers and
+net names, not logic. The final builds were synthesized again from this tree
+(see "Build results").
+
+| Synthesis options | ABC LUTs | ABC LUT levels | Min | Median | Max |
+|---|---|---|---|---|---|
+| `-nowidelut`, `flow3mfs`, W 1000 | 6,789 | 8 | 60.69 | 69.05 | 77.81 |
+| `flow3mfs`, W 1000 | 6,898 | 8 | 55.09 | 65.94 | 70.69 |
+| `-nowidelut`, `flow2`, W 1000 | 6,617 | 10 | 50.78 | 62.47 | 70.74 |
+| `-nowidelut`, `flow3mfs`, W 300 | 6,653 | 11 | 49.56 | 60.56 | 67.47 |
+| W 600 | 6,862 | 13 | 50.03 | 58.60 | 63.56 |
+| `-nowidelut`, W 1000 | 6,819 | 12 | 49.03 | 58.46 | 64.38 |
+| `flow2`, W 1000 | 6,771 | 10 | 50.63 | 58.27 | 65.54 |
+| `-nowidelut`, W 2000 | 6,751 | 12 | 49.79 | 58.04 | 64.96 |
+| `flow3mfs`, W 300 | 6,651 | 12 | 51.40 | 57.55 | 65.66 |
+| `flow2`, W 300 | 6,524 | 14 | 47.64 | 57.08 | 64.53 |
+| `-nowidelut` | 6,713 | 14 | 48.91 | 56.69 | 63.81 |
+| W 2000 | 6,949 | 10 | 48.61 | 55.86 | 63.89 |
+| `-nowidelut`, W 600 | 6,710 | 14 | 46.76 | 55.30 | 60.10 |
+| `-nowidelut`, `flow3`, W 300 | 6,319 | 14 | 47.31 | 55.25 | 62.33 |
+| W 1000 | 6,897 | 11 | 48.13 | 54.88 | 58.60 |
+| `-nowidelut`, `flow2`, W 300 | 6,476 | 14 | 46.81 | 52.66 | 58.76 |
+| default script, W 300 (the 2026-09-25 synthesis) | 6,786 | 15 | 46.21 | 51.86 | 57.92 |
+
+Around the chosen point (job 23993322 and, for timing weights 80/160/320,
+23993321; 32 seeds each, median fmax in MHz):
+
+| `flow3mfs` wire delay `W` | 500 | 700 | 800 | 1000 | 1200 | 1500 | 2000 |
+|---|---|---|---|---|---|---|---|
+| timing weight 120 | 64.36 | 67.12 | 65.02 | 66.17 | 66.58 | 67.46 | 63.78 |
+| timing weight 240 | 66.72 | 64.47 | 62.69 | 62.95 | 65.52 | 67.06 | 62.03 |
+| timing weight 120, `-nowidelut` | – | 63.73 | – | **71.34** | 62.81 | 65.97 | – |
+| timing weight 240, `-nowidelut` | – | 59.34 | – | 68.19 | 62.19 | 63.60 | – |
+
+Without `-nowidelut` the medians stay within 62–68 MHz over W 500–2000. With
+`-nowidelut`, W 1000 is clearly better than its neighbours (the mapping of
+this design at that point, not a smooth optimum), which is why the final
+builds chose between the two by a per-build sweep. For `-nowidelut`, `flow3mfs`
+W 1000, the median over timing weights 80 / 120 / 160 / 240 / 320 / 480 is
+69.92 / 71.34 / 69.05 / 68.19 / 67.56 / 66.45 MHz.
+
+**Other options** (default synthesis, timing weight 320, seeds 1–24, job
+23992656):
+
+| Option | Seeds | Min | Median | Max | Runs ≥ 50 MHz | Failed |
+|---|---|---|---|---|---|---|
+| none (reference) | 24 | 43.62 | 49.64 | 58.83 | 10 | 0 |
+| `--router router1` (10 seeds; the same seeds without it: 48.20 / 50.21 / 57.16) | 10 | 49.14 | 53.36 | 56.27 | 7 | 0 |
+| `NEXTPNR_PLACER_BETA=0.3` / `0.5` / `0.6` | 24 each | 40.62 / 40.96 / 35.13 | 48.87 / 48.72 / 40.98 | 55.46 / 55.18 / 51.22 | 10 / 10 / 1 | 0 / 0 / 8 |
+| `NEXTPNR_PLACER_ALPHA=0.04` / `0.15` | 24 each | 44.21 / 44.31 | 47.90 / 50.09 | 55.25 / 55.82 | 4 / 12 | 0 |
+| `NEXTPNR_SPREAD_SCALE_X,Y` = 1,1 / 2,2 / 3,1 | 24 each | 43.27 / 44.13 / 43.15 | 48.97 / 49.08 / 52.02 | 56.69 / 53.03 / 56.16 | 10 / 11 / 20 | 0 |
+| `router2/estimateWeight` 1.0 / 1.25 / 1.5 (default 1.75) | 24 each | 40.95 / 40.72 / 40.88 | 49.96 / 50.23 / 49.33 | 59.62 / 59.41 / 58.30 | 12 / 13 / 11 | 0 |
+| `REGION` 0,20,47,119 / 0,40,65,109 / 10,25,57,124 | 24 each | 45.77 / 39.98 / 35.20 | 50.49 / 49.73 / 40.61 | 56.54 / 56.48 / 55.22 | 15 / 12 / 1 | 0 |
+
+- A smaller core-clock period for the placer and router (16 or 18 ns instead
+  of 20 ns) gave the same result as 20 ns for every seed: nextpnr's timing
+  weights are relative to the critical path.
+- `-widemux 5` produced MUXF8 cells nextpnr could not place (24 of 24 runs
+  failed); `-retime` (ABC retiming) lowered the median to 38.7 MHz.
+- Floorplan rectangles (`REGION`) did not raise the median; one of three was
+  much worse.
+- The simulated-annealing placer (`sa`) instead of HeAP gave 31–34 MHz
+  (job 23757415, 2026-09-25).
+- I/O-tile registers on the pin-host port (IDDR/ODDR on `ui`, `rst_n`, `ena`
+  and `uo`, one cycle each way; an experiment outside this tree): median
+  53.46 MHz over 21 of the seeds 1–24, against 49.64 MHz without. This changes
+  the pin timing contract, and the LUT-mapping change gives more without it,
+  so it was not adopted: the published builds keep the pins combinational, as
+  on the chip.
 
 ## Pin maps
 
@@ -439,8 +637,8 @@ The `pll50` and `pll40` builds also accept a pin host. Select it with DIP 45
 to GND (Cmod A7) or sw[0] up (Urbana). In those builds `host_clk` is an output
 carrying the core clock, for a host fast enough to be synchronous to it.
 Examples are another FPGA or a logic-analyser pattern generator; a Pico cannot
-keep up. On the Cmod A7, use `pll40` for this: the `pll50` build with the DIP
-pin host misses 50 MHz in nextpnr's timing model (see "Build results").
+keep up. The pin-host paths themselves (pin to core register, core register to
+pin) are not timed by nextpnr; see "Limitations".
 
 ## Toolchain
 
@@ -483,44 +681,74 @@ export OPENXC7=$PWD/openxc7
 To build (Yosys on `PATH`):
 
 ```sh
-fpga/scripts/build.sh cmod_a7 pll50 build/cmod_a7_pll50 heap:1 heap:2 heap:3 heap:4 heap:5 heap:6 heap:7 heap:8
+fpga/scripts/release.sh --list                        # published builds, seeds and options
+fpga/scripts/release.sh pe_cmod_a7_pll50 build/pe_cmod_a7_pll50
+# or any options and seeds:
+SYNTH_OPTS=-nowidelut ABC9_SCRIPT=flow3mfs ABC9_W=1000 TIMING_WEIGHT=160 \
+  fpga/scripts/build.sh cmod_a7 pll50 build/cmod_a7_pll50 $(echo heap:{1..16})
 ```
 
 The flow has three steps:
 
-1. **Synthesis**: `synth_xilinx -flatten -abc9`.
-2. **Place and route**: each `PLACER:SEED` run is a nextpnr-xilinx call with
-   `--freq 50 --timing-allow-fail`, and the runs go in parallel. The run with
+1. **Synthesis**: `synth_xilinx -flatten -abc9`, plus `SYNTH_OPTS`, and the
+   ABC9 script and wire delay of `ABC9_SCRIPT` / `ABC9_W` if set.
+2. **Place and route**: each `PLACER:SEED` run is one
+   `fpga/scripts/pnr_run.sh` call, a nextpnr-xilinx run with
+   `--freq 50 --timing-allow-fail` and the placer settings of the options.
+   The runs go in parallel, one CPU each (`OMP_NUM_THREADS=1`). The run with
    the highest fmax for the core clock goes through `fasm2frames` and
    `xc7frames2bit`.
-3. **Outputs**: `summary.json` (utilisation, fmax of every run, bitstream
-   SHA-256), the synthesized netlist `synth_netlist.v`, the exact inputs
-   under `src/`, and `readback.json`. The last comes from
-   `fpga/scripts/readback.sh`, which build.sh runs after bit generation. The
-   recorded builds ran it as a separate job, 23767112.
+3. **Outputs**: `summary.json` (options, utilisation, fmax of every run and
+   their min / median / max, bitstream SHA-256), the synthesized netlist
+   `synth_netlist.v`, the exact inputs under `src/`, and `readback.json` from
+   `fpga/scripts/readback.sh`, which build.sh runs after bit generation.
+
+A run takes 1–3 minutes on one CPU and about 1 GB of memory, so a 16-seed
+build fits a 15-minute `mit_quicktest` job on 16 CPUs.
 
 `fasm2frames` prints a file-locking warning on stdout on some network
 filesystems. The script keeps only the frame lines, because a polluted frames
 file makes `xc7frames2bit` abort.
 
-On Engaging:
+### Seed and option sweeps
+
+`fpga/scripts/sweep/` runs many place-and-route runs of one synthesized
+build, one nextpnr run per CPU, as Slurm array workers:
+
+| Path | Role |
+|---|---|
+| `scripts/pnr_run.sh` | one nextpnr run on a synthesized build directory; `build.sh` uses the same script, so a sweep result and a `build.sh` run with the same seed and options are the same nextpnr invocation |
+| `scripts/sweep/plan.py` | appends one task line per seed: run id, build directory, `PLACER:SEED`, options |
+| `scripts/sweep/run_task.sh` | runs one task line and writes `runs/<table>/<run_id>/result.json` (fmax, critical-path logic/routing split, utilisation) |
+| `scripts/sweep/worker.sbatch` | Slurm array worker, one run per CPU: its own share of the lines first, then lines no other worker has claimed; lines with a result are skipped, so a requeued worker resumes |
+| `scripts/sweep/collect.py` | min / median / max fmax, runs at or above the target, and the best seed, per (build, options) group |
+
+With `OPENXC7` and Yosys set up as above:
 
 ```sh
-sbatch -p mit_quicktest --time=00:15:00 -J pe-x-fpga-build-final-cmod_a7-pll50 \
-  $PE_WORK/fpga/jobs/build_all.sbatch \
-  "BRIDGE_ONLY=1 cmod_a7 pll50 $(echo heap:{1..16})"
+# 1. synthesize once, with the synthesis options of the build
+SYNTH_ONLY=1 SYNTH_OPTS=-nowidelut ABC9_SCRIPT=flow3mfs ABC9_W=1000 \
+  fpga/scripts/build.sh cmod_a7 pll50 $PE_WORK/sw/c50p
+# 2. one task line per seed and option set
+python3 fpga/scripts/sweep/plan.py $PE_WORK/sw/t.tsv --build $PE_WORK/sw/c50p \
+  --tag tw160 --seeds 1-1000 --opt TIMING_WEIGHT=160
+# 3. 8 workers x 30 CPUs
+sbatch -p mit_preemptable --requeue --array=0-7 -c 30 --mem=64G -J pe-fpga-sweep \
+  fpga/scripts/sweep/worker.sbatch "$PWD/fpga/scripts/sweep" $PE_WORK/sw/t.tsv
+# 4. summary
+python3 fpga/scripts/sweep/collect.py $PE_WORK/sw/runs/t
 ```
 
-`build_all.sbatch` (16 CPUs) takes one or more `"[VAR=1] BOARD CLOCK RUNS..."`
-configurations. It runs them one after another, with the place-and-route runs
-of each in parallel. A 16-seed configuration takes 6–9 minutes, so use one
-configuration per `mit_quicktest` job.
-
-```sh
-# a quick end-to-end check: two seeds
-sbatch -p mit_quicktest --time=00:15:00 -c 2 --mem=8G -J pe-x-fpga-build-check \
-  $PE_WORK/fpga/jobs/build_all.sbatch "urbana host heap:8 heap:1"
-```
+Several workers can share one task table: each run is claimed with an atomic
+`mkdir` before it starts, and a worker whose own lines are done takes
+unclaimed lines of the others. With `SWEEP_STOP_AFTER=660` a worker fits a
+15-minute `mit_quicktest` job, and `SWEEP_RUN_TIMEOUT=1500` stops runs
+that take longer than 25 minutes (router1 runs either finished within about
+4 minutes or ran on past 25). Each worker runs a private copy of
+`fpga/scripts`: on the cluster's parallel file system, replacing a script
+while jobs were executing it ended those runs with "Stale file handle"
+errors (the nextpnr results were intact and were recovered from the run
+directories).
 
 ## Programming
 
@@ -649,7 +877,80 @@ divided by 64.
 
 ## Verification
 
-Everything below ran on MIT Engaging through Slurm on 2026-09-25.
+### Checks of the 2026-09-26 bitstreams
+
+These ran on MIT Engaging through Slurm on 2026-09-26, with `test/` and
+`firmware/` from a `git archive` of commit be7dbda and this tree's `src/` and
+`fpga/`. The RTL of `fpga/rtl/` is unchanged since the 2026-09-25 checks; the
+synthesis options are new, so the SRAM mapping proof and the post-synthesis
+simulations were run again on the new netlists. Job ids and results are in
+`$PE_WORK/fpga-opt/manifest.json`. Tools: cocotb 2.0.1, Icarus Verilog 14,
+Yosys 0.67, SymbiYosys.
+
+**SRAM stand-in, mapped with the new synthesis options.** `fpga/formal/run.sh`
+maps the SRAM with the build's `SYNTH_OPTS`, `ABC9_W` and `ABC9_SCRIPT`. Both
+option sets of the published builds give the same mapping as before
+(16 RAM64X1S, 16 FDRE, 16 LUT6, 1 LUT2):
+
+| Options | `netlist_prove` (ABC PDR, unbounded) | `netlist_bmc` (ABC bmc3, depth 12) | Job |
+|---|---|---|---|
+| `ABC9_SCRIPT=flow3mfs ABC9_W=1000` | PASS | PASS | 23993635 |
+| the same + `SYNTH_OPTS=-nowidelut` | PASS | PASS | 23993636 |
+
+The RTL-level proofs do not depend on synthesis options. With the updated
+`run.sh` in its default mode, `rtl_prove`, `netlist_prove`, the four mutants
+(all killed) and `rtl_cover` pass again (job 23999245); `rtl_bmc` and the
+other 2026-09-25 results below still apply.
+
+**Full FPGA top, RTL, current `test/` suite** (job 23993138). The `test/`
+suite of be7dbda has 102 tests in 20 modules. On each of the four
+configurations (Cmod A7 and Urbana; `host` build and `pll50` build in
+pin-host mode) 91 pass and the same 11 fail. None of the 11 can run on a
+board-level top:
+
+- 10 reach into the Tiny Tapeout testbench's design instance
+  (`tb.user_project`): the 7 tests of `test_timewarp`, which move internal
+  counters forward, and `test_kill_exact_timeout_limits`,
+  `test_kill_exact_timeout_waitevent_limits` (`test_kill_blocked`) and
+  `test_kill_time_high` (`test_kill_regs`);
+- `test_kill_pin_matrix` drives `uio_in` against pins the design itself
+  drives; on a real pad the driven value wins, so the core reads a different
+  value than the reference model assumes.
+
+The runs below exclude exactly these 11 tests (`COCOTB_TEST_FILTER`; job
+23994714 checks that the filter removes `test_kill_pin_matrix` and nothing
+else from `test_kill_pins`).
+
+**Post-synthesis simulation of the final netlists.** Each `synth_netlist.v`
+below is the netlist of the published bitstream (see "Build results"),
+simulated with Yosys' `cells_sim.v` plus `fpga/sim/netlist_prims.v` (MMCM and
+ODDR models for the `pll50`, `pll40` and `osc12` builds, which could not be
+simulated after synthesis before):
+
+| Netlist | Suite | Result | Job |
+|---|---|---|---|
+| Cmod A7 `pll50` (pin-host mode) | the 91 tests | 91/91 PASS | 23994813 |
+| Cmod A7 `pll40` (pin-host mode) | the 91 tests | 91/91 PASS | 23994813 |
+| Cmod A7 `osc12` (pin-host mode) | the 91 tests | 91/91 PASS | 23994813 |
+| Cmod A7 `host` | the 91 tests | 91/91 PASS | 23994813 |
+| Urbana `pll50` (pin-host mode) | the 91 tests | 91/91 PASS | 23994813 |
+| Urbana `host` | the 91 tests | 91/91 PASS | 23994813 |
+| Cmod A7 `pll50` + `BRIDGE_ONLY=1` | UART bridge tests (`test_fpga_bridge.py`) | 5/5 PASS | 23994813 |
+| Cmod A7 `pll50`, Urbana `pll50` | UART bridge tests | 5/5 PASS each | 23994846 |
+| Cmod A7 `host`, Urbana `host` | Pico driver (`test_fpga_pico.py`) | 1/1 PASS each | 23994846 |
+
+**RTL, bridge and Pico checks on this tree** (job 23994846): UART bridge
+tests 5/5 on Cmod A7 `pll50`, Urbana `pll50` and Cmod A7 `BRIDGE_ONLY=1`;
+Pico driver 1/1 on both `host` tops; Pico driver against the reference model
+PASS; the pad-fault checker self-test fails as required.
+
+Each `synth_netlist.v` simulated above is byte-identical to the one written
+by the release rebuild of the published bitstream (job 23998703); the
+netlists do not depend on the placer seed or the router.
+
+### Checks of the 2026-09-25 bitstreams
+
+Everything in this subsection ran on MIT Engaging through Slurm on 2026-09-25.
 
 - Job ids and results are in
   `$PE_WORK/fpga/manifest.json`, and logs are
@@ -749,11 +1050,15 @@ Summary of what is and is not covered:
   be confirmed on the boards.
 - **Timing figures come from nextpnr-xilinx's model** (prjxray timing data),
   not Vivado's.
-  - The Cmod A7 `pll50` build with the DIP pin host misses 50 MHz in that
-    model: best run 46.39 MHz.
+  - The published fmax is the fastest of many placer seeds; the seed
+    distributions under "Build results" show what the same options give
+    typically.
   - No I/O timing is constrained. For a pin host, the margin that matters is
     the host's own setup/hold around `host_clk`, which is large at
-    Pico-driven rates.
+    Pico-driven rates. A synchronous pin host at 50 MHz depends on the
+    unconstrained pin-to-register and register-to-pin paths; registering the
+    pins in the I/O tiles would bound them but adds a cycle each way (see
+    "Implementation study").
 - **Urbana pin-host limits.** The Urbana pin host uses two servo-header pins
   and exposes only `uo_out[5:0]` on pins. For a fast synchronous external
   host, use the Cmod A7 `pll40` build (all sixteen host signals on the DIP
@@ -768,4 +1073,5 @@ Summary of what is and is not covered:
   (`cells_sim.v`), not Xilinx's unisims.
 - **The MMCM is not simulated.** Its settings stay within the datasheet
   limits noted in `pe_fpga_clkgen.v`, and the counter values in the final
-  FASM match them (see "Build results").
+  FASM match them (see "Build results"). Post-synthesis simulation replaces
+  it with a pass-through model (`fpga/sim/netlist_prims.v`).

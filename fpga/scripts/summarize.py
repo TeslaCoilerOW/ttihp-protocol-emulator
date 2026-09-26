@@ -14,6 +14,7 @@ import argparse
 import hashlib
 import json
 import re
+import statistics
 from pathlib import Path
 
 # Datasheet capacities (DS180 Artix-7 / DS180 Spartan-7 family tables). The
@@ -82,6 +83,13 @@ def main() -> None:
             if line.strip():
                 run, value = line.split()
                 runs.append({"run": run, "fmax_mhz": None if value == "FAILED" else float(value)})
+    ok = sorted(r["fmax_mhz"] for r in runs if r["fmax_mhz"] is not None)
+    target = {"osc12": 12.0, "pll40": 40.0}.get(a.clock, 50.0)
+    run_stats = {"runs": len(runs), "failed": len(runs) - len(ok)}
+    if ok:
+        run_stats.update(min_mhz=ok[0], median_mhz=round(statistics.median(ok), 2), max_mhz=ok[-1],
+                         meeting_target=sum(1 for f in ok if f >= target))
+    recipe = json.loads((d / "recipe.json").read_text()) if (d / "recipe.json").exists() else {}
     report = json.loads((d / "report.json").read_text()) if (d / "report.json").exists() else {}
     util = report.get("utilization", {})
     fmax = report.get("fmax", {})
@@ -103,7 +111,9 @@ def main() -> None:
         "part": a.part,
         "best_run": a.best,
         "runs": runs,
-        "target_mhz": {"osc12": 12.0, "pll40": 40.0}.get(a.clock, 50.0),
+        "run_stats": run_stats,
+        "recipe": recipe,
+        "target_mhz": target,
         "utilisation_vs_part": {
             "lut_cells": used.get("SLICE_LUTX", 0),
             "lut_cells_pct": pct(used.get("SLICE_LUTX", 0), dev.get("luts")),

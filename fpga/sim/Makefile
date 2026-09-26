@@ -11,7 +11,8 @@
 #   make COCOTB_TEST_MODULES=test_smoke    # subset of the test/ suite
 #   make COCOTB_TEST_MODULES=test_fpga_pico  # Pico host driver, host-clocked (FPGA_CLOCK=host)
 #   make PE_TEST_DIR=/path/to/snapshot/test  # run a frozen copy of test/ (and its firmware/)
-#   make FPGA_NETLIST=build/synth_netlist.v  # post-synthesis netlist of a CLOCK=host build
+#   make FPGA_NETLIST=build/synth_netlist.v  # post-synthesis netlist; FPGA_CLOCK=host for a host build,
+#                                          # FPGA_CLOCK=pll50 for pll50/pll40/osc12 builds
 #
 # FPGA_TB=pins reuses test/*.py unchanged: tb_fpga_pins.v exposes the TT
 # port names, and test/harness.py checks the FPGA top against the Python
@@ -38,9 +39,11 @@ VERILOG_SOURCES += $(PE_SRC_DIR)/project.v $(PE_SRC_DIR)/protocol_emulator_core.
                    $(RTL)/pe_top_$(FPGA_BOARD).v
 COMPILE_ARGS += -DPE_FPGA_SIM
 else
-# Post-synthesis: the synth_xilinx netlist of a host-clock build
-# (build.sh writes synth_netlist.v) with Yosys' Xilinx simulation models.
-VERILOG_SOURCES += $(FPGA_NETLIST) $(shell yosys-config --datdir)/xilinx/cells_sim.v
+# Post-synthesis: the synth_xilinx netlist (build.sh writes synth_netlist.v)
+# with Yosys' Xilinx simulation models, plus netlist_prims.v for the MMCM and
+# ODDR of the pll50/pll40/osc12 builds (black boxes in cells_sim.v).
+VERILOG_SOURCES += $(FPGA_NETLIST) $(shell yosys-config --datdir)/xilinx/cells_sim.v \
+                   $(CURDIR)/netlist_prims.v
 COMPILE_ARGS += -DPE_TB_NETLIST
 endif
 ifeq ($(FPGA_BOARD),urbana)

@@ -233,7 +233,7 @@ without Slurm. The heavy classes need up to 32 GB per task.
 
 | # | Claim | Stated in | Evidence | Reproduce |
 |---|---|---|---|---|
-| R60 | Seven openXC7 bitstreams built; the four recommended ones meet 50 MHz in nextpnr's timing model (`cmod_a7 pll50` bridge-only 55.82 MHz, `cmod_a7 host` 51.42 MHz, `urbana pll50` 54.35 MHz, `urbana host` 61.92 MHz); `cmod_a7 pll50` with the DIP pin host reaches 46.39 MHz and does not meet 50 MHz | [fpga.md](fpga.md), "Build results" | Jobs 23760777, 23760779, 23763553, 23760781, 23763555, 23760780, 23763558; bitstreams and summaries in `<work dir>/fpga/bitstreams/` (not in git) | Local with the openXC7 toolchain: `fpga/scripts/build.sh <board> <clock> <dir> heap:1 ...` |
+| R60 | Seven openXC7 bitstreams, all meeting their clock target in nextpnr-xilinx's timing model after synthesis/place-and-route option and seed optimization (about 12,700 nextpnr runs): `cmod_a7 pll50` DIP pin host 79.69 MHz (was 46.39), bridge-only 78.38, `pll40` 73.91, `osc12` 76.45, `cmod_a7 host` 80.43, `urbana pll50` 86.95, `urbana host` 76.44 MHz; TT design and SRAM replacement unchanged (SRAM proof re-run) | [fpga.md](fpga.md), "Build results" | Release rebuild job 23998703 (each rebuild reproduces its sweep fmax; readback 0 missing/extra bits); bitstreams with SHA256SUMS in `<work dir>/fpga/bitstreams/` (not in git; the 2026-09-25 set in `v1-2026-09-25/`) | Local with the openXC7 toolchain: `fpga/scripts/release.sh <release>` (fpga/scripts/release.tsv) |
 | R61 | Configuration readback of all 7 bitstreams | fpga.md, "Build results" | Job 23767112 | Local: `fpga/scripts/readback.sh` |
 
 ## 8. Extension study (prototypes outside the repository)
