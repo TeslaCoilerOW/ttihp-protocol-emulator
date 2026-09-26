@@ -1,6 +1,43 @@
 let names = ["uart-tx";"uart-rx";"spi-controller";"spi-target";
   "i2c-write";"i2c-read";"i2c-repeated-start";"i2c-target-write";
   "i2c-target-read";"jtag";"waveform";"event-transmitter"]
+(* NXP UM10204 Rev. 7.0 (1 October 2021), Table 11, in ns: the minimum SCL
+   period (1/fSCL max), tLOW, tHIGH, tHD;STA, tSU;STA, tSU;STO, tBUF and
+   tSU;DAT, then the tVD;DAT maximum. *)
+let i2c_modes = [
+  "Fast-mode Plus",[1_000;500;260;260;260;260;500;50],450;
+  "Fast-mode",[2_500;1_300;600;600;600;600;1_300;100],900;
+  "Standard-mode",[10_000;4_700;4_000;4_000;4_700;4_000;4_700;250],3_450]
+(* Lower bounds, in clocks, of the same bus parameters for the three I2C
+   controller examples at half-period p, and the largest delay from SCL
+   falling to an SDA change on fixed-latency paths (the tVD;DAT that
+   tools/timing/pe_timing.py checks).  tHIGH, tSU;STA and tSU;STO count the
+   two-flop synchronizer between SCL rising at the pad and WAITPIN observing
+   it.  An SDA change that follows a PULL comes later, and SCL then stays low
+   longer; every SDA change still precedes the SCL release by at least p+2
+   clocks, which is what UM10204 Table 11 note [3] requires of a device that
+   stretches the SCL LOW period.  pe_timing measures the same quantities on
+   the images. *)
+let i2c_cycles p = [2*p+7;p+3;p+4;p+2;p+5;p+5;2*p+8;p+2],4
+let i2c_meets ~clock_hz p (_,minima,vd_max) =
+  let cycles,vd=i2c_cycles p in
+  List.for_all2 (fun c t -> c*1_000_000_000>=t*clock_hz) cycles minima
+  && vd*1_000_000_000<=vd_max*clock_hz
+let i2c_speed_note ~clock_hz p =
+  let met,unmet=List.partition (i2c_meets ~clock_hz p) i2c_modes in
+  let mode_name (n,_,_)=n in
+  let needs mode=
+    match List.find_opt (fun q -> i2c_meets ~clock_hz q mode) (List.init 248 (fun i -> i+8)) with
+    | Some q -> Printf.sprintf "%s needs half-period >= %d" (mode_name mode) q
+    | None -> Printf.sprintf "%s is not reachable at this clock" (mode_name mode) in
+  Printf.sprintf "Declared I2C bus speed at the %d Hz annotation: %s (UM10204 Table 11; SCL low >= %d and high >= %d clocks, START/repeated-START/STOP set-up and hold >= %d clocks, bus free >= %d clocks, SDA held >= 2 clocks after SCL falls)%s."
+    clock_hz
+    (match List.rev_map mode_name met with
+     | [] -> "no UM10204 speed mode"
+     | [m] -> m
+     | ms -> String.concat ", " (List.filteri (fun i _ -> i<List.length ms-1) ms)^" and "^List.nth ms (List.length ms-1))
+    (p+3) (p+4) (p+2) (2*p+8)
+    (match unmet with [] -> "" | _ -> "; "^String.concat "; " (List.map needs unmet))
 (* [byte_lane_shifts]: emit only SHL/SHR counts 0/8/16/24 (targets built with
    shift=byte_lane).  Fused-issue built-ins already comply and are unchanged;
    scalar SPI replaces its 1-bit shifts by ADD tx,tx and builds its MSB mask
@@ -19,6 +56,39 @@ let make ?(architecture=Isa.flagship) ?(half_period=32) ?(mode=0)
   let jmp target=e "JMP" ~target in
   let pin n=1 lsl n in
   let align ()=if width>8 then e "SHL" ~a:0 ~c:(width-8) in
+  (* I2C controller building blocks, pins SCL6/SDA7, open drain.  DIR selects
+     the lines pulled low; SDA's logical value is 0 except while OUT shifts a
+     data bit, so DIR alone makes START and STOP.  SCL and SDA never change on
+     the same edge, SDA changes only while SCL is low (except START/STOP), and
+     every SCL release is followed by WAITPIN SCL==1 (clock stretching). *)
+  let scl=6 and sda=7 in
+  let scl_low ()=e "DIR" ~imm:(pin scl) in
+  let both_low ?label ()=e ?label "DIR" ~imm:(pin scl lor pin sda) in
+  let release_scl ()=e "DIR" ~imm:(pin sda);e "WAITPIN" ~a:scl ~b:1 in
+  (* From SCL low with SDA released, or from an idle bus: release SCL, wait
+     until both lines are high, then START (SDA low) and hold it. *)
+  let i2c_start ?label ()=e ?label "DIR";e "WAITPIN" ~a:scl ~b:1;e "WAITPIN" ~a:sda ~b:1;
+    wait p;e "DIR" ~imm:(pin sda);wait p in
+  (* Eight bits MSB first from tx's low byte, entered with both lines low. *)
+  let i2c_bits label=align ();e "COUNT" ~imm:7;
+    e "OUT" ~a:sda ~c:1 ~label;wait p;release_scl ();wait p;both_low ();e "LOOP" ~target:label in
+  (* Ninth clock with SDA released: rx := SDA (0 = ACK).  Ends with SCL low,
+     SDA released and SDA's logical value 0. *)
+  let i2c_ack_clock ()=scl_low ();wait p;e "DIR";e "WAITPIN" ~a:scl ~b:1;wait p;
+    e "LOAD" ~a:1;e "IN" ~a:sda ~c:1;scl_low ();e "SET" in
+  (* One byte from the target into rx (zero on entry) with SCL low, then the
+     controller NACK clock (SDA stays released), then PUSH with SCL low. *)
+  let i2c_receive ~label ~bit_label=e "COUNT" ~imm:7 ~label;
+    e "WAIT" ~imm:p ~label:bit_label;e "DIR";e "WAITPIN" ~a:scl ~b:1;wait p;
+    e "IN" ~a:sda ~c:1;scl_low ();e "LOOP" ~target:bit_label;
+    wait p;e "DIR";e "WAITPIN" ~a:scl ~b:1;wait p;scl_low ();e "PUSH" in
+  (* STOP from SCL low: SDA low, release SCL, wait for it high and tSU;STO.
+     Register [flag] zero: release SDA (STOP), wait the bus-free time and
+     start the next transaction.  Nonzero (a NACK): FAULT 65 releases SDA, so
+     the STOP condition and the fault occur on the same edge. *)
+  let i2c_stop flag=both_low ~label:"stop" ();wait p;release_scl ();wait p;
+    e "JZ" ~a:flag ~target:"bus_free";e "FAULT" ~imm:65;
+    e "DIR" ~label:"bus_free";wait p;jmp "transaction" in
   let engine,owned_pins,open_drain,notes = match name with
   | "uart-tx" ->
     let bit=2*p in
@@ -95,62 +165,49 @@ let make ?(architecture=Isa.flagship) ?(half_period=32) ?(mode=0)
       "TX word must be queued before CS assertion; CS is checked at frame boundaries, interrupted frames terminate through LIMIT timeout. MISO releases at deassertion observation.";
       "Full RX FIFO at completed-frame delivery halts with fault4 and retains the captured byte in READ_SELECT6."]
   | "i2c-write" | "i2c-read" ->
-    let scl=6 and sda=7 in
-    let both=pin scl lor pin sda in
-    let low ()=e "DIR" ~imm:both in
-    let high ()=e "DIR" ~imm:(pin sda);e "WAITPIN" ~a:scl ~b:1 in
-    let start label = e "DIR" ~imm:0 ~label;e "WAITPIN" ~a:scl ~b:1;e "WAITPIN" ~a:sda ~b:1;
-      wait p;e "DIR" ~imm:(pin sda);wait p;low () in
-    let send ?(prefilled=false) label =
-      low ();if not prefilled then e "PULL";align ();e "COUNT" ~imm:7;
-      e "OUT" ~a:sda ~c:1 ~label;wait p;high ();wait p;low ();e "LOOP" ~target:label;
-      (* SDA value must be low so logical OE controls open-drain release. *)
-      e "SET";e "DIR" ~imm:(pin scl);wait p;e "DIR";
-      e "WAITPIN" ~a:scl ~b:1;wait p;e "LOAD" ~a:1;e "IN" ~a:sda ~c:1;
-      e "DIR" ~imm:(pin scl);e "JZ" ~a:1 ~target:(label^"_ack");e "FAULT" ~imm:65;
-      e "NOP" ~label:(label^"_ack") in
-    let recv label =
-      e "SET";e "DIR" ~imm:(pin scl);e "LOAD" ~a:1;e "COUNT" ~imm:7;
-      e "WAIT" ~imm:p ~label;e "DIR";e "WAITPIN" ~a:scl ~b:1;wait p;
-      e "IN" ~a:sda ~c:1;e "DIR" ~imm:(pin scl);e "LOOP" ~target:label;
-      (* One-byte read ends with NACK, leaving SDA released. *)
-      wait p;e "DIR";e "WAITPIN" ~a:scl ~b:1;wait p;e "DIR" ~imm:(pin scl);
-      e "PUSH" in
-    let stop ()=e "SET";low ();wait p;high ();wait p;e "DIR";wait p in
-    e "SET";e "LIMIT" ~imm:(p*4096);e "PULL" ~label:"transaction";start "start";
-    send ~prefilled:true "address";
-    if name="i2c-write" then send "write_data" else recv "read_data";
-    stop ();jmp "transaction";
-    3 mod architecture.engine_count,both,both,["I2C controller pins SCL6/SDA7, external pull-ups required. SCL release always waits for synchronized high and LIMIT bounds stretching.";
-      (if name="i2c-write" then "TX words: address+W then one data byte; address/data NACK faults65."
-       else "TX word: address+R; one returned RX byte followed by NACK and STOP.");
-      "Single-controller bus only; no arbitration-loss detection. Queue a complete transaction before START; PULL/PUSH holding points keep SCL low."]
+    (* Address byte, then either one written byte or one read byte (NACKed by
+       the controller), then STOP.  rx holds the last ACK sample (0 = ACK) on
+       the way into STOP: an address NACK, or a data NACK in i2c-write, ends
+       with STOP and fault 65 (i2c_stop) instead of releasing SCL mid-clock. *)
+    e "SET";e "LIMIT" ~imm:(p*4096);e "PULL" ~label:"transaction";
+    i2c_start ~label:"start" ();both_low ();i2c_bits "address";i2c_ack_clock ();
+    e "JZ" ~a:1 ~target:"address_ack";jmp "stop";
+    if name="i2c-write" then begin
+      both_low ~label:"address_ack" ();e "PULL";i2c_bits "write_data";i2c_ack_clock ()
+    end else begin
+      i2c_receive ~label:"address_ack" ~bit_label:"read_data";e "LOAD" ~a:1
+    end;
+    i2c_stop 1;
+    3 mod architecture.engine_count,pin scl lor pin sda,pin scl lor pin sda,
+    ["I2C controller pins SCL6/SDA7, external pull-ups required. SCL release always waits for synchronized high and LIMIT bounds stretching.";
+      (if name="i2c-write" then "TX words: address+W then one data byte; an address or data NACK ends the transaction with STOP, completed by the fault65 pin release."
+       else "TX word: address+R; one returned RX byte followed by NACK and STOP; an address NACK ends the transaction with STOP, completed by the fault65 pin release.");
+      "Single-controller bus only; no arbitration-loss detection. Queue a complete transaction: the first PULL waits with the bus idle, later PULL/PUSH holding points keep SCL low.";
+      i2c_speed_note ~clock_hz p]
   | "i2c-repeated-start" ->
-    (* Share the send-byte routine between address(W), register, and address(R).
-       x counts remaining bytes and y holds -1 across transactions. This leaves
-       room for a complete repeated-START transaction in 64 instructions. *)
-    let scl=6 and sda=7 in
-    let low ()=e "DIR" ~imm:192 in
-    let high ()=e "DIR" ~imm:128;e "WAITPIN" ~a:scl ~b:1 in
+    (* One shared transmit routine for address+W, register and address+R.  y
+       holds -1; x counts down from 4 at next_byte: 3 before address+W, 2
+       before the register byte, 1 before address+R and 0 for the read.  An
+       odd x needs a START (x=3) or repeated START (x=1).  Each TX word is
+       pulled before the START or repeated START that precedes its byte, so
+       the bus is idle while the engine waits for a new transaction.  A NACK
+       ends with STOP and fault 65 (x is then nonzero, i2c_stop). *)
     e "LIMIT" ~imm:(p*4096);e "NOT" ~a:3;
-    e "LOAD" ~a:2 ~imm:3 ~label:"transaction";
-    e "DIR" ~label:"start";e "WAITPIN" ~a:scl ~b:1;e "WAITPIN" ~a:sda ~b:1;
-    wait p;e "DIR" ~imm:128;wait p;low ();
-    e "DIR" ~imm:192 ~label:"send";e "PULL";align ();e "COUNT" ~imm:7;
-    e "OUT" ~a:sda ~c:1 ~label:"bit";wait p;high ();wait p;low ();e "LOOP" ~target:"bit";
-    e "SET";e "DIR" ~imm:64;wait p;e "DIR";e "WAITPIN" ~a:scl ~b:1;
-    wait p;e "LOAD" ~a:1;e "IN" ~a:sda ~c:1;e "DIR" ~imm:64;
-    e "JZ" ~a:1 ~target:"ack";e "FAULT" ~imm:65;
-    e "ADD" ~a:2 ~b:3 ~label:"ack";e "JZ" ~a:2 ~target:"receive";
-    e "LOAD" ~a:0 ~imm:1;e "XOR" ~a:0 ~b:2;e "JZ" ~a:0 ~target:"start";jmp "send";
-    e "SET" ~label:"receive";e "DIR" ~imm:64;e "LOAD" ~a:1;e "COUNT" ~imm:7;
-    e "WAIT" ~imm:p ~label:"read_bit";e "DIR";e "WAITPIN" ~a:scl ~b:1;wait p;
-    e "IN" ~a:sda ~c:1;e "DIR" ~imm:64;e "LOOP" ~target:"read_bit";
-    wait p;e "DIR";e "WAITPIN" ~a:scl ~b:1;wait p;e "DIR" ~imm:64;e "PUSH";
-    low ();wait p;high ();wait p;e "DIR";wait p;jmp "transaction";
-    3 mod architecture.engine_count,192,192,["I2C register read: TX address+W, register, address+R; repeated START, one RX byte, NACK, STOP.";
-      "Pins SCL6/SDA7 require pull-ups. Every released SCL is checked for stretching; LIMIT bounds pin waits; ACK failures fault65.";
-      "Shared transmit routine fits 64 words. Queue all three TX words before START; FIFO holding points keep SCL low. Single-controller bus, no arbitration-loss detection."]
+    e "LOAD" ~a:2 ~imm:4 ~label:"transaction";
+    e "ADD" ~a:2 ~b:3 ~label:"next_byte";e "JZ" ~a:2 ~target:"receive";
+    e "PULL";e "LOAD" ~a:1 ~imm:1;e "AND" ~a:1 ~b:2;e "JZ" ~a:1 ~target:"send";
+    (* Before a repeated START SCL has been low since the ACK clock: keep it
+       low for a whole phase (tLOW; the target releases its ACK meanwhile). *)
+    e "WAIT" ~imm:p ~label:"start";i2c_start ();
+    both_low ~label:"send" ();i2c_bits "bit";i2c_ack_clock ();
+    e "JZ" ~a:1 ~target:"next_byte";jmp "stop";
+    i2c_receive ~label:"receive" ~bit_label:"read_bit";
+    i2c_stop 2;
+    3 mod architecture.engine_count,pin scl lor pin sda,pin scl lor pin sda,
+    ["I2C register read: TX address+W, register, address+R; repeated START, one RX byte, NACK, STOP.";
+      "Pins SCL6/SDA7 require pull-ups. Every released SCL is checked for stretching; LIMIT bounds pin waits; a NACK ends the transaction with STOP, completed by the fault65 pin release.";
+      "Shared transmit routine fits 64 words. Queue all three TX words: the first PULL waits with the bus idle, later FIFO holding points keep SCL low. Single-controller bus, no arbitration-loss detection.";
+      i2c_speed_note ~clock_hz p]
   | "i2c-target-write" | "i2c-target-read" ->
     let scl=6 and sda=7 in
     let read=name="i2c-target-read" in

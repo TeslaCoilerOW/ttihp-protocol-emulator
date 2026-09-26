@@ -162,11 +162,11 @@ async def test_i2c_repeated_start_vs_verilog_slave(dut, skew):
     h.log("i2c_slave byte %#04x, delay %d, stretched %d, self-STOP %d -> expected %#04x", value, delay,
           board.get("vi2cs_read_stretched"), board.get("vi2cs_self_stop"), expected)
     assert await drain(h, ENGINE, 1) == [expected]
-    # Characterisation of the shipped firmware (docs/independent-peers.md): after
-    # its STOP, i2c-repeated-start loops to `transaction`, issues the next START
-    # and then waits at PULL for the next TX words with SCL held low, so the
-    # third-party target sees a started bus until the host queues more words.
-    assert board.get("vi2cs_stops") == 1 and board.get("vi2cs_active") == 1 and board.get("pad6") == 0
+    # After its STOP, i2c-repeated-start waits at PULL for the first TX word of
+    # the next transaction before it generates a START (docs/independent-peers.md),
+    # so the third-party target sees an idle bus with both lines released.
+    assert board.get("vi2cs_stops") == 1 and board.get("vi2cs_active") == 0
+    assert board.get("pad6") == 1 and board.get("pad7") == 1
     _finish(h, board)
     await h.command(STOP, MASK)
 
@@ -174,7 +174,7 @@ async def test_i2c_repeated_start_vs_verilog_slave(dut, skew):
 @cocotb.test()
 @cocotb.parametrize(skew=SKEWS)
 async def test_i2c_address_nack_vs_verilog_slave(dut, skew):
-    """i2c-write to 0x42 while the only target is i2c_slave at 0x43: NACK -> fault 65, bus released."""
+    """i2c-write to 0x42 while the only target is i2c_slave at 0x43: NACK -> STOP and fault 65, bus released."""
     h, board = await start(dut, skew=skew, sel_vi2c_slave=1, vi2cs_address=ADDRESS + 1)
     await _controller(h, "i2c-write", [ADDRESS << 1, 0x5A])
     await h.run_until(lambda: h.engine(ENGINE).fault != 0, 6000, "I2C NACK fault")
@@ -182,6 +182,9 @@ async def test_i2c_address_nack_vs_verilog_slave(dut, skew):
     assert fault_of(await status(h, ENGINE, RS_STATUS)) == 65
     assert_released(h, 0xC0)
     assert board.get("vi2cs_count") == 0
+    # The NACK ends the transaction with a STOP (the SDA release is FAULT 65's
+    # pin release), which i2c_slave recognises: its bus is no longer active.
+    assert board.get("vi2cs_stops") == 1 and board.get("vi2cs_active") == 0
     _finish(h, board)
     await h.command(CLEAR, MASK | 1 << 23)
 

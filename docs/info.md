@@ -330,7 +330,7 @@ to the SPI engine without host service.
 | 0 | `uart-tx` | TX on 0 | 0x01 / 0x00 | 12 |
 | 1 | `uart-rx` | RX on 1 (input only) | 0x00 / 0x00 | 18 |
 | 2 | `spi-controller-mode0` | SCK 2, MOSI 3, MISO 4 (input), CS_N 5 | 0x2C / 0x00 | 11 |
-| 3 | `i2c-write` | SCL 6, SDA 7 (open-drain) | 0xC0 / 0xC0 | 64 |
+| 3 | `i2c-write` | SCL 6, SDA 7 (open-drain) | 0xC0 / 0xC0 | 60 |
 
 The images are assembled for a 50 MHz clock. UART runs 8N1, LSB first, at 64
 clocks per bit (781,250 baud). SPI mode 0 uses 32-cycle half-periods, MSB
@@ -346,7 +346,7 @@ Host sequence:
 | 4 | 0 | `0x03000001`, `0x0200000C` | OWN pin 0, COMMIT 12 |
 | 5 | 0, 1, 0 | `0x00000001`, `0x01000000`, 18 words, `0x03000000`, `0x02000012` | engine 1: `uart-rx`, owns no pins |
 | 6 | 0, 1, 0 | `0x00000002`, `0x01000000`, 11 words, `0x0300002C`, `0x0200000B` | engine 2: `spi-controller-mode0` |
-| 7 | 0, 1, 0 | `0x00000003`, `0x01000000`, 64 words, `0x0300C0C0`, `0x02000040` | engine 3: `i2c-write`, pins 6 and 7 open-drain |
+| 7 | 0, 1, 0 | `0x00000003`, `0x01000000`, 60 words, `0x0300C0C0`, `0x0200003C` | engine 3: `i2c-write`, pins 6 and 7 open-drain |
 | 8 | 0, 2 | `0x00000000`, then `0x43 0x4F 0x4E 0x43 0x55 0x52 0x52 0x45` | engine 0 TX: "CONCURRE" |
 | 9 | 0, 2 | `0x00000003`, then `0x84 0x5A` | engine 3 TX: address 0x42 + write, then data 0x5A |
 | 10 | 0 | `0x06000119` | ROUTE engine 1 to engine 2, 8 words |
@@ -361,7 +361,7 @@ What happens next:
 - Engine 2 sends each byte on SPI and queues the byte returned on MISO in its
   RX queue.
 - Engine 3 writes 0x5A to the I2C target at address 0x42, checks both ACKs and
-  sends STOP. A NACK stops engine 3 with fault code 65.
+  sends STOP. A NACK also ends with STOP and stops engine 3 with fault code 65.
 - IRQ (`uo[6]`) is high while any RX queue holds data, which here is mainly
   engine 2's SPI responses. `SELECT 2`, then read window 3 eight times to
   collect them. READ_SELECT 2
@@ -396,10 +396,10 @@ slower, that run replays 8 of the 25 legacy workloads and 2 random cases.
 ### Tiny Tapeout demo board
 
 The demo board's RP2040 or RP2350 drives `ui_in` and reads `uo_out` from
-MicroPython. A host library with the same API on a Raspberry Pi Pico and on the
-demo board is planned. Until it exists, the sketch below implements the host
-protocol with the Tiny Tapeout MicroPython SDK. It has not yet been run on
-hardware.
+MicroPython. The host library in `host/` (see docs/host.md) provides the same API on the
+demo board's MicroPython, on a Raspberry Pi Pico and in CPython. The sketch
+below shows the host protocol with the Tiny Tapeout MicroPython SDK. Neither
+has been run on hardware yet.
 
 The host port is synchronous, so the RP2 supplies every clock edge with
 `clock_project_once()`. It sets `ui_in` before each edge and samples `uo_out`
@@ -500,10 +500,11 @@ gives 434 clocks per bit, which is 115,207 baud at 50 MHz.
 
 ## Limitations
 
-- There is no silicon yet. The design has not yet passed the Tiny Tapeout gds
-  flow, and 50 MHz is the design target, not a measured frequency. A local
-  post-route timing analysis meets 50 MHz at the typical and fast corners but
-  not at the slow corner, where the reset input path is the limit.
+- There is no silicon yet. The official Tiny Tapeout gds, precheck and
+  gate-level test actions pass (tag v0.1-hardened), but 50 MHz is a timing
+  target, not a measured frequency. Post-route timing meets 50 MHz at the
+  typical and fast corners but not at the slow corner (setup -8.52 ns, mostly
+  paths from the reset input).
 - The host port is synchronous and its inputs are not synchronized, so the host
   must share the chip clock.
 - UART has no flow-control wire. When engine 1's RX queue is full, the strict

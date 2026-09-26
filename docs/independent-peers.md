@@ -142,8 +142,8 @@ test cases, 23 of them in two corners.
 | `test_i2c_write_vs_verilog_slave` x2 | `i2c-write` | `i2c_slave` @0x42 | address and data byte arrive, STOP seen |
 | `test_i2c_read_vs_verilog_slave_with_stretching[first bit 0,1]` x2 | `i2c-read` | `i2c_slave`, stretching SCL 400 clocks | returned byte in the RX FIFO (0xFF when the peer's stretch defect applies, see below), controller NACK ends the read, STOP seen |
 | `test_i2c_slave_stretch_defect_without_dut[0x43,0xC3]` | none (DUT idle) | `i2c_master` + `i2c_slave` | reproduces the `i2c_slave` stretch defect without the DUT |
-| `test_i2c_repeated_start_vs_verilog_slave` x2 | `i2c-repeated-start` | `i2c_slave` | register byte written, repeated START, byte read back; bus state afterwards (see below) |
-| `test_i2c_address_nack_vs_verilog_slave` x2 | `i2c-write` | `i2c_slave` @0x43 | address NACK gives fault 65, both pins released |
+| `test_i2c_repeated_start_vs_verilog_slave` x2 | `i2c-repeated-start` | `i2c_slave` | register byte written, repeated START, byte read back; after the STOP the bus is idle and both lines are high (see below) |
+| `test_i2c_address_nack_vs_verilog_slave` x2 | `i2c-write` | `i2c_slave` @0x43 | address NACK gives fault 65, both pins released, `i2c_slave` sees the STOP |
 | `test_i2c_eeprom_reads_vs_cocotbext_memory` x2 | `i2c-write`, `i2c-read`, `i2c-repeated-start` | `I2cMemory` @0x42 | pointer write, current-address read and random read return the EEPROM contents |
 | `test_i2c_address_nack_vs_cocotbext_memory` x2 | `i2c-repeated-start` | `I2cMemory` @0x50 | NACK gives fault 65, pins released |
 | `test_i2c_target_vs_verilog_master` x2 | `i2c-target-write`, `i2c-target-read` | `i2c_master` | write lands in the RX FIFO; a read started before the host queues the byte is stretched by the DUT (SCL held low for 3 000 clocks) and then completes with NACK |
@@ -308,22 +308,35 @@ of start-up latency. The suite now idles the line for one bit period after START
 project's own `test/scenarios.py` uses 50 clocks, the flagship recipe 96). This
 was a test error, not a design or firmware defect.
 
-### `i2c-repeated-start` keeps the bus started between transactions
+### `i2c-repeated-start` kept the bus started between transactions (fixed)
 
-Not a disagreement but a firmware property the third-party target makes
-visible: after the STOP of a transaction, `i2c-repeated-start` loops to
-`transaction`, generates the next START and only then blocks at PULL for the
-next TX words, holding SCL low. `i2c_slave` therefore reports an active,
-addressed bus (`bus_active` = 1, SCL low) until the host queues the next three
-words; `test_i2c_repeated_start_vs_verilog_slave` asserts this state. A host
-that instead stops the engine releases SCL and SDA in the same cycle, which is
-neither a clean STOP nor a START for a target that was waiting for an address
-byte. The EEPROM test runs the repeated-start transaction last for this reason
-(the opposite order was not run). `i2c-write` and `i2c-read` block before
-their START and leave the bus idle. `docs/firmware.md` says that FIFO holding
-points keep SCL low; it does not say that the idle point of this image is
-inside a started transaction. Moving the first PULL before the START, as the
-other controller images do, would avoid it.
+Not a disagreement but a firmware property the third-party target made
+visible. After the STOP of a transaction, the `i2c-repeated-start` image of
+commit 73536f0 looped to `transaction`. It generated the next START and only
+then blocked at PULL for the next TX words, holding SCL low. `i2c_slave`
+therefore reported an active, addressed bus (`bus_active` = 1, SCL low) until
+the host queued the next three words. `test_i2c_repeated_start_vs_verilog_slave`
+asserted this state. A host that instead stops the engine releases SCL and SDA
+in the same cycle, which is neither a clean STOP nor a START for a target that
+was waiting for an address byte. `i2c-write` and `i2c-read` block before their
+START and leave the bus idle.
+
+The regenerated image (`docs/firmware.md`, "I2C controller timing") pulls the
+first TX word of each transaction before its START, so the engine now waits
+with both lines released. The test asserts the new state after the STOP:
+`bus_active` = 0 and both pads high. The same change fixed two static findings
+in this image (`docs/timing-analysis.md`, Findings 1, 2 and 8):
+
+- The SCL low phase before the repeated START was 7 clocks; it is now at least
+  42 clocks.
+- On a NACK the controller released SCL 2 clocks after pulling it low and sent
+  no STOP. It now sends a STOP, and the fault 65 pin release completes it.
+
+`test_i2c_address_nack_vs_verilog_slave` now also asserts that `i2c_slave` saw
+that STOP (`vi2cs_stops` = 1, `bus_active` = 0). With the updated test file and
+the unmodified 73536f0/c118027 images, both changed tests fail as expected
+(job 23976221). The EEPROM test still runs the repeated-start transaction last;
+the opposite order was not run.
 
 ### Integration notes on the third-party models (no DUT involvement)
 
@@ -394,6 +407,31 @@ totals, together with the SHA-256 of the netlist and of the `test_ext/` files
 that were run. Job logs and per-seed results stay on the cluster
 (`$PE_WORK/peers/`, `manifest.json`,
 `campaign4/summary.json`).
+
+**Regenerated I2C controller images.** After the `i2c-write`, `i2c-read` and
+`i2c-repeated-start` images were regenerated (see the repeated-start section
+above), the suite was re-run on the new images with the updated
+`test_ext/test_ext_i2c.py`. The design was that of commit c118027 (`src/` and
+`models/` unchanged). The runs used the TT CI tool versions (cocotb 2.0.1 and
+Icarus Verilog 13.0) and both skew corners. Gate level is the netlist from the
+gds action of c118027 (GitHub run 36144357821, artifact `tt_submission`,
+SHA-256 `c2eaa65f...c2f6`) with the gds action's PDK revision, whose
+`sg13cmos5l_udp.v` was added to the sources through the environment.
+
+| run | stimulus | simulator / DUT | tests | result | Slurm job |
+|---|---|---|---|---|---|
+| default, RTL | fixed | Icarus 13.0, RTL | 65 | 65 PASS | 23975495 |
+| default, gate level | fixed | Icarus 13.0, c118027 CI netlist | 65 | 65 PASS | 23975497 |
+| seeded, `test_ext_i2c` and `test_ext_flagship` | seeds 1-128 | Icarus 13.0, RTL | 3 072 test runs (24 per seed) | 3 072 PASS | array 23977094 (16 tasks) |
+| seeded, `test_ext_i2c` and `test_ext_flagship` | seeds 1-32 | Icarus 13.0, c118027 CI netlist | 768 test runs (24 per seed) | 768 PASS | array 23977096 (8 tasks) |
+| control: updated test file, unmodified c118027 images | fixed | Icarus 13.0, RTL | the 2 changed tests x2 | 4 FAIL, as expected | 23976221 |
+
+The seeded runs cover only the two modules that load I2C controller images;
+the other modules were run with the fixed stimulus above. In the control,
+`test_i2c_repeated_start_vs_verilog_slave` fails because
+`i2c_slave` still reports an active bus after the STOP.
+`test_i2c_address_nack_vs_verilog_slave` fails because `i2c_slave` sees no STOP
+after the NACK.
 
 Earlier results, before the skew corners were added (one 1 ns delay for all
 DUT outputs, 42 tests): RTL, gate level and Icarus 13.0 each 42/42 PASS

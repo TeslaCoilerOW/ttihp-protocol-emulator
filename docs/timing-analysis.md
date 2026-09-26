@@ -8,12 +8,13 @@ world. The tool then checks the protocol timing the image declares. This page
 explains the method and states what is and is not guaranteed. It also covers
 how the results combine with the formal timing-isolation proof
 (`formal/README.md`) into an end-to-end claim. Finally it gives the results for
-the 19 committed images and the flagship scenario. All numbers come from commit
-73536f0.
+the 19 committed images and the flagship scenario. The numbers come from
+commit 73536f0, except those for the three I2C controller images regenerated
+after it (Results, Findings 1 to 3 and 8).
 
 Validation is described in [Validation](#validation). All of it was run for
-this page and passes. One *protocol* check fails on a committed image; see
-[Findings](#findings). The formal proofs were not re-run for this page; their
+this page and passes. One *protocol* check failed on a 73536f0 image; no check
+fails on the regenerated images; see [Findings](#findings). The formal proofs were not re-run for this page; their
 results are quoted from `formal/README.md`.
 
 ## Timing model
@@ -144,10 +145,20 @@ The tables convert cycles to time at 10, 25, 50, 66 and 100 MHz. For
 requirements stated in absolute time, they give the clock range over which the
 requirement holds.
 
-### Results (commit 73536f0, 50 MHz annotation)
+### Results (50 MHz annotation)
 
-`tools/timing/report/timing-report.md` has every check, boundary table and edge
-schedule. Summary: 182 PASS, 1 FAIL, 3 WARN, 55 INFO.
+The images were first analyzed at commit 73536f0: 182 PASS, 1 FAIL, 3 WARN,
+55 INFO. The FAIL and the three WARNs are Findings 1 and 2 below.
+
+The three I2C controller images were then regenerated from
+`hardcaml/lib/firmware.ml` with Findings 1 to 3 addressed; the other 16 images
+are byte-identical. For the regenerated set the report gives 183 PASS, 0 FAIL,
+0 WARN, 55 INFO (Slurm jobs 23975273 and 23986537). Apart from the I2C
+controller rows, every check has the same status and text as before. The
+flagship engine-3 WCET between boundaries changes from 107 to 106 cycles.
+`tools/timing/report/` holds the report for the regenerated set (every check,
+boundary table and edge schedule), with the validation summary of run r8
+below. The table describes the regenerated set.
 
 | image(s) | key static results |
 |---|---|
@@ -155,45 +166,126 @@ schedule. Summary: 182 PASS, 1 FAIL, 3 WARN, 55 INFO.
 | `uart-rx` | Data bits are sampled 32 to 33 cycles into each 64-cycle bit and the stop bit 35 to 36 cycles in. The receiver re-arms 619 cycles after a start edge, 20 cycles before the next back-to-back start. Sampling tolerates a transmitter bit period between -4.37% and +6.08% of nominal. Continuous traffic with one stop bit needs the transmitter to be no more than 3.12% fast. Idle wait LIMIT is 768 = 12 x 64 (declared). |
 | `spi-controller-mode0..3`, `-fast` | 16 SCK edges per byte, spaced exactly 32 (or 16) cycles (declared). SCK sits at CPOL and CS is high at every holding point. CS setup is 33 (17) cycles, CS hold after the last edge 1 cycle, CS high between frames at least 6 cycles. MOSI is stable at least 32 (16) cycles around each target sampling edge. In modes 1/3 the last bit's hold is 1 cycle. MISO round-trip budget is `b-2` = 30 (14) cycles = 600 (280) ns at 50 MHz. |
 | `spi-target-mode0..3` | MISO is valid 4 to 5 cycles (modes 0/2) or 3 to 4 cycles (modes 1/3) after the launching edge is sampled: margin 3 or 4 cycles against the declared 8-cycle half period. MOSI is read 1 to 2 cycles after the sampling edge (margin 6). The firmware waits for the next edge within 3 cycles. CS-to-first-edge work takes 2 to 3 cycles against the declared 8. MISO is released at the holding point. |
-| `i2c-write`, `i2c-read` | Open-drain only (never driven high). Every SCL release is followed by `WAITPIN SCL==1` before SCL is driven low again (stretch-safe). SDA changes only while SCL is low, except at START/STOP. tLOW 36 (35 for read), tHIGH at least 36 (stretch-aware), tHD;STA 34, tSU;STA at least 37, tSU;STO at least 36, tBUF at least 72, tSU;DAT at least 34, tHD;DAT at least 2 cycles. At 50 MHz this meets **Fast-mode Plus**, which holds up to 72 (70) MHz. Fast-mode needs a clock of at most 27.7 (26.9) MHz; Standard-mode at most 7.2 (7.1) MHz. |
-| `i2c-repeated-start` | Same as above except one phase: **FAIL**, see findings. |
+| `i2c-write`, `i2c-read`, `i2c-repeated-start` | Open-drain only (never driven high). Every SCL release is followed by `WAITPIN SCL==1` before SCL is driven low again (stretch-safe). SDA changes only while SCL is low, except at START/STOP. tLOW 36 (35 for `i2c-read` and `i2c-repeated-start`), tHIGH at least 36 (stretch-aware), tHD;STA 34, tSU;STA at least 37, tSU;STO at least 37, tBUF at least 72 (111 for `i2c-repeated-start`), tSU;DAT at least 34 and tHD;DAT at least 2 cycles. tVD;DAT is at most 4 cycles on fixed-latency paths; after a non-blocking `PULL` the SDA changes come 7 cycles after SCL falls in `i2c-write` and 12 in `i2c-repeated-start` (Finding 3). Every SCL low phase is at least 35 cycles, including the one before the repeated START (at least 42). At 50 MHz this meets **Fast-mode Plus**, whose minima hold up to 72 (70) MHz. Fast-mode needs a clock of at most 27.7 (26.9) MHz; Standard-mode at most 7.2 (7.1) MHz. No fault releases SCL: a NACK ends with a STOP condition whose SDA release is the `FAULT 65` pin release. Each image declares Fast-mode Plus in its notes. Before the fix: tLOW 7 in `i2c-repeated-start` (FAIL) and a 2-cycle SCL low phase on NACK in all three (WARN); see Findings 1 and 2. |
 | `i2c-target-write`, `-read` | SDA is driven at most 7 to 8 cycles after SCL falls, against the declared minimum phase of 16 cycles (margin 8). The target reaches the next pin wait within 6 (read) or 4 (write) cycles, or pulls SCL low to stretch within 7 to 8 cycles. SDA is sampled 1 to 2 cycles after SCL rises. SCL is held low (stretch) at every FIFO holding point. |
 | `jtag` | TMS/TDI change only while TCK is low, with at least 32 cycles of setup and hold. TCK phases are at least 32 cycles. Six TCK rising edges with TMS high reset the TAP. TDO is sampled exactly on TCK rising edges, with a 30-cycle return budget. |
 | `waveform` | 16 pulses, high exactly 32 and low exactly 64 cycles (declared). `TIME` issues 1540 cycles after START, 64 after the last falling edge. |
 | `event-transmitter` | The low pulse lasts exactly 32 cycles and starts 1 cycle after `WAITEVENT` completes. Pending events give at least 3 cycles high between pulses. |
 | flagship scenario | Ownership is disjoint and the pin roles match. Each engine's schedule is exact. The UART-RX-to-SPI bridge is rate-safe: UART RX delivers at most one word per 640 cycles, and the SPI engine is back at PULL 520 cycles after taking a word, a margin of 120 cycles per word. The 8 SPI return words fit the 8-word RX FIFO. |
 
+**Validation of the regenerated set (run r8).** The analysis was checked
+against the reference model in the same way as below (see
+[Validation](#validation)), with the committed tool (SHA-256 sums equal to
+those of r7) and these Slurm jobs:
+
+- 23984750: suites scenarios, legacy, event, mutants and margins;
+- 23984751: stress, 128 tasks x 25 runs x 19 images x 30 000 edges;
+- 23984752 and 23984753: stress with the six scalar images, 2 x 16 tasks x
+  4 runs x 25 images (seeds 0x3131 and 0x4141, as r3 and r4);
+- 23984754: random, 128 tasks x 500 cases (seed 0x5151, as r7);
+- 23986537: merge and report.
+
+Results:
+
+- 1 193 441 of 1 193 441 engine runs consistent.
+- 2.60 x 10^9 checked edges and 1.28 x 10^9 issue attempts.
+- 35 303 947 of 35 303 947 pad changes on a predicted edge.
+- 36 114 LIMIT timeouts and 47 132 strict-PUSH faults where predicted.
+- All 7 mutants detected; the 3 margin experiments agree with the prediction.
+- 64 000 random cases ran 297 112 distinct programs, analyzed on the fly; 844
+  analyses were over-approximate, and no run was left unchecked.
+
+An earlier, smaller run on the same images (job 23975500 and array 23975501,
+34 636 engine runs) also passed.
+
+Every path variant of the 19 images and of the six scalar images was observed
+except one of the 28 in `i2c-read`. That variant is infeasible: it branches from the end of the STOP
+sequence back to `transaction` after an address NACK. The fall-through side
+of `JZ rx` at pc28 leaves rx nonzero, and nothing writes rx before the `JZ rx`
+at pc50. The analyzer does not record nonzero facts, so it keeps the branch.
+
 ### Findings
 
-1. **`i2c-repeated-start`: 7-cycle SCL low phase before the repeated START.**
-   The sequence is as follows:
-   - After the register byte's ACK clock, `DIR 0x40` at pc29 pulls SCL low
+1. **Fixed: `i2c-repeated-start` had a 7-cycle SCL low phase before the
+   repeated START.** In the image analyzed at 73536f0 the sequence was:
+   - After the register byte's ACK clock, `DIR 0x40` at pc29 pulled SCL low
      (+36 after the ACK-clock `WAITPIN`).
-   - `JZ`, `ADD`, `JZ`, `LOAD`, `XOR`, `JZ` follow.
-   - `start: DIR 0x00` at pc3 releases SCL at +43.
+   - `JZ`, `ADD`, `JZ`, `LOAD`, `XOR`, `JZ` followed.
+   - `start: DIR 0x00` at pc3 released SCL at +43.
 
-   Every other SCL low phase is at least 35 cycles. This one is 140 ns at 50 MHz
-   and violates tLOW for every UM10204 mode above 14 MHz (Fm+) or 5.4 MHz (Fm).
-   There is also a protocol hazard. The target may still be driving its ACK low
-   when SCL rises. The spec lets it take up to tVD;ACK = 0.45 us (Fm+), about
-   22 cycles. If it releases SDA after SCL is already high, the bus sees a STOP
-   before the controller's START, instead of a repeated START.
+   Every other SCL low phase was at least 35 cycles. This one was 140 ns at
+   50 MHz and violated tLOW for every UM10204 mode above 14 MHz (Fm+) or
+   5.4 MHz (Fm). There was also a protocol hazard. The target may still be
+   driving its ACK low when SCL rises. The spec lets it take up to
+   tVD;ACK = 0.45 us (Fm+), about 22 cycles. If it released SDA after SCL was
+   already high, the bus would see a STOP before the controller's START,
+   instead of a repeated START. The test peer releases SDA immediately, so
+   simulation passed.
 
-   The test peer releases SDA immediately, so simulation passes. One
-   `WAIT 32` on the `JZ tx, start` path would fix it, and the image has one
-   free word (63 of 64). This is a static finding and has not been checked
-   against a slow-ACK peer.
-2. **I2C controllers on NACK (fault 65) produce a runt SCL pulse and no STOP.**
-   `DIR 0x40` (SCL low) is followed two cycles later by `FAULT 65`, which
-   releases the bus. SCL is therefore low for 2 cycles, 40 ns at 50 MHz. That
-   is shorter than the 50 ns spike filter (tSP) of Fm/Fm+ targets only above
-   40 MHz. It happens at pc28 in `i2c-read`, pc29 in `i2c-repeated-start`,
-   and pc28/51 in `i2c-write`. Reported as WARN.
-3. **At 50 MHz the I2C controller images are Fast-mode Plus devices only.**
-   SCL period is at least 72 cycles, about 694 kHz. tLOW is 36 cycles
-   (0.72 us), below the Fm minimum of 1.3 us. Fm-only (400 kHz) targets need a
-   clock of at most 27.7 MHz or a larger half-period. The images declare no
-   I2C speed mode, so this is INFO.
+   The regenerated image starts the repeated-START path with `start: WAIT 32`
+   (pc9). The SCL low phase before the repeated START is now at least
+   42 cycles (0.84 us at 50 MHz, against 22.5 cycles of tVD;ACK), and
+   `i2c-scl-low-phase` passes (job 23975273). On the reference model, a target
+   that releases the register byte's ACK up to 42 cycles after SCL falls still
+   sees a repeated START; at 43 cycles it sees a STOP and then a START (job
+   23984841, a target model written for this check, not the `test_ext` peers).
+2. **Fixed: on a NACK (fault 65) the I2C controllers produced a runt SCL pulse
+   and no STOP.** In the 73536f0 images, `DIR 0x40` (SCL low) was followed two
+   cycles later by `FAULT 65`, which released the bus. SCL was therefore low
+   for 2 cycles, 40 ns at 50 MHz. That is shorter than the 50 ns spike filter
+   (tSP) of Fm/Fm+ targets only above 40 MHz. It happened at pc28 in
+   `i2c-read`, pc29 in `i2c-repeated-start`, and pc28/51 in `i2c-write`, and
+   was reported as WARN.
+
+   In the regenerated images a NACK leads into the STOP sequence:
+   - SDA is pulled low 2 to 4 cycles after SCL falls.
+   - SCL is released after at least 36 cycles low.
+   - tSU;STO is at least 37 cycles.
+   - `FAULT 65` then releases the owned pins. SCL is already released, so the
+     fault releases only SDA, and that release is the STOP condition.
+
+   `i2c-fault-release` is no longer reported, and the fault code is unchanged.
+   In `test_ext`, verilog-i2c's `i2c_slave` sees this STOP after an address NACK
+   (its `bus_active` falls) in both skew corners, at RTL and at gate level
+   (docs/independent-peers.md).
+3. **At 50 MHz the I2C controller images are Fast-mode Plus devices only; the
+   images now declare it.** The SCL period is at least 72 cycles, about
+   694 kHz; 71 cycles, 704 kHz, for `i2c-read` and `i2c-repeated-start`. tLOW
+   is 35 to 36 cycles (0.70 to 0.72 us), below the Fm minimum of 1.3 us.
+   Fm-only (400 kHz) targets need a clock of at most 26.9 MHz or a larger
+   half-period. The 73536f0 images declared no speed mode. The regenerated
+   images carry a note, "Declared I2C bus speed at the 50000000 Hz annotation:
+   Fast-mode Plus (...)". The note also gives the half-period each slower mode
+   needs: 62 for Fm and 247 for Sm at 50 MHz. The checker does not parse this
+   note, so these checks stay INFO. The note was compared with the analyzer
+   for half-periods 8, 21, 22, 61, 62, 246, 247 and 255 and for clock
+   annotations of 10, 25, 66 and 100 MHz (job 23976959). It never declares a
+   mode the analyzer reports as not met. For `i2c-write` at half-periods 21 and
+   61 the analyzer reports one mode more than the note, whose bounds are shared
+   by the three images and are one cycle short of `i2c-write`'s tLOW. The
+   analyzer's `i2c-scl-low-phase` check compares each SCL low phase with the
+   documented default half-period of 32, not with the image's own. It passes
+   down to half-period 28 for `i2c-write` and 29 for `i2c-read` and
+   `i2c-repeated-start`, and fails below (job 23984870).
+
+   The tVD;DAT used by the analyzer, and by the note, is at most 4 cycles. It
+   covers only SDA changes at a fixed distance from the SCL fall; distances
+   that cross a `PULL` are excluded. Two bytes are sent after a `PULL` with SCL
+   held low: the data byte of `i2c-write` and the register byte of
+   `i2c-repeated-start`. On the reference model, with the TX word queued,
+   their SDA changes come 7 cycles (`i2c-write`) and 9 and 12 cycles
+   (`i2c-repeated-start`) after SCL falls. The SCL low phases that contain them
+   are 41 and 46 cycles, and SDA is set up at least 34 cycles before SCL rises
+   (job 23984714). At 50 and 66 MHz, 12 cycles are 240 and 182 ns, within the
+   Fm+ maximum of 0.45 us. At 25 MHz they are 480 ns. The Fm+ maximum holds for
+   the 12-cycle change from 26.7 MHz and for the 7-cycle change from 15.6 MHz
+   (the Fm maximum of 0.9 us from 13.3 and 7.8 MHz). The analyzer's
+   lower clock limits (Fm+ 8.9 MHz, Fm 4.4 MHz) and the note's declarations at
+   low clock annotations therefore do not cover the `PULL` paths. UM10204
+   Table 11 note [3] requires the tVD;DAT maximum only of a device that does
+   not stretch the LOW period of SCL. A device that stretches it must have the
+   data valid by the set-up time before it releases the clock, which holds on
+   these paths.
 4. **SPI target needs CS high for at least 9 cycles between bytes (not
    declared).** After the CS==1 `WAITPIN` at the end of a frame, the firmware
    re-checks CS==1 8 cycles later, after `DIR`, `PUSH`, `JMP`, `PULL`, `SHL`,
@@ -209,13 +301,32 @@ schedule. Summary: 182 PASS, 1 FAIL, 3 WARN, 55 INFO.
    the SPI images. CS rises 1 cycle after the last SCK edge in all modes.
 7. `firmware/spi-controller-fast.image.json` carries `"name":
    "spi-controller-mode0"` (INFO).
+8. **Fixed: `i2c-repeated-start` held a started bus between transactions**
+   (reported in docs/independent-peers.md). In the 73536f0 image the only
+   `PULL` of the first byte followed the START, so the holding points were
+   `pc11 PULL [pin6=0 pin7=0]` and `pc54 PUSH`. The regenerated image pulls
+   each transaction's first word before the START. Its `PULL` at pc5 holds
+   `[pin6=Z pin7=Z]` between transactions and `[pin6=0 pin7=Z]` within one.
+   `i2c-write` and `i2c-read` already pulled before the START.
+9. **Not analyzed: SDA hold after the controller's own SCL fall.** SDA changes
+   at least 2 cycles after the controller pulls SCL low (tHD;DAT at least 2,
+   40 ns at 50 MHz), before and after the fix. UM10204 Rev. 7.0 Table 11 note
+   [2] asks that SCL drop below 0.3 VDD before SDA enters the 0.3 VDD to
+   0.7 VDD range, and Fm+ allows an SCL fall time of up to 120 ns. For a
+   controller that cannot observe the SCL falling edge, the note asks for an
+   SDA delay based on a measured SCL fall time. These images can observe SCL
+   but do not wait for it to read low before changing SDA. A trial build that
+   inserts `WAITPIN SCL==0` after each SCL fall that the controller follows
+   with an SDA change needs 65 words for `i2c-write`, 59 for `i2c-read` and 65
+   for `i2c-repeated-start`, and the assembler rejects the 65-word images (job
+   23984728). The analyzer works in clock cycles and does not model the SCL
+   fall time, so whether 2 cycles are enough on a given pad and bus is open.
 
 ### Fused versus scalar issue
 
-`firmware.md` asks to "quantify both using actual trace comparisons". I built
-the committed assembler (73536f0) in a private dune build dir, Slurm job
-23757661. Its fused SPI images are byte-identical to the committed ones. I
-generated scalar images and analyzed them; these images are not committed.
+`firmware.md` asks to "quantify both using actual trace comparisons". The committed assembler (73536f0) was built in a private dune build dir (Slurm job
+23757661). Its fused SPI images are byte-identical to the committed ones.
+Scalar images were generated and analyzed; these images are not committed.
 
 | image | SCK high / low (cycles) | CS-low frame | notes |
 |---|---|---|---|
@@ -312,10 +423,12 @@ caught by validation and fixed before the runs below:
 The same runs also found a checker bug: a LIMIT=1 wait that times out on its
 arrival edge was being rejected.
 
-**Numbers.** These are merged over the Slurm runs, per
-`tools/timing/report/validation-summary.json` and the manifest at
-`tt-work/timing/manifest.json`. Each run used a frozen copy of the tool, with
-SHA-256 sums stored next to it.
+**Numbers.** Runs r2 to r7 validated the 73536f0 images; the manifest is at
+`tt-work/timing/manifest.json`. After the I2C controller images were
+regenerated, run r8 repeated the suites on the new set, and
+`tools/timing/report/validation-summary.json` now holds r8 (see Results,
+"Validation of the regenerated set"). Each run used a frozen copy of the tool,
+with SHA-256 sums stored next to it.
 
 | run | jobs | content | result |
 |---|---|---|---|
@@ -323,8 +436,9 @@ SHA-256 sums stored next to it.
 | r3 | 23759925, 23759928 (16 tasks) | Base; stress including the 6 scalar images | PASS |
 | r4 | 23761093, 23762121 (16 tasks), 23762123 (4 tasks completed) | Final code: base, mutants, margins (including the I2C coverage trials); stress including scalar; random | PASS |
 | r7 | 23774644 (128 tasks), 23776236 | Final code: 128 x 500 random cases; base, mutants, margins (this base job replaces r4's in the totals) | PASS |
+| r8 | 23984750, 23984751 (128 tasks), 23984752 and 23984753 (16 tasks each), 23984754 (128 tasks) | Regenerated I2C controller images, final code: base, mutants, margins; stress as r2; stress including scalar as r3 and r4; 128 x 500 random cases as r7. 1 193 441 of 1 193 441 engine runs consistent | PASS |
 
-Totals:
+Totals of r2 to r7 (73536f0 images):
 
 - **1 303 659 engine runs, all consistent.**
   - 2.73 x 10^9 checked edges and 1.36 x 10^9 issue attempts.

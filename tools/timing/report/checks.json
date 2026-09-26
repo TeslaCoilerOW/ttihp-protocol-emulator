@@ -71,12 +71,12 @@
    {
     "id": "assembler-timing-table",
     "status": "PASS",
-    "detail": "58 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+    "detail": "55 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
    },
    {
     "id": "exact-analysis",
     "status": "PASS",
-    "detail": "36 boundary contexts, 38 path variants, no widening or budget cut"
+    "detail": "26 boundary contexts, 28 path variants, no widening or budget cut"
    },
    {
     "id": "no-self-deadlock",
@@ -96,7 +96,7 @@
    {
     "id": "holding-points",
     "status": "INFO",
-    "detail": "unbounded FIFO waits hold: pc2 PULL [pin6=Z pin7=Z]; pc48 PUSH [pin6=0 pin7=Z]"
+    "detail": "unbounded FIFO waits hold: pc2 PULL [pin6=Z pin7=Z]; pc43 PUSH [pin6=0 pin7=Z]"
    },
    {
     "id": "i2c-open-drain",
@@ -114,25 +114,20 @@
     "detail": "SDA changes only while SCL is held low, except START/STOP conditions"
    },
    {
-    "id": "i2c-fault-release",
-    "status": "WARN",
-    "detail": "on an explicit fault [65] SCL is released [2] cycle(s) after being driven low at pcs [28]: a runt SCL low pulse (40.0 ns at 50 MHz, below tSP=50 ns only above 40 MHz) and no STOP condition before the bus is released"
-   },
-   {
     "id": "i2c-scl-low-phase",
     "status": "PASS",
-    "detail": "SCL low phases (cycles: occurrences) {'38': 2, '36': 14, '37': 2, '40': 2, '35': 8, '37..inf': 1}; every phase >= half-period 32 (docs/firmware.md default)"
+    "detail": "SCL low phases (cycles: occurrences) {'37': 2, '36': 8, '38': 1, '35': 8, '37..inf': 1}; every phase >= half-period 32 (docs/firmware.md default)"
    },
    {
     "id": "i2c-bus-timing-cycles",
     "status": "INFO",
-    "detail": "tLOW >= 35; tHIGH >= 36; tHD;STA >= 34; tSU;STA >= 37; tSU;STO >= 36; tBUF >= 72; tSU;DAT >= 34; tHD;DAT >= 2; fSCL_period >= 71; tVD;DAT <= 4 cycles (tHIGH/tSU;STA/tSU;STO counted from the synchronized observation of SCL high, +2 cycles input latency; stretch-aware)",
+    "detail": "tLOW >= 35; tHIGH >= 36; tHD;STA >= 34; tSU;STA >= 37; tSU;STO >= 37; tBUF >= 72; tSU;DAT >= 34; tHD;DAT >= 2; fSCL_period >= 71; tVD;DAT <= 4 cycles (tHIGH/tSU;STA/tSU;STO counted from the synchronized observation of SCL high, +2 cycles input latency; stretch-aware)",
     "params": {
      "tLOW": 35,
      "tHIGH": 36,
      "tHD;STA": 34,
      "tSU;STA": 37,
-     "tSU;STO": 36,
+     "tSU;STO": 37,
      "tBUF": 72,
      "tSU;DAT": 34,
      "tHD;DAT": 2,
@@ -192,12 +187,12 @@
    {
     "id": "assembler-timing-table",
     "status": "PASS",
-    "detail": "63 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+    "detail": "61 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
    },
    {
     "id": "exact-analysis",
     "status": "PASS",
-    "detail": "58 boundary contexts, 62 path variants, no widening or budget cut"
+    "detail": "50 boundary contexts, 53 path variants, no widening or budget cut"
    },
    {
     "id": "no-self-deadlock",
@@ -217,7 +212,7 @@
    {
     "id": "holding-points",
     "status": "INFO",
-    "detail": "unbounded FIFO waits hold: pc11 PULL [pin6=0 pin7=0]; pc54 PUSH [pin6=0 pin7=Z]"
+    "detail": "unbounded FIFO waits hold: pc5 PULL [pin6=0 pin7=Z]; pc5 PULL [pin6=Z pin7=Z]; pc50 PUSH [pin6=0 pin7=Z]"
    },
    {
     "id": "i2c-open-drain",
@@ -235,38 +230,33 @@
     "detail": "SDA changes only while SCL is held low, except START/STOP conditions"
    },
    {
-    "id": "i2c-fault-release",
-    "status": "WARN",
-    "detail": "on an explicit fault [65] SCL is released [2] cycle(s) after being driven low at pcs [29]: a runt SCL low pulse (40.0 ns at 50 MHz, below tSP=50 ns only above 40 MHz) and no STOP condition before the bus is released"
-   },
-   {
     "id": "i2c-scl-low-phase",
-    "status": "FAIL",
-    "detail": "SCL low phase shorter than the half-period 32 (docs/firmware.md default) after SCL is pulled low at pc29 (7 cycles); all phases {'39..inf': 3, '36': 28, '37': 4, '46..inf': 2, '7': 1, '41': 1, '35': 8, '36..inf': 1}"
+    "status": "PASS",
+    "detail": "SCL low phases (cycles: occurrences) {'37': 2, '36': 24, '38': 3, '46..inf': 1, '42..inf': 1, '39': 1, '35': 8, '36..inf': 1}; every phase >= half-period 32 (docs/firmware.md default)"
    },
    {
     "id": "i2c-bus-timing-cycles",
     "status": "INFO",
-    "detail": "tLOW >= 7; tHIGH >= 36; tHD;STA >= 34; tSU;STA >= 37; tSU;STO >= 36; tBUF >= 72; tSU;DAT >= 34; tHD;DAT >= 2; fSCL_period >= 43; tVD;DAT <= 2 cycles (tHIGH/tSU;STA/tSU;STO counted from the synchronized observation of SCL high, +2 cycles input latency; stretch-aware)",
+    "detail": "tLOW >= 35; tHIGH >= 36; tHD;STA >= 34; tSU;STA >= 37; tSU;STO >= 37; tBUF >= 111; tSU;DAT >= 34; tHD;DAT >= 2; fSCL_period >= 71; tVD;DAT <= 4 cycles (tHIGH/tSU;STA/tSU;STO counted from the synchronized observation of SCL high, +2 cycles input latency; stretch-aware)",
     "params": {
-     "tLOW": 7,
+     "tLOW": 35,
      "tHIGH": 36,
      "tHD;STA": 34,
      "tSU;STA": 37,
-     "tSU;STO": 36,
-     "tBUF": 72,
+     "tSU;STO": 37,
+     "tBUF": 111,
      "tSU;DAT": 34,
      "tHD;DAT": 2,
-     "fSCL_period": 43,
-     "tVD;DAT": 2
+     "fSCL_period": 71,
+     "tVD;DAT": 4
     }
    },
    {
     "id": "i2c-Sm",
     "status": "INFO",
-    "detail": "UM10204 Sm: met for clocks 0.58..1.49 MHz (limited by tLOW); at 50 MHz FAIL; 10MHz FAIL, 25MHz FAIL, 50MHz FAIL, 66MHz FAIL, 100MHz FAIL",
-    "max_clock_hz": 1489361.7021276597,
-    "min_clock_hz": 579710.1449275363,
+    "detail": "UM10204 Sm: met for clocks 1.16..7.1 MHz (limited by fSCL_period); at 50 MHz FAIL; 10MHz FAIL, 25MHz FAIL, 50MHz FAIL, 66MHz FAIL, 100MHz FAIL",
+    "max_clock_hz": 7099999.999999999,
+    "min_clock_hz": 1159420.2898550725,
     "at": {
      "10MHz": "FAIL",
      "25MHz": "FAIL",
@@ -278,12 +268,12 @@
    {
     "id": "i2c-Fm",
     "status": "INFO",
-    "detail": "UM10204 Fm: met for clocks 2.22..5.38 MHz (limited by tLOW); at 50 MHz FAIL; 10MHz FAIL, 25MHz FAIL, 50MHz FAIL, 66MHz FAIL, 100MHz FAIL",
-    "max_clock_hz": 5384615.384615384,
-    "min_clock_hz": 2222222.2222222225,
+    "detail": "UM10204 Fm: met for clocks 4.44..26.9 MHz (limited by tLOW); at 50 MHz FAIL; 10MHz PASS, 25MHz PASS, 50MHz FAIL, 66MHz FAIL, 100MHz FAIL",
+    "max_clock_hz": 26923076.923076924,
+    "min_clock_hz": 4444444.444444445,
     "at": {
-     "10MHz": "FAIL",
-     "25MHz": "FAIL",
+     "10MHz": "PASS",
+     "25MHz": "PASS",
      "50MHz": "FAIL",
      "66MHz": "FAIL",
      "100MHz": "FAIL"
@@ -292,14 +282,14 @@
    {
     "id": "i2c-Fm+",
     "status": "INFO",
-    "detail": "UM10204 Fm+: met for clocks 4.44..14 MHz (limited by tLOW); at 50 MHz FAIL; 10MHz PASS, 25MHz FAIL, 50MHz FAIL, 66MHz FAIL, 100MHz FAIL",
-    "max_clock_hz": 14000000.0,
-    "min_clock_hz": 4444444.444444445,
+    "detail": "UM10204 Fm+: met for clocks 8.89..70 MHz (limited by tLOW); at 50 MHz PASS; 10MHz PASS, 25MHz PASS, 50MHz PASS, 66MHz PASS, 100MHz FAIL",
+    "max_clock_hz": 70000000.0,
+    "min_clock_hz": 8888888.88888889,
     "at": {
      "10MHz": "PASS",
-     "25MHz": "FAIL",
-     "50MHz": "FAIL",
-     "66MHz": "FAIL",
+     "25MHz": "PASS",
+     "50MHz": "PASS",
+     "66MHz": "PASS",
      "100MHz": "FAIL"
     }
    }
@@ -437,7 +427,7 @@
    {
     "id": "assembler-timing-table",
     "status": "PASS",
-    "detail": "64 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+    "detail": "60 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
    },
    {
     "id": "exact-analysis",
@@ -462,7 +452,7 @@
    {
     "id": "holding-points",
     "status": "INFO",
-    "detail": "unbounded FIFO waits hold: pc2 PULL [pin6=Z pin7=Z]; pc33 PULL [pin6=0 pin7=0]"
+    "detail": "unbounded FIFO waits hold: pc2 PULL [pin6=Z pin7=Z]; pc31 PULL [pin6=0 pin7=0]"
    },
    {
     "id": "i2c-open-drain",
@@ -480,25 +470,20 @@
     "detail": "SDA changes only while SCL is held low, except START/STOP conditions"
    },
    {
-    "id": "i2c-fault-release",
-    "status": "WARN",
-    "detail": "on an explicit fault [65] SCL is released [2] cycle(s) after being driven low at pcs [28, 51]: a runt SCL low pulse (40.0 ns at 50 MHz, below tSP=50 ns only above 40 MHz) and no STOP condition before the bus is released"
-   },
-   {
     "id": "i2c-scl-low-phase",
     "status": "PASS",
-    "detail": "SCL low phases (cycles: occurrences) {'38': 2, '36': 14, '37': 2, '41..inf': 1}; every phase >= half-period 32 (docs/firmware.md default)"
+    "detail": "SCL low phases (cycles: occurrences) {'37': 1, '36': 17, '38': 1, '41..inf': 1}; every phase >= half-period 32 (docs/firmware.md default)"
    },
    {
     "id": "i2c-bus-timing-cycles",
     "status": "INFO",
-    "detail": "tLOW >= 36; tHIGH >= 36; tHD;STA >= 34; tSU;STA >= 37; tSU;STO >= 36; tBUF >= 72; tSU;DAT >= 34; tHD;DAT >= 2; fSCL_period >= 72; tVD;DAT <= 4 cycles (tHIGH/tSU;STA/tSU;STO counted from the synchronized observation of SCL high, +2 cycles input latency; stretch-aware)",
+    "detail": "tLOW >= 36; tHIGH >= 36; tHD;STA >= 34; tSU;STA >= 37; tSU;STO >= 37; tBUF >= 72; tSU;DAT >= 34; tHD;DAT >= 2; fSCL_period >= 72; tVD;DAT <= 4 cycles (tHIGH/tSU;STA/tSU;STO counted from the synchronized observation of SCL high, +2 cycles input latency; stretch-aware)",
     "params": {
      "tLOW": 36,
      "tHIGH": 36,
      "tHD;STA": 34,
      "tSU;STA": 37,
-     "tSU;STO": 36,
+     "tSU;STO": 37,
      "tBUF": 72,
      "tSU;DAT": 34,
      "tHD;DAT": 2,
@@ -1716,7 +1701,7 @@
   {
    "id": "flagship-engine3-schedule",
    "status": "PASS",
-   "detail": "i2c-write: 25 contexts, WCET between boundaries 107 cycles; schedule exact per engine (no widening). Isolation from the other engines, host and mover rests on formal job timing_isolation_prove_k3 (formal/README.md; not re-run by this tool)"
+   "detail": "i2c-write: 25 contexts, WCET between boundaries 106 cycles; schedule exact per engine (no widening). Isolation from the other engines, host and mover rests on formal job timing_isolation_prove_k3 (formal/README.md; not re-run by this tool)"
   },
   {
    "id": "flagship-bridge-rate",

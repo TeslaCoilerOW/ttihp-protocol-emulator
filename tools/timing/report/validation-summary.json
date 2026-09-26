@@ -1,89 +1,89 @@
 {
  "result": "PASS",
- "files": 302,
+ "files": 289,
  "suites": {
-  "random": {
-   "items": 73000,
-   "seconds": 14599.699999999997
-  },
-  "mutants": {
-   "items": 21,
-   "seconds": 60.7
-  },
-  "scenarios": {
-   "items": 30,
-   "seconds": 2.9000000000000004
-  },
-  "legacy": {
-   "items": 75,
-   "seconds": 5.9
-  },
-  "event": {
-   "items": 3,
-   "seconds": 1.8
-  },
-  "margins": {
-   "items": 9,
-   "seconds": 75.0
-  },
   "stress": {
    "items": 64000,
-   "seconds": 51452.600000000006
+   "seconds": 42719.3
+  },
+  "random": {
+   "items": 64000,
+   "seconds": 8574.5
+  },
+  "mutants": {
+   "items": 7,
+   "seconds": 18.1
+  },
+  "scenarios": {
+   "items": 10,
+   "seconds": 0.9
+  },
+  "legacy": {
+   "items": 25,
+   "seconds": 1.7
+  },
+  "event": {
+   "items": 1,
+   "seconds": 0.5
+  },
+  "margins": {
+   "items": 3,
+   "seconds": 24.1
   }
  },
  "stats": {
-  "runs": 1303659,
-  "runs_ok": 1303659,
+  "runs": 1193441,
+  "runs_ok": 1193441,
   "runs_failed": 0,
-  "ticks_checked": 2731272916,
-  "attempts_checked": 1355204958,
-  "pad_changes_observed": 38037698,
-  "pad_changes_matched": 38037698,
-  "segments_completed": 14952277,
-  "boundaries_completed": 14499907,
-  "timeouts_matched": 42377,
-  "terminals_matched": 409993,
-  "strict_push_faults": 57414,
+  "ticks_checked": 2599061920,
+  "attempts_checked": 1284177301,
+  "pad_changes_observed": 35303947,
+  "pad_changes_matched": 35303947,
+  "segments_completed": 12610795,
+  "boundaries_completed": 12215049,
+  "timeouts_matched": 36114,
+  "terminals_matched": 359632,
+  "strict_push_faults": 47132,
   "unchecked_ticks": 0,
   "runs_unchecked_budget": 0,
   "stall_vs_min": {
-   "branch:min": 1176222,
-   "event_limit:>min": 117466,
-   "event_limit:min": 375438,
-   "pin_limit:>min": 4532211,
-   "pin_limit:min": 3164763,
-   "rx_fifo_unbounded:>min": 1500771,
-   "rx_fifo_unbounded:min": 1959323,
-   "tx_fifo_unbounded:>min": 237637,
-   "tx_fifo_unbounded:min": 1436076
+   "event_limit:>min": 103392,
+   "event_limit:min": 290713,
+   "pin_limit:>min": 4391866,
+   "pin_limit:min": 2965336,
+   "rx_fifo_unbounded:>min": 325719,
+   "rx_fifo_unbounded:min": 1572217,
+   "tx_fifo_unbounded:>min": 220298,
+   "tx_fifo_unbounded:min": 1334166,
+   "branch:min": 1011342
   },
   "per_program_runs": {
-   "custom programs": 702258,
-   "event-transmitter": 28063,
-   "i2c-read": 28796,
-   "i2c-repeated-start": 28695,
-   "i2c-target-read": 27911,
-   "i2c-target-write": 27978,
-   "i2c-write": 28633,
-   "jtag": 33912,
-   "spi-controller-fast": 35073,
-   "spi-controller-mode0": 34452,
-   "spi-controller-mode1": 34903,
-   "spi-controller-mode2": 34845,
-   "spi-controller-mode3": 34938,
-   "spi-target-mode0": 31912,
-   "spi-target-mode1": 31691,
-   "spi-target-mode2": 31450,
-   "spi-target-mode3": 31793,
-   "uart-rx": 28873,
-   "uart-tx": 31242,
-   "waveform": 28338,
+   "event-transmitter": 28061,
+   "i2c-read": 28954,
+   "i2c-repeated-start": 28718,
+   "i2c-target-read": 27819,
+   "i2c-target-write": 27886,
+   "i2c-write": 28836,
+   "jtag": 33910,
+   "spi-controller-fast": 35071,
+   "spi-controller-mode0": 34446,
+   "spi-controller-mode1": 34901,
+   "spi-controller-mode2": 34843,
+   "spi-controller-mode3": 34936,
+   "spi-target-mode0": 31770,
+   "spi-target-mode1": 31529,
+   "spi-target-mode2": 31306,
+   "spi-target-mode3": 31631,
+   "uart-rx": 28657,
+   "uart-tx": 31234,
+   "waveform": 28336,
    "jtag-scalar": 1319,
    "spi-controller-scalar-fast": 1316,
    "spi-controller-scalar-mode0": 1325,
    "spi-controller-scalar-mode1": 1298,
    "spi-controller-scalar-mode2": 1313,
-   "spi-controller-scalar-mode3": 1332
+   "spi-controller-scalar-mode3": 1332,
+   "custom programs": 592694
   },
   "variant_coverage": {
    "event-transmitter": {
@@ -92,13 +92,13 @@
     "percent": 100.0
    },
    "i2c-read": {
-    "variants": 38,
-    "observed": 38,
-    "percent": 100.0
+    "variants": 28,
+    "observed": 27,
+    "percent": 96.4
    },
    "i2c-repeated-start": {
-    "variants": 62,
-    "observed": 62,
+    "variants": 53,
+    "observed": 53,
     "percent": 100.0
    },
    "i2c-target-read": {
@@ -215,7 +215,7 @@
   "failures": []
  },
  "custom_programs": {
-  "count": 334356,
+  "count": 297112,
   "not_exact": [
    "custom-002ac00aaa",
    "custom-009a71cb29",
@@ -238,7 +238,6 @@
    "custom-03bf117e79",
    "custom-046ab2b975",
    "custom-046f49af51",
-   "custom-04fb2f2c81",
    "custom-050fac9aae",
    "custom-05c6595846",
    "custom-05f82e27af",
@@ -250,12 +249,10 @@
    "custom-07343e7e0a",
    "custom-0743993975",
    "custom-07d3671d74",
-   "custom-0856fd532c",
    "custom-08a3bf403e",
    "custom-0983dcc993",
    "custom-098d3a0f2b",
    "custom-09ebe62f61",
-   "custom-0a0e88c2fc",
    "custom-0a9f03a18f",
    "custom-0ab4d56a0a",
    "custom-0ad188fd3b",
@@ -265,10 +262,13 @@
    "custom-0cbe979123",
    "custom-0d688bd6dc",
    "custom-0df1bcff47",
-   "custom-0e20730bdf",
-   "custom-0e58e0d948"
+   "custom-0e58e0d948",
+   "custom-0ebce503b9",
+   "custom-0eca7a232a",
+   "custom-0f39eded4b",
+   "custom-0f3ae527df"
   ],
-  "not_exact_count": 973
+  "not_exact_count": 844
  },
  "mutants": {
   "wait-n-cycles": {
@@ -293,13 +293,13 @@
    "detected": true,
    "runs_failed": 1,
    "runs": 109,
-   "first_failure": "boundary pc16 completed after 2 stalls, minimum 3"
+   "first_failure": "boundary pc15 completed after 2 stalls, minimum 3"
   },
   "open-drain-as-push-pull": {
    "detected": true,
    "runs_failed": 11,
    "runs": 109,
-   "first_failure": "pin7 pad Z at +72, predicted 0|1"
+   "first_failure": "pin7 pad Z at +71, predicted 0|1"
   },
   "halt-keeps-pins": {
    "detected": true,

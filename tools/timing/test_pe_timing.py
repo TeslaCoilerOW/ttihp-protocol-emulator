@@ -150,9 +150,7 @@ class FirmwareImages(unittest.TestCase):
                 self.assertEqual(T.assembler_timing_check(an)["status"], "PASS")
                 name = path.name.removesuffix(".image.json")
                 checks = C.check_program(an, name=name)
-                # Known finding (docs/timing-analysis.md): 7-cycle SCL low phase before the repeated START.
-                expected = ["i2c-scl-low-phase"] if name == "i2c-repeated-start" else []
-                self.assertEqual([c["id"] for c in checks if c["status"] == "FAIL"], expected)
+                self.assertEqual([c["id"] for c in checks if c["status"] == "FAIL"], [])
 
     def test_uart_tx_bit_period(self) -> None:
         an = T.Analysis(T.Program.from_image(FIRMWARE / "uart-tx.image.json"))
