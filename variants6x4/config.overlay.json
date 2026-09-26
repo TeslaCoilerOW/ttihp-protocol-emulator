@@ -1,5 +1,5 @@
 {
-  "//": "6x4 overlay: an RFC 7386 JSON merge patch on src/config.json, applied by variants6x4/switch.py. Signed-off point (docs/6x4.md section 4): floorplans/fp6_tworow_trk_top30_edgeobs.json at density 60, 20 ns, OPENROAD_THREADS 4. MACROS: the 6x4 placement (bottom FS row k 0/4/8/12 at y 3.87, top N row k 3/7/11/15 lowered to y 612.36). FP_OBSTRUCTIONS: no CoreSite rows in the stripe-free gap between the top row's last macro and the right core edge, so no short VPWR/VGND strap is generated. PL_TARGET_DENSITY_PCT and FP_MACRO_HORIZONTAL_HALO restate the signed-off values (equal to src/config.json's at c118027), so a later change there does not silently change the 6x4 build. Every other key is src/config.json's.",
+  "//": "6x4 overlay: an RFC 7386 JSON merge patch on src/config.json, applied by variants6x4/switch.py (a null value removes the key, so LibreLane's default applies). Signed-off point (docs/6x4.md section 4): optimizer promotion p014 (trial diet4_6x4 #8; full run with LVS, TT precheck and gate-level tests), floorplans/fp6_tworow_trk_top30_edgeobs.json at density 60, 20 ns, OPENROAD_THREADS 4. MACROS: the 6x4 placement (bottom FS row k 0/4/8/12 at y 3.87, top N row k 3/7/11/15 lowered to y 612.36). FP_OBSTRUCTIONS: no CoreSite rows in the stripe-free gap between the top row's last macro and the right core edge, so no short VPWR/VGND strap is generated. PL_TARGET_DENSITY_PCT, FP_MACRO_HORIZONTAL_HALO and the timing-repair, CTS and routing keys are stated here in full, so a later change of src/config.json for the 8x4 build does not silently change the 6x4 build. Every other key is src/config.json's.",
   "PL_TARGET_DENSITY_PCT": 60,
   "FP_MACRO_HORIZONTAL_HALO": 16.48,
   "FP_OBSTRUCTIONS": [
@@ -10,6 +10,24 @@
       706.86
     ]
   ],
+  "CTS_CLK_MAX_WIRE_LENGTH": 500,
+  "CTS_MAX_CAP": 0.1,
+  "CTS_OBSTRUCTION_AWARE": null,
+  "CTS_SINK_CLUSTERING_MAX_DIAMETER": 60,
+  "CTS_SINK_CLUSTERING_SIZE": 25,
+  "DESIGN_REPAIR_MAX_CAP_PCT": null,
+  "DESIGN_REPAIR_MAX_SLEW_PCT": 10,
+  "GPL_CELL_PADDING": 4,
+  "GRT_LAYER_ADJUSTMENTS": [
+    0,
+    0,
+    0.1,
+    0.1,
+    0
+  ],
+  "MAX_FANOUT_CONSTRAINT": null,
+  "PL_RESIZER_HOLD_SLACK_MARGIN": 0.05,
+  "PL_RESIZER_SETUP_SLACK_MARGIN": 6.35,
   "MACROS": {
     "RM_IHPSG13_1P_64x16_c2": {
       "instances": {
