@@ -15,6 +15,11 @@ Events (field "ev"):
   trial_submit   uid, job_id, attempt, cpus, partition
   trial_dup      uid, of                      (identical effective configuration)
   trial_done     uid, job_id, metrics, legal, blockers, magnitude, value
+  trial_import   uid, track, number, knobs, imported_from, metrics, legal, blockers, magnitude,
+                 value, run_id, run_dir, job_id, config_changes (a finished trial of another
+                 track whose effective configuration is identical, recorded without a new run)
+  track_retire   track, reason                (no new trials; docs/optimization.md, "Retirement")
+  track_seeds    track, revision              (the track's seed queue includes that revision's seeds)
   promo_new      pid, uid, track, reason, run_id, run_dir
   promo_submit   pid, stage (full|precheck|gl), job_id, attempt
   promo_done     pid, stage, result
@@ -103,6 +108,20 @@ class State(object):
                 t.update(state="done", metrics=e.get("metrics"), legal=e.get("legal"),
                          blockers=e.get("blockers"), magnitude=e.get("magnitude"), value=e.get("value"),
                          done_job=e.get("job_id"), finished=e["t"], lost=e.get("lost", False))
+        elif ev == "trial_import":
+            t = dict(e)
+            t.update(state="done", submits=[], created=e["t"], finished=e["t"], imported=True,
+                     done_job=e.get("job_id"), lost=False)
+            self.trials[e["uid"]] = t
+        elif ev == "track_seeds":
+            tr = self.tracks.get(e["track"])
+            if tr is not None:
+                tr["seed_revision"] = max(int(tr.get("seed_revision") or 1), int(e.get("revision") or 1))
+        elif ev == "track_retire":
+            tr = self.tracks.get(e["track"])
+            if tr is not None:
+                tr["retired"] = e.get("reason") or "retired"
+                tr["retired_t"] = e["t"]
         elif ev == "promo_new":
             p = dict(e)
             p.update(stages={}, created=e["t"])

@@ -13,6 +13,12 @@ Lexicographic, in this order:
   4. the typ-corner fmax estimate 1000 / (period - typ WS) (higher);
   5. the utilization (lower).
 
+The period is the track's CLOCK_PERIOD (20, 15 or 13.33 ns): STA ran at that
+period, so the setup slacks, the legality (typ setup) and the ranking are all
+at that period. flatten() also reports an fmax estimate per corner,
+1000 / (period - setup WS), and the same for register-to-register paths only
+(docs/optimization.md, "Frequency tracks and the SDC").
+
 value() folds this into the single number TPE maximizes. Standard library only.
 """
 
@@ -64,8 +70,7 @@ def flatten(res, post=None, period=20.0):
         m["min_ws"], m["min_ws_corner"] = min(ws)
     else:
         m["min_ws"], m["min_ws_corner"] = None, None
-    tw = _f(m["typ_setup_ws"])
-    m["typ_fmax_mhz"] = round(1000.0 / (period - tw), 3) if tw is not None and period - tw > 0 else None
+    derive_fmax(m, period)
     vio = [m["max_slew_vio"], m["max_cap_vio"], m["max_fanout_vio"]]
     m["drv_vio_sum"] = int(sum(int(v) for v in vio)) if all(v is not None for v in vio) else None
     lef = post.get("lef") or {}
@@ -79,6 +84,19 @@ def flatten(res, post=None, period=20.0):
     cts = (post.get("resizer") or {}).get("resizertimingpostcts")
     m["rsz_postcts_setup_found"] = (None if cts is None else
                                     not any("RSZ-0098" in l for l in cts))  # RSZ-0098: no setup violations found
+    return m
+
+
+def derive_fmax(m, period):
+    """Add period_ns, <corner>_fmax_mhz, <corner>_fmax_r2r_mhz (1000 / (period - WS)) and
+    fmax_all_corners_mhz (the lowest corner) to a flat metric dict; returns it."""
+    m["period_ns"] = period
+    for c in CORNERS:
+        for src, dst in (("setup_ws", "fmax_mhz"), ("setup_r2r_ws", "fmax_r2r_mhz")):
+            w = _f(m.get("%s_%s" % (c, src)))
+            m["%s_%s" % (c, dst)] = round(1000.0 / (period - w), 3) if w is not None and period - w > 0 else None
+    fm = [m["%s_fmax_mhz" % c] for c in CORNERS]
+    m["fmax_all_corners_mhz"] = min(fm) if all(v is not None for v in fm) else None
     return m
 
 
