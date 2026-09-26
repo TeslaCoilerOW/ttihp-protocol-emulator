@@ -47,9 +47,9 @@ make
 The RTL run compiles `../src/project.v`, `../src/protocol_emulator_core.v` and the
 IHP SRAM behavioral models `../models/RM_IHPSG13_1P_64x16_c2.v` +
 `../models/RM_IHPSG13_1P_core_behavioral.v` with `-DFUNCTIONAL`. The full suite
-takes about 1.5 to 4 minutes (66 tests, about 0.55 M lockstep cycles at 3,500 to
-8,000 cycles/s depending on the machine; 89 s for `make clean; make` with Icarus
-13.0 on an MIT Engaging node, of which the gap-closure modules take 27 s).
+takes about 3.5 to 6 minutes (102 tests; about 221 s of test time for
+`make clean; make` with Icarus 13.0 on a cluster node, of which the
+gap-closure modules take 27 s and the test_kill_* modules 132 s).
 
 Useful variables:
 
@@ -191,6 +191,38 @@ and releases), `repeat_itinerary` (COUNT 0xFFFF) and `route_itinerary` (four
 0xFFFF-word routes carrying words around a ring). The warps are white-box
 stimulus; the checks stay black-box. They need the RTL register names, so the
 module is skipped at gate level; `h.warp_supported()` tells.
+
+## Mutation-kill tests
+
+The `test_kill_*` modules were written from the mutants that survived the
+extended suite above (`../docs/mutation-push.md`). Each targets a class of
+survivor: a field bit, pin, engine, edge or hold state that no other test
+exercised. As everywhere else, every cycle is compared with the model and every
+scenario also runs on the model alone. `test_kill_common.py` holds shared helpers
+and has no tests.
+
+| module | tests | cycles | what it adds |
+|---|---:|---:|---|
+| `test_kill_decode.py` | 3 | 134,000 | every operand field bit that must be zero or bounded, and every opcode with bit 5, 6 or 7 added, faults with code 1 on every engine (an own-pin DIR before each case shows each engine's fault on its own output enable); pin-ownership checks against every single unowned pin; FAULT n with twelve codes on every engine |
+| `test_kill_blocked.py` | 4 | 28,000 | WAITPIN/WAITEVENT time out on the exact cycle after every way of completing an instruction and every hold state (WAIT, XFER, PULL/PUSH stalls); exact timeouts at LIMIT 2^k and 2^k + 5, WAITPIN and WAITEVENT (time warp) |
+| `test_kill_pc.py` | 2 | 28,000 | far JMP/LOOP/JZ targets: a target whose low bits name a word in the image faults with code 2; a STOP on the edge after the jump keeps the whole target in the PC |
+| `test_kill_mover.py` | 5 | 27,000 | a routed stream (grant timing on a pin) while the host writes, FLUSHes, re-routes and reads other engines; FLUSH, and a ROUTE rewriting a moving descriptor, landing on a grant edge; FLUSH disabling exactly the routes touching an engine; descriptor counts with high bits set (time warp) |
+| `test_kill_regs.py` | 5 | 93,000 | every register observed after every kind of instruction (all-zeros and all-ones); shifter stages into every destination; every ALU operation on every register pair with distinct values; the repeat counter held across WAIT, XFER and a PULL stall; TIME with high timestamp bits (time warp) |
+| `test_kill_xfer.py` | 4 | 20,000 | every single-bit and dense half-period; all 32 modes; PINS across WAITs, XFER without drive next to an enabled TX pin, driving XFER with default pins; sampling XFERs after odd and even numbers of instructions since PINS |
+| `test_kill_host.py` | 5 | 30,000 | every host command with each must-be-zero payload bit and each opcode bit 4..7; OWN overlaps for every engine pair and pin; images of 64, 47, 33 and 17 words running off their end, and full images ending in COUNT, LIMIT, PINS or TIME; paused status reads |
+| `test_kill_events.py` | 2 | 17,000 | pin triggers on every engine, mode and pin; EVENT and SIGNAL with every mask |
+| `test_kill_pins.py` | 2 | 35,000 | SET/DIR/OUT and blocked waits on every pin, engine and open-drain mask; driving XFER on every TX pin in every CPHA/bit-order combination |
+| `test_kill_edges.py` | 2 | 8,500 | STOP and START landing on the edge where PULL, PUSH, SIGNAL or WAITEVENT would issue; the status word captured on the edge a strict PUSH meets a full queue |
+| `test_kill_fifo.py` | 2 | 5,400 | full queues keep their words while the queue's data input changes; commands, program words and TX words written with pauses between nibbles |
+
+The 36 tests add about 0.43 M lockstep cycles to the default run. At gate
+level only the ten tests under 5,000 cycles run (`fault_codes`,
+`exact_timeout_waitevent`, `flush_on_grant_edge`, `flush_matrix`,
+`pins_register`, `own_matrix`, `paused_reads`, `strict_push_status`,
+`full_queues`, `paused_writes`); the others, like the time-warp tests, report
+SKIP. Several scenarios time a command or a status capture to one clock edge
+by consulting the model (`test_kill_pc.command_at`,
+`test_kill_edges.snapshot_when`).
 
 ## Design variants (PE_VARIANT)
 

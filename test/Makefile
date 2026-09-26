@@ -93,9 +93,9 @@ TOPLEVEL = tb
 
 # List test modules to run, separated by commas and without the .py suffix.
 # Select a subset with e.g. `make COCOTB_TEST_MODULES=test_random` or single
-# tests with `make COCOTB_TEST_FILTER=test_uart_tx`. The last four modules close
-# the gaps of the verification campaigns (README.md, "Gap-closure tests").
-COCOTB_TEST_MODULES ?= test_smoke,test_protocols,test_flagship,test_legacy,test_random,test_directed,test_mover,test_counters,test_timewarp
+# tests with `make COCOTB_TEST_FILTER=test_uart_tx`. test_directed..test_timewarp
+# close the campaign gaps and test_kill_* the mutation survivors (README.md).
+COCOTB_TEST_MODULES ?= test_smoke,test_protocols,test_flagship,test_legacy,test_random,test_directed,test_mover,test_counters,test_timewarp,test_kill_decode,test_kill_blocked,test_kill_pc,test_kill_mover,test_kill_regs,test_kill_xfer,test_kill_host,test_kill_events,test_kill_pins,test_kill_edges,test_kill_fifo
 
 # include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim
