@@ -5,7 +5,7 @@ This document covers the recipe, the decisions and the evidence for taking
 CMOS5L gds action. The design is configured as `configs/instruction-sram-32.json`
 with eight `RM_IHPSG13_1P_64x16_c2` instruction SRAMs. Last updated 2026-09-25.
 
-**Status.** The configuration is written and passes every static check we can
+**Status.** The configuration is written and passes every static check that can
 run locally (section 6). A local LibreLane 3.1.0.dev3 run that mirrors the
 action got through synthesis, macro placement, the checked PDN step, placement,
 CTS and global routing (617 overflow, mostly Metal3). A second run, with the
@@ -103,7 +103,7 @@ There are two public ways to do this:
   512x16), and it hard-codes one macro name and LEF path. The William and
   Marcos repos also monkeypatch `librelane.steps.netgen` JSON parsing.
 
-We chose the loom method for three reasons. First,
+The loom method was chosen for three reasons. First,
 `RM_IHPSG13_1P_64x16_c2.lef` declares **every** power column as a pin (20
 `VSS!`, 20 `VDD!`, 16 `VDDARRAY!` rectangles). Second, it has the **same
 column lattice** as the 512x16: the same-net pitch is 11.24 um, POWER to
@@ -200,7 +200,7 @@ Rules applied:
 
 **Deviation from the plan's "existing routed floorplan".** The monorepo's
 engineering placement had two mid-die rows at y = 160 and 460, x = 112, 400,
-1008 and 1296, all N. We did not reuse it, for three reasons:
+1008 and 1296, all N. It was not reused, for three reasons:
 
 1. Its x values are not on the stripe lattice, so under the TT PDN rules the
    macros could not be powered.
@@ -234,7 +234,7 @@ feasibility is task 1.4a's question (`docs/area-study.md`).
 `TinyTapeout/tt-support-tools#190` is still open. It reports the
 **ihp-sg13g2** precheck on `main` (`ihp-sg13g2.drc`) flagging 1,830
 `Sdiod.d`/`Sdiod.e`/`Cnt.c.digibnd` violations inside
-`RM_IHPSG13_1P_512x8_c3_bm_bist`. We judge that it does not block us:
+`RM_IHPSG13_1P_512x8_c3_bm_bist`. It is judged not to block this design:
 
 * Our flow is the cmos5l precheck, which runs `ihp-sg13cmos5l.drc` from PDK
   `2bbec755`. It is a different deck from the one in the issue.
@@ -382,7 +382,7 @@ Two things this run exposes:
 * **Runtime.** GitHub-hosted runner jobs stop after 6 hours. Locally, lint to
   the end of detailed routing took about 1 h 40 min on 4 threads, and the flow
   reached Magic DRC (step 62) about 2 h 07 min after the job started, with
-  LVS still to come. The only 6x4 SRAM reference design we found
+  LVS still to come. The only 6x4 SRAM reference design found
   (`tt_um_loom`, run 35940928210) spent 5 h 02 min in its Build GDS step, and
   this design is larger. Whether the action finishes inside 6 hours is
   unmeasured.

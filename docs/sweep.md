@@ -523,7 +523,7 @@ python3 scripts/sweep/submit.py scripts/sweep/matrices/variants.yaml --cpu-budge
 
 ## Variant follow-ups (matrix `var2`, `matrices/variants-followup.yaml`)
 
-I added these from the first results. They were submitted between 02:58 and
+These were added after the first results and submitted between 02:58 and
 04:40 with `--cpu-budget 768 --exclude node1621,node1918`. Each task is
 listed with its job id in `manifest.json` (tag in brackets):
 
@@ -658,7 +658,7 @@ second list overwrote the first. What happened:
   23793631_0 and _1.
 * 23793630_2 and _3 read empty lines and failed after 4 s.
 
-I cancelled 23793630_0 and _1 at 04:42. Their `terminated` `result.json`
+Jobs 23793630_0 and _1 were cancelled at 04:42. Their `terminated` `result.json`
 sits in the two full-run directories until 23793631_0 and _1 finish and
 overwrite it. `collect.py` shows those runs as running meanwhile, because the
 job ids differ. The four affected runs were resubmitted as 23794722_0–3.

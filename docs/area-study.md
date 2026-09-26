@@ -640,7 +640,7 @@ Key hashes:
 - `fifo4.v` `2fe0e488a3d8…`
 - `dietF16.v` `d3cd4cdf4333…`
 
-**Reproduction check (2026-09-25).** I applied `area-knobs-v2.patch` to a fresh copy
+**Reproduction check (2026-09-25).** `area-knobs-v2.patch` was applied to a fresh copy
 of this repository's `hardcaml/` (`patch -p1`), built it, and emitted `base`,
 `cn` and `dietEi_byte`. All three are byte-identical to the manifest.
 
