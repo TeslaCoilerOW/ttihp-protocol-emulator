@@ -35,15 +35,36 @@ not be edited by hand. `src/project.v` is a thin Tiny Tapeout wrapper
 
 ## Status
 
-As of 2026-09-25, this design has **not been hardened** and there is **no
-silicon**. It does not yet have a passing Tiny Tapeout gds, precheck or
-gate-level result. A local LibreLane run of the same configuration (for
-iteration only, not a TT result) placed the design at 58.4% utilization and
-finished routing with 0 DRC and 0 antenna violations. Post-route STA meets
-50 MHz at the typical and fast corners; at the slow corner setup fails by
-5.09 ns, almost entirely on paths from the `rst_n` input. Its Magic DRC and
-LVS steps had not finished when this was written. See
-[docs/hardening.md](docs/hardening.md).
+As of 2026-09-25, commit `c118027` (tag `v0.1-hardened`) passes the Tiny
+Tapeout **gds**, **precheck** and **gl_test** actions in GitHub run
+[36144357821](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36144357821).
+There is **no silicon**, and nothing has been run on an FPGA board yet.
+The metrics below are from that run's `tt_submission` artifact
+(IHP SG13CMOS5L, 8x4 tiles, 20 ns clock, LibreLane 3.1.0.dev3).
+
+| Check | Result |
+|---|---|
+| gds | PASS: utilization 58.5% (standard cells 53.9%); route DRC 0; LVS 0; antenna 0 |
+| Setup at 50 MHz | typical corner +0.89 ns, fast corner +6.15 ns; slow corner −8.52 ns, which is not a Tiny Tapeout sign-off corner (almost all violating paths start at `rst_n`; see [docs/limitations.md](docs/limitations.md)) |
+| Hold | met at every corner (worst +0.11 ns, fast corner) |
+| precheck | PASS, including the KLayout SG13CMOS5L DRC and the pin check |
+| gl_test | PASS: 66 tests, 36 pass, 30 skipped by design at gate level, 0 fail |
+| test, formal, regen, docs | PASS on `c118027`: 66/66 cocotb tests on RTL; all 16 SymbiYosys jobs meet their expectation (proofs pass, both negative controls fail) |
+
+The same run's `viewer` job fails because GitHub Pages is not enabled for
+this repository. That job publishes a preview and does not check the
+design, but it is why the gds badge above shows a failure.
+
+- **Results.** [docs/results.md](docs/results.md) lists every headline
+  number with its evidence (CI runs, Slurm job ids, result files) and the
+  command that reproduces it. `make reproduce` runs the local checks with
+  one command; `make reproduce-full` adds the longer ones.
+- **Defects found.** [docs/bug-ledger.md](docs/bug-ledger.md) lists each
+  defect the verification found, the method that found it and its fix.
+- **Limits.** [docs/limitations.md](docs/limitations.md) lists what the
+  verification does not establish.
+- **Hardening notes.** [docs/hardening.md](docs/hardening.md) covers the
+  recipe and the earlier local runs.
 
 - **Configuration.** The first hardening target is
   `configs/instruction-sram-32.json`: 4 engines, a 32-bit datapath, 64
