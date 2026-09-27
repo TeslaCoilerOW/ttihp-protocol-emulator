@@ -35,6 +35,15 @@ not be edited by hand. `src/project.v` is a thin Tiny Tapeout wrapper
 
 ## Status
 
+**Pending.** Since the commit that follows `1e5b1d8`, `src/config.json`
+constrains the flow at `CLOCK_PERIOD` 15 ns (66.7 MHz), optimizer promotion
+p018 ([docs/optimization.md](docs/optimization.md)), so the actions sign the
+design off at 66.7 MHz at every corner. The operating clock stays 50 MHz
+(`info.yaml` `clock_hz`), which all firmware assumes. p018 passed the local
+sign-off (full run with LVS 0, precheck 9/9, gate-level tests 0 fail; setup
+slack +5.95 / +6.92 / +2.24 ns at 15 ns; [docs/results.md](docs/results.md)
+R84). Its official runs are in progress; the table below is the 20 ns build.
+
 As of 2026-09-26, commit `131e793` passes the Tiny Tapeout **gds**,
 **precheck** and **gl_test** actions in GitHub run
 [36257636798](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36257636798).

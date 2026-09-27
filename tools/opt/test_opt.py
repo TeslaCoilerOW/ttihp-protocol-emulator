@@ -31,6 +31,12 @@ import space as SPACE  # noqa: E402
 import tracks as TR  # noqa: E402
 
 DOR_CORE = os.path.join(REPO, "src", "protocol_emulator_core.v")
+# The committed CLOCK_PERIOD (15 ns since the p018 adoption; 20 ns before). The
+# design-of-record track at this period is the one whose committed knob set
+# round-trips; OTHER_PERIOD is a frequency track that differs only in it.
+with open(os.path.join(REPO, "src", "config.json")) as _f:
+    COMMITTED_PERIOD = float(json.load(_f)["CLOCK_PERIOD"])
+OTHER_PERIOD = 20.0 if COMMITTED_PERIOD != 20.0 else 15.0
 
 
 def random_knobs(D, rng):
@@ -59,7 +65,7 @@ def strip(cfg):
 class Space(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.dor = TR.Track(REPO, "dor", "dor", DOR_CORE, "8x4", 20.0, "dor20", "base")
+        cls.dor = TR.Track(REPO, "dor", "dor", DOR_CORE, "8x4", COMMITTED_PERIOD, "dor", "base")
 
     def test_committed_roundtrip(self):
         t = self.dor
@@ -89,11 +95,11 @@ class Space(unittest.TestCase):
             e1 = TR.effective_config(t.repo_cfg, t.floorplans[kn["floorplan"]],
                                      *SPACE.materialize(kn, t.base, t.repo_cfg,
                                                         t.floorplans[kn["floorplan"]].get("config"), t.D),
-                                     period=20, threads=32)
+                                     period=COMMITTED_PERIOD, threads=32)
             e2 = TR.effective_config(other, t.floorplans[kn["floorplan"]],
                                      *SPACE.materialize(kn, base2, other,
                                                         t.floorplans[kn["floorplan"]].get("config"), t.D),
-                                     period=20, threads=32)
+                                     period=COMMITTED_PERIOD, threads=32)
             self.assertEqual(TR.changes(strip(e1), strip(e2)), {}, kn)
             # and the knob set is recovered from its own effective configuration
             back = SPACE.base_knobs(e1, t.floorplans, t.D)
@@ -103,17 +109,19 @@ class Space(unittest.TestCase):
         """A knob at its LibreLane default leaves the key out of the effective configuration."""
         t = self.dor
         kn = t.complete({"PL_TIMING_DRIVEN": False, "CTS_SINK_CLUSTERING_SIZE": None, "SYNTH_STRATEGY": "AREA 0",
-                         "grt_adj_m2": 0.0, "grt_adj_m4": 0.0})
+                         "grt_adj_m2": 0.0, "grt_adj_m3": 0.0, "grt_adj_m4": 0.0})
         eff = t.effective(kn)
         for k in ("PL_TIMING_DRIVEN", "CTS_SINK_CLUSTERING_SIZE", "SYNTH_STRATEGY", "GRT_LAYER_ADJUSTMENTS"):
             self.assertNotIn(k, eff)
         self.assertEqual(t.materialize(kn)[1]["PL_TIMING_DRIVEN"], None)
 
     def test_frequency_track(self):
-        t15 = TR.Track(REPO, "dor15", "freq", DOR_CORE, "8x4", 15.0, "dor15", "base")
-        self.assertEqual(t15.diff_vs_repo({}), {"CLOCK_PERIOD": {"repo": 20, "run": 15}})
-        self.assertEqual(t15.fixed, self.dor.fixed)
-        self.assertNotEqual(t15.id, self.dor.id)
+        t2 = TR.Track(REPO, "dor_other", "freq", DOR_CORE, "8x4", OTHER_PERIOD, "dor_other", "base")
+        num = lambda p: int(p) if float(p).is_integer() else p  # noqa: E731
+        self.assertEqual(t2.diff_vs_repo({}),
+                         {"CLOCK_PERIOD": {"repo": num(COMMITTED_PERIOD), "run": num(OTHER_PERIOD)}})
+        self.assertEqual(t2.fixed, self.dor.fixed)
+        self.assertNotEqual(t2.id, self.dor.id)
 
 
 class SixByFour(unittest.TestCase):
