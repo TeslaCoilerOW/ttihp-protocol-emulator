@@ -1,7 +1,12 @@
 # Results and how to reproduce them
 
-This page lists every headline number that the repository states, as of
-commit `c118027` (tag `v0.1-hardened`). Each row gives:
+This page lists every headline number that the repository states. It was
+compiled at commit `c118027` (tag `v0.1-hardened`). On 2026-09-26 and
+2026-09-27 (UTC) it was updated with the official results of `131e793`, the
+design of record since `25e331e` (section 2b), the local sign-off of a
+15 ns configuration (R84), the 6x4 build (section 2c), the mutation score of
+`aa07868` (R23c) and the `diet4` mutation rerun (R23d). A row that a later result replaces is marked
+**Superseded** and kept, with its commit and run. Each row gives:
 
 - the claim;
 - where the repository states it;
@@ -99,7 +104,8 @@ Per-step wall times in seconds:
 
 ## 2. Official Tiny Tapeout results (`v0.1-hardened`, commit `c118027`)
 
-These are the results of record. Run
+These were the results of record until `25e331e` changed
+`src/config.json`; section 2b gives the current ones. Run
 [36144357821](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36144357821)
 is the `gds` workflow on push of `c118027`, started 2026-09-25 13:58 UTC.
 The metrics are from `tt_submission/stats/metrics.csv` in that run's
@@ -111,13 +117,13 @@ run. The design is 8x4 tiles at a 20 ns clock (50 MHz), with IHP-Open-PDK
 |---|---|---|---|---|
 | R1 | gds PASS | README.md (Status); tag `v0.1-hardened` message | Run 36144357821, job `gds`: success, 1 h 53 min | CI (re-run `gds`). Local mirror of the action: [hardening.md](hardening.md) section 7 and [sweep.md](sweep.md) (cluster) |
 | R2 | precheck PASS | README.md (Status) | Run 36144357821, job `precheck`: "Precheck passed". KLayout SG13CMOS5L DRC ran for 11,001 s; the zero-area, top-macro-name, forbidden-layer, prBoundary and pin checks also passed | CI. Local: the precheck reproduction in [drc-triage.md](drc-triage.md) section 9 (cluster) |
-| R3 | gl_test PASS: 66 tests, 36 pass, 30 skip, 0 fail | README.md (Status); [test/README.md](../test/README.md) (skips by design) | Run 36144357821, job `gl_test`: `TESTS=66 PASS=36 FAIL=0 SKIP=30` | CI. Local: `scripts/reproduce.sh --only gl` with `PDK_ROOT` and `GL_NETLIST` set to the artifact netlist |
-| R4 | Utilization 58.5% (58.53%; standard cells alone 53.88%) | README.md; tag message | `design__instance__utilization` 0.585345, `__stdcell` 0.538803 | CI or local mirror |
+| R3 | **Superseded by R15** (`131e793`, 102-test suite). gl_test PASS: 66 tests, 36 pass, 30 skip, 0 fail | README.md (Status); [test/README.md](../test/README.md) (skips by design) | Run 36144357821, job `gl_test`: `TESTS=66 PASS=36 FAIL=0 SKIP=30` | CI. Local: `scripts/reproduce.sh --only gl` with `PDK_ROOT` and `GL_NETLIST` set to the artifact netlist |
+| R4 | **Superseded by R18** (`131e793`: 61.92%). Utilization 58.5% (58.53%; standard cells alone 53.88%) | README.md; tag message | `design__instance__utilization` 0.585345, `__stdcell` 0.538803 | CI or local mirror |
 | R5 | Route DRC 0, LVS 0, antenna 0 | README.md; tag message | `route__drc_errors` 0 (the last detailed-routing iteration, 25, ended at 0); every `design__lvs_*` counter 0; `route__antenna_violation__count` 0, with 84 antenna diodes inserted | CI or local mirror |
-| R6 | Setup met at the typical corner at 50 MHz, WS +0.89 ns; at the fast corner WS +6.15 ns | README.md; tag message | `timing__setup__ws` typ 0.8854, fast 6.1533; 0 setup violations at typ and fast | CI or local mirror |
-| R7 | Slow corner (not Tiny Tapeout sign-off) misses setup, WS −8.52 ns | README.md; tag message | slow `timing__setup__ws` −8.5171; 2,482 violating endpoints; register-to-register WS −0.116 ns (1 violation). The local mirror with the same configuration (job 23850490) gave identical values for the typical and slow setup slack, the register-to-register slack and the utilization. Its report puts 2,467 of the violations on `rst_n` to a register, 14 on `rst_n` to an output, and the one register-to-register path from `instruction_sram_e2_hi` `A_DOUT[1]` | CI or local mirror |
-| R8 | Hold met at every corner | tag message | hold WS: fast +0.107 ns, typ +0.297 ns, slow +0.629 ns; 0 hold violations | CI or local mirror |
-| R9 | 84 Magic illegal overlaps, waived by configuration; Magic DRC not run | [drc-triage.md](drc-triage.md) sections 4 and 7 | `magic__illegal_overlap__count` 84; `RUN_MAGIC_DRC` false in `src/config.json` since `1e2cfb3` | CI or local mirror |
+| R6 | **Superseded by R16** (`131e793`: typ +7.88, fast +9.31 ns). Setup met at the typical corner at 50 MHz, WS +0.89 ns; at the fast corner WS +6.15 ns | README.md; tag message | `timing__setup__ws` typ 0.8854, fast 6.1533; 0 setup violations at typ and fast | CI or local mirror |
+| R7 | **Superseded by R16** (`131e793`: slow +2.95 ns, 0 violations). Slow corner (not Tiny Tapeout sign-off) misses setup, WS −8.52 ns | README.md; tag message | slow `timing__setup__ws` −8.5171; 2,482 violating endpoints; register-to-register WS −0.116 ns (1 violation). The local mirror with the same configuration (job 23850490) gave identical values for the typical and slow setup slack, the register-to-register slack and the utilization. Its report puts 2,467 of the violations on `rst_n` to a register, 14 on `rst_n` to an output, and the one register-to-register path from `instruction_sram_e2_hi` `A_DOUT[1]` | CI or local mirror |
+| R8 | **Superseded by R17** (`131e793`). Hold met at every corner | tag message | hold WS: fast +0.107 ns, typ +0.297 ns, slow +0.629 ns; 0 hold violations | CI or local mirror |
+| R9 | 84 Magic illegal overlaps, waived by configuration; Magic DRC not run. `131e793` has 86 (R18); the waiver and `RUN_MAGIC_DRC` false are unchanged | [drc-triage.md](drc-triage.md) sections 4 and 7 | `magic__illegal_overlap__count` 84; `RUN_MAGIC_DRC` false in `src/config.json` since `1e2cfb3` | CI or local mirror |
 
 The same run's `viewer` job failed. It could not create a GitHub Pages
 deployment (HTTP 404), because Pages is not enabled for the repository.
@@ -136,12 +142,77 @@ same way.
 |---|---|---|---|
 | R10 | The committed core is current with `hardcaml/` | `regen` run [36144357930](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36144357930): success | Local: `reproduce.sh --only regen`, or `make check-generated` (which rewrites `src/` in place) |
 | R11 | Lint is clean: 0 errors, 8 SRAM macros | `test` run [36144357839](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36144357839), job `lint`: iverilog OK; yosys OK with 8 macros; `verilator: rc=0 warnings=73 errors=0` (60 COMBDLY, 12 UNUSEDSIGNAL, 1 DECLFILENAME) | Local: `reproduce.sh --only lint` |
-| R12 | cocotb RTL suite: 66 tests pass | Same run, job `test`: `TESTS=66 PASS=66 FAIL=0 SKIP=0` (Icarus 13.0) | Local: `reproduce.sh --only cocotb` |
+| R12 | **Superseded** by the 102-test suite of `aa07868`, which passes on `131e793` (section 2b). cocotb RTL suite: 66 tests pass | Same run, job `test`: `TESTS=66 PASS=66 FAIL=0 SKIP=0` (Icarus 13.0) | Local: `reproduce.sh --only cocotb` |
 | R13 | All 16 formal jobs meet their expectation in CI | `formal` run [36144357811](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36144357811): the generation job and all 16 matrix jobs succeeded. The longest was `timing_isolation_bmc`, at 8 min 20 s | Local: `reproduce.sh --only formal,formal-rest` |
 | R14 | Datasheet builds | `docs` run [36144357954](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36144357954): success | CI |
 
 The runs on the tag push (`test` 36188299625, `formal` 36188299526, `regen`
 36188299483, `docs` 36188299516) also succeeded.
+
+## 2b. Official Tiny Tapeout results of `131e793` (design of record since `25e331e`)
+
+These are the results of record. Run
+[36257636798](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36257636798)
+is the `gds` workflow on push of `131e793`, started 2026-09-26 17:03 UTC. The
+metrics are from `tt_submission/stats/metrics.csv` of that run's
+`tt_submission` artifact, whose `commit_id.json` names the same commit and
+run. Tiles, clock, PDK and LibreLane are as in section 2.
+
+**What changed since `c118027`.** `git diff --stat c118027 131e793 -- src/`
+lists only `src/config.json`; `src/project.v`,
+`src/protocol_emulator_core.v` and `src/sram_pdn_cfg.tcl` are byte-identical.
+`25e331e` set the LibreLane keys of optimizer promotion p010
+([optimization.md](optimization.md)): `PL_TARGET_DENSITY_PCT` 60 → 61,
+`PL_RESIZER_HOLD_SLACK_MARGIN` 0.1 → 0.15, the `fp8_spread_trk` macro
+placement with `FP_MACRO_HORIZONTAL_HALO` 16.48 → 20, and new keys
+`PL_TIMING_DRIVEN` true, `PL_RESIZER_SETUP_SLACK_MARGIN` 5.75,
+`SYNTH_STRATEGY` "DELAY 4", `MAX_FANOUT_CONSTRAINT` 8,
+`DESIGN_REPAIR_MAX_WIRE_LENGTH` 300, `DESIGN_REPAIR_MAX_SLEW_PCT` 35,
+`DESIGN_REPAIR_MAX_CAP_PCT` 50, `CTS_MAX_CAP` 0.2, `CTS_OBSTRUCTION_AWARE`
+true, `CTS_SINK_CLUSTERING_SIZE` 16 and `GRT_LAYER_ADJUSTMENTS`
+[0, 0.2, 0, 0.1, 0].
+
+| # | Claim | Stated in | Evidence | Reproduce |
+|---|---|---|---|---|
+| R15 | gds, precheck and gl_test PASS on `131e793`; gl_test: 102 tests, 46 pass, 56 skip, 0 fail | README.md (Status) | Run 36257636798: job `gds` success, 1 h 51 min; job `precheck` "Precheck passed" (KLayout SG13CMOS5L DRC 10,501 s; the zero-area, top-macro-name, forbidden-layer, prBoundary and pin checks also ran); job `gl_test` `TESTS=102 PASS=46 FAIL=0 SKIP=56`. Job `viewer` failed with "Creating Pages deployment failed" (HTTP 404), as in run 36144357821 | CI |
+| R16 | Setup met at all three corners at 50 MHz: WS typ +7.88, fast +9.31, slow +2.95 ns, with 0 setup-violating endpoints at every corner. The gain over `c118027` (R6, R7) is +6.99, +3.15 and +11.47 ns, from configuration only | README.md (Status); [timing-closure.md](timing-closure.md) section 9; [limitations.md](limitations.md) section 2; [info.md](info.md), "Limitations" | `timing__setup__ws` typ 7.8797, fast 9.3075, slow 2.9539; `timing__setup_vio__count` 0 at every corner; slow `timing__setup__tns` 0 (was −9,744.1); slow register-to-register WS +2.954 ns, 0 violations (was −0.116 ns, 1 violation). Arithmetic checked with AXLE (Lean 4, `<work dir>/docs-timing/axle/`) | CI. Local: the promoted full run of p010 (R19) |
+| R17 | Hold met at every corner: fast +0.112, typ +0.318, slow +0.657 ns; 0 hold violations | README.md (Status); limitations.md section 2 | `timing__hold__ws` per corner; `timing__hold_vio__count` 0 at every corner; 137 hold buffers (was 10) | CI |
+| R18 | Utilization 61.9% (61.92%; standard cells 57.64%); route DRC 0; LVS 0; antenna 0; 94,248 instances; max-slew / max-cap / max-fan-out violations typ 1/0/3, fast 0/0/3, slow 4/0/3 (were 42/70/524, 13/73/524 and 290/70/524); 86 Magic illegal overlaps, waived as in R9 | README.md (Status); limitations.md sections 2 and 5 | `design__instance__utilization` 0.619173, `__stdcell` 0.576428; `route__drc_errors` 0 (the last detailed-routing iteration, 17, ended at 0); every `design__lvs_*` counter 0; `route__antenna_violation__count` 0, with 25 antenna diodes; `design__instance__count` 94,248 (41,005 standard cells); `design__max_{slew,cap,fanout}_violation__count__corner:*`; `magic__illegal_overlap__count` 86 | CI |
+| R19 | The local prediction matched: the promoted full run of p010 produced a `metrics.csv` byte-identical to that of run 36257636798 and the same gate-level netlist; its fast-mode trial gave the same setup and hold slack at all three corners, utilization, instance count and slew/cap/fan-out counts | [optimization.md](optimization.md), "Starting point" | Trial `dor-26a873-c8bf57e#94`, job 24009268 (fast mode, 32 threads); promotion p010: full run job 24010051 (`OPENROAD_THREADS` 4, LVS 0), precheck job 24011934 (9/9), gate-level job 24011935 (102 tests, 46 pass, 56 skip, 0 fail). `cmp` of the full run's `out/metrics.csv` with the artifact's: identical; netlist sha256 `8ce27ccc…` for both the artifact's `tt_um_teslacoilerow_protocol_emulator.v` and the run's `final/nl`. The trial was compared field by field from `<work dir>/optimizer/store/events.jsonl`. Record: `<work dir>/docs-timing/artifact_comparisons.out` | Cluster: [optimization.md](optimization.md), "Operation" |
+| R84 | Optimizer promotion p018 passes the local sign-off at 15 ns (66.7 MHz): full run legal with LVS 0 and route DRC 0; setup WS typ +5.95, fast +6.92, slow +2.24 ns at 15 ns with 0 violations; hold WS min +0.165 ns (fast); utilization 65.30%; precheck 9/9; gate level 102 tests, 46 pass, 56 skip, 0 fail. It differs from the committed `src/config.json` in four keys: `CLOCK_PERIOD` 15, `DESIGN_REPAIR_MAX_CAP_PCT` 45, `GRT_LAYER_ADJUSTMENTS` [0, 0.2, 0.2, 0.1, 0], `PL_RESIZER_SETUP_SLACK_MARGIN` 5.8. **Not committed and not built by CI**; the design of record stays 20 ns / 50 MHz | [optimization.md](optimization.md), "Current results"; [limitations.md](limitations.md) section 2; [info.md](info.md), "Limitations" | Trial `dor15-26a873-8x4-p15-f174dc0#1`, job 24024343 (fast mode, same setup WS); full run job 24042265 (`OPENROAD_THREADS` 4; `out/metrics.csv`: `timing__setup__ws__corner:*` 5.9499 / 6.9240 / 2.2400, `timing__hold__ws` 0.1650, `design__instance__utilization` 0.653002, `route__drc_errors` 0, `design__lvs_net_difference__count` 0); precheck job 24053971 (9/9); gate-level job 24053972. The run's `params.json` `config_changes_vs_repo` lists the four keys (and `MACROS`, equal to the committed placement) | Cluster: [optimization.md](optimization.md), "Operation" |
+
+**Other workflows on `131e793`** (all on push, 2026-09-26): `test`
+[36257636760](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36257636760)
+(job `lint` success; job `test` `TESTS=102 PASS=102 FAIL=0 SKIP=0`),
+`formal` 36257636810 (the generation job and all 16 matrix jobs succeeded),
+`regen` 36257636763 and `docs` 36257636924 all succeeded.
+
+**Later commits.** `f0e9c19`, `4bd30c8`, `8a05de7`, `24b807b` and
+`fdc23f2` do not change `src/`. For `4bd30c8`, `test` 36274474552, `regen`
+36274474544, `docs` 36274474541 and `formal` 36274474545 (all 17 jobs)
+succeeded, and in `gds` 36274474548 the jobs `gds` and `gl_test` (`TESTS=102
+PASS=46 FAIL=0 SKIP=56`) succeeded; its `precheck` was still running at
+2026-09-27 01:40 UTC.
+
+## 2c. The 6x4 fallback build (`.github/workflows/gds_6x4.yaml`)
+
+The workflow builds the `diet4` core on 6x4 tiles with
+`variants6x4/config.overlay.json` merged into `src/config.json`
+([6x4.md](6x4.md)). It has its own `tt_submission` artifact. The slow corner
+is reported and not signed off, as for 8x4.
+
+| # | Claim | Stated in | Evidence | Reproduce |
+|---|---|---|---|---|
+| R80 | **Superseded by R82 and R83** (configuration of `4bd30c8`). The pre-adoption 6x4 configuration (6x4.md section 4) passed `gds`, `precheck` and `gl_test` in CI with its local sign-off numbers: setup WS typ +4.30, fast +8.50, slow −2.80 ns (467 violating endpoints at slow); hold WS min +0.099 ns; utilization 56.28% (standard cells 49.45%); route DRC 0; LVS 0 | [6x4.md](6x4.md) section 5b | Runs 36225500529 (`be7dbda`) and 36238342669 (`39d21e8`): all five jobs succeeded; `gl_test` `TESTS=102 PASS=46 FAIL=0 SKIP=56` and "Precheck passed" in both. The two artifacts' `metrics.csv` files are byte-identical, and equal to that of the local sign-off run 23980402_9 (6x4.md section 3) | CI |
+| R81 | `gds_6x4` failed on `131e793`, because the overlay set placement, obstruction, density and halo but no timing key, and so inherited the p010 timing keys of `src/config.json` | 6x4.md section 5b; [optimization.md](optimization.md), "Starting point" | Run 36257636751, job `gds` (4 h 10 min): `Checker.TrDRC` "69 Routing DRC errors found" (deferred), `Checker.IllegalOverlap` 73 (warning), Netgen LVS "Top level cell failed pin matching" (28,200 against 28,212 nets), then LibreLane stopped on a `JSONDecodeError` ("Invalid \escape") reading Netgen's output: "harden failed". `precheck` and `gl_test` were skipped; `core_current` and `rtl_test` (`TESTS=102 PASS=102`) passed. The same configuration locally: trial `diet4_6x4` #0 (job 24024332, fast mode) route DRC 69; control promotion p012, full run 24029191, route DRC 69 and stopped in `Netgen.LVS` | CI; cluster |
+| R82 | Optimizer promotion p014 (trial `diet4_6x4` #8) passes the local sign-off: full run legal with LVS 0, route DRC 0 and antenna 0; setup WS typ +7.71, fast +10.52, slow +2.74 ns; hold WS min +0.051 ns (fast); utilization 58.90%; precheck 9/9; gate level 102 tests, 46 pass, 56 skip, 0 fail. `4bd30c8` puts it into the overlay, and the merged configuration equals the run's key for key | 6x4.md section 4b; commit message of `4bd30c8` | Trial job 24032431 (fast mode, same setup WS); full run job 24036160; precheck job 24041156 (`promotions/p014-diet4_6x4/precheck/result.json`: 9 checks, 0 fail); gate-level job 24041157 (`gl/result.json`, `PE_VARIANT` diet4). Key comparison: `<work dir>/docs-timing/check_overlay_equals_p014.py`, 0 differences over 47 keys (`OPENROAD_THREADS` excluded) | Cluster |
+| R83 | The official `gds_6x4` run of `4bd30c8` passed `gds`, `precheck` and `gl_test` with the p014 configuration (R82): setup WS typ +7.71, fast +10.52, slow +2.74 ns, 0 setup and 0 hold violations; hold WS min +0.051 ns (fast); utilization 58.90% (standard cells 52.48%); route DRC 0; LVS 0; antenna 0. The artifact's `metrics.csv` is byte-identical to that of the local full run 24036160 | [6x4.md](6x4.md) sections 4b and 5b; README.md ("Tile size"); [limitations.md](limitations.md) section 5 | Run [36274474540](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36274474540): all five jobs succeeded; `gl_test` `TESTS=102 PASS=46 FAIL=0 SKIP=56`; "Precheck passed" (KLayout DRC 5,919 s). `tt_submission` artifact `stats/metrics.csv` (`timing__setup__ws` 2.7368, per corner typ 7.7060, fast 10.5185, slow 2.7368; `timing__hold__ws` 0.0513; `design__instance__utilization` 0.58896; `route__drc_errors` 0; `design__lvs_net_difference__count` 0; `antenna__violating__nets` 0); `cmp` with the full run's `metrics.csv` reports no difference | CI |
+
+The official `gds_6x4` run of `4bd30c8`
+([36274474540](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36274474540))
+confirmed R82 with byte-identical metrics (R83). `8a05de7` then made the
+overlay state every flow knob key without changing the merged
+configuration (section 9, item 13).
 
 ## 3. Simulation-based verification
 
@@ -155,7 +226,9 @@ the tests (`test/`) and the hardening configuration.
 | R21 | The checker catches an injected model bug in 64 of 64 seeds (1,536 of 4,096 cases), and the minimizer shrinks the case to one host operation | verification-campaign.md, "Negative control" | `campaigns.json` `negative_control`; jobs 23749927 and 23749932 | Local: `cd test && PE_INJECT_MODEL_BUG=xor PE_SEED=1 make COCOTB_TEST_MODULES=test_random` must fail (at `c118027` add `PE_RANDOM_GEN=1` for the campaign's cases) |
 | R22 | Independent third-party peers: 65/65 tests pass at RTL, at gate level and on Icarus 13.0; seeded campaign 33,280 RTL and 16,640 gate-level test runs, all pass; all 12 wrong-mode SPI substitutions detected | [independent-peers.md](independent-peers.md), "Results" | [`test_ext/results/summary.json`](../test_ext/results/summary.json); job 23792571 (fixed stimulus), arrays 23792569 (RTL) and 23792570 (gate level), job 23791858 (wrong-mode matrix). Design: `73536f0` | Local: `reproduce.sh --only peers` (RTL, fixed stimulus); `cd test_ext && PE_EXT_SEED=<n> make` per seed. Cluster for the campaign |
 | R23 | Mutation score 80.2% (1,847 / (2,420 − 116)); 85.8% with deep random and 12 directed tests | verification-campaign.md, "Mutation testing" | [`campaigns/mutation/results/summary.json`](../campaigns/mutation/results/summary.json) (`killed` 1,847, `proven_equivalent` 116); the job list in that section | Cluster: [campaigns/mutation/README.md](../campaigns/mutation/README.md) ("Reproduce"), about 109 CPU-hours |
-| R23b | Mutation score 89.4% (2,060 / 2,304) after gap closure; 85.8% (1,976) without `test_timewarp` | verification-campaign.md, "Gap closure"; commit message of `c118027` | `<work dir>/test-gaps/summary_gaps.json` (`killed` 2,060, `score` 0.8941, `killed_without_timewarp` 1,976); jobs 23813966, 23813967, 23817415, 23819701. **Not in git** (section 9) | Cluster |
+| R23b | **Superseded by R23c** (96.82%). Mutation score 89.4% (2,060 / 2,304) after gap closure; 85.8% (1,976) without `test_timewarp` | verification-campaign.md, "Gap closure"; commit message of `c118027` | `<work dir>/test-gaps/summary_gaps.json` (`killed` 2,060, `score` 0.8941, `killed_without_timewarp` 1,976); jobs 23813966, 23813967, 23817415, 23819701. **Not in git** (section 9) | Cluster |
+| R23c | Mutation score 96.82% (2,223 / (2,420 − 124)) with the 102-test suite of `aa07868`. 124 mutants are proven equivalent (116 by the campaign method, 6 by an ABC gold/mutant miter, 2 by `equiv_induct` with invariants and an SRAM model); the 73 other survivors are argued unobservable but not proven, and count as survivors. A later miter run with a longer ABC time cap proved 26 of the 73 equivalent: 97.93% (2,223 / (2,420 − 150)), 47 survivors ([mutation-push.md](mutation-push.md) section 4.5; `summary-longcap.json`). 96.82% stays the score as run | [mutation-push.md](mutation-push.md), "Result"; commit message of `aa07868` | The committed suite of `c118027` re-run on all 2,420 mutants in one stage: 2,060 killed (array 23974560, jobs 23976875 and 23979515). The `test_kill_*` modules then killed 158 (final stage, job 23984831), 3 (k6, jobs 23987440 and 23987441) and 2 (k7, jobs 23988083 and 23988084) more: 2,223. Formal: job 23977941 (6 proven) and job 23986701 (2 proven). Per-mutant status: [`campaigns/mutation/results/push-4bd30c8/summary.json`](../campaigns/mutation/results/push-4bd30c8/summary.json) and `mutant_status.tsv` (section 9, item 11); raw logs in `<work dir>/mutation97/`. Arithmetic checked with AXLE (`<work dir>/docs-timing/axle/`) | Cluster: mutation-push.md section 6 |
+| R23d | Variant `diet4` (the 6x4 build's core) under the 102-test suite: mutation score 95.24% (2,199 / (2,420 − 111)); 90.87% (2,199 / 2,420) without removing proven-equivalent mutants; 110 survivors, not argued one by one. With the longer ABC time cap: 96.66% (2,199 / (2,420 − 145)), 76 survivors (`summary-longcap.json`). The earlier `diet4` figure, 87.7% (2,028 / (2,420 − 107)) with the 66-test suite ([verification-campaign.md](verification-campaign.md)), is superseded for the current suite | [mutation-push.md](mutation-push.md) section 7 | [`campaigns/mutation/results/diet4-102/summary.json`](../campaigns/mutation/results/diet4-102/summary.json) (`killed` 2,199, `equivalent` 111, `survived` 110) and `survivor_classes.tsv`; jobs in mutation-push.md section 7.5. Arithmetic checked with AXLE | Cluster: [campaigns/mutation/README.md](../campaigns/mutation/README.md) (`campaign-diet4-102.env`) |
 | R24 | Host library: 69 unit tests pass; 100,000 fuzz seeds (400,000 to 499,999) pass on the three-way differential and on Icarus 13.0 RTL replays, with 0 oracle problems | [host.md](host.md), "Verification of the library" | Job 23778831 (unit tests); jobs 23778347, 23778353, 23778832, 23778833, 23778835, 23778836 (fuzz) | Local: `reproduce.sh --only host`. Without MicroPython on `PATH`, 4 tests skip. Fuzz: `host/tools/fuzz_host.py` (cluster for 100,000 seeds) |
 | R25 | cocotb suite after gap closure: 66/66 on RTL; 36 pass, 30 skip at gate level on the campaign netlist; 66/66 on each of the six variants | verification-campaign.md, "Suite" | Jobs 23819699, 23819700, 23819698 | Local (RTL); see R12 and R3 |
 | R26 | Six design variants: 39/39 cocotb each, 16 extra random seeds each (24,576 cases, about 94.5 M cycles), all 16 formal jobs each (112 jobs), gate level 22/22 on LibreLane-replica netlists; TT-synthesis areas base 462,710 µm², `rstreg` 462,675, `cn` 414,536, `cn_s2` 413,522, `diet4` 298,478, `diet2` 257,254 | [variants.md](variants.md) sections 5 and 7.2 | Jobs 23758014 to 23758018 (23758015 has 107 array tasks), 23758039, 23758040, 23758041 (112 tasks), 23761206, 23761207. Suite at `73536f0` (39 tests); R25 covers the 66-test suite | Local: `reproduce.sh --only variants,hardcaml`; `cd test && PE_VARIANT=<name> make`; `formal/run.sh --variant <name>` |
@@ -224,7 +297,7 @@ without Slurm. The heavy classes need up to 32 GB per task.
 | R50 | The flow is deterministic: four runs of the submission point (8x4, `fp8_base`, density 60, 20 ns; 32 and 48 OpenROAD threads) gave identical metrics, equal to the 4-thread local run `run2` (job 23720702). All were at `73536f0`, before the halo change | [sweep.md](sweep.md), "Results" | `<work dir>/sweep/results.csv`: 23749129_0, 23749537_0, 23749132_0 (full) and 23749131_0 (fast): utilization 0.5854, typ WS +2.938, slow WS −5.09, LVS 0 | Cluster: [sweep.md](sweep.md) |
 | R51 | Base 8x4 meets typical-corner setup down to 12.5 ns (80 MHz), WS +0.05 ns | sweep.md | 23749131_6 | Cluster |
 | R52 | Full sign-off (LVS 0, route DRC 0, antenna 0) for `rstreg` and `cn_s2` at 8x4 and for `diet4` at 6x4 (`fp6_tworow`, density 65, utilization 56.2%, typ WS +2.85 ns) | sweep.md | 23751798_0, 23751802_0, 23763343_0 | Cluster |
-| R53 | The reset variants do not close the slow corner: `rstreg` −7.52 ns, `cn_s2` −4.99 ns (at 73536f0: base −5.09 ns) | sweep.md | same rows | Cluster |
+| R53 | The reset variants do not close the slow corner: `rstreg` −7.52 ns, `cn_s2` −4.99 ns (at 73536f0: base −5.09 ns). Still true for these runs; the design of record's slow corner was later closed by configuration, not by RTL (R16) | sweep.md | same rows | Cluster |
 | R54 | All 69,448 Magic DRC markers lie inside the SRAM macro footprints and reproduce on the macro alone; KLayout precheck DRC 0 of 332 rule categories on every GDS tested; the 84 illegal overlaps are 32 stripe-over-OBS crossings | [drc-triage.md](drc-triage.md), "Verdict" | `<work dir>/drc-triage/` (`manifest.json`) | Cluster: drc-triage.md section 9 |
 | R55 | With `FP_MACRO_HORIZONTAL_HALO` 16.48 and `RUN_MAGIC_DRC` false, a local full run passes the unmodified precheck, all 9 checks | drc-triage.md section 6 | Jobs 23850490 (flow), 23856538 (precheck); confirmed officially by R2 | Cluster |
 | R56 | 8x4 area study: 58.4% measured at 8x4; 6x4 needs `diet4`, predicted 55.2% | [area-study.md](area-study.md) section 1 | The study's scripts in `docs/area-study/`; superseded by R4 (58.53% official) and R52 (56.2% measured for `diet4` at 6x4) | Cluster |
@@ -295,3 +368,33 @@ owning documents can be corrected. No number above depends on them.
    runs that had not finished when it was written, for example abc pdr and
    rIC3 on the unmodified `engine_safety` and on the SRAM data-integrity
    proof. They are not claimed as results.
+11. **Mutation score 96.82% (R23c).** The per-mutant status of the push,
+   re-tallied on the `4bd30c8` tree, is in
+   `campaigns/mutation/results/push-4bd30c8/` (`summary.json`,
+   `mutant_status.tsv`); the stage and formal scripts are in
+   `campaigns/mutation/` ([mutation-push.md](mutation-push.md) section 6).
+   The raw per-test logs stay in `<work dir>/mutation97/`.
+   `campaigns/mutation/results/summary.json` holds the 80.2% campaign
+   summary (R23).
+12. **The official 6x4 run of `4bd30c8` (R82, R83).** Resolved: run
+   36274474540 passed all jobs, and its `metrics.csv` equals that of the
+   local p014 full run byte for byte.
+13. **What the 6x4 overlay pins.** At `4bd30c8`
+   `variants6x4/config.overlay.json` restated 15 of the 33 keys that the
+   optimizer treats as knobs (`tools/opt/space.py` `KNOB_KEYS`): the keys in
+   which p014 differs from `src/config.json`. Five more (`SYNTH_STRATEGY`,
+   `PL_TIMING_DRIVEN`, `DESIGN_REPAIR_MAX_WIRE_LENGTH`, `CLOCK_PERIOD`,
+   `GRT_RESIZER_HOLD_SLACK_MARGIN`) came from `src/config.json`, and twelve
+   were unset in both files, so a later 8x4 change of any of them would
+   have reached the 6x4 build (as would one of `OPENROAD_THREADS`). Since
+   `8a05de7` and `fdc23f2` the overlay states all 33 knob keys: a value, or
+   `null` for LibreLane's default; `switch.py check` accepts a `null` for a
+   key that `src/config.json` lacks, `tools/opt/test_opt.py` fails if a
+   knob key is missing, and `variants6x4/info.overlay.json` restates
+   `clock_hz` 50000000. `switch.py apply` writes the same configuration as
+   at `4bd30c8` (R83), apart from the order of two keys.
+14. **`docs/variants.md`** (section on reset styles) said that
+   `sync_registered` removes the `rst_n` paths "that fail slow-corner setup",
+   in the present tense. That described the `c118027` configuration (R7); the
+   sentence now says so, and that the design of record meets the slow corner
+   since `25e331e` (R16).

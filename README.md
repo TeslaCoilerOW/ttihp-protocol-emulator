@@ -35,23 +35,35 @@ not be edited by hand. `src/project.v` is a thin Tiny Tapeout wrapper
 
 ## Status
 
-As of 2026-09-25, commit `c118027` (tag `v0.1-hardened`) passes the Tiny
-Tapeout **gds**, **precheck** and **gl_test** actions in GitHub run
-[36144357821](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36144357821).
-There is **no silicon**, and nothing has been run on an FPGA board yet.
-The metrics below are from that run's `tt_submission` artifact
-(IHP SG13CMOS5L, 8x4 tiles, 20 ns clock, LibreLane 3.1.0.dev3).
+As of 2026-09-26, commit `131e793` passes the Tiny Tapeout **gds**,
+**precheck** and **gl_test** actions in GitHub run
+[36257636798](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36257636798).
+Its `src/` differs from tag `v0.1-hardened` (`c118027`) only in
+`src/config.json`, which carries the LibreLane settings of optimizer
+promotion p010, adopted in `25e331e` ([docs/optimization.md](docs/optimization.md)).
+The RTL is byte-identical. There is **no silicon**, and nothing has been
+run on an FPGA board yet. The metrics below are from the `tt_submission`
+artifact of each run (IHP SG13CMOS5L, 8x4 tiles, 20 ns clock, LibreLane
+3.1.0.dev3). The `v0.1-hardened` column is superseded and kept for
+comparison.
 
-| Check | Result |
-|---|---|
-| gds | PASS: utilization 58.5% (standard cells 53.9%); route DRC 0; LVS 0; antenna 0 |
-| Setup at 50 MHz | typical corner +0.89 ns, fast corner +6.15 ns; slow corner −8.52 ns, which is not a Tiny Tapeout sign-off corner (almost all violating paths start at `rst_n`; see [docs/limitations.md](docs/limitations.md)) |
-| Hold | met at every corner (worst +0.11 ns, fast corner) |
-| precheck | PASS, including the KLayout SG13CMOS5L DRC and the pin check |
-| gl_test | PASS: 66 tests, 36 pass, 30 skipped by design at gate level, 0 fail |
-| test, formal, regen, docs | PASS on `c118027`: 66/66 cocotb tests on RTL; all 16 SymbiYosys jobs meet their expectation (proofs pass, both negative controls fail) |
+| Check | `131e793`, run 36257636798 (current) | `c118027`, tag `v0.1-hardened`, run [36144357821](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36144357821) (superseded) |
+|---|---|---|
+| gds | PASS: utilization 61.9% (standard cells 57.6%); route DRC 0; LVS 0; antenna 0 | PASS: utilization 58.5% (standard cells 53.9%); route DRC 0; LVS 0; antenna 0 |
+| Setup at 50 MHz | met at all three corners: typical +7.88 ns, fast +9.31 ns, slow +2.95 ns; 0 violating endpoints | typical +0.89 ns, fast +6.15 ns; slow −8.52 ns with 2,482 violating endpoints, almost all starting at `rst_n` |
+| Hold | met at every corner (worst +0.11 ns, fast corner) | met at every corner (worst +0.11 ns, fast corner) |
+| precheck | PASS, including the KLayout SG13CMOS5L DRC and the pin check | PASS |
+| gl_test | PASS: 102 tests, 46 pass, 56 skipped by design at gate level, 0 fail | PASS: 66 tests, 36 pass, 30 skipped, 0 fail |
+| test, formal, regen, docs | PASS on `131e793`: 102/102 cocotb tests on RTL; all 16 SymbiYosys jobs meet their expectation (proofs pass, both negative controls fail) | PASS on `c118027` with the 66-test suite |
 
-The same run's `viewer` job fails because GitHub Pages is not enabled for
+The flow signs off setup at the typical corner only; the fast and slow
+corners are reported. The slow corner was closed by LibreLane configuration
+alone (floorplan, placement, timing-repair, clock-tree, routing and synthesis
+settings), not by an RTL change; [docs/timing-closure.md](docs/timing-closure.md) section 9
+has the comparison and [docs/results.md](docs/results.md) section 2b the
+evidence.
+
+The `viewer` job of both runs fails because GitHub Pages is not enabled for
 this repository. That job publishes a preview and does not check the
 design, but it is why the gds badge above shows a failure.
 
@@ -72,7 +84,12 @@ design, but it is why the gds badge above shows a failure.
   queues and fused issue. It targets 8×4 tiles (1724.16 × 710.64 µm) at 50 MHz.
 - **Tile size.** 8×4 still has to be confirmed by the competition organizers.
   A 6×4 variant is kept in parallel as insurance; [docs/area-study.md](docs/area-study.md)
-  covers it.
+  covers it, and [docs/6x4.md](docs/6x4.md) describes the 6×4 build
+  (`diet4`, workflow `gds_6x4`) and the status of its CI runs. The 6×4
+  build of `4bd30c8` passes gds, precheck and gl_test and meets setup at all
+  three corners at 50 MHz (run
+  [36274474540](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36274474540):
+  typical +7.71 ns, fast +10.52 ns, slow +2.74 ns).
 - **Earlier results.** The ISA, the reference model and the firmware come from
   earlier development in the author's asic-lab monorepo. There, the generated
   RTL was checked against an independent Python ISA model and with bounded

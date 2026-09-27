@@ -1,20 +1,32 @@
 # Slow-corner timing closure by RTL restructuring
 
-Status, 2026-09-26: the options, the two named variants and their
-verification are complete; the slow corner is not closed (section 7.4).
+Status, 2026-09-26 (updated): the slow corner of the design of record is
+closed at 50 MHz, by LibreLane configuration and not by RTL. The official
+build of `131e793` (GitHub run 36257636798), whose RTL is byte-identical to
+`c118027`, meets setup at all three corners, with +2.95 ns at the slow corner
+(section 9). The RTL options and the two named variants of sections 4 to 7
+did not close it (section 7.4); that result stands, and sections 1 and 3
+remain the analysis of the original failure.
+
+Earlier status line, before `25e331e`: the options, the two named variants
+and their verification are complete; the slow corner is not closed
+(section 7.4).
 
 The official hardening of `v0.1-hardened` (commit `c118027`, GitHub run
 36144357821) meets setup at the typical corner, which is the Tiny Tapeout
 sign-off corner, and misses it at the slow corner (`nom_slow_1p08V_125C`) by
 8.52 ns at 20 ns. This document explains why, describes RTL options that
 restructure the failing logic without changing behaviour, and reports how they
-were verified and what they do in LibreLane.
+were verified and what they do in LibreLane. Section 9 compares that build
+with the configuration-based closure.
 
 Nothing here changes the submission. `src/protocol_emulator_core.v` is still
 generated from `configs/instruction-sram-32.json`, and the new options emit
 nothing unless a config sets them.
 
 ## 1. The failing build
+
+This is the build of `c118027`, the design of record until `25e331e`.
 
 | Corner | Setup WS | Setup violations | Reg-to-reg WS | Hold WS |
 |---|---:|---:|---:|---:|
@@ -39,8 +51,11 @@ Two properties of the flow matter for everything below:
   nets are driven by `nand2_1`, `o21ai_1` and `buf_1` cells, with 1 to 5 ns
   transitions at the slow corner.
 
-So the slow-corner slack is set by the RTL structure: logic depth, the fanout
-of late signals, and flop-to-flop paths that attract hold buffers.
+So, with the flow settings of `c118027`, the slow-corner slack was set by the
+RTL structure: logic depth, the fanout of late signals, and flop-to-flop
+paths that attract hold buffers. Other flow settings move it on the same RTL:
+section 9 closes the slow corner by configuration alone (slow-corner WS from
+−8.52 to +2.95 ns, a gain of 11.47 ns).
 
 ## 2. Method
 
@@ -67,7 +82,7 @@ The scripts and all reports are in the workstream directory (section 8).
 
 ## 3. Why the slow corner fails
 
-### 3.1 The design of record (official build)
+### 3.1 The design of record at `c118027` (official build)
 
 Violating endpoints at the slow corner, grouped by the start point of each
 endpoint's worst path:
@@ -451,8 +466,8 @@ about 5K µm².
 ## 7. LibreLane results
 
 Every run uses the sweep harness (`scripts/sweep/`, `docs/sweep.md`) with the
-current `src/config.json`: 8x4 tiles, floorplan `fp8_base`, density 60, 20 ns,
-the LibreLane 3.1.0.dev3 image. Slack and violation counts are LibreLane's
+`src/config.json` of `c118027` (the runs predate `25e331e`): 8x4 tiles,
+floorplan `fp8_base`, density 60, 20 ns, the LibreLane 3.1.0.dev3 image. Slack and violation counts are LibreLane's
 post-route STA (`nom` parasitics); "violations" are setup-violating endpoints.
 Runs of one core are not always reproducible (section 7.2): LibreLane's
 synthesis step can emit the same design with a different net order (same
@@ -598,6 +613,10 @@ threads) only measure what the input paths cost.
 
 ### 7.4 What remains
 
+This subsection is the state before `25e331e`. The flow settings that closed
+the slow corner afterwards are in section 9; "configuration" below means the
+RTL option sets and the one flow override of section 7.3.
+
 - No configuration tried closes the slow corner, including the flow
   override and the registered inputs of section 7.3.
 - After the options, three structures fail at the slow corner:
@@ -645,3 +664,138 @@ expansion, Yosys scripts and logs), the SymbiYosys miters (`fvhost/`), the
 lockstep harness patch and campaign (`lockstep/`), the verification snapshot
 and its results (`verif/final1/`), the LibreLane runs (`sweep/`), and
 `manifest.json`, which lists every Slurm job with its purpose.
+
+## 9. Closure by physical-design configuration (optimizer promotion p010)
+
+The physical-design optimizer (`tools/opt/`, [optimization.md](optimization.md))
+searches LibreLane settings for an unchanged core. Commit `25e331e` put its
+promotion p010 (trial `dor-26a873-c8bf57e#94`) into `src/config.json`.
+`git diff --stat c118027 131e793 -- src/` lists only `src/config.json`:
+`src/project.v`, `src/protocol_emulator_core.v` and `src/sram_pdn_cfg.tcl`
+are byte-identical, so the closure below is a property of the flow settings.
+
+### 9.1 Before and after (official builds)
+
+Both columns are from `tt_submission/stats/metrics.csv` of the `gds`
+workflow run on the named commit (8x4 tiles, 20 ns, LibreLane 3.1.0.dev3,
+IHP-Open-PDK `2bbec755`). Both runs passed gds, precheck and gl_test.
+
+| | `c118027`, run 36144357821 | `131e793`, run 36257636798 |
+|---|---:|---:|
+| Setup WS, typ | +0.89 ns | +7.88 ns |
+| Setup WS, fast | +6.15 ns | +9.31 ns |
+| Setup WS, slow | −8.52 ns | +2.95 ns |
+| Setup-violating endpoints, slow | 2,482 | 0 |
+| Setup TNS, slow | −9,744.1 ns | 0 |
+| Register-to-register setup WS, slow | −0.12 ns (1 endpoint) | +2.95 ns (0) |
+| Hold WS, typ / fast / slow | +0.30 / +0.11 / +0.63 ns | +0.32 / +0.11 / +0.66 ns |
+| Max-slew / max-cap / max-fan-out violations, slow | 290 / 70 / 524 | 4 / 0 / 3 |
+| Utilization (standard cells) | 58.53% (53.88%) | 61.92% (57.64%) |
+| Instances | 97,553 | 94,248 |
+| Timing-repair buffers / hold buffers | 8,819 / 10 | 10,375 / 137 |
+| Route DRC / LVS / antenna violations | 0 / 0 / 0 | 0 / 0 / 0 |
+| fmax estimate 1000 / (20 − WS), typ / fast / slow | 52.3 / 72.2 / 35.1 MHz | 82.5 / 93.5 / 58.7 MHz |
+
+The setup slack gained is +6.99 ns (typ), +3.15 ns (fast) and +11.47 ns
+(slow). The fmax estimates extrapolate from the 20 ns run and are not a
+sign-off at another period (optimization.md, "Frequency tracks and the
+SDC"). The differences, estimates and percentages were checked with AXLE
+(Lean 4, `lean-4.28.0`, result `okay: true`; the Lean file and the result
+are in `<work dir>/docs-timing/axle/`).
+
+**The local prediction matched.** The promoted full run of this
+configuration (job 24010051, 4 OpenROAD threads, LVS 0; precheck job
+24011934 9/9; gate-level job 24011935, 0 failures) wrote a `metrics.csv`
+byte-identical to that of run 36257636798, and the same gate-level netlist.
+Its fast-mode trial (job 24009268, 32 threads) gave the same setup and hold
+slack at all three corners, utilization, instance count and
+slew/cap/fan-out counts (results.md, R19).
+
+### 9.2 What changed
+
+`25e331e` changed these keys of `src/config.json` (and the comments that
+describe them); no other key changed, including everything below the
+template's "DO NOT CHANGE" line.
+
+| Group | Key | `c118027` | `25e331e` |
+|---|---|---|---|
+| Placement | `PL_TIMING_DRIVEN` | not set | true |
+| | `PL_TARGET_DENSITY_PCT` | 60 | 61 |
+| | `MACROS` instances | `fp8_base` (macros in pairs) | `fp8_spread_trk` (spread over the full width) |
+| | `FP_MACRO_HORIZONTAL_HALO` | 16.48 | 20 |
+| Timing repair | `PL_RESIZER_SETUP_SLACK_MARGIN` | not set | 5.75 ns |
+| | `PL_RESIZER_HOLD_SLACK_MARGIN` | 0.1 | 0.15 |
+| | `DESIGN_REPAIR_MAX_WIRE_LENGTH` | not set | 300 µm |
+| | `DESIGN_REPAIR_MAX_SLEW_PCT` / `_CAP_PCT` | not set | 35 / 50 |
+| | `MAX_FANOUT_CONSTRAINT` | not set | 8 |
+| Clock tree | `CTS_MAX_CAP` | not set | 0.2 pF |
+| | `CTS_OBSTRUCTION_AWARE` | not set | true |
+| | `CTS_SINK_CLUSTERING_SIZE` | not set | 16 |
+| Global routing | `GRT_LAYER_ADJUSTMENTS` | not set (PDK: 0 on all five layers) | [0, 0.2, 0, 0.1, 0] |
+| Synthesis | `SYNTH_STRATEGY` | not set | "DELAY 4" |
+
+### 9.3 What single settings did
+
+The optimizer's first wave changed one setting at a time from the `c118027`
+configuration (fast mode, 32 threads, no LVS; optimization.md, "Campaign
+record", v1). Slow-corner setup WS at 20 ns:
+
+| Trial | Job | Change from `c118027` | Slow WS | Worst slow path starts at |
+|---:|---|---|---:|---|
+| 0 | 23993203 | none | −8.52 ns | `rst_n` |
+| 1 | 23993204 | setup-repair margin 2 ns | −5.10 ns | `rst_n` |
+| 2 | 23993205 | setup-repair margin 5 ns | −1.10 ns | a flip-flop |
+| 10 | 23993215 | timing-driven placement | −3.71 ns | `ui_in[3]` |
+| 8 | 23993212 | repair maximum wire length 300 µm | −2.63 ns (not legal: route DRC 8) | `rst_n` |
+| 7 | 23993210 | `MAX_FANOUT_CONSTRAINT` 6 | −7.00 ns | `rst_n` |
+| 14 | 23993221 | density 52 | −7.78 ns | `rst_n` |
+
+Trials 2 and 10 were promoted and gave the same slack in full mode (p003,
+job 23994927, −1.102 ns; p002, job 23994350, −3.709 ns). The first trial
+with positive slack at all three corners was TPE trial 23 (job 23995853,
+slow +0.73 ns; p004, job 23997360). p010 (trial #94) reached +2.954 ns.
+
+The largest single step is the post-CTS setup-repair margin. Section 1
+describes why: timing repair runs once, after CTS, on placement-estimated
+parasitics, and with the default margin it reported no setup violations in a
+sweep run whose routed slow corner failed. With a margin of several
+nanoseconds it repairs paths that look positive before routing; in trial 2
+(5 ns) it found 2,282 endpoints below the margin (optimization.md). No run
+removed one key at a time from p010, so the contribution of each key to the
+final +2.95 ns is not measured, and the single-setting steps above are not
+additive.
+
+### 9.4 What limits the slow corner now
+
+In the p010 full run (job 24010051), whose metrics equal the official
+run's, the worst slow-corner path starts at the output of instruction SRAM
+`core.instruction_sram_e1_lo`, and the slow register-to-register slack equals
+the overall worst slack (+2.954 ns). Instruction SRAM outputs are item 2 of
+section 7.4. The worst paths at the typical and fast corners still start at
+`rst_n`, with +7.88 and +9.31 ns. Source: the `slow_worst_start`,
+`typ_worst_start` and `fast_worst_start` fields of the p010 records in
+`<work dir>/optimizer/store/events.jsonl`.
+
+### 9.5 The RTL variants with optimizer settings
+
+The optimizer also runs each variant core (sections 5 and 6;
+[variants.md](variants.md)) with transferred configurations. In fast mode at
+20 ns, the best trial of every variant track meets the slow corner
+(leaderboard of 2026-09-26 17:55 cluster time): `rstreg_timing` +3.53 ns,
+`cn_s2_timing` +2.49 ns, `rstreg` +2.61 ns, `cn_s2` +2.81 ns, `cn`
++2.97 ns, `diet4` (8x4) +3.67 ns and `diet2` +3.85 ns. The best
+design-of-record trial is +4.83 ns (trial #154, job 24036312); it was
+promoted as p016 and passed the local sign-off with the same slack
+([optimization.md](optimization.md)). The variant figures are fast-mode
+trials; no variant configuration has been promoted. The RTL
+analysis of sections 3 and 7 is unchanged by this: with the `c118027`
+settings, the variants did not close the slow corner.
+
+### 9.6 Reproduction
+
+- **Official:** runs 36144357821 and 36257636798, artifact `tt_submission`,
+  `stats/metrics.csv`.
+- **Local:** the promotion pipeline of [optimization.md](optimization.md)
+  ("Promotion", "Operation"). The commit message of `25e331e` records that a
+  snapshot rebuilt from that commit with `scripts/sweep/make_snapshot.py`
+  has no configuration differences from the promoted run.

@@ -104,8 +104,10 @@ low when edge t samples it.
   first functional edge is m+2.
 
 **What each style is for.**
-- `sync_registered` removes the `rst_n` input-delay paths that fail slow-corner
-  setup (`docs/hardening.md` section 7). `rst_n` and `ena` now reach only the D
+- `sync_registered` removes the `rst_n` input-delay paths that failed
+  slow-corner setup in the `c118027` build (`docs/hardening.md` section 7;
+  since `25e331e` the design of record meets the slow corner without it,
+  `docs/timing-closure.md` section 9). `rst_n` and `ena` now reach only the D
   input of `reset_sync_1`.
 - `async` removes the synchronous-clear logic and, with `fifo_storage_reset`,
   almost every tie cell (3,929 to 8 in `cn`). It does not remove timing from `rst_n`: release becomes a

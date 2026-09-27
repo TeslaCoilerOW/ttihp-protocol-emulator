@@ -29,6 +29,75 @@ the design of record at 20 ns and the variant cores. Its record is in
 frequency tracks, the 6x4 track, absolute knob values, the import of
 identical earlier trials, weighted allocation and retirement.
 
+## Current results
+
+Three kinds of result appear on this page, with decreasing weight:
+
+1. **Result of record:** a configuration committed to `src/config.json` (or
+   to `variants6x4/config.overlay.json`) and built by the GitHub actions.
+2. **Promoted sign-off run (local):** a full-mode run with
+   `OPENROAD_THREADS` 4 and LVS, the unmodified Tiny Tapeout precheck and
+   the gate-level cocotb suite. The verdict is PASS only if all three pass.
+3. **Fast-mode trial (local):** 32 threads, no LVS, no precheck, no
+   gate-level test. It ranks configurations; it is not a sign-off.
+
+**Of record.** The design of record at 20 ns carries p010 since `25e331e`.
+GitHub run 36257636798 on `131e793` passed gds, precheck and gl_test with
+setup WS typ/fast/slow +7.88/+9.31/+2.95 ns, and its `metrics.csv` is
+byte-identical to that of p010's full run, job 24010051 (`docs/results.md`,
+R16 to R19). The 6x4 overlay carries p014 since `4bd30c8`; its official
+`gds_6x4` run 36274474540 passed, with `metrics.csv` byte-identical to that
+of p014's full run, job 24036160 (`docs/results.md` R83; `docs/6x4.md`
+section 5b).
+
+**Per track** (leaderboard of 2026-09-27 01:20 UTC, 2026-09-26 21:20
+cluster time; WS at the track's period):
+
+| Track | Trials (new + imported; legal) | Best fast-mode trial: min WS (corner), job | Best PASS promotion: typ / fast / slow WS | Promotions in flight |
+|---|---|---|---|---|
+| `dor`, 8x4, 20 ns | 50 + 134; 146 | +5.533 ns (slow), trial #175, job 24054351 | p016: +7.986 / +9.271 / +4.835 ns | p022 (full run 24057278) |
+| `dor15`, 8x4, 15 ns (66.7 MHz) | 30 + 0; 20 | +2.556 ns (slow), trial #13, job 24037613 | p018: +5.950 / +6.924 / +2.240 ns | p019 (24045480), p021 (24048020) |
+| `dor13`, 8x4, 13.33 ns (75.0 MHz) | 11 + 0; 4 | +0.756 ns (slow), trial #1, job 24026489 | none | none |
+| `diet4_6x4`, 6x4, 20 ns | 28 + 0; 17 | +4.757 ns (slow), trial #25, job 24057279 | p020: +8.492 / +10.371 / +3.621 ns | p023 (full run 24060216) |
+| 7 variant tracks, 8x4, 20 ns | 4 + 11 or 12 each | +2.494 (`cn_s2_timing`) to +5.122 ns (`diet4` at 8x4) | none (variants are not promoted before 20 finished trials) | none |
+
+**Above 50 MHz there is a local sign-off, not an official one.** Promotion
+p018 (15 ns, 66.7 MHz) passed the full run (legal, LVS 0), the precheck
+(9/9) and the gate-level tests (0 fail): setup WS +5.95 / +6.92 / +2.24 ns
+and hold WS min +0.165 ns at 15 ns (`docs/results.md` R84). It is not
+committed, so no GitHub action has built it; `src/config.json` stays at
+20 ns and `info.yaml` at 50 MHz. The 13.33 ns track has fast-mode trials
+only. A frequency-track configuration becomes the result of record only
+after it is committed with `CLOCK_PERIOD` and `clock_hz` changed and the
+GitHub actions pass on that commit
+([Adopting a configuration](#adopting-a-configuration)).
+
+**Promotions of v2** (v1's p001 to p010 are in [Campaign record](#campaign-record)):
+
+| Promotion | Track, trial | Full run | Precheck | Gate level | Setup WS typ / fast / slow | Verdict |
+|---|---|---|---|---|---|---|
+| p011 | `dor` #134 | 24026087: legal, LVS 0 | 24033557: 9/9 | 24033558: 102 tests, 46 pass, 56 skip, 0 fail | +8.138 / +9.487 / +3.548 ns | PASS |
+| p012 | `diet4_6x4` #0 (control: the committed 6x4 build of `131e793`) | 24029191: route DRC 69, flow stopped in `Netgen.LVS` | not run | not run | (+5.654 / +9.294 / −0.627 ns, before LVS) | FAIL |
+| p013 | `dor` #143 | 24030864: legal, LVS 0 | 24036014: 9/9 | 24036159: 102 tests, 46 pass, 56 skip, 0 fail | +8.120 / +9.545 / +3.634 ns | PASS |
+| p014 | `diet4_6x4` #8 | 24036160: legal, LVS 0 | 24041156: 9/9 | 24041157: 102 tests, 46 pass, 56 skip, 0 fail (`PE_VARIANT` diet4) | +7.706 / +10.518 / +2.737 ns | PASS; in the 6x4 overlay since `4bd30c8` |
+| p015 | `dor` #150 | 24037612: legal, LVS 0 | 24044821: 9/9 | 24044822: 102 tests, 46 pass, 56 skip, 0 fail | +7.641 / +9.035 / +4.275 ns | PASS |
+| p016 | `dor` #154 | 24038331: legal, LVS 0 | 24043244: 9/9 | 24043245: 102 tests, 46 pass, 56 skip, 0 fail | +7.986 / +9.271 / +4.835 ns | PASS |
+| p017 | `diet4_6x4` #12 | 24041769: legal, LVS 0 | 24047685: 9/9 | 24047686: 102 tests, 46 pass, 56 skip, 0 fail (`PE_VARIANT` diet4) | +8.156 / +10.232 / +2.989 ns | PASS |
+| p018 | `dor15` #1 (15 ns) | 24042265: legal, LVS 0 | 24053971: 9/9 | 24053972: 102 tests, 46 pass, 56 skip, 0 fail | +5.950 / +6.924 / +2.240 ns at 15 ns | PASS |
+| p019 | `dor15` #11 (15 ns) | 24045480: running | | | | pending |
+| p020 | `diet4_6x4` #16 | 24047687: legal, LVS 0 | 24055302: 9/9 | 24055303: 102 tests, 46 pass, 56 skip, 0 fail (`PE_VARIANT` diet4) | +8.492 / +10.371 / +3.621 ns | PASS |
+| p021 | `dor15` #13 (15 ns) | 24048020: running | | | | pending |
+| p022 | `dor` #175 | 24057278: running | | | | pending |
+| p023 | `diet4_6x4` #25 | 24060216: running | | | | pending |
+
+p016 has the largest slow-corner slack of any signed-off 20 ns
+configuration (+4.835 ns against p010's +2.954 ns, fmax estimate at the slow
+corner 65.9 MHz), and p020 that of any signed-off 6x4 configuration
+(+3.621 ns against p014's +2.737 ns). Neither has been adopted:
+`src/config.json` carries p010 and the 6x4 overlay p014, the configurations
+built by CI (R16 to R19, R83). The verdicts are as of 2026-09-27 01:20 UTC;
+the live list is the leaderboard.
+
 ## Starting point
 
 **`v0.1-hardened`.** The design of record at tag `v0.1-hardened` (`c118027`)
@@ -51,13 +120,21 @@ estimate 82.5 MHz and utilization 61.9%; the TT precheck passed 9/9 (job
 24011934) and the gate-level suite had 0 failures (job 24011935). The RTL did
 not change. For `131e793`, which carries that configuration:
 
-- the GitHub gds run (36257636798) was still in progress when this page was
-  written;
+- the GitHub gds run (36257636798) passed gds, precheck and gl_test (102
+  tests, 46 pass, 56 skip, 0 fail). Its setup WS is typ/fast/slow
+  +7.88/+9.31/+2.95 ns with 0 violations at every corner, and its
+  `metrics.csv` is byte-identical to that of the promoted full run
+  (job 24010051), with the same gate-level netlist. The prediction of the
+  fast-mode trial (job 24009268) and of the promotion matched the official
+  result (`docs/results.md`, R16 to R19). (When this paragraph was first
+  written, the run was still in progress.)
 - the gds_6x4 run (36257636751) failed in "Build GDS" with `69 Routing DRC
-  errors found`. The 6x4 build inherits the adopted keys through
-  `variants6x4/config.overlay.json`, which restates only the density and
-  the halo. The optimizer's trial of the same configuration shows the same
-  count ([Campaign record](#campaign-record), v2).
+  errors found`. The 6x4 build inherited the adopted keys through
+  `variants6x4/config.overlay.json`, which then restated placement,
+  obstruction, density and halo but no timing key. The optimizer's trial of
+  the same configuration shows the same count ([Campaign record](#campaign-record),
+  v2). `4bd30c8` put promotion p014 into the overlay (`docs/6x4.md`
+  sections 4b and 5b).
 
 **Two observations from v1 that still shape the search space.** The first
 comes from sweep run `base-26a873-8x4-fp8_base-d60-p20-h0p1_0p05-fast-t32`
@@ -181,6 +258,12 @@ At the v2 launch (driver job 24024261) the driver imported 207 trials:
 - 11 in the first loop, from v1 trial jobs that had finished while no driver
   ran.
 
+Three more were imported later, when the last v1 trial jobs finished:
+`dor-26a873-c8bf57e#32` (job 23998222) at 15:22, `#89` (job 24007758) at
+15:52 and `cn-0416d6-c8bf57e#10` (job 24011966) at 17:42, all three not
+legal. The total at 18:17 was 210: 134 in `dor`, 10 to 12 in each variant
+track (the "imported" column of the leaderboard).
+
 Not imported:
 
 - the two v1 trials with `DRT_OPT_ITERS` 80 (a retired value);
@@ -209,7 +292,7 @@ TPE samples.
   - the committed 6x4 build;
   - the 6x4 point signed off before the p010 adoption
     (`docs/6x4.md` section 4: every timing key at its LibreLane default,
-    density 60, hold margin 0.1; typ +4.29, slow −2.80 ns in full mode, run
+    density 60, hold margin 0.1; typ +4.30, slow −2.80 ns in full mode, run
     23980402_9);
   - the 5 best 20 ns configurations of `dor` and the 3 best 8x4 `diet4`
     trials, translated into the 6x4 space (`space.translate()`). The 6x4
@@ -537,6 +620,15 @@ The reasoning:
   0.05 ns promotion threshold.
 - 0.05 utilization separates the `diet` cores (0.40 to 0.45 at their best)
   from the rest (0.59 to 0.66).
+- The comparison is not between equal search efforts. `dor` gets 0.35 of
+  the new trials and each of the 7 variant tracks 0.15 / 7, about a
+  sixteenth of `dor`'s share, and `dor` also imported 134 v1 trials. At
+  18:17 `dor` had 159 finished trials and each variant track 12 to 14. A
+  variant track is judged after 40 trials against the best of `dor` after
+  many more, so a variant that would improve with more trials can be
+  retired. The 0.25 ns margin is defined from the ranking resolution and
+  the promotion threshold (above), not from the gain that more trials give,
+  so it does not correct for this.
 
 Retirement is recorded as a `track_retire` event with the numbers that
 triggered it, and it is permanent. It applies only to variant tracks: the
@@ -550,9 +642,12 @@ At the v2 launch no variant track had 40 finished trials (they had 10 to
   (best min WS 2.40 to 2.51 ns, utilization within 0.05) met the margin
   condition. `diet2` and `diet4` (utilization 0.40 and 0.45) and
   `rstreg_timing` (3.53 ns) did not.
-- The best of `dor` rose to 4.28 ns by 17:00 (trial #150). Against that,
-  `rstreg_timing` also meets the margin condition unless it improves.
-- The rule acts only when a track reaches 40 finished trials.
+- The best of `dor` rose to 4.28 ns by 17:00 (trial #150) and to 4.835 ns
+  by 18:17 (trial #154, job 24036312). Against that, every variant track
+  meets the margin condition unless it improves; the two `diet` tracks are
+  exempt through the utilization condition.
+- The rule acts only when a track reaches 40 finished trials. At 18:17 the
+  variant tracks had 12 to 14, and none was retired.
 
 ### One trial
 
@@ -614,6 +709,9 @@ What gets promoted (at most 5 promotions in flight):
 - **Control:** the committed configuration of `dor` and of
   `diet4_6x4` goes through the whole pipeline once. For `dor` this was
   already done: the committed configuration is v1's p010, which is PASS.
+  For `diet4_6x4` it was p012, the 6x4 build of the frozen tree `131e793`,
+  which is FAIL (route DRC 69). The driver still runs on that tree, so its
+  6x4 "committed configuration" is the pre-`4bd30c8` overlay, not p014.
 - **Best of a track:** the best legal trial of a track is promoted when
   its minimum WS is at least 0.05 ns above the best promoted trial of that
   track. Promotions of the trials an imported trial stands for count here.
@@ -621,15 +719,19 @@ What gets promoted (at most 5 promotions in flight):
   10, `diet4_6x4` 10, variant 20.
 - **Periodic:** for `dor`, `dor15` and `dor13`, once a track has at least
   50 × (its promotions + 1) trials of its own (imported ones not counted),
-  the best not-yet-promoted trial among its top three is promoted. For
-  `dor`, the ten v1 promotions count, so this starts at 550 own trials.
+  the best not-yet-promoted trial among its top three is promoted. The
+  threshold grows with every promotion of the track, including the
+  best-of-track ones. For `dor` the ten v1 promotions count, so it started
+  at 550 own trials; with p011, p013, p015 and p016 (14 promotions) it was
+  750 at 18:17, against 29 own trials. For `dor15`, with p018, it was 100.
 
 ### Scheduling limits, preemption and pruning
 
 **Limits.**
 
-- All `pe-v2-optimizer-*` jobs together stay at or below 700 CPUs, queued
-  and running, driver included. Every submission is charged against the
+- All `pe-v2-optimizer-*` jobs together stay at or below 960 CPUs, queued
+  and running, driver included (700 until 2026-09-27; the partition's
+  per-user cap is 1,024, and the rest is left for other workstreams). Every submission is charged against the
   CPUs free at the start of the loop.
 - Submissions stop while this user has 400 or more jobs queued (the
   per-user limit is 448, shared by all workstreams).
@@ -777,9 +879,23 @@ writes it).
   becomes `null` there.
 - A key that `src/config.json` does not have must also be listed in
   `variants6x4/PROVENANCE.json` `overlay_new_keys`, or `switch.py check`
-  fails.
+  fails; a `null` needs no listing. Every knob key is already in the
+  overlay (`tools/opt/test_opt.py` checks this), so an adoption only
+  changes values there.
 - Then run `python3 variants6x4/switch.py check`. The CI workflow
   `gds_6x4.yaml` is the result of record for the 6x4 build.
+- `4bd30c8` did this for p014: the merged configuration equals the full
+  run's key for key (`docs/6x4.md` section 4b).
+- The difference lists only the keys in which the promoted configuration
+  differs from the committed 6x4 build. At `4bd30c8` the knob keys that
+  were equal stayed inherited from `src/config.json`, among them
+  `SYNTH_STRATEGY`, `PL_TIMING_DRIVEN` and `DESIGN_REPAIR_MAX_WIRE_LENGTH`.
+  Since `8a05de7` and `fdc23f2` the overlay states all 33 knob keys
+  (`docs/6x4.md` section 4c), so an adoption for the 8x4 build no longer
+  changes the 6x4 build's knob settings, and `variants6x4/info.overlay.json`
+  keeps the 6x4 `clock_hz` at 50 MHz. Keep it that
+  way when adopting: the difference only changes keys that are already in
+  the overlay.
 
 ## Campaign record
 
@@ -940,16 +1056,21 @@ leaderboard has the current state). WS is at the track's period.
     delay 3.0 ns in `dor15` #0 (job 24024331) against 4.0 ns in the 20 ns
     trial `dor` #134 (job 24024341). Uncertainty 0.25 ns, transition
     0.15 ns and derate 5% are the same in both.
-  - 15 ns trials take longer than 20 ns ones: 66 to 118 minutes against a
-    v1 median of 32.
+  - 15 ns trials take longer than 20 ns ones. The 11 that had finished by
+    18:17 took 38 to 167 minutes (median 90), against a median of 32
+    minutes for the v1 trials of the design of record and 24 minutes for
+    the v2 20 ns trials (`flow_runtime_s` in the store). (The first
+    finished 15 ns trials, when this list was first written, took 66 to
+    118 minutes.)
 - **6x4.**
   - The committed 6x4 build (the overlay on the adopted `src/config.json`)
     ended with 69 route DRC violations in fast mode. The GitHub gds_6x4 run
     of `131e793` (36257636751) failed with the same count: `69 Routing DRC
-    errors found`. The control promotion p012 runs the same configuration
-    in full mode with `OPENROAD_THREADS` 4 (full run job 24029191).
+    errors found`. The control promotion p012 ran the same configuration
+    in full mode with `OPENROAD_THREADS` 4 (full run job 24029191): route
+    DRC 69, and the flow stopped in `Netgen.LVS`, so p012 is FAIL.
   - The pre-adoption 6x4 point reproduced its full-mode sign-off numbers of
-    `docs/6x4.md` (+4.29 / +8.50 / −2.80 ns, utilization 56.3%, hold
+    `docs/6x4.md` (+4.30 / +8.50 / −2.80 ns, utilization 56.3%, hold
     minimum +0.099 ns) to within 0.01 ns.
   - Two translated 20 ns configurations are legal with positive setup WS
     at all corners (+1.26 and +2.06 ns at the slow corner).
@@ -967,10 +1088,28 @@ leaderboard has the current state). WS is at the track's period.
     - Gate-level job 24036159: 102 tests, 46 pass, 56 skip, 0 fail.
   - By 17:00, TPE trial #150 (job 24033993) reached +7.64/+9.04/+4.28 ns
     with 3/2/0 slew/cap/fan-out violations and utilization 0.6178. It is
-    promoted as p015 (full run job 24037612).
+    promoted as p015 (full run job 24037612, still running at 18:17).
+  - TPE trial #154 (job 24036312) reached +7.99/+9.27/+4.83 ns and was
+    promoted as p016: **PASS**.
+    - Full run job 24038331: legal, LVS 0, setup WS typ/fast/slow
+      +7.986/+9.271/+4.835 ns, the same as the trial's; hold WS minimum
+      +0.140 ns (fast); utilization 0.6183.
+    - Precheck job 24043244: 9/9.
+    - Gate-level job 24043245: 102 tests, 46 pass, 56 skip, 0 fail.
   - In the same period, 6x4 trial #10 (job 24035515) reached +2.76 ns at
     the slow corner and is legal. The best 6x4 trial at 16:39, #8
-    (+2.74 ns, job 24032431), is promoted as p014 (full run job 24036160).
+    (+2.74 ns, job 24032431), was promoted as p014: **PASS**.
+    - Full run job 24036160: legal, LVS 0, setup WS typ/fast/slow
+      +7.706/+10.518/+2.737 ns, the same as the trial's; hold WS minimum
+      +0.051 ns (fast); utilization 0.5890.
+    - Precheck job 24041156: 9/9.
+    - Gate-level job 24041157 (`PE_VARIANT` diet4): 102 tests, 46 pass,
+      56 skip, 0 fail.
+    - `4bd30c8` put it into `variants6x4/config.overlay.json` (see
+      [Adopting a configuration](#adopting-a-configuration)).
+  - The best 6x4 trial at 18:17 was #12 (job 24039112, +2.99 ns at the slow
+    corner), a transfer of `dor` #154; it is promoted as p017 (full run job
+    24041769, still running at 18:17).
 - **13.33 ns.** The first finished trial was `dor13` #4 (job 24037546,
   seed "20 ns best #5", 27 minutes):
   - not legal: one fast-corner hold violation (hold WS −0.022 ns), so
@@ -1017,6 +1156,11 @@ twice.
   checks that count.
 - **The slow corner is not a sign-off corner.** Objective 2 still ranks by
   it, because the goal is margin at all corners.
+- **No official sign-off above 50 MHz yet.** One 15 ns configuration,
+  p018, has passed the local sign-off pipeline (see
+  [Current results](#current-results)); none is committed, so none has been
+  built by the GitHub actions. The 13.33 ns track has fast-mode trials
+  only.
 - **fmax estimates extrapolate** from one period (see "Frequency tracks and
   the SDC"). The frequency tracks measure at their period instead.
 - **Variant-track gate-level tests** use the committed firmware images,

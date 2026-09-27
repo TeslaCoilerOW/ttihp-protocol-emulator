@@ -501,10 +501,16 @@ gives 434 clocks per bit, which is 115,207 baud at 50 MHz.
 ## Limitations
 
 - There is no silicon yet. The official Tiny Tapeout gds, precheck and
-  gate-level test actions pass (tag v0.1-hardened), but 50 MHz is a timing
-  target, not a measured frequency. Post-route timing meets 50 MHz at the
-  typical and fast corners but not at the slow corner (setup -8.52 ns, mostly
-  paths from the reset input).
+  gate-level test actions pass (commit 131e793, GitHub run 36257636798), but
+  50 MHz is a timing target, not a measured frequency. Post-route static
+  timing meets setup at 50 MHz at the typical, fast and slow corners (worst
+  slack +2.95 ns, at the slow corner) and hold at every corner (worst slack
+  +0.11 ns, at the fast corner). The first hardened build, tag
+  v0.1-hardened, missed setup at the slow corner by 8.52 ns, mostly on paths
+  from the reset input; the same RTL now meets it with different LibreLane
+  settings. No clock above 50 MHz has been signed off by the official flow;
+  a 15 ns (66.7 MHz) configuration has passed the local sign-off only
+  (`docs/results.md` R84).
 - The host port is synchronous and its inputs are not synchronized, so the host
   must share the chip clock.
 - UART has no flow-control wire. When engine 1's RX queue is full, the strict

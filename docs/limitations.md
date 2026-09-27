@@ -1,9 +1,12 @@
 # Limitations: what the verification does not establish
 
 This page lists what the results in [results.md](results.md) do *not*
-show. It covers the state at commit `c118027` (tag `v0.1-hardened`). Each
-item names the evidence it refers to. Open defects are in
-[bug-ledger.md](bug-ledger.md).
+show. It was written for commit `c118027` (tag `v0.1-hardened`) and updated
+on 2026-09-26 for `131e793`, the design of record since `25e331e`: the same
+RTL with the LibreLane settings of optimizer promotion p010 in
+`src/config.json`. Items that no longer hold are kept and marked
+**Resolved** or **Obsolete**, with their evidence. Each item names the
+evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
 
 ## 1. No hardware observation
 
@@ -23,32 +26,63 @@ item names the evidence it refers to. Open defects are in
 
 ## 2. Timing closure
 
-- **The slow corner fails setup at 50 MHz.** The official build has a
-  setup worst slack of −8.52 ns at `nom_slow_1p08V_125C`, with 2,482
-  violating endpoints (run 36144357821; R7 in results.md). In the local
-  mirror of the same configuration, which gave identical metrics (job
-  23850490):
-  - 2,467 of these are paths from the `rst_n` input to a register;
-  - 14 are from `rst_n` to an output;
-  - one is register to register: −0.116 ns, from the `A_DOUT[1]` output of
-    instruction SRAM `e2_hi`.
+- **Resolved: the slow corner meets setup at 50 MHz.** The official build
+  of `131e793` (run 36257636798; R16 in results.md) has setup worst slack
+  +7.88 ns at `nom_typ_1p20V_25C`, +9.31 ns at `nom_fast_1p32V_m40C` and
+  +2.95 ns at `nom_slow_1p08V_125C`, with 0 violating endpoints at every
+  corner. The RTL is byte-identical to `c118027`; only `src/config.json`
+  changed (timing-driven placement, a 5.75 ns post-CTS setup-repair margin,
+  repair and fan-out limits, clock-tree settings, `SYNTH_STRATEGY`
+  "DELAY 4", density and macro placement; [timing-closure.md](timing-closure.md)
+  section 9). The promoted full run of that configuration (job 24010051)
+  had produced a byte-identical `metrics.csv`, and its fast-mode trial (job
+  24009268) the same slack values (R19).
 
-  Tiny Tapeout signs off the typical corner only, where setup is met
-  (+0.89 ns). 50 MHz is therefore established at the typical and fast
-  corners, not across process, voltage and temperature.
-- **With every path delay unchanged**, the slow-corner worst path needs a
-  period of about 28.52 ns (about 35 MHz). The input and output delays that
-  Tiny Tapeout's constraints apply may scale with the period, so this is an
-  estimate, not an analysis.
-- **The reset variants do not close the slow corner.** In local runs at
+  The item as first written, for `c118027` (run 36144357821; R7): setup
+  worst slack −8.52 ns at the slow corner, with 2,482 violating endpoints.
+  In the local mirror of that configuration, which gave identical metrics
+  (job 23850490), 2,467 were paths from the `rst_n` input to a register, 14
+  from `rst_n` to an output, and one register to register (−0.116 ns, from
+  the `A_DOUT[1]` output of instruction SRAM `e2_hi`). The typical corner
+  met setup (+0.89 ns).
+- **Obsolete: the 35 MHz estimate.** For `c118027` this page said that,
+  with every path delay unchanged, the slow-corner worst path needed a
+  period of about 28.52 ns (about 35 MHz). That described the `c118027`
+  build and no longer applies.
+- **The slow corner is reported, not gated.** The flow signs off setup at
+  the typical corner only (`TIMING_VIOLATION_CORNERS` `*typ*`). The fast and
+  slow results above are the flow's STA reports; a later configuration that
+  missed the slow corner would still pass the gds action. The optimizer
+  ranks its trials by the minimum slack over all three corners
+  ([optimization.md](optimization.md), "Objective").
+- **No clock above 50 MHz is signed off by the official flow or
+  committed.** The optimizer's 15 ns (66.7 MHz) promotion p018 passed the
+  local sign-off pipeline (full run with LVS 0, precheck 9/9, gate-level
+  tests with 0 failures; setup WS typ/fast/slow +5.95/+6.92/+2.24 ns;
+  results.md R84), but `src/config.json` and `info.yaml` still state 20 ns
+  and 50 MHz, so no GitHub action has built it. The 13.33 ns (75.0 MHz)
+  track had fast-mode trials only (best slow WS +0.76 ns) as of
+  2026-09-27 01:20 UTC.
+  Frequencies derived from the 20 ns slack, 1000 / (20 − WS) (typ 82.5 MHz,
+  slow 58.7 MHz for `131e793`), are extrapolations: the constrained input
+  and output delays scale with the period ([optimization.md](optimization.md),
+  "Frequency tracks and the SDC").
+- **Hold margin at the fast corner is small.** Hold is met at every corner;
+  the worst slack is +0.11 ns at the fast corner (typ +0.32 ns, slow
+  +0.66 ns; R17). It was +0.107 ns in `c118027` (R8).
+- **The RTL variants did not close the slow corner.** In local runs at
   `73536f0`, `rstreg` gave −7.52 ns (register to register −0.96 ns) and
   `cn_s2` gave −4.99 ns, with its worst path register to register
   ([sweep.md](sweep.md)). The slow corner failed in every 8x4 base run of
-  the sweep, at −5.09 to −10.88 ns.
-- **Design-rule counts are not zero.** The official build reports max-slew,
-  max-capacitance and max-fanout violations (typical corner: 42, 70 and 524;
-  slow corner: 290, 70 and 524). They are reported but not fatal in this
-  flow.
+  the sweep, at −5.09 to −10.88 ns. The behaviour-preserving timing options
+  and the named variants `rstreg_timing` and `cn_s2_timing` did not close
+  it either ([timing-closure.md](timing-closure.md) section 7). These
+  results stand; the closure of `131e793` comes from the flow settings.
+- **Design-rule counts are not zero.** The official build of `131e793`
+  reports max-slew / max-capacitance / max-fan-out violations of 1/0/3 at
+  the typical corner, 0/0/3 at the fast corner and 4/0/3 at the slow corner
+  (R18). For `c118027` they were 42/70/524 (typical) and 290/70/524 (slow).
+  They are reported but not fatal in this flow.
 - **Parasitics.** STA used the flow's nominal extraction only
   (`nom_*` corners).
 - **Asynchronous resets are not timed.** No recovery/removal analysis was
@@ -117,8 +151,8 @@ processor, under these assumptions:
   bounded (BMC 48). No unbounded proof has finished
   ([formal-depth.md](formal-depth.md), "What is still unproven").
 
-**Revision.** The `formal_depth/` results are for `73536f0`. `c118027` has
-the same core, but those jobs have not been re-run on it.
+**Revision.** The `formal_depth/` results are for `73536f0`. `c118027` and
+`131e793` have the same core, but those jobs have not been re-run on them.
 
 ## 4. What simulation evidence does not cover
 
@@ -144,10 +178,13 @@ the same core, but those jobs have not been re-run on it.
   the extended observer define was hit. Some interactions are rare, for
   example a synchronous START of all four engines, at 0.36 per 1,000 default
   cases. Behaviour outside the defined bins is not measured.
-- **Gate-level simulation is partial.** It runs 36 of the 66 tests. The long
-  and time-warp tests skip, and so do 17 of the 25 legacy replays. It is
-  zero-delay, without SDF, and uses the FUNCTIONAL SRAM models. It checks the
-  netlist's logic, not its timing.
+- **Gate-level simulation is partial.** In the official gl_test of `131e793`
+  it runs 46 of the 102 tests; 56 skip (R15). For `c118027` it ran 36 of
+  66 (R3). The 56 skipped tests (from the run's `results.xml`) are the 7
+  time-warp tests, 17 of the 25 legacy replays, 26 of the 36 `test_kill_*`
+  tests, 3 of the 5 counter tests and 3 of the 14 directed tests: long
+  tests, and tests that use the time warp, which works only on RTL. It is
+  zero-delay, without SDF, and uses the FUNCTIONAL SRAM models. It checks the netlist's logic, not its timing.
 - **The time-warp tests are white-box.** They deposit reachable counter
   values into RTL registers, and they run only on RTL. Gap closure killed
   216 mutants that had survived before; 82 of them are killed only by the
@@ -156,10 +193,17 @@ the same core, but those jobs have not been re-run on it.
   - The mutants are single-bit Yosys `mutate` faults in
     `protocol_emulator_core` only. `src/project.v` and the SRAM macros are
     not mutated.
-  - 244 of 2,304 non-equivalent mutants survive. Many of the 55 on
-    `blocked_cycles` are probably unobservable hold-path mutations, but
-    they were not classified.
-  - The score counts as equivalent only the 116 mutants proven so.
+  - After the mutation push of `aa07868`, 73 of 2,296 non-equivalent
+    mutants survive (score 96.82%, R23c). Each has a written argument for
+    why no test can observe it, but the arguments are not proofs, so they
+    count as survivors ([mutation-push.md](mutation-push.md) section 5).
+    A later miter run with a longer ABC time cap proved 26 of the 73
+    equivalent (97.93%, 47 survivors; mutation-push.md section 4.5); the
+    headline stays 96.82%, the score as run. At `c118027` it was 244 of
+    2,304 (89.4%, R23b), including 55 on `blocked_cycles` that were not
+    classified then.
+  - The score counts as equivalent only mutants proven so: 124 since
+    `aa07868` (116 before).
 - **The peers are models, not devices.** Two of the third-party peers have
   defects of their own (BL-19). The skew corners model the order of
   same-edge changes, not pad delays, slew, set-up or hold. The JTAG peer is
@@ -181,15 +225,30 @@ the same core, but those jobs have not been re-run on it.
   all inside the SRAM macros ([drc-triage.md](drc-triage.md)).
 - **The SRAM macros are the IHP open-source `RM_IHPSG13_1P_64x16_c2`
   views.** Their silicon behaviour and characterisation are taken as given.
-  The 84 Magic illegal overlaps, power stripes over the macros' Metal4
-  obstruction band, are waived by configuration.
+  The Magic illegal overlaps, power stripes over the macros' Metal4
+  obstruction band, are waived by configuration: 86 in the build of
+  `131e793`, 84 in that of `c118027`.
 - **Tile size.** The official build is 8x4 tiles. That the competition
-  accepts 8x4 is not confirmed in this repository. The 6x4 candidate
-  (`diet4` on `fp6_tworow`) has passed local full sign-off only (results.md,
-  R52), not the official actions. Its GDS had 14 precheck Pin-check errors
-  from the same short power straps as BL-6 ([drc-triage.md](drc-triage.md),
-  section 6). No 6x4 build with the halo fix has been run through the
-  precheck.
+  accepts 8x4 is not confirmed in this repository. The 6x4 fallback
+  (`diet4`, [6x4.md](6x4.md)) is built by the `gds_6x4` workflow:
+  - Its configuration before `25e331e` passed gds, precheck and gl_test in
+    runs 36225500529 and 36238342669, with slow-corner setup −2.80 ns
+    (results.md, R80).
+  - On `131e793` the build failed with 69 routing DRC errors, because the
+    overlay inherited the new 8x4 timing keys (R81).
+  - `4bd30c8` puts optimizer promotion p014 into the overlay (local
+    sign-off: full run, LVS 0, precheck 9/9, gate level 0 fail; slow
+    +2.74 ns; R82). Its official run, 36274474540, passed with metrics
+    byte-identical to the local run (R83).
+  - Since `8a05de7` and `fdc23f2` the overlay states all 33 keys the
+    optimizer treats as flow knobs, and the `info.yaml` overlay restates
+    `clock_hz` (results.md section 9, item 13). A key outside that list can
+    still reach the 6x4 build from `src/config.json`.
+
+  Earlier state, kept for reference: the first 6x4 candidate (`diet4` on
+  `fp6_tworow`, results.md R52) had 14 precheck Pin-check errors from the
+  same short power straps as BL-6 ([drc-triage.md](drc-triage.md),
+  section 6); the `edgeobs` floorplan of the current overlay removes them.
 - **One tool version.** The results are for one flow and PDK revision:
   LibreLane 3.1.0.dev3 and IHP-Open-PDK `2bbec755`.
 - **No power claim.** Power and IR drop are only the flow's estimates, and
@@ -199,13 +258,16 @@ the same core, but those jobs have not been re-run on it.
 
 - **Many campaign results are for `73536f0`.** This covers the random and
   mutation campaigns, `formal_depth/`, the peers, the host library, the
-  timing analyzer and the FPGA simulations. `c118027` has the same
-  `src/protocol_emulator_core.v` and `firmware/`; it changes the tests and
-  the hardening configuration. Its official CI results are in results.md,
-  section 2.
-- **Not all raw data is public.** Per-seed and per-mutant results and the
-  job logs stay on the cluster. The repository keeps summaries. The 89.4%
-  mutation summary is not yet committed (results.md, section 9).
+  timing analyzer and the FPGA simulations. `c118027` and `131e793` have the
+  same `src/protocol_emulator_core.v` and `firmware/`; they change the tests
+  and the hardening configuration. Their official CI results are in
+  results.md, sections 2 and 2b.
+- **Not all raw data is public.** Per-seed results, raw per-test logs and
+  the job logs stay on the cluster. The repository keeps summaries. The
+  89.4% gap-closure summary is not committed (results.md, section 9, item
+  4). The per-mutant status of the 96.82% push and of the `diet4` rerun is
+  in `campaigns/mutation/results/push-4bd30c8/` and `diet4-102/`
+  (`summary.json`, `mutant_status.tsv`; item 11).
 - **CI runs only part of the suite.** It runs `regen`, lint, the cocotb
   RTL suite, the 16 `formal/` jobs, `docs`, `gds`, `precheck` and
   `gl_test`. It does not run `formal_depth/`, `test_ext/`, the host tests,
