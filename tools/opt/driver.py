@@ -74,7 +74,9 @@ STOP_AT = datetime.datetime(2026, 10, 24, 0, 0, 0)   # local time of the cluster
 # Share of new trials per weight group (tracks.py); a variant track gets WEIGHTS["variant"]
 # divided by the number of variant tracks still receiving trials. Groups without a track
 # that may receive a trial drop out, and the others keep their proportions.
-WEIGHTS = {"dor20": 0.35, "dor15": 0.22, "dor13": 0.08, "6x4": 0.20, "variant": 0.15}
+# Since d76f1cc the committed CLOCK_PERIOD is 15 ns (p018), so dor15 is the committed track
+# (weights until then: dor20 0.35, dor15 0.22, dor13 0.08).
+WEIGHTS = {"dor20": 0.15, "dor15": 0.35, "dor13": 0.15, "6x4": 0.20, "variant": 0.15}
 VARIANT_TRIAL_CAP = 200          # trials per variant track
 # Retirement of a variant track (docs/optimization.md, "Retirement"): at least
 # RETIRE_MIN_TRIALS finished trials, and either no legal trial, or its best legal min WS

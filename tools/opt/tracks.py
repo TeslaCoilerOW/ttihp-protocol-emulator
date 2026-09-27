@@ -5,9 +5,11 @@ A track is one (core, die, clock period, search space) combination with its
 own optuna study. Its committed configuration ("base") is what the repository
 builds for that combination today:
 
-  dor     design of record, 8x4, 20 ns: src/config.json as committed
+  dor     design of record, 8x4, 20 ns: src/config.json with CLOCK_PERIOD 20
+          (as committed until d76f1cc)
   dor15   design of record, 8x4, CLOCK_PERIOD 15 ns (66.7 MHz): src/config.json
-          with CLOCK_PERIOD 15 (and info.yaml clock_hz 66666667)
+          as committed since d76f1cc (promotion p018; info.yaml clock_hz stays
+          50000000, the operating clock)
   dor13   design of record, 8x4, CLOCK_PERIOD 13.33 ns (75.0 MHz)
   diet4_6x4  the 6x4 fallback: variants6x4/protocol_emulator_core.v (diet4) on
           the 6x4 die, src/config.json with variants6x4/config.overlay.json
