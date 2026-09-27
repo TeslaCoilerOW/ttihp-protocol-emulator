@@ -25,7 +25,8 @@ deliberate switch of the submission (docs/6x4.md, "Switching the submission").
   * the committed core's sha256 differs from PROVENANCE.json, or its header does
     not name configs/variants/diet4.json;
   * the overlay would add a top-level key that src/config.json lacks, other than
-    the keys listed in PROVENANCE.json "overlay_new_keys";
+    the keys listed in PROVENANCE.json "overlay_new_keys" (a null, which only
+    pins a key to LibreLane's default, is allowed);
   * the overlay's MACROS instance names differ from src/config.json's;
   * the checkout is already switched (src core header names a variant config);
   * the merged config leaves a row segment without a lattice stripe
@@ -135,7 +136,9 @@ def plan(repo):
     ov = load_overlay(CONFIG_OVERLAY)
     allowed_new = set(prov.get("overlay_new_keys", []))
     for k in ov:
-        if k not in base_cfg and k not in allowed_new:
+        # a null for a key src/config.json lacks is a no-op now; it pins the
+        # key to LibreLane's default if src/config.json sets it later
+        if k not in base_cfg and k not in allowed_new and ov[k] is not None:
             errors.append("config overlay adds %s, which src/config.json does not have "
                           "(list it in PROVENANCE.json overlay_new_keys if intended)" % k)
     for macro, spec in ov.get("MACROS", {}).items():
