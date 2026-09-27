@@ -9,8 +9,8 @@
 
   "//": "If you get stuck with this config, please open an issue or get in touch via the discord.",
 
-  "//": "protocol-emulator: the only changes to the cmos5l template are the SRAM macro block and the",
-  "//": "four FP_PDN_V* stripe keys. Recipe, derivations and risks: docs/hardening.md. Placement",
+  "//": "protocol-emulator: changes to the cmos5l template: the SRAM macro block, the four FP_PDN_V*",
+  "//": "stripe keys (docs/hardening.md) and the optimizer's timing settings (docs/optimization.md). Placement",
   "//": "self-check without EDA tools: python3 macros/check_macro_floorplan.py",
 
   "//": "Here are some of the variables you may want to change:",
@@ -21,8 +21,8 @@
 
   "//": "CLOCK_PERIOD - Increase this in case you are getting setup time violations.",
   "//": "The value is in nanoseconds, so 20ns == 50MHz.",
-  "//": "protocol-emulator: 15 ns (66.7 MHz) is the timing constraint the flow signs off at every corner",
-  "//": "(promotion p018, below). The operating clock is info.yaml clock_hz, 50 MHz, which all firmware assumes.",
+  "//": "protocol-emulator: 15 ns (66.7 MHz) is the flow's timing constraint (promotion p018, below): setup is",
+  "//": "gated at typ and hold at every corner. The operating clock is info.yaml clock_hz, 50 MHz (all firmware).",
   "CLOCK_PERIOD": 15,
 
   "//": "Hold slack margin - Increase them in case you are getting hold violations.",
