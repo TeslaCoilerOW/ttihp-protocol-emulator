@@ -24,6 +24,11 @@ on:
   workflow_run:
     workflows: [gds, gds_6x4]
     types: [completed]
+    # Builds of main only. GitHub lists workflow_run runs under the default
+    # branch's latest commit, so an experimental branch (e.g. a variant core
+    # in src/) would otherwise put its result there; check such a build by
+    # hand with workflow_dispatch.
+    branches: [main]
   workflow_dispatch:
     inputs:
       run_id:

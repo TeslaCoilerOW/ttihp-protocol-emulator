@@ -319,8 +319,9 @@ case.
 
 [`.github/workflows/equiv.yaml`](../.github/workflows/equiv.yaml) (workflow
 `equivalence`) runs `eq_check.py check --selftest` on GitHub. It checks the
-`tt_submission` artifact of every `gds` and `gds_6x4` run whose `gds` job
-succeeded, and of any such run given by hand. Its steps, pins and hardening
+`tt_submission` artifact of every `gds` and `gds_6x4` run of `main` whose
+`gds` job succeeded, and of any such run given by hand (builds of other
+branches, such as a variant under evaluation, are checked by hand). Its steps, pins and hardening
 are listed in the CI section of
 [formal_eq/README.md](../formal_eq/README.md#ci). It replaces the inactive
 proposal `formal_eq/ci-proposal.yaml`, whose sparse PDK checkout the

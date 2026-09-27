@@ -306,8 +306,9 @@ Per case, the directory `OUT/<case>/` (`netlist`, `mutA`, `mutC`,
 [`.github/workflows/equiv.yaml`](../.github/workflows/equiv.yaml) (workflow
 `equivalence`) runs this check on GitHub.
 
-- **When.** After every `gds` or `gds_6x4` run whose `gds` job succeeded
-  (`workflow_run`), and by hand with a run id (`workflow_dispatch`, input
+- **When.** After every `gds` or `gds_6x4` run of `main` whose `gds` job
+  succeeded (`workflow_run`, filtered to `main` since `workflow_run` results
+  are listed under the default branch's latest commit), and by hand with a run id (`workflow_dispatch`, input
   `run_id`). The run's own conclusion is not used, because a `gds` run ends
   `failure` when only its `viewer` job fails and a `gds_6x4` run can be
   cancelled by a newer push after its `gds` job succeeded. The workflow sets the variant:
