@@ -9,7 +9,8 @@ They check the properties the driver relies on (docs/optimization.md):
   * the committed configuration maps to a knob set that reproduces it exactly;
   * knob values are absolute: a knob set gives the same effective configuration
     on any committed configuration that differs only in knob-controlled keys;
-  * the 6x4 track's committed build equals what variants6x4/switch.py writes;
+  * the 6x4 track's committed build equals what variants6x4/switch.py writes,
+    and the 6x4 overlay states every knob key (a value or null);
   * the 6x4 vertical-halo choices are the island-free ones of row_islands.py;
   * translation between the 8x4 and 6x4 spaces, and the per-corner fmax.
 """
@@ -130,6 +131,14 @@ class SixByFour(unittest.TestCase):
         merged = json.loads(outputs["src/config.json"].decode())
         self.assertEqual(TR.changes(strip(merged), strip(self.t.effective({}, threads=4))), {})
         self.assertEqual(self.t.diff_vs_base({}), {})
+
+    def test_overlay_states_every_knob(self):
+        # docs/6x4.md section 4c: a later src/config.json change of a knob key
+        # for the 8x4 build must not reach the 6x4 build
+        sys.path.insert(0, os.path.join(REPO, "variants6x4"))
+        import switch  # noqa: E402
+        ov = switch.load_overlay(switch.CONFIG_OVERLAY)
+        self.assertEqual(set(ov) - {"MACROS"}, set(SPACE.KNOB_KEYS))
 
     def test_island_free_vertical_halo(self):
         self.assertEqual(self.t.restrict, {"FP_MACRO_VERTICAL_HALO": [10.0, 5.0]})

@@ -1,7 +1,8 @@
 {
-  "//": "Applied by variants6x4/switch.py: each scalar project key replaces the value on its info.yaml line, and project_comments replaces that line's trailing comment; every other line of info.yaml is kept.",
+  "//": "Applied by variants6x4/switch.py: each scalar project key replaces the value on its info.yaml line, and project_comments replaces that line's trailing comment; every other line of info.yaml is kept. clock_hz restates the 6x4 build's signed-off clock (CLOCK_PERIOD 20 in config.overlay.json), so a clock change of the 8x4 build does not change it.",
   "project": {
-    "tiles": "6x4"
+    "tiles": "6x4",
+    "clock_hz": 50000000
   },
   "project_comments": {
     "tiles": "6x4 (1289.28 x 710.64 um) fallback build of the diet4 variant; see docs/6x4.md"

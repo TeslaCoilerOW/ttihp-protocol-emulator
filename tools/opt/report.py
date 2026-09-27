@@ -281,8 +281,9 @@ def track_section(L, state, tr, T, active):
                 L.append("")
                 L.append("Difference from the committed 6x4 build (`src/config.json` with "
                          "`variants6x4/config.overlay.json` merged, as `variants6x4/switch.py apply` writes it). "
-                         "These keys go into the overlay; a key that `src/config.json` lacks must also be listed "
-                         "in `variants6x4/PROVENANCE.json` `overlay_new_keys`, and a key to remove becomes `null`:")
+                         "These keys go into the overlay (which states every knob key); a key that `src/config.json` lacks "
+                         "must also be listed in `variants6x4/PROVENANCE.json` `overlay_new_keys` unless its value "
+                         "is `null`, and a key to remove becomes `null`:")
                 L.append("")
                 json_block(L, s2, rm2)
             L.append("")

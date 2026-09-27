@@ -1,5 +1,5 @@
 {
-  "//": "6x4 overlay: an RFC 7386 JSON merge patch on src/config.json, applied by variants6x4/switch.py (a null value removes the key, so LibreLane's default applies). Signed-off point (docs/6x4.md section 4b): optimizer promotion p014 (trial diet4_6x4 #8; full run with LVS, TT precheck and gate-level tests; official gds_6x4 run 36274474540), floorplans/fp6_tworow_trk_top30_edgeobs.json at density 60, 20 ns, OPENROAD_THREADS 4. MACROS: the 6x4 placement (bottom FS row k 0/4/8/12 at y 3.87, top N row k 3/7/11/15 lowered to y 612.36). FP_OBSTRUCTIONS: no CoreSite rows in the stripe-free gap between the top row's last macro and the right core edge, so no short VPWR/VGND strap is generated. Every key that tools/opt/space.py treats as a flow knob (KNOB_KEYS), except OPENROAD_THREADS, is stated here: a value, or null where the signed-off build uses LibreLane's default. A later change of src/config.json for the 8x4 build therefore does not change the 6x4 build's flow settings. Every other key is src/config.json's.",
+  "//": "6x4 overlay: an RFC 7386 JSON merge patch on src/config.json, applied by variants6x4/switch.py (a null value removes the key, so LibreLane's default applies). Signed-off point (docs/6x4.md section 4b): optimizer promotion p014 (trial diet4_6x4 #8; full run with LVS, TT precheck and gate-level tests; official gds_6x4 run 36274474540), floorplans/fp6_tworow_trk_top30_edgeobs.json at density 60, 20 ns, OPENROAD_THREADS 4. MACROS: the 6x4 placement (bottom FS row k 0/4/8/12 at y 3.87, top N row k 3/7/11/15 lowered to y 612.36). FP_OBSTRUCTIONS: no CoreSite rows in the stripe-free gap between the top row's last macro and the right core edge, so no short VPWR/VGND strap is generated. All 33 keys that tools/opt/space.py treats as flow knobs (KNOB_KEYS) are stated here: a value, or null where the signed-off build uses LibreLane's default (tools/opt/test_opt.py checks this). A later change of one of these keys in src/config.json for the 8x4 build therefore does not reach the 6x4 build. Every other key is src/config.json's.",
   "CLOCK_PERIOD": 20,
   "CTS_CLK_MAX_WIRE_LENGTH": 500,
   "CTS_MAX_CAP": 0.1,
@@ -34,6 +34,7 @@
   "GRT_RESIZER_HOLD_SLACK_MARGIN": 0.05,
   "GRT_RESIZER_SETUP_SLACK_MARGIN": null,
   "MAX_FANOUT_CONSTRAINT": null,
+  "OPENROAD_THREADS": 4,
   "PL_RESIZER_HOLD_SLACK_MARGIN": 0.05,
   "PL_RESIZER_SETUP_MAX_UTIL_PCT": null,
   "PL_RESIZER_SETUP_SLACK_MARGIN": 6.35,
