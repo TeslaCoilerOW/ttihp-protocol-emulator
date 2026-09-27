@@ -875,7 +875,10 @@ The buffer counts are the `metrics.csv` keys
 The official flow times the design at 15 ns only. To measure the margin at
 the operating clock, the p018 layout was re-timed at 20 ns with the flow's
 own STA step. The work is in `<work dir>/sta50/` (`README.md`,
-`results.json`, `results.md`); Slurm job 24077956 ran it.
+`results.json`, `results.md`); Slurm job 24077956 ran it. The method is
+packaged in [`tools/sta/`](../tools/sta/README.md); run from the repository,
+it reproduces these results exactly (jobs 24089033, 24089058, 24089059;
+section 10.7).
 
 - **Tool and script.** OpenSTA 2.7.0 inside the `librelane-3.1.0.dev3`
   image, running LibreLane's `OpenROAD.STAPostPNR` script
@@ -951,8 +954,9 @@ gain 4 ns" would overstate the typical and fast margin by 1 ns.
 
 ### 10.5 Measured shifts
 
-`scripts/pe_extra.tcl`, sourced by `corner.tcl` before its reports, wrote
-the worst path of each class. Setup WS in ns:
+`pe_extra.tcl` (now [`tools/sta/pe_extra.tcl`](../tools/sta/pe_extra.tcl)),
+sourced by `corner.tcl` before its reports, wrote the worst path of each
+class. Setup WS in ns:
 
 | Corner | Class | Worst path (the same at both periods) | 15 ns | 20 ns | Change |
 |---|---|---|---:|---:|---:|
@@ -1058,7 +1062,22 @@ SDC terms, the prediction minima and the rounding) was checked with AXLE
   jobs are listed in [results.md](results.md) R84.
 - **Official:** the `gds` workflow run of `d76f1cc`, artifact
   `tt_submission`, `stats/metrics.csv`.
-- **Re-analysis at 20 ns:** `<work dir>/sta50/README.md` ("Reproduce"):
-  `scripts/make_env.py`, `sbatch scripts/job.sh` (3 CPUs and 4 GB per corner
-  run, about one minute each), `scripts/collect.py`, `scripts/make_lean.py`,
-  then the AXLE check of `axle/sta50_checks.lean`.
+- **Re-analysis at 20 ns:** [`tools/sta/`](../tools/sta/README.md). The
+  tool runs LibreLane's `corner.tcl` and `base.sdc` on a run's final netlist
+  and nominal SPEF, per corner, with only `CLOCK_PERIOD` changed, and writes
+  the path-class report. It reads the scripts from the `librelane-3.1.0.dev3`
+  image at run time and records their sha256; it does not copy them.
+  - **Commands.** `python3 tools/sta/sta_retime.py all --run-dir <run>
+    --period <ns> --out <case>` for (a) p018 at 15 ns, (b) p018 at 20 ns and
+    (c) p010 at 20 ns. Then `sta_retime.py compare` of (a) with (b) and of
+    (c) with (b). It needs apptainer, the image and the IHP PDK, and takes
+    about one minute per corner on 3 CPUs.
+  - **Inputs.** They are not in git. (c) reads the `tt_submission` artifact
+    of `gds` run 36257636798, a CI artifact. (a) and (b) read p018's final
+    netlist and nominal SPEF from its local full run (`out/final/` of the
+    optimizer run). These are cluster files.
+  - **Check of the packaged copy.** Run from the repository as Slurm jobs
+    24089033, 24089058 and 24089059, it reproduced job 24077956 exactly:
+    every metric, path-class value and report file.
+  - **AXLE.** The AXLE check of this section's arithmetic stays in
+    `<work dir>/sta50/axle/`.
