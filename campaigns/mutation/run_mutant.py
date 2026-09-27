@@ -14,7 +14,8 @@ explicit --ids), and whose result file OUT/<id>.json does not exist yet:
      id "orig" is the unmodified generated core, not round-tripped);
   3. run the stage's cocotb modules one at a time with the snapshot's own
      test/Makefile (icarus, WAVES=none), stopping at the first module that
-     reports a failing test (the mutant is killed);
+     reports a failing test (the mutant is killed); stages marked all_modules
+     (`kill`) run every module and list the killing ones in killed_modules;
   4. write OUT/<id>.json atomically and delete the temporary directory.
 
 Design variants: when DIR/variant.txt (written by gen_mutants.sh) names a
@@ -56,7 +57,8 @@ STAGES = {
              "budget": 2400},
     # reach/infect/propagate analysis of full-suite survivors: the full suite runs on a
     # wrapper holding the unmutated core (which drives the pins) and the mutant side
-    # by side; every register, FIFO word and SRAM pin net is compared each cycle
+    # by side; every register, FIFO word and SRAM pin net is compared each cycle; the time
+    # warp is applied to both cores (RIP_WARP_PATCH)
     "rip": {"modules": [("test_smoke", {}), ("test_protocols", {}), ("test_flagship", {}),
                         ("test_legacy", {}), ("test_random", {})],
             "budget": 5400, "rip": True},
@@ -71,14 +73,25 @@ STAGES = {
     "deep": {"modules": [("test_random", {"PE_SEED": "0xD33B2027", "PE_RANDOM_ITERS": "256"})],
              "budget": 3000},
     # the snapshot's whole suite: the default COCOTB_TEST_MODULES of its test/Makefile
-    # (66 tests in nine modules at c118027), defaults, stopping at the first failing module
+    # (66 tests in nine modules at c118027, 102 tests in 20 modules from aa07868 on),
+    # defaults, stopping at the first failing module. On a c118027 test tree this is the
+    # stage `head` of docs/mutation-push.md (same modules, order, stop rule and budget)
     "suite": {"modules": "makefile", "budget": 3600},
+    # docs/mutation-push.md: the modules listed in DESIGN/kill_modules.txt (mk_design.sh),
+    # in that order; every module runs (no stop at the first kill) so that each kill is
+    # attributed to every module that detects it (result field killed_modules)
+    "kill": {"modules": "kill_modules", "budget": 2400, "all_modules": True},
+    # the same modules on the reach/infect/propagate wrapper of stage rip
+    "kill-rip": {"modules": "kill_modules", "budget": 2400, "rip": True},
 }
 MAKEFILE_MODULES = re.compile(r"^COCOTB_TEST_MODULES\s*\?=\s*(\S.*)$", re.M)
 
 
-def stage_modules(spec: dict, test_dir: Path) -> list[tuple[str, dict]]:
-    """The stage's (module, env) list; "makefile" means the snapshot's default module list."""
+def stage_modules(spec: dict, test_dir: Path, design: Path) -> list[tuple[str, dict]]:
+    """The stage's (module, env) list; "makefile" means the snapshot's default module list,
+    "kill_modules" the whitespace-separated list in DESIGN/kill_modules.txt."""
+    if spec["modules"] == "kill_modules":
+        return [(name, {}) for name in (design / "kill_modules.txt").read_text().split()]
     if spec["modules"] != "makefile":
         return spec["modules"]
     m = MAKEFILE_MODULES.search((test_dir / "Makefile").read_text())
@@ -193,6 +206,73 @@ def rip_wrapper(design: Path, mutant_v: str) -> str:
     return "\n".join(out) + "\n" + gold_v + "\n" + mut_v
 
 
+# The harness's time warp (Harness.warp, warp_routes, warp_completed) deposits into the
+# core's registers under dut.user_project.core. On the RIP wrapper that scope holds the
+# two cores as instances g (unmutated) and m (mutant), so without this patch a warp
+# raises WarpUnsupported: the warping tests fail at their first warp and
+# test_kill_route_count_parity skips its warped cases. The patch, appended to the task
+# tree's copy of test/harness.py (the repository file is not changed), gives every warp
+# deposit to the same-named registers of both instances; each deposit adds a delta to
+# the register's current value, so a difference present before the warp is kept.
+RIP_WARP_PATCH = '''
+
+# ---- appended by campaigns/mutation/run_mutant.py (RIP stages): warp both cores ----
+def _pe_rip_cores(self):
+    scope = self.dut
+    try:
+        for name in CORE_PATH:
+            scope = getattr(scope, name)
+        return [getattr(scope, "g"), getattr(scope, "m")]
+    except AttributeError as missing:
+        raise WarpUnsupported("RIP wrapper instances g and m not visible") from missing
+
+
+def _pe_rip_core_registers(self, family):
+    found = []
+    for core in _pe_rip_cores(self):
+        try:
+            getattr(core, WARP_FAMILIES["timestamp"])
+        except AttributeError as missing:
+            raise WarpUnsupported("no core registers visible in the RIP wrapper") from missing
+        base = WARP_FAMILIES[family]
+        mine = []
+        for name in (base, *(f"{base}_{k}" for k in range(8))):
+            try:
+                mine.append(getattr(core, name))
+            except AttributeError:
+                continue
+        expected = 1 if family == "timestamp" else self.model.config.engines
+        if mine and len(mine) != expected:
+            raise WarpUnsupported(f"core has {len(mine)} {base} registers, expected {expected}")
+        found += mine
+    return found
+
+
+def _pe_rip_deposit_routes(self, sources, words):
+    for core in _pe_rip_cores(self):
+        for source in sources:
+            self._deposits.append((getattr(core, f"route_remaining_{source}"), -words))
+
+
+CocotbHarness.core_registers = _pe_rip_core_registers
+CocotbHarness._deposit_routes = _pe_rip_deposit_routes
+'''
+RIP_WARP_NEEDS = ("CORE_PATH = ", "WARP_FAMILIES = ", "class WarpUnsupported", "class CocotbHarness",
+                  "def core_registers(self, family", "def _deposit_routes(self, sources",
+                  "self._deposits")
+
+
+def rip_warp_patch(test_dir: Path) -> str:
+    """Append RIP_WARP_PATCH to the task tree's test/harness.py; return the patched file's sha256."""
+    harness = test_dir / "harness.py"
+    text = harness.read_text()
+    missing = [needle for needle in RIP_WARP_NEEDS if needle not in text]
+    if missing:
+        raise RuntimeError(f"rip: harness.py lacks {missing}; the warp patch does not apply")
+    harness.write_text(text + RIP_WARP_PATCH)
+    return hashlib.sha256(harness.read_bytes()).hexdigest()
+
+
 def rip_collect(logs: list[Path]) -> dict:
     counts, first, cycles = {}, {}, 0
     for log in logs:
@@ -251,9 +331,11 @@ def one(mutant: dict, design: Path, stage: str, out: Path, env0: dict) -> dict:
         result["mutant_sha256"] = hashlib.sha256(core.read_bytes()).hexdigest()
         if spec.get("rip"):
             core.write_text(rip_wrapper(design, core.read_text()))
+            result["rip_harness_sha256"] = rip_warp_patch(work / "test")
         budget = spec["budget"]
         status = "survived"
-        modules = stage_modules(spec, work / "test")
+        modules = stage_modules(spec, work / "test", design)
+        every = bool(spec.get("all_modules"))
         for module, extra in modules:
             env = dict(env0, **COMMON_ENV, **extra)
             env["PWD"] = str(work / "test")  # test/Makefile uses $(PWD)
@@ -273,8 +355,9 @@ def one(mutant: dict, design: Path, stage: str, out: Path, env0: dict) -> dict:
                      "tests": res["tests"], "failures": res["failures"], "skipped": res["skipped"]}
             result["modules"].append(entry)
             if rc is None:
-                status = "timeout"
                 entry["log_tail"] = tail(mlog)
+                if status != "killed":  # all_modules: a kill by an earlier module stands
+                    status = "timeout"
                 break
             if spec.get("rip"):
                 entry["failed_tests"] = [f["test"] for f in res["failed"]]
@@ -284,13 +367,22 @@ def one(mutant: dict, design: Path, stage: str, out: Path, env0: dict) -> dict:
                     break
                 continue
             if res["failures"]:
+                if every:
+                    entry["failed_tests"] = [f["test"] for f in res["failed"]]
+                    result.setdefault("killed_modules", []).append(module)
+                if status != "killed":
+                    result["killed_by"] = {"module": module, **res["failed"][0]}
+                    result["failed_tests"] = [f["test"] for f in res["failed"]]
                 status = "killed"
-                result["killed_by"] = {"module": module, **res["failed"][0]}
-                result["failed_tests"] = [f["test"] for f in res["failed"]]
+                if every:
+                    continue
                 break
             if res["tests"] == 0 or rc != 0:
-                status = "error"
                 entry["log_tail"] = tail(mlog)
+                if status == "killed":  # all_modules: a kill by an earlier module stands
+                    entry["error"] = True
+                    continue
+                status = "error"
                 break
         if spec.get("rip") and status == "survived":
             status = "ok"

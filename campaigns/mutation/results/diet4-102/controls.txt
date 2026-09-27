@@ -1,0 +1,4 @@
+# formal_mutant.py controls (random.seed(20270118)): killed by test_smoke, then proven equivalent by the campaign
+684 1118 1557 2059 2072 2415 486 647 1127 1182 1388 2097 
+# equiv_inv.py controls (killed)
+464 481 669 

@@ -1,0 +1,230 @@
+{
+ "design": "design",
+ "sim_stages": [
+  "suite"
+ ],
+ "proof_methods": [
+  "equiv_induct",
+  "miter-abc",
+  "equiv_inv",
+  "miter-abc-900s"
+ ],
+ "mutants": 2420,
+ "killed": 2199,
+ "equivalent": 145,
+ "survived": 76,
+ "timeout": 0,
+ "error": 0,
+ "missing": 0,
+ "score": 0.9666,
+ "score_formula": "2199 / (2420 - 145)",
+ "killed_by_stage": {
+  "suite": 2199
+ },
+ "killed_first_stage_by_module": {
+  "test_random": 628,
+  "test_smoke": 586,
+  "test_legacy": 338,
+  "test_protocols": 287,
+  "test_directed": 58,
+  "test_flagship": 44,
+  "test_timewarp": 43,
+  "test_kill_decode": 43,
+  "test_kill_blocked": 30,
+  "test_counters": 28,
+  "test_kill_regs": 26,
+  "test_kill_mover": 23,
+  "test_mover": 19,
+  "test_kill_host": 14,
+  "test_kill_xfer": 13,
+  "test_kill_pins": 12,
+  "test_kill_fifo": 4,
+  "test_kill_events": 3
+ },
+ "equivalent_by_method": {
+  "equiv_induct": 107,
+  "miter-abc-900s": 34,
+  "equiv_inv": 4
+ },
+ "conflicts": [],
+ "controls": {
+  "suite": {
+   "orig": "survived",
+   "0": "survived"
+  }
+ },
+ "survivors": [
+  "17",
+  "18",
+  "33",
+  "34",
+  "47",
+  "50",
+  "63",
+  "81",
+  "121",
+  "128",
+  "129",
+  "143",
+  "152",
+  "153",
+  "158",
+  "167",
+  "176",
+  "183",
+  "208",
+  "222",
+  "225",
+  "226",
+  "228",
+  "244",
+  "245",
+  "249",
+  "254",
+  "261",
+  "262",
+  "293",
+  "305",
+  "314",
+  "316",
+  "331",
+  "335",
+  "371",
+  "377",
+  "388",
+  "389",
+  "394",
+  "406",
+  "410",
+  "421",
+  "452",
+  "454",
+  "473",
+  "477",
+  "516",
+  "532",
+  "761",
+  "802",
+  "905",
+  "1327",
+  "1393",
+  "1481",
+  "1546",
+  "1720",
+  "1752",
+  "1797",
+  "1806",
+  "1822",
+  "1854",
+  "1888",
+  "1905",
+  "1968",
+  "1972",
+  "1990",
+  "1992",
+  "1996",
+  "2032",
+  "2141",
+  "2144",
+  "2188",
+  "2295",
+  "2300",
+  "2355"
+ ],
+ "by_region": {
+  "engine_ctrl": {
+   "killed": 470,
+   "mutants": 550,
+   "equivalent": 31,
+   "survived": 49
+  },
+  "engine_data": {
+   "killed": 176,
+   "mutants": 180,
+   "equivalent": 1,
+   "survived": 3
+  },
+  "engine_xfer": {
+   "killed": 162,
+   "mutants": 200,
+   "survived": 7,
+   "equivalent": 31
+  },
+  "events": {
+   "killed": 268,
+   "mutants": 300,
+   "equivalent": 29,
+   "survived": 3
+  },
+  "fifo": {
+   "killed": 127,
+   "mutants": 130,
+   "survived": 3
+  },
+  "host": {
+   "killed": 384,
+   "mutants": 400,
+   "equivalent": 13,
+   "survived": 3
+  },
+  "imem": {
+   "killed": 49,
+   "mutants": 60,
+   "survived": 5,
+   "equivalent": 6
+  },
+  "mover": {
+   "killed": 239,
+   "mutants": 250,
+   "equivalent": 11
+  },
+  "pins": {
+   "killed": 228,
+   "mutants": 250,
+   "equivalent": 20,
+   "survived": 2
+  },
+  "shared": {
+   "killed": 86,
+   "mutants": 90,
+   "equivalent": 3,
+   "survived": 1
+  },
+  "timestamp": {
+   "killed": 10,
+   "mutants": 10
+  }
+ },
+ "by_mode": {
+  "cnot0": {
+   "equivalent": 10,
+   "mutants": 315,
+   "killed": 296,
+   "survived": 9
+  },
+  "cnot1": {
+   "killed": 222,
+   "mutants": 293,
+   "survived": 24,
+   "equivalent": 47
+  },
+  "const0": {
+   "killed": 520,
+   "mutants": 599,
+   "survived": 31,
+   "equivalent": 48
+  },
+  "const1": {
+   "killed": 573,
+   "mutants": 607,
+   "survived": 8,
+   "equivalent": 26
+  },
+  "inv": {
+   "killed": 588,
+   "mutants": 606,
+   "equivalent": 14,
+   "survived": 4
+  }
+ }
+}
