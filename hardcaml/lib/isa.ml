@@ -40,7 +40,9 @@ let architecture_to_json t = `Assoc [
 let names = [|"NOP";"HALT";"SET";"DIR";"WAIT";"JMP";"PULL";"PUSH";
  "OUT";"IN";"COUNT";"LOOP";"LIMIT";"WAITPIN";"SIGNAL";"WAITEVENT";
  "PINS";"XFER";"MOV";"LOAD";"ADD";"XOR";"AND";"OR";"SHL";"SHR";
- "JZ";"NOT";"TIME";"FAULT"|]
+ "JZ";"NOT";"TIME";"FAULT";
+ (* line-unit extension (docs/extension.md); encoded only with ~line_unit *)
+ "LTIM";"LCFG";"CRC";"LSTAT"|]
 let opcode s =
   let rec find n = if n=Array.length names then fail "unknown mnemonic %s" s
     else if names.(n)=s then n else find (n+1) in find 0
@@ -48,9 +50,14 @@ let instruction ?(a=0) ?(b=0) ?(c=0) ?(imm=0) mnemonic = {mnemonic;a;b;c;imm}
 let range name lo hi n = if n<lo || n>hi then fail "%s must be %d..%d, got %d" name lo hi n
 let zero name n = if n<>0 then fail "unused operand %s must be zero" name
 (* [byte_lane_shifts]: the target implements SHL/SHR only for counts 0, 8, 16
-   and 24 (RTL variant option shift=byte_lane); any other count is rejected. *)
-let encode ?(byte_lane_shifts=false) arch ~owned_pins i =
+   and 24 (RTL variant option shift=byte_lane); any other count is rejected.
+   [line_unit]: the target has the line unit (options.line_unit): LTIM, LCFG,
+   CRC, LSTAT and the XFER line/CRC flags are accepted; without it they are
+   rejected. *)
+let encode ?(byte_lane_shifts=false) ?(line_unit=false) arch ~owned_pins i =
   let op = opcode i.mnemonic in
+  if op >= 30 && not line_unit then
+    fail "%s needs a target with the line unit (options.line_unit)" i.mnemonic;
   range "owned_pins" 0 255 owned_pins;
   range "a" 0 255 i.a; range "b" 0 255 i.b; range "c" 0 255 i.c;
   range "imm" 0 0xffffff i.imm;
@@ -73,6 +80,16 @@ let encode ?(byte_lane_shifts=false) arch ~owned_pins i =
    | 13 -> no_imm ();range "pin" 0 7 i.a;range "expected bit" 0 1 i.b;zero "c" i.c
    | 14 -> no_abc ();range "event mask" 0 ((1 lsl arch.engine_count)-1) i.imm
    | 16 -> no_abc ();range "PINS" 0 511 i.imm
+   | 17 when line_unit -> no_imm ();
+      if arch.issue<>"fused" then fail "XFER is unavailable in scalar issue configuration";
+      range "XFER bits" 1 arch.data_width i.a;
+      range "XFER flags" 0 127 i.c;
+      if i.c land 0x20<>0 then begin
+        (* line mode: the ticker times the bits; b and c[1:0] must be zero *)
+        zero "b (line XFER)" i.b;
+        if i.c land 3<>0 then fail "line XFER flags: bits 0 and 1 must be zero";
+        if i.c land 0x18=0 then fail "line XFER must drive (c bit 3), sample (c bit 4) or both"
+      end else range "XFER half period" 1 255 i.b
    | 17 -> no_imm ();
       if arch.issue<>"fused" then fail "XFER is unavailable in scalar issue configuration";
       range "XFER bits" 1 arch.data_width i.a;range "XFER half period" 1 255 i.b;
@@ -85,9 +102,22 @@ let encode ?(byte_lane_shifts=false) arch ~owned_pins i =
    | 26 -> reg i.a;imm16 ();range "branch target" 0 (arch.program_words-1) i.imm
    | 27|28 -> no_imm ();reg i.a;zero "b" i.b;zero "c" i.c
    | 29 -> no_abc ();range "fault code" 1 255 i.imm
+   | 30 -> no_abc ();
+      if i.imm land 0xff=255 && (i.imm lsr 8) land 0xff<>0 then
+        fail "LTIM: half period 255 needs fraction 0"
+   | 31 -> no_abc ();range "LCFG" 0 2047 i.imm;
+      if i.imm land 3=3 then fail "LCFG: line code 3 is invalid";
+      if i.imm land 0x7c=0x0c then fail "LCFG: stuffing on runs of either polarity needs a run length of at least 2"
+   | 32 -> no_imm ();
+      (match i.c with
+       | 1 -> zero "a" i.a;reg i.b
+       | 2 -> reg i.a;zero "b" i.b
+       | 3 -> zero "a" i.a;range "CRC preset" 0 3 i.b
+       | _ -> fail "CRC: c must be 1 (set from register b), 2 (read into register a) or 3 (preset b)")
+   | 33 -> no_imm ();reg i.a;zero "b" i.b;zero "c" i.c
    | _ -> assert false);
   let payload = if List.mem op [19;26] then (i.a lsl 16) lor i.imm
-    else if List.mem op [2;3;4;5;10;11;12;14;16;29] then i.imm
+    else if List.mem op [2;3;4;5;10;11;12;14;16;29;30;31] then i.imm
     else (i.a lsl 16) lor (i.b lsl 8) lor i.c in
   Int32.logor (Int32.shift_left (Int32.of_int op) 24) (Int32.of_int payload)
 let minimum_cycles i = match i.mnemonic with

@@ -1,0 +1,40 @@
+# Line unit (docs/extension.md; formal/line_crc.sv). Variants with
+# options.line_unit only (formal/run.sh --variant registers the jobs).
+#   equiv      the CRC step function equals the reference for all inputs (unbounded)
+#   equiv_neg  NEGATIVE CONTROL, must FAIL: the crc_tap mutant (feedback from bit 1)
+#   e2e        engine: CRC after a driven line XFER of 1..10 bits equals the reference
+#   e2e_neg    NEGATIVE CONTROL, must FAIL: the same with the crc_tap mutant engine
+[tasks]
+equiv equiv_group
+equiv_neg equiv_group
+e2e e2e_group
+e2e_neg e2e_group
+
+[options]
+equiv_group: mode prove
+equiv_group: depth 1
+e2e_group: mode bmc
+e2e_group: depth 42
+equiv_neg: expect fail
+e2e_neg: expect fail
+
+[engines]
+equiv_group: smtbmc yices
+e2e_group: smtbmc bitwuzla
+
+[script]
+equiv: read_verilog crc_step.v
+equiv_neg: read_verilog crc_step_crc_tap.v
+e2e: read_verilog engine_line.v
+e2e_neg: read_verilog engine_line_crc_tap.v
+read -formal line_crc.sv
+equiv_group: prep -top line_crc_equiv
+e2e_group: prep -top line_crc_e2e
+
+[files]
+equiv: build/rtl/crc_step.v
+equiv_neg: build/rtl/crc_step_crc_tap.v
+e2e: build/rtl/engine_line.v
+e2e_neg: build/rtl/engine_line_crc_tap.v
+line_crc.sv
+line_ref.vh

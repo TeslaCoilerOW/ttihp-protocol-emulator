@@ -46,6 +46,11 @@ Knobs (the optional ``"options"`` object of a refinement config):
 
 READ_SELECT 7 reads 3 when debug_counters is false, pc_bits is saturating_7
 or shift is byte_lane, and 2 otherwise.
+
+``line_unit``
+    ``"none"`` (default) or ``"rec16"``: the line-coding and CRC-16 unit of
+    docs/extension.md, modelled in ``line_unit.py`` (``LineReference``). With
+    it, READ_SELECT 7 bits 23..8 carry its capability bits.
 """
 
 from __future__ import annotations
@@ -64,8 +69,9 @@ FIFO_WORDS = (2, 4, 8, 32)
 TIMING_KEYS = ("host_nibble_slots", "split_command_decode", "split_engine_issue",
                "split_instruction_decode", "fifo_write_staging", "clear_outputs_only",
                "keep_counter_increments", "fifo_write_free_slot")
+LINE_UNITS = ("none", "rec16")
 OPTION_KEYS = ("reset", "fifo_storage_reset", "narrow_image_regs", "debug_counters", "pc_bits", "shift",
-               *TIMING_KEYS)
+               *TIMING_KEYS, "line_unit")
 
 
 @dataclass(frozen=True)
@@ -84,6 +90,7 @@ class Options:
     clear_outputs_only: bool = False
     keep_counter_increments: bool = False
     fifo_write_free_slot: bool = False
+    line_unit: str = "none"
 
     def __post_init__(self) -> None:
         if self.reset not in RESET_STYLES:
@@ -92,6 +99,8 @@ class Options:
             raise ValueError(f"unsupported pc_bits {self.pc_bits!r}")
         if self.shift not in SHIFTS:
             raise ValueError(f"unsupported shift {self.shift!r}")
+        if self.line_unit not in LINE_UNITS:
+            raise ValueError(f"unsupported line_unit {self.line_unit!r}")
         for name in ("fifo_storage_reset", "narrow_image_regs", "debug_counters", *TIMING_KEYS):
             if not isinstance(getattr(self, name), bool):
                 raise ValueError(f"option {name} must be a boolean")
@@ -108,6 +117,15 @@ class Options:
     def isa_version(self) -> int:
         restricted = (not self.debug_counters or self.pc_bits != "full" or self.shift != "barrel")
         return 3 if restricted else 2
+
+    @property
+    def version_word(self) -> int:
+        """READ_SELECT 7: the ISA version, plus the line unit's capability bits
+        in bits 23..8 (docs/extension.md); equals ``isa_version`` without it."""
+        if self.line_unit == "none":
+            return self.isa_version
+        from .line_unit import capabilities
+        return self.isa_version | capabilities(self.line_unit) << 8
 
     @property
     def reset_latency(self) -> int:
@@ -158,7 +176,8 @@ def load_config(path: str | Path) -> VariantConfig:
 
 def describe(config: Config) -> str:
     options = config.options if isinstance(config, VariantConfig) else Options()
-    fields = {k: v for k, v in asdict(options).items() if k not in TIMING_KEYS or v}
+    fields = {k: v for k, v in asdict(options).items()
+              if (k not in TIMING_KEYS and k != "line_unit") or v not in (False, "none")}
     return (f"engines={config.engines} width={config.width} program_words={config.program_words} "
             f"fifo_words={config.fifo_words} options={fields} isa={options.isa_version}")
 
@@ -269,7 +288,11 @@ class VariantReference(Reference):
 
 
 def make_reference(config: Config | None = None, *, settled: bool = False) -> Reference:
-    """The plain verbatim ``Reference`` for base configurations, else a VariantReference."""
+    """The plain verbatim ``Reference`` for base configurations, else a
+    VariantReference (a LineReference with options.line_unit set)."""
+    if isinstance(config, VariantConfig) and config.options.line_unit != "none":
+        from .line_unit import LineReference
+        return LineReference(config, settled=settled)
     if isinstance(config, VariantConfig) and not (config.options.is_base and config.fifo_words in (8, 32)):
         return VariantReference(config, settled=settled)
     if isinstance(config, VariantConfig):

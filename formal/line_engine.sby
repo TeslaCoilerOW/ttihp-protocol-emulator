@@ -1,0 +1,47 @@
+# Line unit (docs/extension.md; formal/line_engine.sv): engine-level
+# properties over arbitrary instruction streams, from reset. Variants with
+# options.line_unit only.
+#   pins / pins_neg       pin locality; NEGATIVE CONTROL pin_leak mutant must FAIL
+#   reset / reset_neg     zero after reset and START; NEGATIVE CONTROL start_keeps_crc must FAIL
+#   decode / decode_neg   invalid encodings fault 1 and change nothing, valid ones complete;
+#                         NEGATIVE CONTROL ltim_overflow must FAIL
+[tasks]
+pins pins_group
+pins_neg pins_group
+reset reset_group
+reset_neg reset_group
+decode decode_group
+decode_neg decode_group
+
+[options]
+mode bmc
+pins_group: depth 20
+reset_group: depth 16
+decode_group: depth 16
+pins_neg: expect fail
+reset_neg: expect fail
+decode_neg: expect fail
+
+[engines]
+smtbmc yices
+
+[script]
+pins: read_verilog engine_line.v
+pins_neg: read_verilog engine_line_pin_leak.v
+reset: read_verilog engine_line.v
+reset_neg: read_verilog engine_line_start_keeps_crc.v
+decode: read_verilog engine_line.v
+decode_neg: read_verilog engine_line_ltim_overflow.v
+pins_group: read -formal -DP_PINS line_engine.sv
+reset_group: read -formal -DP_RESET line_engine.sv
+decode_group: read -formal -DP_DECODE line_engine.sv
+prep -top line_engine
+
+[files]
+pins: build/rtl/engine_line.v
+pins_neg: build/rtl/engine_line_pin_leak.v
+reset: build/rtl/engine_line.v
+reset_neg: build/rtl/engine_line_start_keeps_crc.v
+decode: build/rtl/engine_line.v
+decode_neg: build/rtl/engine_line_ltim_overflow.v
+line_engine.sv

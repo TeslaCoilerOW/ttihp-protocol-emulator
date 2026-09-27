@@ -1,0 +1,299 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "can-node",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 0,
+  "owned_pins": 1,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "instructions": [
+    {
+      "mnemonic": "PINS",
+      "imm": 66
+    },
+    {
+      "mnemonic": "SET",
+      "imm": 1
+    },
+    {
+      "mnemonic": "DIR",
+      "imm": 1
+    },
+    {
+      "mnemonic": "LIMIT",
+      "imm": 16777215
+    },
+    {
+      "mnemonic": "CRC",
+      "b": 2,
+      "c": 3
+    },
+    {
+      "mnemonic": "NOT",
+      "a": 3
+    },
+    {
+      "mnemonic": "LCFG",
+      "imm": 1356,
+      "label": "idle"
+    },
+    {
+      "mnemonic": "LSTAT",
+      "a": 2
+    },
+    {
+      "mnemonic": "LOAD",
+      "imm": 8
+    },
+    {
+      "mnemonic": "AND",
+      "a": 2
+    },
+    {
+      "mnemonic": "JZ",
+      "a": 2,
+      "target": "rx"
+    },
+    {
+      "mnemonic": "LTIM",
+      "imm": 9830450
+    },
+    {
+      "mnemonic": "PULL"
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 19,
+      "c": 124
+    },
+    {
+      "mnemonic": "LSTAT",
+      "a": 2
+    },
+    {
+      "mnemonic": "LOAD",
+      "imm": 2
+    },
+    {
+      "mnemonic": "AND",
+      "a": 2
+    },
+    {
+      "mnemonic": "JZ",
+      "a": 2,
+      "target": "tx_ok"
+    },
+    {
+      "mnemonic": "FAULT",
+      "imm": 72
+    },
+    {
+      "mnemonic": "PULL",
+      "label": "tx_ok"
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 32,
+      "c": 124
+    },
+    {
+      "mnemonic": "PULL"
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 32,
+      "c": 124
+    },
+    {
+      "mnemonic": "CRC",
+      "c": 2
+    },
+    {
+      "mnemonic": "SHL",
+      "c": 16
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 15,
+      "c": 124
+    },
+    {
+      "mnemonic": "LCFG",
+      "imm": 1024
+    },
+    {
+      "mnemonic": "LOAD",
+      "imm": 65535
+    },
+    {
+      "mnemonic": "SHL",
+      "c": 16
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 12,
+      "c": 60
+    },
+    {
+      "mnemonic": "MOV",
+      "a": 2,
+      "b": 1
+    },
+    {
+      "mnemonic": "LOAD",
+      "imm": 1024
+    },
+    {
+      "mnemonic": "AND",
+      "a": 2
+    },
+    {
+      "mnemonic": "JZ",
+      "a": 2,
+      "target": "idle"
+    },
+    {
+      "mnemonic": "FAULT",
+      "imm": 70
+    },
+    {
+      "mnemonic": "WAITPIN",
+      "a": 1,
+      "label": "rx"
+    },
+    {
+      "mnemonic": "LTIM",
+      "imm": 65586
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 19,
+      "c": 116
+    },
+    {
+      "mnemonic": "PUSH",
+      "a": 1
+    },
+    {
+      "mnemonic": "MOV",
+      "a": 2,
+      "b": 1
+    },
+    {
+      "mnemonic": "LOAD",
+      "imm": 15
+    },
+    {
+      "mnemonic": "AND",
+      "a": 2
+    },
+    {
+      "mnemonic": "JZ",
+      "a": 2,
+      "target": "crc",
+      "label": "byte"
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 8,
+      "c": 116
+    },
+    {
+      "mnemonic": "ADD",
+      "a": 2,
+      "b": 3
+    },
+    {
+      "mnemonic": "LOAD",
+      "imm": 4
+    },
+    {
+      "mnemonic": "XOR",
+      "b": 2
+    },
+    {
+      "mnemonic": "JZ",
+      "target": "flush"
+    },
+    {
+      "mnemonic": "JZ",
+      "a": 2,
+      "target": "flush"
+    },
+    {
+      "mnemonic": "JMP",
+      "target": "byte"
+    },
+    {
+      "mnemonic": "PUSH",
+      "a": 1,
+      "label": "flush"
+    },
+    {
+      "mnemonic": "JMP",
+      "target": "byte"
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 15,
+      "c": 116,
+      "label": "crc"
+    },
+    {
+      "mnemonic": "LCFG",
+      "imm": 1024
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 1,
+      "c": 52
+    },
+    {
+      "mnemonic": "CRC",
+      "a": 2,
+      "c": 2
+    },
+    {
+      "mnemonic": "JZ",
+      "a": 2,
+      "target": "ack"
+    },
+    {
+      "mnemonic": "FAULT",
+      "imm": 71
+    },
+    {
+      "mnemonic": "LOAD",
+      "imm": 32767,
+      "label": "ack"
+    },
+    {
+      "mnemonic": "SHL",
+      "c": 16
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 11,
+      "c": 60
+    },
+    {
+      "mnemonic": "JMP",
+      "target": "idle"
+    }
+  ],
+  "notes": [
+    "CAN 2.0A node (docs/extension-study.md section 7.2, revision 3): TXD on pin 0, RXD on pin 1, 500 kbit/s at 50 MHz (P = 50, 100 cycles per bit, sample point 50%). NRZ, stuffing after 5 equal bits, CRC-15 by the unit (preset 2, MSB first), arbitration monitor.",
+    "Transmit, when the TX queue has data: 3 words per frame, a header word (SOF, ID, RTR, IDE, r0, DLC in bits 31..13) and 8 data bytes MSB first; the frame starts 150 cycles after LTIM (just after intermission). No ACK: fault 70. Arbitration lost: fault 72 (the header word is consumed; the host requeues).",
+    "Receive otherwise: the header word (SOF..DLC in its low 19 bits; the upper bits are stale), then the data bytes packed MSB first into at most 2 words (DLC > 4: the first word holds the first DLC-4 bytes, the second the last 4; valid bytes are the low 8n bits). CRC error: fault 71. It drives the ACK slot dominant.",
+    "Both frame tails end in the middle of the 2nd intermission bit, so an SOF in the 3rd intermission bit is received. Not implemented: error and overload frames, error counters, resynchronization, retry after arbitration loss, remote frames, extended IDs.",
+    "Needs the line unit (options.line_unit rec16, docs/extension.md); assemble with --variant configs/variants/diet8_rec16.json."
+  ]
+}

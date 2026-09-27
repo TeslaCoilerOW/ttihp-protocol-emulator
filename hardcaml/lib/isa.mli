@@ -8,8 +8,12 @@ val flagship : architecture
 val opcode : string -> int
 
 (** [byte_lane_shifts] (default false) additionally rejects SHL/SHR counts
-    that are not a multiple of 8 (targets built with shift=byte_lane). *)
-val encode : ?byte_lane_shifts:bool -> architecture -> owned_pins:int -> instruction -> int32
+    that are not a multiple of 8 (targets built with shift=byte_lane).
+    [line_unit] (default false) accepts the line-unit instructions LTIM, LCFG,
+    CRC, LSTAT and the XFER line/CRC flags (docs/extension.md); without it
+    they are rejected. *)
+val encode : ?byte_lane_shifts:bool -> ?line_unit:bool -> architecture -> owned_pins:int ->
+  instruction -> int32
 
 val minimum_cycles : instruction -> int
 val blocking : instruction -> string

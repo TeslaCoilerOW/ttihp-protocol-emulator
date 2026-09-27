@@ -11,6 +11,11 @@ val assemble : source_bytes:string -> image
     (0, 8, 16, 24) when [byte_lane_shifts] is true.  The image is unchanged
     in form: every accepted image is also a valid ISA v2 image. *)
 val assemble_with : byte_lane_shifts:bool -> source_bytes:string -> image
+
+(** [assemble_with] for a target that may also have the line unit
+    (options.line_unit, docs/extension.md): with [line_unit] the line-unit
+    instructions are accepted. *)
+val assemble_target : byte_lane_shifts:bool -> line_unit:bool -> source_bytes:string -> image
 val image_to_json : image -> Yojson.Safe.t
 val bytecode : image -> string
 val sha256 : string -> string

@@ -42,8 +42,8 @@ val isa_version : t -> int
 val pc_width : t -> int
 
 (** Absent fields take their default; unknown or duplicate fields and wrong
-    types are rejected. The keys of {!Timing_options} are accepted here and
-    parsed by that module. *)
+    types are rejected. The keys of {!Timing_options} and {!Line_options} are
+    accepted here and parsed by those modules. *)
 val of_json : Yojson.Safe.t -> t
 
 (** Complete canonical object (every field). *)

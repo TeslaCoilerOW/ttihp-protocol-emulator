@@ -51,6 +51,10 @@ SPEC: dict[str, tuple[int, dict[str, Any]]] = {
     "diet2": (2, _DIET),
     "rstreg_timing": (8, {"reset": "sync_registered", "narrow_image_regs": True, **_TIMING}),
     "cn_s2_timing": (8, {"reset": "async_sync_release", **_CN, **_TIMING}),
+    # docs/extension.md: diet4's options with 8-word queues, and that plus the
+    # line-coding and CRC-16 unit.
+    "diet8": (8, _DIET),
+    "diet8_rec16": (8, {**_DIET, "line_unit": "rec16"}),
 }
 
 

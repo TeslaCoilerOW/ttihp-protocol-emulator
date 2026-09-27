@@ -8,7 +8,9 @@
 #   --generate-only  only (re)generate formal/build/rtl
 #   --variant NAME   a design variant (configs/variants/NAME.json): its RTL goes
 #                    to formal/build/variants/NAME/rtl and every job runs with
-#                    the variant's harness settings (README.md, "Design variants")
+#                    the variant's harness settings (README.md, "Design variants");
+#                    a variant with options.line_unit also gets the line_* jobs
+#                    (README.md, "Line unit")
 #
 # Environment:
 #   FORMAL_VARIANT same as --variant
@@ -68,6 +70,34 @@ JOBS=(
   "timing_isolation_neg_pull:timing_isolation.sby neg_pull"
   "timing_isolation_neg_mutant:timing_isolation.sby neg_mutant"
 )
+
+# Line-unit jobs (formal/line_*.sv, docs/extension.md), only for a variant
+# whose config sets options.line_unit.
+LINE_UNIT=""
+if [ -n "$VARIANT" ] && python3 - "$CONFIG" <<'PY'
+import json, sys
+sys.exit(0 if json.load(open(sys.argv[1])).get("options", {}).get("line_unit", "none") != "none" else 1)
+PY
+then
+  LINE_UNIT=1
+  JOBS+=(
+    "line_crc_equiv:line_crc.sby equiv"
+    "line_crc_equiv_neg:line_crc.sby equiv_neg"
+    "line_crc_e2e:line_crc.sby e2e"
+    "line_crc_e2e_neg:line_crc.sby e2e_neg"
+    "line_codec_bmc:line_codec.sby bmc"
+    "line_codec_bmc_p2:line_codec.sby bmc_p2"
+    "line_codec_neg_nrzi:line_codec.sby neg_nrzi"
+    "line_codec_neg_destuff:line_codec.sby neg_destuff"
+    "line_codec_neg_manchester:line_codec.sby neg_manchester"
+    "line_pins_bmc:line_engine.sby pins"
+    "line_pins_neg:line_engine.sby pins_neg"
+    "line_reset_bmc:line_engine.sby reset"
+    "line_reset_neg:line_engine.sby reset_neg"
+    "line_decode_bmc:line_engine.sby decode"
+    "line_decode_neg:line_engine.sby decode_neg"
+  )
+fi
 
 generate=1
 selected=()
@@ -144,6 +174,18 @@ PY
     "$exe/fvvariant/generate_blocks.exe" --config "$CONFIG" --target engine --output "$RTL/engine.v"
     "$exe/bin/generate_refinement.exe" --config "$CONFIG" --output "$RTL/protocol_emulator_core.v" \
         --name protocol_emulator_core
+    if [ -n "$LINE_UNIT" ]; then
+      # line_* jobs: the engine with observation ports, the CRC step, and
+      # one seeded defect per negative control (Line_unit.mutation)
+      "$exe/fvvariant/generate_blocks.exe" --config "$CONFIG" --target engine_line --output "$RTL/engine_line.v"
+      "$exe/fvvariant/generate_blocks.exe" --config "$CONFIG" --target crc_step --output "$RTL/crc_step.v"
+      "$exe/fvvariant/generate_blocks.exe" --config "$CONFIG" --target crc_step --mutation crc_tap \
+          --output "$RTL/crc_step_crc_tap.v"
+      for m in crc_tap nrzi_decode rx_destuff_run manchester_halves pin_leak start_keeps_crc ltim_overflow; do
+        "$exe/fvvariant/generate_blocks.exe" --config "$CONFIG" --target engine_line --mutation "$m" \
+            --output "$RTL/engine_line_$m.v"
+      done
+    fi
     if [ -n "${VARIANT_CORES:-}" ]; then
       cmp -s <(tail -n +2 "$VARIANT_CORES/$VARIANT.v") "$RTL/protocol_emulator_core.v" || {
         echo "run.sh: generated $VARIANT core differs from $VARIANT_CORES/$VARIANT.v" >&2; exit 1; }
@@ -187,6 +229,9 @@ done
 if [ -n "$VARIANT" ] && [ ! -f "$RTL/protocol_emulator_core.v" ]; then
   echo "run.sh: missing $RTL/protocol_emulator_core.v (run without --no-generate)" >&2; exit 2
 fi
+if [ -n "$LINE_UNIT" ] && [ ! -f "$RTL/engine_line_ltim_overflow.v" ]; then
+  echo "run.sh: missing the line-unit RTL in $RTL (run without --no-generate)" >&2; exit 2
+fi
 
 SUMMARY=$BUILD/summary.tsv
 printf 'job\tsby\ttask\tstatus\texpected_met\tseconds\n' > "$SUMMARY"
@@ -203,10 +248,21 @@ for name in "${selected[@]}"; do
   seconds=$(( $(date +%s) - start ))
   status=$(sed -n 's/.*DONE (\([A-Z]*\), rc=.*/\1/p' "$BUILD/sby/$name.log" | tail -n 1)
   [ -n "$status" ] || status=$([ $rc -eq 124 ] && echo TIMEOUT || echo ERROR)
+  # A line-unit negative control (line_*_neg*) counts only if the assertion it
+  # targets fired: that assertion's line names the job ("target of: <job>").
+  if [ $rc -eq 0 ] && [[ $name == line_* ]] && [[ $name == *_neg* ]]; then
+    fired=$(sed -n 's/.*Assert failed in [^:]*: \([A-Za-z0-9_]*\.sv\):\([0-9]*\)\..*/\1:\2/p' \
+      "$BUILD/sby/$name.log" | head -n 1)
+    if [ -z "$fired" ] || ! sed -n "${fired#*:}p" "$FORMAL/${fired%%:*}" | grep -q "target of:.*\b$name\b"; then
+      echo "run.sh: $name failed, but not on its target assertion (${fired:-none found})" >&2
+      rc=1
+    else
+      echo "  negative control fired its target assertion at $fired"
+    fi
   # A negative control counts only if a pin-equality assertion (one that
   # compares the owned pins, '& own') fired, not e.g. the observation-port
   # sanity check.
-  if [ $rc -eq 0 ] && [[ $name == *_neg_* ]]; then
+  elif [ $rc -eq 0 ] && [[ $name == *_neg_* ]]; then
     fired=$(sed -n 's/.*Assert failed in [^:]*: \([A-Za-z0-9_]*\.sv\):\([0-9]*\)\..*/\1:\2/p' \
       "$BUILD/sby/$name.log" | head -n 1)
     if [ -z "$fired" ] || ! sed -n "${fired#*:}p" "$FORMAL/${fired%%:*}" | grep -q '& own'; then

@@ -20,8 +20,11 @@
    engines have no completed_instructions register and fv_completed_instructions
    reads zero; the PC and image registers keep their (possibly narrower) native
    widths; with a reset synchronizer its two flops are exported as
-   fv_reset_sync = {reset_sync_2, reset_sync_1}. The design of record's output is
-   unchanged. *)
+   fv_reset_sync = {reset_sync_2, reset_sync_1}. With the line unit
+   (options.line_unit, docs/extension.md) the 19 line-unit registers of
+   Engine.line_register_names are attributed and exported the same way
+   (fv_line_run, ..., fv_crc_preset), and transfer_mode is 7 bits wide. The
+   design of record's output is unchanged. *)
 
 module S = Hardcaml.Signal
 module T = Hardcaml.Signal.Type
@@ -83,6 +86,9 @@ let () =
   let engine_registers =
     if config.options.Variant_options.debug_counters then engine_registers
     else List.filter (fun name -> name <> "completed_instructions") engine_registers in
+  let engine_registers =
+    if Line_options.enabled config.line then engine_registers @ Engine.line_register_names
+    else engine_registers in
   let circuit = Instruction_sram_formal.processor config in
   let signals =
     Hardcaml.Signal_graph.fold (C.signal_graph circuit) ~init:[] ~f:(fun acc s ->

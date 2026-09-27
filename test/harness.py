@@ -42,6 +42,9 @@ CLOCK_NS = 20  # 50 MHz, info.yaml clock_hz
 # READ_SELECT 7 of the design under test: 2 for the design of record, 3 for
 # variants that restrict the ISA (PE_VARIANT, see variants.py).
 ISA_VERSION = variants.options(variants.design_config()).isa_version
+# The full READ_SELECT 7 word: ISA_VERSION, plus the line unit's capability
+# bits 23..8 on variants with options.line_unit (docs/extension.md).
+VERSION_WORD = variants.options(variants.design_config()).version_word
 
 # Host commands (isa.md, window 0).
 SELECT, BEGIN, COMMIT, OWN, START, STOP, ROUTE, CLEAR = range(8)

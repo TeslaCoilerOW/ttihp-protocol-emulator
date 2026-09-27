@@ -6,8 +6,9 @@ from __future__ import annotations
 
 import cocotb
 
-from harness import (BEGIN, CLEAR, COMMIT, EVENT, FLUSH, ISA_VERSION, OWN, ROUTE, RS_COUNT, RS_EVENT,
+from harness import (BEGIN, CLEAR, COMMIT, EVENT, FLUSH, OWN, ROUTE, RS_COUNT, RS_EVENT,
                      RS_HELD_RX, RS_LEVELS, RS_PC, RS_STATUS, RS_TIMESTAMP, RS_VERSION, SELECT, START,
+                     VERSION_WORD,
                      STOP, TRIGGER, UO_FAULT, UO_IRQ, UO_WREADY, CocotbHarness, LockstepMismatch,
                      immediate, instruction)
 
@@ -34,7 +35,7 @@ async def test_reset_and_version(dut):
     pre = await h.step(0)
     assert pre.uo & UO_WREADY, f"write-ready low after reset: uo={pre.uo:02x}"
     assert not pre.uo & UO_FAULT and not pre.uo & UO_IRQ
-    assert await h.status(RS_VERSION) == ISA_VERSION
+    assert await h.status(RS_VERSION) == VERSION_WORD
     for engine in range(4):
         await h.command(SELECT, engine)
         assert await h.status(RS_STATUS) == 0  # halted, no image, no fault
@@ -46,7 +47,7 @@ async def test_reset_and_version(dut):
     await h.step(enabled=False)
     await h.step(enabled=False)
     assert h.expected.uio_oe == 0 and h.expected.uo == 0
-    assert await h.status(RS_VERSION) == ISA_VERSION
+    assert await h.status(RS_VERSION) == VERSION_WORD
     dut._log.info("reset/version OK after %d cycles", h.cycle)
 
 

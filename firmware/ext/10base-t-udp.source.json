@@ -1,0 +1,172 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "10base-t-udp",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 0,
+  "owned_pins": 3,
+  "open_drain": 0,
+  "clock_hz": 40000000,
+  "instructions": [
+    {
+      "mnemonic": "PINS",
+      "imm": 1
+    },
+    {
+      "mnemonic": "LCFG",
+      "imm": 130
+    },
+    {
+      "mnemonic": "LTIM",
+      "imm": 2
+    },
+    {
+      "mnemonic": "SET"
+    },
+    {
+      "mnemonic": "DIR",
+      "imm": 3
+    },
+    {
+      "mnemonic": "LSTAT",
+      "a": 2,
+      "label": "idle"
+    },
+    {
+      "mnemonic": "LOAD",
+      "a": 3,
+      "imm": 8
+    },
+    {
+      "mnemonic": "AND",
+      "a": 2,
+      "b": 3
+    },
+    {
+      "mnemonic": "JZ",
+      "a": 2,
+      "target": "nlp"
+    },
+    {
+      "mnemonic": "LOAD",
+      "imm": 21845
+    },
+    {
+      "mnemonic": "MOV",
+      "a": 2
+    },
+    {
+      "mnemonic": "SHL",
+      "a": 2,
+      "c": 16
+    },
+    {
+      "mnemonic": "OR",
+      "b": 2
+    },
+    {
+      "mnemonic": "LOAD",
+      "a": 3,
+      "imm": 32768
+    },
+    {
+      "mnemonic": "SHL",
+      "a": 3,
+      "c": 16
+    },
+    {
+      "mnemonic": "MOV",
+      "a": 2
+    },
+    {
+      "mnemonic": "OR",
+      "a": 2,
+      "b": 3
+    },
+    {
+      "mnemonic": "COUNT",
+      "imm": 16
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 32,
+      "c": 40
+    },
+    {
+      "mnemonic": "MOV",
+      "b": 2
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 32,
+      "c": 40
+    },
+    {
+      "mnemonic": "PULL",
+      "label": "word"
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 32,
+      "c": 40
+    },
+    {
+      "mnemonic": "LOOP",
+      "target": "word"
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 2
+    },
+    {
+      "mnemonic": "SET",
+      "imm": 1
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 9
+    },
+    {
+      "mnemonic": "SET"
+    },
+    {
+      "mnemonic": "JMP",
+      "target": "gap"
+    },
+    {
+      "mnemonic": "SET",
+      "imm": 1,
+      "label": "nlp"
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 2
+    },
+    {
+      "mnemonic": "SET"
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 639990,
+      "label": "gap"
+    },
+    {
+      "mnemonic": "JMP",
+      "target": "idle"
+    }
+  ],
+  "notes": [
+    "10BASE-T transmitter (docs/extension-study.md section 7.1): TD+ on pin 0, TD- on pin 1 (the pair pin, PINS clock field). Manchester at P = 2: 50 ns half-bits at a 40 MHz clock (4 cycles per bit).",
+    "When the TX queue has data it sends the preamble and SFD (made on chip) and then 17 queue words (COUNT 16: a 68-byte frame from destination address to FCS, LSB first), with no gap between words; then TP_IDL (positive for 12 cycles, 300 ns) and silence.",
+    "While the TX queue is empty it sends a 100 ns link pulse (NLP) every 640,000 cycles (16.0 ms at 40 MHz).",
+    "The FCS comes from the host. Frames longer than the TX queue are staged through relay engines (relay.source.json).",
+    "Needs the line unit (options.line_unit rec16, docs/extension.md); assemble with --variant configs/variants/diet8_rec16.json."
+  ]
+}

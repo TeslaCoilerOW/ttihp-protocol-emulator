@@ -1,0 +1,51 @@
+{
+  "schema_version": "protocol-emulator.firmware-image.v1",
+  "isa_version": 2,
+  "name": "crc16-stream",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 0,
+  "owned_pins": 1,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "source_sha256": "eac2dca887368cf0582aaaad3632c3ecbe15c17015186477003a713510819725",
+  "bytecode_sha256": "e753b18ce9d975426bd088486b0285df32cc33a35756b5360b81b5016d3dfefd",
+  "words": [
+    268435456, 503316481, 520093696, 536871683, 453181440, 100663296,
+    536870913, 100663296, 302120960, 100663296, 287309932, 335676160,
+    436338702, 83886089, 536936450, 117440512, 83886085
+  ],
+  "labels": { "next": 5, "loop": 9, "done": 14 },
+  "timing": [
+    { "pc": 0, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 1, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 2, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 3, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 4, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 5, "minimum_cycles": 1, "blocking": "tx_fifo_unbounded" },
+    { "pc": 6, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 7, "minimum_cycles": 1, "blocking": "tx_fifo_unbounded" },
+    { "pc": 8, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 9, "minimum_cycles": 1, "blocking": "tx_fifo_unbounded" },
+    { "pc": 10, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 11, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 12, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 13, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 14, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 15, "minimum_cycles": 1, "blocking": "rx_fifo_unbounded" },
+    { "pc": 16, "minimum_cycles": 1, "blocking": "none" }
+  ],
+  "notes": [
+    "CRC-16/CCITT (x^16+x^12+x^5+1, preset 3) over 32-bit words, MSB first, with the line unit's CRC: 2 cycles per bit (LTIM 1).",
+    "Per job the TX queue supplies the initial CRC value (0xFFFF gives CRC-16/IBM-3740, also called CCITT-FALSE; 0 gives XMODEM), the number of data words n >= 1, then n data words (bytes big-endian in each word). The result is pushed to the RX queue.",
+    "The data go out on pin 0 as NRZ bits; the pin is owned but its output stays disabled (DIR is never set).",
+    "Needs the line unit (options.line_unit rec16, docs/extension.md); assemble with --variant configs/variants/diet8_rec16.json."
+  ]
+}

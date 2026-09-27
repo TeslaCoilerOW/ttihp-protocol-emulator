@@ -1,0 +1,253 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "usb-ls-in-responder",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 0,
+  "owned_pins": 3,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "instructions": [
+    {
+      "mnemonic": "PINS",
+      "imm": 1
+    },
+    {
+      "mnemonic": "LIMIT",
+      "imm": 16777215
+    },
+    {
+      "mnemonic": "CRC",
+      "c": 3
+    },
+    {
+      "mnemonic": "LCFG",
+      "imm": 1749,
+      "label": "rx"
+    },
+    {
+      "mnemonic": "WAITPIN",
+      "b": 1
+    },
+    {
+      "mnemonic": "LTIM",
+      "imm": 2206480
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 7,
+      "c": 48
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 8,
+      "c": 48
+    },
+    {
+      "mnemonic": "LOAD",
+      "a": 2,
+      "imm": 31
+    },
+    {
+      "mnemonic": "CRC",
+      "b": 2,
+      "c": 1
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 16,
+      "c": 112
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 8,
+      "c": 48
+    },
+    {
+      "mnemonic": "CRC",
+      "a": 2,
+      "c": 2
+    },
+    {
+      "mnemonic": "LOAD",
+      "a": 3,
+      "imm": 6
+    },
+    {
+      "mnemonic": "XOR",
+      "a": 2,
+      "b": 3
+    },
+    {
+      "mnemonic": "JZ",
+      "a": 2,
+      "target": "crc_ok"
+    },
+    {
+      "mnemonic": "JMP",
+      "target": "rx"
+    },
+    {
+      "mnemonic": "MOV",
+      "a": 2,
+      "b": 1,
+      "label": "crc_ok"
+    },
+    {
+      "mnemonic": "SHR",
+      "a": 2,
+      "c": 8
+    },
+    {
+      "mnemonic": "LOAD",
+      "a": 3,
+      "imm": 255
+    },
+    {
+      "mnemonic": "AND",
+      "a": 2,
+      "b": 3
+    },
+    {
+      "mnemonic": "LOAD",
+      "a": 3,
+      "imm": 105
+    },
+    {
+      "mnemonic": "XOR",
+      "a": 2,
+      "b": 3
+    },
+    {
+      "mnemonic": "JZ",
+      "a": 2,
+      "target": "is_in"
+    },
+    {
+      "mnemonic": "JMP",
+      "target": "rx"
+    },
+    {
+      "mnemonic": "WAITPIN",
+      "a": 1,
+      "b": 1,
+      "label": "is_in"
+    },
+    {
+      "mnemonic": "LCFG",
+      "imm": 213
+    },
+    {
+      "mnemonic": "LTIM",
+      "imm": 6269712
+    },
+    {
+      "mnemonic": "SET",
+      "imm": 2
+    },
+    {
+      "mnemonic": "DIR",
+      "imm": 3
+    },
+    {
+      "mnemonic": "LOAD",
+      "a": 2,
+      "imm": 65535
+    },
+    {
+      "mnemonic": "CRC",
+      "b": 2,
+      "c": 1
+    },
+    {
+      "mnemonic": "CRC",
+      "b": 1,
+      "c": 3
+    },
+    {
+      "mnemonic": "PULL"
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 16,
+      "c": 40
+    },
+    {
+      "mnemonic": "PULL"
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 32,
+      "c": 104
+    },
+    {
+      "mnemonic": "PULL"
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 32,
+      "c": 104
+    },
+    {
+      "mnemonic": "CRC",
+      "a": 2,
+      "c": 2
+    },
+    {
+      "mnemonic": "NOT",
+      "a": 2
+    },
+    {
+      "mnemonic": "MOV",
+      "b": 2
+    },
+    {
+      "mnemonic": "XFER",
+      "a": 16,
+      "c": 40
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 31
+    },
+    {
+      "mnemonic": "SET"
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 64
+    },
+    {
+      "mnemonic": "SET",
+      "imm": 2
+    },
+    {
+      "mnemonic": "WAIT",
+      "imm": 31
+    },
+    {
+      "mnemonic": "DIR"
+    },
+    {
+      "mnemonic": "CRC",
+      "c": 3
+    },
+    {
+      "mnemonic": "JMP",
+      "target": "rx"
+    }
+  ],
+  "notes": [
+    "USB low-speed IN responder (docs/extension-study.md section 7.3): D+ on pin 0, D- on pin 1 (the pair pin), 50 MHz clock, bit time P = 16 with fraction 171/256 (33.34 cycles, rate -78 ppm).",
+    "It receives a token (NRZI, stuffing after six 1s, end on SE0), checks the CRC5 residue 0x06 (preset 0) and PID = IN (0x69), waits for J after the EOP and, 95 cycles after that edge, sends the 3 queued words: SYNC+PID (16 bits, e.g. 0x4B80 for DATA1), then 8 data bytes; CRC16 (preset 1, init 0xFFFF, complemented) is computed by the unit. EOP: SE0 for 64 cycles, then J for 31 cycles, then the pins are released (the pull-up holds J).",
+    "Packet level only: enumeration needs host service between transactions (docs/extension-study.md R1).",
+    "Needs the line unit (options.line_unit rec16, docs/extension.md); assemble with --variant configs/variants/diet8_rec16.json."
+  ]
+}

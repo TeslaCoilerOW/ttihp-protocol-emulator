@@ -12,11 +12,13 @@ Reads the variant's refinement config and writes one .sby per formal/*.sby to
       debug_counters false     NO_COUNTERS
       pc_bits saturating_7     PC_SAT (and PCW=7)
       shift byte_lane          BYTE_LANE
+      line_unit (not none)     LINE_UNIT
   * chparam: DEPTH = fifo_words; PCW (engine_safety, timing_isolation) and IW
     (timing_isolation: log2(program_words)+1 with narrow_image_regs);
   * absolute [files] paths; ../src/protocol_emulator_core.v -> the variant core
     generated into --rtl.
-The design-of-record .sby files are never modified. A summary is written to
+The line-unit .sby files (line_*.sby) are derived only for a variant with
+options.line_unit. The design-of-record .sby files are never modified. A summary is written to
 --output/variant.txt.
 """
 
@@ -47,6 +49,8 @@ def settings(config: dict) -> tuple[list[str], dict[str, int]]:
         pcw = 7
     if options.get("shift", "barrel") == "byte_lane":
         defines.append("BYTE_LANE")
+    if options.get("line_unit", "none") != "none":
+        defines.append("LINE_UNIT")
     iw = 16
     if options.get("narrow_image_regs", False):
         iw = (architecture["program_words"] - 1).bit_length() + 1
@@ -114,7 +118,10 @@ def main() -> None:
         tmp.write_text(text)
         os.replace(tmp, path)
 
+    line_unit = config.get("options", {}).get("line_unit", "none") != "none"
     for sby in sorted(formal.glob("*.sby")):
+        if sby.name.startswith("line_") and not line_unit:
+            continue  # line-unit jobs exist only for a variant with the unit
         write(output / sby.name, derive(sby.read_text(), defines, params, formal, Path(args.repo), Path(args.rtl)))
     summary = f"config {args.config}\ndefines {' '.join(defines) or '(none)'}\nparameters {params}\n"
     write(output / "variant.txt", summary)

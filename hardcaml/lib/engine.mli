@@ -18,7 +18,16 @@ type t = {
   issue : Hardcaml.Signal.t; wait_timer : Hardcaml.Signal.t;
   wait_limit : Hardcaml.Signal.t; blocked_cycles : Hardcaml.Signal.t;
   repeat_count : Hardcaml.Signal.t; transfer_edges : Hardcaml.Signal.t;
+  queue_observe : Hardcaml.Signal.t;
+  (** LSTAT issues this cycle: the engine reads its queue status bits
+      (always 0 without the line unit). *)
+  line_state : (string * Hardcaml.Signal.t) list;
+  (** The line-unit registers by name ([line_register_names]); empty without
+      the unit. *)
 }
+
+(** Register names of the line unit, in [line_state] order. *)
+val line_register_names : string list
 
 (** [options] (default [Variant_options.default]) selects the engine-level
     variant knobs: reset style (synchronous clear or asynchronous reset from
@@ -26,8 +35,12 @@ type t = {
     (default {!Timing_options.default}) applies [split_engine_issue] and
     [split_instruction_decode]. [gate] (default [clear]) is the clear that
     gates the next-state enable and the issue outputs; the registers always
-    take [clear]. *)
-val create : ?options:Variant_options.t -> ?timing:Timing_options.t -> ?gate:Hardcaml.Signal.t ->
+    take [clear]. [line] (default {!Line_options.default}, none) adds the
+    line unit of docs/extension.md; [line_mutation] seeds one defect into it
+    for the formal negative controls and is never used by the production
+    generators. *)
+val create : ?options:Variant_options.t -> ?timing:Timing_options.t ->
+  ?line:Line_options.t -> ?line_mutation:Line_unit.mutation -> ?gate:Hardcaml.Signal.t ->
   Config.t -> inputs -> t
 
 (** Actual compiled PC next value (24 bits) including the synchronous clear or

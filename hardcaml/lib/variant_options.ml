@@ -47,8 +47,8 @@ let of_json = function
   | `Assoc fields ->
     let seen = Hashtbl.create 8 in
     List.iter (fun (k,_) ->
-      (* Timing_options reads its own keys from the same object. *)
-      if not (List.mem k keys || List.mem k Timing_options.keys)
+      (* Timing_options and Line_options read their own keys from the same object. *)
+      if not (List.mem k keys || List.mem k Timing_options.keys || List.mem k Line_options.keys)
       then invalid_arg ("options: unknown field " ^ k);
       if Hashtbl.mem seen k then invalid_arg ("options: duplicate field " ^ k);
       Hashtbl.add seen k ()) fields;

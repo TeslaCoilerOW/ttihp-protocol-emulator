@@ -75,17 +75,25 @@ class SettlingHost(Host):
 _MODULES = (verification, revision2, frozen_firmware)
 
 
+def _reference(config: VariantConfig) -> VariantReference:
+    """VariantReference, or its line-unit subclass for options.line_unit."""
+    if config.options.line_unit != "none":
+        from model.line_unit import LineReference
+        return LineReference(config, settled=True)
+    return VariantReference(config, settled=True)
+
+
 @contextlib.contextmanager
 def variant_workloads(config: VariantConfig,
                       image_loader: Callable[[str], dict] | None = None) -> Iterator[None]:
     """Rebind Reference/Host (and, with ``image_loader``, the firmware image loader)."""
     def reference(_config: object = None) -> VariantReference:
         # Settled synchronizer: the harness replays after its own reset/settle.
-        return VariantReference(config, settled=True)
+        return _reference(config)
 
     saved = [(module, module.Reference, module.Host) for module in _MODULES]
     saved_loader = verification._firmware
-    SettlingHost.isa_version = config.options.isa_version
+    SettlingHost.isa_version = config.options.version_word
     try:
         for module in _MODULES:
             module.Reference = reference
@@ -102,7 +110,7 @@ def variant_workloads(config: VariantConfig,
 
 
 def _host(config: VariantConfig) -> tuple[VariantReference, SettlingHost]:
-    model = VariantReference(config, settled=True)
+    model = _reference(config)
     return model, SettlingHost(model)
 
 

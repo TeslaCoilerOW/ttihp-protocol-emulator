@@ -37,6 +37,11 @@
 //   RESET_SYNC       design variant with a two-flop reset synchronizer: its
 //                    flops are shared state (equal initially, and invariantly,
 //                    since both copies see the same rst_n/ena).
+//   LINE_UNIT        design variant with the line unit (docs/extension.md): the
+//                    19 line-unit registers of engine K join its execution
+//                    state (transfer_mode is 7 bits), and LSTAT, which reads
+//                    the queue flags (dbg_queue_status_read), ends the window
+//                    like a FIFO or event interaction.
 // Parameters IW (image_length/image_loaded width) and PCW (PC width) follow the
 // design variant (formal/run.sh --variant); the defaults are the design of record.
 module ti_copy #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
@@ -48,7 +53,11 @@ module ti_copy #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
     output wire [ENGINES-1:0] running_all, grant,
     output wire [ENGINES*LEVEL_WIDTH-1:0] tx_level, rx_level,
     output wire clear,
+`ifdef LINE_UNIT
+    output wire [250+PCW+4*WIDTH-1:0] engine_state,
+`else
     output wire [182+PCW+4*WIDTH-1:0] engine_state,
+`endif
     output wire running, fault_free, dbg_running_k,
     output wire [2*IW+17:0] config_state,
     output wire [1:0] reset_sync,
@@ -68,7 +77,20 @@ module ti_copy #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
     wire [ENGINES*9-1:0] pins;
     wire [ENGINES*32-1:0] completed, sram_dout;
     wire [ENGINES*7-1:0] edges;
+`ifdef LINE_UNIT
+    wire [ENGINES*7-1:0] mode;
+    // line-unit registers (Engine.line_register_names), 66 bits per engine
+    wire [ENGINES-1:0] l_run, l_phase, l_seen, l_level, l_rx_prev, l_cell, l_man, l_se0, l_trail,
+                       s_last, s_err, a_lost, qread;
+    wire [ENGINES*8-1:0] l_frac, l_acc;
+    wire [ENGINES*10-1:0] l_cfg;
+    wire [ENGINES*6-1:0] l_rem;
+    wire [ENGINES*4-1:0] s_run;
+    wire [ENGINES*16-1:0] c_state;
+    wire [ENGINES*2-1:0] c_preset;
+`else
     wire [ENGINES*5-1:0] mode;
+`endif
     wire [ENGINES-1:0] fv_running, image_writing, image_valid;
     wire [ENGINES-1:0] men_lo, men_hi, wen_lo, wen_hi, ren_lo, ren_hi;
     wire [ENGINES*6-1:0] a_lo, a_hi;
@@ -102,15 +124,35 @@ module ti_copy #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
 `ifdef RESET_SYNC
         .fv_reset_sync(reset_sync),
 `endif
+`ifdef LINE_UNIT
+        .dbg_queue_status_read(qread),
+        .fv_line_run(l_run), .fv_line_phase(l_phase), .fv_line_frac(l_frac), .fv_line_acc(l_acc),
+        .fv_line_boundary_seen(l_seen), .fv_line_cfg(l_cfg), .fv_line_level(l_level),
+        .fv_line_rx_prev(l_rx_prev), .fv_line_cell_bit(l_cell), .fv_line_man_pending(l_man),
+        .fv_line_se0(l_se0), .fv_line_remaining(l_rem), .fv_line_trailing_stuff(l_trail),
+        .fv_stuff_run(s_run), .fv_stuff_last(s_last), .fv_stuff_error(s_err),
+        .fv_arbitration_lost(a_lost), .fv_crc_state(c_state), .fv_crc_preset(c_preset),
+`endif
         .fv_timestamp(timestamp), .fv_sync1(sync1));
 `ifndef RESET_SYNC
     assign reset_sync = 2'b00;
 `endif
+`ifdef LINE_UNIT
+    assign engine_state = {pc[PCW*K+:PCW], fv_running[K], fault[8*K+:8],
+        tx[WIDTH*K+:WIDTH], rx[WIDTH*K+:WIDTH], x[WIDTH*K+:WIDTH], y[WIDTH*K+:WIDTH],
+        repeat_count[16*K+:16], wait_timer[24*K+:24], wait_limit[24*K+:24],
+        blocked[24*K+:24], values[8*K+:8], enables[8*K+:8], pins[9*K+:9],
+        completed[32*K+:32], edges[7*K+:7], tick[8*K+:8], period[8*K+:8], mode[7*K+:7],
+        l_run[K], l_phase[K], l_frac[8*K+:8], l_acc[8*K+:8], l_seen[K], l_cfg[10*K+:10],
+        l_level[K], l_rx_prev[K], l_cell[K], l_man[K], l_se0[K], l_rem[6*K+:6], l_trail[K],
+        s_run[4*K+:4], s_last[K], s_err[K], a_lost[K], c_state[16*K+:16], c_preset[2*K+:2]};
+`else
     assign engine_state = {pc[PCW*K+:PCW], fv_running[K], fault[8*K+:8],
         tx[WIDTH*K+:WIDTH], rx[WIDTH*K+:WIDTH], x[WIDTH*K+:WIDTH], y[WIDTH*K+:WIDTH],
         repeat_count[16*K+:16], wait_timer[24*K+:24], wait_limit[24*K+:24],
         blocked[24*K+:24], values[8*K+:8], enables[8*K+:8], pins[9*K+:9],
         completed[32*K+:32], edges[7*K+:7], tick[8*K+:8], period[8*K+:8], mode[5*K+:5]};
+`endif
     assign running = fv_running[K];
     assign dbg_running_k = running_all[K];
     assign fault_free = fault[8*K+:8] == 0;
@@ -125,7 +167,11 @@ module ti_copy #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
     assign write_any = (men_lo[K] && wen_lo[K]) || (men_hi[K] && wen_hi[K]);
     assign addr_lo = a_lo[6*K+:6];
     assign addr_hi = a_hi[6*K+:6];
+`ifdef LINE_UNIT
+    assign touch = tx_pop[K] || rx_push[K] || event_clear[K] || qread[K];
+`else
     assign touch = tx_pop[K] || rx_push[K] || event_clear[K];
+`endif
     assign start = starts[K];
     assign stop = stops[K];
     assign clear_fault = accepted && code == 7 && payload[K];
@@ -136,7 +182,11 @@ endmodule
 
 module timing_isolation #(parameter K=0, WIDTH=32, ENGINES=4, DEPTH=8,
     LEVEL_WIDTH=$clog2(DEPTH)+1, IW=16, PCW=24) (input wire clk);
+`ifdef LINE_UNIT
+    localparam SW = 250+PCW+4*WIDTH;
+`else
     localparam SW = 182+PCW+4*WIDTH;
+`endif
     (* anyseq *) reg rst_n, ena;
     (* anyseq *) reg [7:0] uio_in, ui_a, ui_b;
     wire [7:0] a_uo, a_out, a_oe, b_uo, b_out, b_oe;

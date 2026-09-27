@@ -10,9 +10,10 @@ type instruction_memory = Baseline | Ihp_pair | Synchronous_model
    register in the asynchronous styles.  Either way it keeps gating the same
    combinational paths (outputs, ready/valid, SRAM enables, mover, triggers). *)
 let create_with_memory ?(debug=false) ?(options=Variant_options.default)
-    ?(timing=Timing_options.default) memory_backend (config:Config.t) =
+    ?(timing=Timing_options.default) ?(line=Line_options.default) memory_backend (config:Config.t) =
   let config = Config.validate config in
   let options = Variant_options.validate config options in
+  let line = Line_options.validate config timing line in
   let open Always in
   let n = config.engine_count and width = config.data_width in
   let clock = input "clk" 1 and rst_n = input "rst_n" 1 and ena = input "ena" 1 in
@@ -93,7 +94,7 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default)
         ~clear:(clear |: flushes.(k)) ~width ~depth:config.fifo_words ~push ~pop ~data in
   let txs=Array.init n (fun k -> fifo k ~push:tx_push.(k) ~pop:tx_pop.(k) ~data:tx_data.(k)) in
   let rxs=Array.init n (fun k -> fifo k ~push:rx_push.(k) ~pop:rx_pop.(k) ~data:rx_data.(k)) in
-  let engines=Array.init n (fun k -> Engine.create ~options ~timing ~gate config
+  let engines=Array.init n (fun k -> Engine.create ~options ~timing ~line ~gate config
       {clock; clear; start=starts.(k); stop=stops.(k); clear_fault=clears.(k);
        instruction=instructions.(k); image_length=lengths.(k).value;
        ownership=owners.(k).value; pins=synced_pins; timestamp=timestamp.value;
@@ -195,7 +196,9 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default)
       (if options.debug_counters then selected_engine (fun (e:Engine.t)->e.completed)
        else zero 32);
       uresize (selected_engine (fun (e:Engine.t)->e.rx_data)) 32;
-      of_int ~width:32 (Variant_options.isa_version options)] in
+      (* With the line unit, bits 23..8 carry its capability bits. *)
+      of_int ~width:32 (Variant_options.isa_version options
+                        lor (Line_options.capabilities ~engine_count:n line lsl 8))] in
   read_data <== mux2 (host.window ==:. 3)
       (uresize (selected_fifo rxs (fun (f:Processor_fifo.t)->f.data)) 32) status_data;
   Array.iteri (fun k _ ->
@@ -360,14 +363,19 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default)
      output "dbg_host_rx_reserved" host.read_lock; output "dbg_host_selected" selected.value;
      output "dbg_command_accepted" (obs accepted); output "dbg_command_code" code;
      output "dbg_command_payload" payload; variables "dbg_image_valid" committed;
-     variables "dbg_image_length" lengths]) in
+     variables "dbg_image_length" lengths]
+    (* Line unit: LSTAT reads the queue status, so it counts as a queue
+       interaction for the timing-isolation miter (formal/README.md). *)
+    @ (if Line_options.enabled line
+       then [packed_obs "dbg_queue_status_read" (Array.map (fun (e:Engine.t)->e.queue_observe) engines)]
+       else [])) in
   Circuit.create_exn ~name:(if debug then "protocol_processor_debug" else "tt_um_protocol_processor")
     (outputs @ debug_outputs)
 
 let create ?debug ?options config = create_with_memory ?debug ?options Baseline config
 let create_refinement ?debug (config:Refinement_config.t) =
-  create_with_memory ?debug ~options:config.options ~timing:config.timing Ihp_pair
-    config.architecture
+  create_with_memory ?debug ~options:config.options ~timing:config.timing ~line:config.line
+    Ihp_pair config.architecture
 let create_refinement_model ?debug (config:Refinement_config.t) =
-  create_with_memory ?debug ~options:config.options ~timing:config.timing Synchronous_model
-    config.architecture
+  create_with_memory ?debug ~options:config.options ~timing:config.timing ~line:config.line
+    Synchronous_model config.architecture

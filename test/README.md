@@ -242,6 +242,8 @@ make PE_VARIANT=cn PE_CORE=/path/to/cn.v    # a core kept elsewhere
 | `cn_s2` | `async_sync_release` (+ the same) | 8 | none | 2 |
 | `diet4` | as `cn_s2` | 4 | no debug counters, 7-bit saturating PC, byte-lane shifts | 3 |
 | `diet2` | as `cn_s2` | 2 | as `diet4` | 3 |
+| `diet8` | as `cn_s2` | 8 | as `diet4` | 3 |
+| `diet8_rec16` | as `cn_s2` | 8 | as `diet4`, plus the line unit (`../docs/extension.md`) | 3 (READ_SELECT 7 = 0x000F5F03) |
 
 `base` is exactly the Tiny Tapeout CI run: the same file list
 (`../src/protocol_emulator_core.v`), `sim_build/rtl`, and the verbatim
@@ -307,6 +309,29 @@ six variants, `rstreg` included, pass the gate-level subset
 
 Model-only (no simulator) runs take the same variable:
 `PE_VARIANT=diet2 python3 -c "import harness, scenarios; print(harness.run_model(scenarios.flagship_topup).cycle)"`.
+
+## Line-unit tests
+
+For variants with the line unit (`PE_VARIANT=diet8_rec16`, `../docs/extension.md`)
+the Makefile adds three modules to the default list; on every other variant
+they are skipped (they are not in the default list either):
+
+| file | content |
+|---|---|
+| `test_line_unit.py`, `line_scenarios.py` | 12 directed tests: version word, nine catalogued CRC check values, CRC from classic and sampling XFERs, ticker timing formula, TX line coding and RX decoding against independent encoders, arbitration, 43 invalid/valid encodings, LSTAT, START/STOP/reset, ticker sharing, completion points |
+| `test_line_demos.py`, `line_demos.py` | the extension study's demos with the `../firmware/ext/` images: 10BASE-T UDP frame (to the first link pulse, 660,000 cycles), CAN node scenarios (including the ACK of received frames) and negative controls, reset in the middle of a CAN frame, USB low-speed IN responder, its rejection of a bad-CRC5, OUT and SETUP token and its EOP, and the absence of an address filter, CRC stream |
+| `test_line_random.py`, `line_random.py` | constrained-random line-unit programs on up to four engines; `PE_SEED`, `PE_LINE_RANDOM_ITERS` (default 16), `PE_LINE_RANDOM_FIRST`, `PE_LINE_RANDOM_CYCLES`; logs the functional coverage counted by the model |
+| `line_support.py` | encoders, the firmware/ext loader, CRC catalogue model, NRZI/stuffing/CAN/USB/UDP references, the behavioural CAN node |
+| `model/line_unit.py` | the reference model of the unit (`LineReference`) |
+
+```sh
+make PE_VARIANT=diet8_rec16                                        # 102 + 25 tests
+make PE_VARIANT=diet8_rec16 COCOTB_TEST_MODULES=test_line_unit     # directed tests only
+```
+
+At gate level the CAN demos are skipped and the 10BASE-T test stops after the
+frame (no link pulse), unless `PE_LINE_GL_FULL=1`; the random test runs one
+case.
 
 ## Model-only development
 

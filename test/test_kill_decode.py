@@ -19,7 +19,10 @@ the pin's output enable drops on the exact cycle of that engine's fault (the
 shared fault pin would hide one engine behind the others); the four engines
 run their cases from one START and are then cleared. The model decides the
 expected fault (asserted to be code 1 for every case), and the fault code is
-read back for one case per opcode. ``ownership_sweep`` varies the owned pins;
+read back for one case per opcode. On a variant with the line unit
+(docs/extension.md) four of these encodings are legal line-unit instructions
+(XFER c bit 6, opcodes 30, 31 and 33); there they are replaced by invalid
+encodings of the same opcodes. ``ownership_sweep`` varies the owned pins;
 ``fault_codes`` runs FAULT n with twelve codes on every engine and checks that
 START is rejected while the fault is pending.
 """
@@ -28,6 +31,7 @@ from __future__ import annotations
 
 import cocotb
 
+import variants
 from harness import CLEAR, RS_STATUS, SELECT, START, CocotbHarness, Harness, immediate, instruction
 from scenarios import fault_of
 from test_kill_common import (ADD, AND, COUNT, DIR, FAULT, GATE_LEVEL, HALT, IN, JZ, LIMIT, LOAD, MOV, NOP, NOT,
@@ -149,6 +153,15 @@ def invalid_cases(engine: int, width: int) -> list[tuple[str, list[int]]]:
     for op in range(32):
         for k in (5, 6, 7):
             add(f"opcode {op | 1 << k}", instruction(op | 1 << k))
+    if variants.options(variants.design_config()).line_unit != "none":
+        # Legal line-unit encodings there (XFER c bit 6 feeds the CRC, LTIM 0,
+        # LCFG 0, LSTAT x): invalid encodings of the same opcodes instead.
+        legal = {"XFER c bit6", "opcode 30", "opcode 31", "opcode 33"}
+        cases[:] = [case for case in cases if case[0] not in legal]
+        add("XFER c bit6 with c bit7", instruction(XFER, 1, 1, 1 << 6 | 1 << 7), pins)
+        add("opcode 30 (LTIM P=255 Q=1)", immediate(30, 255 | 1 << 8))
+        add("opcode 31 (LCFG code 3)", immediate(31, 3))
+        add("opcode 33 (LSTAT a=4)", instruction(33, 4))
     return cases
 
 

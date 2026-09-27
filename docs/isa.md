@@ -195,6 +195,7 @@ section.
 | `debug_counters` | `true`, `false` | `false`: no completed-instruction counters; READ_SELECT 5 reads 0 |
 | `pc_bits` | `full`, `saturating_7` | `saturating_7`: a 7-bit PC. A JMP, LOOP or JZ target, or a next PC, of 128 or more becomes 127. 127 is outside every image (at most 64 words in this refinement), so the next issue faults with code 2 exactly as the unsaturated PC would; READ_SELECT 3 then reads 127 instead of the target |
 | `shift` | `barrel`, `byte_lane` | `byte_lane`: SHL/SHR accept only c = 0, 8, 16 or 24 (and c < datapath width); any other count faults with invalid-operand code 1. The assembler rejects other counts |
+| `line_unit` | `none`, `rec16` | `rec16`: the line-unit extension, section "Line-unit extension" below |
 
 The architecture field `fifo_words` also admits 2 and 4. Every queue rule above
 applies unchanged at that depth; a host that needs more than `fifo_words` words
@@ -232,3 +233,82 @@ of record.
 
 With `sync_registered` and `async_sync_release` a host waits two cycles (or for
 write-ready in window 0) after reset or deselection before its first command.
+
+## Line-unit extension
+
+Option `line_unit: "rec16"` (variant `configs/variants/diet8_rec16.json`; the
+design of record does not have it) adds one line unit per engine:
+a bit ticker with an 8-bit fraction, NRZ/NRZI/Manchester line coding, bit
+stuffing, a complementary pin pair with SE0 detection, an arbitration monitor
+and a 16-bit CRC with four polynomial presets. It needs fused issue and a 32-bit
+datapath. `docs/extension.md` describes the design, its verification and its
+area; this section is the contract. The Hardcaml RTL
+(`hardcaml/lib/line_options.ml`, `line_unit.ml`, `engine.ml`), the assembler
+(`Isa.encode ~line_unit`) and the reference model (`test/model/line_unit.py`)
+implement it.
+
+| op | mnemonic | operands / operation |
+|---:|---|---|
+|17|XFER|c bit 5 selects a line XFER, c bit 6 feeds the CRC (also in a classic XFER), c bit 7 = 0. Line XFER: a bit count 1..32, b = 0, c[1:0] = 0, c2 MSB first, c3 drive, c4 sample; the ticker must run; Manchester allows no sampling|
+|30|LTIM|imm24 [7:0] half-period P (0 stops the ticker), [15:8] fraction Q/256, [23:16] first-tick delay D (0 means P); (re)starts the ticker. P = 255 with Q != 0 is invalid|
+|31|LCFG|imm24 [1:0] line code 0 NRZ, 1 NRZI, 2 Manchester (TX only), 3 invalid; [2] stuffing; [3] stuffing counts runs of either polarity (else runs of 1s); [6:4] run length - 1 (length 1 with [3] set is invalid); [7] pair; [8] arbitration monitor; [9] end a sampling XFER on SE0; [10] initial line level; [23:11] zero. Resets the line state and flags, not the ticker or the CRC|
+|32|CRC|c = 1: CRC := register b (low 16 bits), a = 0. c = 2: register a := CRC, b = 0. c = 3: polynomial preset b (0..3), a = 0|
+|33|LSTAT|register a := [0] a sampling XFER ended on SE0, [1] arbitration lost, [2] stuff error (bits 0-2 stay set until LCFG or START), [3] TX queue has data, [4] RX queue has space, [5] line level, [6] ticker running, [13:8] data bits remaining at SE0; b = c = 0|
+
+**Ticker.** LTIM issued in cycle c0 gives ticks in cycles T0 = c0 + (D, or P
+when D = 0) and T(k+1) = T(k) + P + carry(k), where carry(k) = (acc(k) + Q) >> 8,
+acc(k+1) = (acc(k) + Q) mod 256 and acc(0) = 0. Even ticks are bit boundaries,
+odd ticks mid-bit. The ticker runs while the engine runs, also during WAIT and
+blocked instructions. A classic XFER stops it (it shares the XFER tick and
+period registers); LTIM restarts it.
+
+**Line XFER.** It counts data bits, not edges. Driving: at each boundary tick
+the next line bit is written to the data pin (PINS TX field) and, with the pair
+set, its complement to the pair pin (PINS clock field). NRZ writes the bit,
+NRZI keeps the level for a 1 and toggles it for a 0, Manchester writes the
+complement and the unit writes the bit itself at the next mid-bit tick. Sampling:
+at each mid-bit tick the RX pin (PINS RX field) is read (NRZI: a 1 when it equals
+the previous sample) and shifted into rx without clearing rx. A drive-only XFER
+completes at the boundary tick of its last cell; a sampling XFER (sample only, or
+drive and sample, which samples only after its first boundary) at the mid-bit
+tick of its last bit, or at a mid-bit tick with both pair pins low when SE0 end
+is set (LSTAT then reports SE0 and the data bits left). An instruction that
+writes pins in the cycle of a Manchester second half writes on top of it.
+
+**Stuffing.** When the run of equal line bits (either polarity) or of 1s
+reaches the run length, the next cell is a stuff bit: the complement of the last
+bit, or 0 for runs of 1s. This also applies after the last data bit (a trailing
+stuff bit extends the XFER by one cell). Stuff bits are not shifted, counted or
+fed to the CRC. A received stuff bit with the wrong value sets the stuff-error
+flag and is still dropped.
+
+**Arbitration.** With the monitor on, a drive-and-sample XFER that reads 0
+while it drives 1 sets the lost flag; from then on it drives 1 in every data and
+stuff cell and keeps receiving.
+
+**CRC.** One step per data bit: LSB first, feedback = crc[0] ^ bit and
+crc := (crc >> 1) ^ (feedback ? reflected polynomial : 0); MSB first,
+feedback = crc[15] ^ bit and crc := (crc << 1) ^ (feedback ? normal polynomial : 0).
+Presets: 0 CRC-5/USB x^5+x^2+1 (reflected 0x0014, normal 0x2800 = 0x05 left-aligned),
+1 CRC-16 x^16+x^15+x^2+1 (0xA001, 0x8005), 2 CRC-15/CAN (0x4CD1, 0x8B32 = 0x4599
+left-aligned), 3 CRC-16/CCITT x^16+x^12+x^5+1 (0x8408, 0x1021). A driving XFER
+feeds the data bits it sends, a sampling XFER the data bits it receives; a
+classic XFER with c bit 6 feeds the bits it shifts out, or the bits it samples.
+
+**START, reset and faults.** START and reset clear the ticker, LCFG, the line
+state and flags, the CRC and the preset. A fault stops the unit with the engine
+and keeps its state until the next START.
+
+**Invalid encodings** fault with code 1: LTIM P = 255 with Q != 0; LCFG with
+bits 23..11 set, line code 3, or stuffing on either polarity with run length 1;
+CRC with c = 0 or c > 3 or a field outside its rule; LSTAT with a > 3, b != 0 or
+c != 0; XFER with c bit 7; a line XFER with b != 0, c[1:0] != 0, a outside 1..32,
+the ticker stopped, Manchester with sampling, the data pin not owned when
+driving, or with the pair set a pair pin that is not owned or equals the data
+pin; opcodes 34..255.
+
+**Discovery.** READ_SELECT 7 bits 23..8 hold constant capability bits: [8] line
+unit, [9] fraction, [10] stuffing, [11] arbitration monitor, [12] CRC-16, [13]
+CRC-32, [14] CRC presets, [19:16] engines with the unit; bits 7..0 keep the ISA
+version. `diet8_rec16` reads 0x000F5F03. A host must compare bits 7..0 only
+with an ISA version.

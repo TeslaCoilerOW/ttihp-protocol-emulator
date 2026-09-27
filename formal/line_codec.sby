@@ -1,0 +1,40 @@
+# Line unit (docs/extension.md; formal/line_codec.sv): the line decoder
+# inverts the line coder (two engines). Variants with options.line_unit only.
+#   bmc             decoded bits = sent bits (complement for Manchester), no stuff
+#                   error or SE0, equal CRCs; P = 1, N = 1..8
+#   bmc_p2          the same at P = 2, N = 1..4
+#   neg_nrzi        NEGATIVE CONTROL, must FAIL: nrzi_decode mutant
+#   neg_destuff     NEGATIVE CONTROL, must FAIL: rx_destuff_run mutant
+#   neg_manchester  NEGATIVE CONTROL, must FAIL: manchester_halves mutant
+[tasks]
+bmc
+bmc_p2
+neg_nrzi neg
+neg_destuff neg
+neg_manchester neg
+
+[options]
+mode bmc
+depth 46
+neg: expect fail
+
+[engines]
+smtbmc yices
+
+[script]
+bmc: read_verilog engine_line.v
+bmc_p2: read_verilog engine_line.v
+neg_nrzi: read_verilog engine_line_nrzi_decode.v
+neg_destuff: read_verilog engine_line_rx_destuff_run.v
+neg_manchester: read_verilog engine_line_manchester_halves.v
+~bmc_p2: read -formal line_codec.sv
+bmc_p2: read -formal -DCODEC_P2 line_codec.sv
+prep -top line_codec
+
+[files]
+bmc: build/rtl/engine_line.v
+bmc_p2: build/rtl/engine_line.v
+neg_nrzi: build/rtl/engine_line_nrzi_decode.v
+neg_destuff: build/rtl/engine_line_rx_destuff_run.v
+neg_manchester: build/rtl/engine_line_manchester_halves.v
+line_codec.sv

@@ -15,6 +15,9 @@
 #   build/variants/<name>/firmware/<image>.{source,image}.json   the 19 images of
 #       firmware/, reassembled for the variant's architecture (fifo_words) and
 #       shift restriction (assemble --variant)
+#   build/variants/<name>/firmware/ext/<image>.image.json   for a variant with
+#       options.line_unit: firmware/ext/*.source.json assembled for it
+#       (docs/extension.md)
 #
 # Checks (unless --no-check), each fatal:
 #   1. configs/instruction-sram-32.json regenerates src/protocol_emulator_core.v
@@ -22,7 +25,9 @@
 #   2. the base variant (no "options") equals src/protocol_emulator_core.v
 #      except for the header line;
 #   3. every variant whose firmware target equals the design of record
-#      (fifo_words 8, barrel shifts) reproduces firmware/*.json byte for byte.
+#      (fifo_words 8, barrel shifts) reproduces firmware/*.json byte for byte;
+#   4. a variant with options.line_unit reproduces firmware/ext/*.image.json
+#      byte for byte.
 #
 # Environment: DUNE_BUILD_DIR, DUNE_JOBS, OCAML_ENV as for scripts/generate.sh.
 set -euo pipefail
@@ -37,7 +42,7 @@ while [ $# -gt 0 ]; do
                PUBLISH=$(abspath "$2"); shift 2 ;;
     --no-firmware) FIRMWARE=0; shift ;;
     --no-check) CHECK=0; shift ;;
-    -h|--help) sed -n '2,28p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) sed -n '2,33p' "${BASH_SOURCE[0]}"; exit 0 ;;
     -*) echo "gen_variants.sh: unknown option $1" >&2; exit 2 ;;
     *) NAMES+=("$1"); shift ;;
   esac
@@ -140,6 +145,29 @@ EOF
     then
       echo "gen_variants.sh: CHECK FAILED: $n targets the design-of-record firmware but its images differ from firmware/" >&2
       exit 1
+    fi
+  fi
+  if [ "$FIRMWARE" = 1 ] && python3 - "$config" <<'EOF'
+import json, sys
+sys.exit(0 if json.load(open(sys.argv[1])).get("options", {}).get("line_unit", "none") != "none" else 1)
+EOF
+  then
+    ext=$out_dir/firmware/ext
+    mkdir -p "$ext"
+    count=0 same=1
+    for src in "$REPO"/firmware/ext/*.source.json; do
+      stem=$(basename "$src" .source.json)
+      "$ASSEMBLE" --source "$src" --variant "$config" --output "$ext/$stem.image.json" >/dev/null
+      cmp -s "$ext/$stem.image.json" "$REPO/firmware/ext/$stem.image.json" || same=0
+      count=$((count + 1))
+    done
+    if [ "$same" = 1 ]; then
+      line="$line; $count line-unit images (identical to firmware/ext/)"
+    elif [ "$CHECK" = 1 ]; then
+      echo "gen_variants.sh: CHECK FAILED: $n does not reproduce firmware/ext/*.image.json" >&2
+      exit 1
+    else
+      line="$line; $count line-unit images (DIFFER from firmware/ext/)"
     fi
   fi
   echo "$line"

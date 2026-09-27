@@ -1,0 +1,32 @@
+{
+  "schema_version": "protocol-emulator.firmware-image.v1",
+  "isa_version": 2,
+  "name": "relay",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 1,
+  "owned_pins": 0,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "source_sha256": "eaa5b1afd0c2152e76788bc60d3b8f7af8118afeb8d15ea1bf9afa3fe45c1d96",
+  "bytecode_sha256": "2b34004e924b87375e233082c1c46352b9b2feb623170a9668b97509306ff1b2",
+  "words": [ 100663296, 302055424, 117440512, 83886080 ],
+  "labels": { "relay": 0 },
+  "timing": [
+    { "pc": 0, "minimum_cycles": 1, "blocking": "tx_fifo_unbounded" },
+    { "pc": 1, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 2, "minimum_cycles": 1, "blocking": "rx_fifo_unbounded" },
+    { "pc": 3, "minimum_cycles": 1, "blocking": "none" }
+  ],
+  "notes": [
+    "Mover relay: copies every TX-queue word to the RX queue (blocking PUSH). With ROUTE k -> k-1 a chain of relays stages words for engine k-1: each relay holds 2d+1 words (TX queue, RX queue, rx register) on d-deep queues.",
+    "Base ISA only; runs on every configuration."
+  ]
+}

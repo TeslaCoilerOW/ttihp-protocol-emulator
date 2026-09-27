@@ -6,9 +6,10 @@ let write_file path contents =
   let channel = open_out_bin path in
   Fun.protect ~finally:(fun () -> close_out channel)
     (fun () -> output_string channel contents)
-(* --variant: architecture and shift restriction of an RTL variant, read from
-   its refinement config (protocol-emulator.refinement.v1 with optional
-   "options").  Parsed here, independently of the Hardcaml generator. *)
+(* --variant: architecture, shift restriction and line unit of an RTL
+   variant, read from its refinement config (protocol-emulator.refinement.v1
+   with optional "options").  Parsed here, independently of the Hardcaml
+   generator. *)
 let variant_target path =
   let json=Yojson.Safe.from_file path in
   let fields=match json with `Assoc f -> f | _ -> invalid_arg "variant config must be an object" in
@@ -24,7 +25,14 @@ let variant_target path =
        | Some (`String "byte_lane") -> true
        | Some _ -> invalid_arg "variant options.shift must be barrel or byte_lane")
     | Some _ -> invalid_arg "variant options must be an object" in
-  architecture,byte_lane
+  let line_unit=match List.assoc_opt "options" fields with
+    | Some (`Assoc options) ->
+      (match List.assoc_opt "line_unit" options with
+       | None | Some (`String "none") -> false
+       | Some (`String "rec16") -> true
+       | Some _ -> invalid_arg "variant options.line_unit must be none or rec16")
+    | _ -> false in
+  architecture,byte_lane,line_unit
 let () =
   let source=ref "" and firmware=ref "" and output=ref "" and source_output=ref "" in
   let width=ref 32 and engines=ref 4 and words=ref 64 and fifo_words=ref 8 in
@@ -59,18 +67,19 @@ let () =
       if !source<>"" && (!output= !source || !source_output= !source) then invalid_arg "output must not overwrite input source";
       if !source_output<>"" && !source_output= !output then invalid_arg "image and source output paths must differ";
       let target=if !variant="" then None else Some (variant_target !variant) in
-      let byte_lane_shifts= !byte_lane || (match target with Some (_,b) -> b | None -> false) in
+      let byte_lane_shifts= !byte_lane || (match target with Some (_,b,_) -> b | None -> false) in
+      let line_unit=match target with Some (_,_,l) -> l | None -> false in
       let source_bytes = if !source<>"" then read_file !source else
         let architecture=match target with
-          | Some (architecture,_) -> architecture
+          | Some (architecture,_,_) -> architecture
           | None -> {Isa.engine_count= !engines;data_width= !width;
               program_words= !words;fifo_words= !fifo_words;issue= !issue;prefetch= !prefetch} in
         let s=Firmware.make ~architecture ~half_period:!half_period ~mode:!mode ~clock_hz:!clock_hz
             ~byte_lane_shifts !firmware in
         Yojson.Safe.pretty_to_string (Assembler.source_to_json s)^"\n" in
-      let image=Assembler.assemble_with ~byte_lane_shifts ~source_bytes in
+      let image=Assembler.assemble_target ~byte_lane_shifts ~line_unit ~source_bytes in
       (match target with
-       | Some (architecture,_) when image.source.architecture<>architecture ->
+       | Some (architecture,_,_) when image.source.architecture<>architecture ->
          invalid_arg "source architecture differs from the --variant architecture"
        | _ -> ());
       (* Validate everything before opening either output. *)

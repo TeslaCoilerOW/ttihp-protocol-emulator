@@ -32,3 +32,11 @@
  (name variant_test)
  (modules variant_test)
  (libraries protocol_processor hardcaml yojson unix))
+
+; Line-unit checks (docs/extension.md). Executables, not tests: they are run
+; explicitly (dune build ./test/line_test.exe ./test/line_sys_test.exe) and
+; are not part of the default `dune test`.
+(executables
+ (names line_test line_sys_test)
+ (modules line_fw line_test line_sys_test)
+ (libraries protocol_processor hardcaml))

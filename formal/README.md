@@ -232,6 +232,7 @@ VARIANT_CORES=/path/to/cores formal/run.sh --variant cn_s2   # also check the co
 ```
 
 `--variant NAME` (or `FORMAL_VARIANT`) runs the same 16 jobs on a design variant
+(plus the 15 line-unit jobs when the variant has the line unit, section "Line unit")
 (`docs/isa.md`, "Configuration variants"). Without it nothing changes. The
 build tree is `formal/build/variants/NAME/`.
 
@@ -257,6 +258,7 @@ build tree is `formal/build/variants/NAME/`.
 | `debug_counters: false` | `NO_COUNTERS` | `engine_safety`: the completed count stays 0; the miter observes it as 0 (`generate_fv.ml` exports zeros) |
 | `pc_bits: saturating_7` | `PC_SAT`, `PCW=7` | `engine_safety`: a JMP target, a LOOP target (repeat count non-zero) or a taken JZ target of 128 or more gives PC 127; LOOP also decrements the repeat count, and with a zero count it falls through |
 | `shift: byte_lane` | `BYTE_LANE` | `engine_safety`: an issuable SHL/SHR with a non-lane count faults with code 1 and keeps its PC; a lane count completes, and a lane shift of RX (register 1) leaves RX shifted by the count |
+| `line_unit: rec16` | `LINE_UNIT` | miter: line-unit state shared, LSTAT ends the window; the line-unit jobs (section "Line unit") |
 
 The PC-saturation and lane-shift assertions are checked for non-vacuity by
 three controls that are not part of the job list. Each replaces one assertion
@@ -274,6 +276,49 @@ written for that model.
 counters. It exports the PC and image registers at their native widths, and
 the reset synchronizer as `fv_reset_sync`. For the design of record its
 output is unchanged.
+
+## Line unit
+
+A variant with the line-unit option (`options.line_unit`, `docs/extension.md`;
+the variant `diet8_rec16`) gets:
+
+- **The existing 16 jobs with `-DLINE_UNIT`.** `generate_fv.ml` also attributes
+  and exports the 19 line-unit registers of each engine (`fv_line_run` ...
+  `fv_crc_preset`; `fv_transfer_mode` is 7 bits wide). The timing-isolation
+  miter adds them to engine K's shared state, and an LSTAT of engine K, seen
+  through the debug export `dbg_queue_status_read`, ends the window: LSTAT
+  reads the TX-data and RX-space flags of engine K's queues, which the two
+  copies may disagree on. `engine_safety` checks the engine with the unit.
+- **15 line-unit jobs**, registered in `run.sh` only for such a variant. They
+  run on `engine_line.v` (the production engine with the unit plus observation
+  ports, `gen/variant/generate_blocks.ml --target engine_line`) and
+  `crc_step.v` (the unit's CRC step function, `--target crc_step`):
+
+| Job | Harness | Method | Claim |
+|---|---|---|---|
+| `line_crc_equiv` | `line_crc.sv` | prove | The CRC step equals a reference written from the published generator polynomials (`line_ref.vh`) for every state, bit, preset and bit order |
+| `line_crc_e2e` | `line_crc.sv` | BMC 42, bitwuzla | A driven CRC line XFER of 1..10 bits at P = 1 (any data, initial value, preset, bit order, line code; stuffing off or runs of 4..8; pair off) leaves the reference CRC over the data bits |
+| `line_codec_bmc`, `line_codec_bmc_p2` | `line_codec.sv` | BMC 46 | Engine B sampling engine A's pins receives A's N data bits (1..8 at P = 1, 1..4 at P = 2; no fraction; complements for Manchester), without stuff error or SE0, with an equal CRC; any legal LCFG except stuffing with Manchester; B uses A's LCFG with NRZ for Manchester and the arbitration bit cleared |
+| `line_pins_bmc` | `line_engine.sv -DP_PINS` | BMC 20 | Outside SET and OUT the engine changes only the two pins named by PINS |
+| `line_reset_bmc` | `line_engine.sv -DP_RESET` | BMC 16 | Every line-unit register is 0 after reset and after START |
+| `line_decode_bmc` | `line_engine.sv -DP_DECODE` | BMC 16 | Invalid line-unit encodings fault with code 1 and change no line-unit configuration, flag or CRC; valid ones complete or start |
+
+Each has a negative control on a mutant generated with `--mutation`
+(`Line_unit.mutation`): `line_crc_equiv_neg` and `line_crc_e2e_neg`
+(`crc_tap`), `line_codec_neg_nrzi` (`nrzi_decode`), `line_codec_neg_destuff`
+(`rx_destuff_run`), `line_codec_neg_manchester` (`manchester_halves`),
+`line_pins_neg` (`pin_leak`), `line_reset_neg` (`start_keeps_crc`) and
+`line_decode_neg` (`ltim_overflow`). Not covered by these jobs: other P and
+fractions, longer transfers, stuffing runs 1..3 and the pair in the CRC
+property, the CRC of sampled bits against the reference (only B's CRC equals
+A's), Manchester with stuffing, arbitration and SE0 on a shared bus; the
+cocotb tests cover these by simulation (`docs/extension.md` section 6.3). A
+line-unit negative control meets its
+expectation only if the assertion that names it in a `target of:` comment
+fired. `line_codec_bmc` took 1,588 s and 2,336 s with yices on two cluster
+nodes, more than the default `SBY_TIMEOUT` of 1,500 s; run it with
+`SBY_TIMEOUT=3600`. Results:
+`docs/extension.md` section 6.4.
 
 ## Limits
 
