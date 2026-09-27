@@ -1,0 +1,195 @@
+# Proposed GitHub Actions workflow for formal_eq/ (NOT active: this file is
+# deliberately outside .github/workflows/). Evaluation, runtime estimate and
+# open points: formal_eq/README.md ("CI proposal") and docs/equivalence.md.
+#
+# What it does: after a `gds` or `gds_6x4` run finishes, it downloads that
+# run's tt_submission artifact, installs exactly the PDK revision recorded in
+# the artifact's pdk.json, checks out the commit that was built, and runs
+#   formal_eq/eq_check.py check --run-dir <artifact> --variant <base|diet4> --selftest
+# The job fails unless the netlist is proven equivalent to the RTL, every
+# recipe and netlist control meets its expectation, and the artifact's src/
+# (the sources the flow synthesised) equals the checkout's RTL.
+#
+# To activate it, copy it to .github/workflows/equivalence.yaml. The
+# workflow_run trigger only fires for a workflow file on the default branch.
+name: equivalence
+
+on:
+  workflow_run:
+    workflows: [gds, gds_6x4]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "id of a gds or gds_6x4 run whose tt_submission artifact is checked"
+        required: true
+      variant:
+        description: "base (gds.yaml, 8x4) or diet4 (gds_6x4.yaml, 6x4)"
+        required: true
+        default: base
+
+permissions:
+  contents: read
+  actions: read            # download an artifact of another run
+
+env:
+  OSS_CAD_SUITE_RELEASE: "2026-07-29"   # the release formal.yaml pins
+  IHP_PDK_REPO: https://github.com/IHP-GmbH/IHP-Open-PDK.git
+
+jobs:
+  equivalence:
+    # workflow_run: only after a gds job produced an artifact
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Select the run and the variant
+        id: sel
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          WR_ID: ${{ github.event.workflow_run.id }}
+          WR_SHA: ${{ github.event.workflow_run.head_sha }}
+          WR_NAME: ${{ github.event.workflow_run.name }}
+          IN_RUN_ID: ${{ inputs.run_id }}
+          IN_VARIANT: ${{ inputs.variant }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "$EVENT" = workflow_run ]; then
+            RUN_ID=$WR_ID
+            SHA=$WR_SHA
+            case "$WR_NAME" in
+              gds) VARIANT=base ;;
+              gds_6x4) VARIANT=diet4 ;;
+              *) echo "unexpected workflow $WR_NAME"; exit 1 ;;
+            esac
+          else
+            RUN_ID=$IN_RUN_ID
+            VARIANT=$IN_VARIANT
+            case "$RUN_ID" in *[!0-9]*|'') echo "run_id must be a number"; exit 1 ;; esac
+            case "$VARIANT" in base|diet4) ;; *) echo "variant must be base or diet4"; exit 1 ;; esac
+            SHA=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq .head_sha)
+          fi
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "variant=$VARIANT" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout the built commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.sel.outputs.sha }}
+
+      - name: Download the tt_submission artifact
+        id: art
+        uses: actions/download-artifact@v8
+        continue-on-error: true    # a gds job that failed before the upload has no artifact
+        with:
+          name: tt_submission
+          path: eq-artifact
+          run-id: ${{ steps.sel.outputs.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Stop when there is no artifact
+        if: steps.art.outcome != 'success'
+        shell: bash
+        run: |
+          echo "no tt_submission artifact in run ${{ steps.sel.outputs.run_id }}" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      - name: Read the PDK revision from pdk.json
+        id: pdk
+        shell: bash
+        run: |
+          # the artifact holds tt_submission/ and src/ (the layout gh run download also gives)
+          J=eq-artifact/tt_submission/pdk.json
+          test -f "$J"
+          echo "pdk=$(jq -r .PDK "$J")" >> "$GITHUB_OUTPUT"
+          echo "rev=$(jq -r .PDK_VERSION "$J")" >> "$GITHUB_OUTPUT"
+          jq . "$J"
+
+      - name: Restore the PDK liberty files
+        id: pdkcache
+        uses: actions/cache@v6
+        with:
+          path: pdk
+          key: ihp-open-pdk-${{ steps.pdk.outputs.rev }}-stdcell-lib
+
+      # Only the standard-cell liberty directory of the recorded revision is
+      # fetched (partial clone + sparse checkout). The SOURCES line is the one
+      # TinyTapeout/tt-gds-action's install_sg13cmos5l.sh writes; eq_check.py
+      # compares it with pdk.json and refuses a mismatch.
+      - name: Install the exact PDK revision (liberty only)
+        if: steps.pdkcache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          REV=${{ steps.pdk.outputs.rev }}
+          PDK=${{ steps.pdk.outputs.pdk }}
+          mkdir -p pdk && cd pdk
+          git init -q
+          git remote add origin "$IHP_PDK_REPO"
+          git sparse-checkout set --no-cone "/$PDK/libs.ref/sg13cmos5l_stdcell/lib/"
+          git fetch -q --depth 1 --filter=blob:none origin "$REV"
+          git checkout -q FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$REV"
+          echo "IHP-Open-PDK $REV" > "$PDK/SOURCES"
+          ls -l "$PDK/libs.ref/sg13cmos5l_stdcell/lib/"
+
+      - name: Set up OSS CAD Suite
+        uses: YosysHQ/setup-oss-cad-suite@v4
+        with:
+          version: ${{ env.OSS_CAD_SUITE_RELEASE }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tool versions
+        run: yosys -V && python3 --version
+
+      - name: Unit tests of the check
+        run: python3 -m unittest formal_eq/test_eq_check.py
+
+      # A standard 4-vCPU runner has 2 physical cores: --jobs 2 runs the netlist
+      # and the slow mutant (mutA) side by side; mutC and the recipe controls
+      # take seconds. ABC is single-threaded. --timeout is per ABC run.
+      - name: Equivalence check with self-test
+        id: eq
+        shell: bash
+        run: |
+          set +e
+          python3 formal_eq/eq_check.py check \
+            --run-dir eq-artifact \
+            --variant ${{ steps.sel.outputs.variant }} \
+            --pdk-root "$PWD/pdk" \
+            --selftest --jobs 2 --timeout 2700 \
+            --label run-${{ steps.sel.outputs.run_id }} \
+            --out eq-out
+          echo "rc=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Require the artifact's sources to equal the checkout
+        shell: bash
+        run: |
+          jq -e '.inputs.artifact_src_matches | to_entries | all(.value == true)' eq-out/result.json
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f eq-out/result.json ]; then
+            jq -r '"verdict: \(.verdict)  exit: \(.exit_code)  self-test: \(.selftest.pass // "not run")  wall: \(.wall_s) s  netlist sha256: \(.inputs.netlist.sha256 // "-")"' \
+              eq-out/result.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload the result
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: equivalence-${{ steps.sel.outputs.run_id }}
+          path: |
+            eq-out/result.json
+            eq-out/*/*.log
+            eq-out/*/*.ys
+            eq-out/controls/*/case/abc.log
+          if-no-files-found: ignore
+
+      - name: Fail closed
+        shell: bash
+        run: test "${{ steps.eq.outputs.rc }}" = 0
