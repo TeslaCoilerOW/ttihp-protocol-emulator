@@ -63,7 +63,7 @@ from store import State, Store  # noqa: E402
 LABEL = "optimizer"
 JOB_PREFIX = "pe-v2-%s-" % LABEL
 PARTITIONS = "mit_preemptable,mit_normal"
-CPU_CAP = 700                    # all pe-v2-optimizer-* jobs, queued + running, driver included
+CPU_CAP = 960                    # all pe-v2-optimizer-* jobs, queued + running, driver included (per-user cap 1024)
 USER_JOB_CAP = 400               # stay below the 448 submitted-job limit per user (all workstreams)
 MAX_SUBMIT_PER_LOOP = 24
 MAX_NOSUBMIT_PER_LOOP = 40       # duplicate/rejected trials per loop (they use no CPUs)
