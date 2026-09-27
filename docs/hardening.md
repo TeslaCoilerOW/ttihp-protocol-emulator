@@ -5,6 +5,14 @@ This document covers the recipe, the decisions and the evidence for taking
 CMOS5L gds action. The design is configured as `configs/instruction-sram-32.json`
 with eight `RM_IHPSG13_1P_64x16_c2` instruction SRAMs. Last updated 2026-09-25.
 
+> **Note (2026-09-27).** This page records the recipe as of `c118027`. The
+> committed `src/config.json` has changed since: the LibreLane settings of
+> optimizer promotion p010 since `25e331e`, and `CLOCK_PERIOD` 15 ns with
+> promotion p018 since `d76f1cc` (the operating clock stays 50 MHz). See
+> [timing-closure.md](timing-closure.md) sections 9 and 10 and
+> [optimization.md](optimization.md). The SRAM integration, PDN and
+> floorplan reasoning below still applies.
+
 **Status.** The configuration is written and passes every static check that can
 run locally (section 6). A local LibreLane 3.1.0.dev3 run that mirrors the
 action got through synthesis, macro placement, the checked PDN step, placement,

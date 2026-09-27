@@ -2,10 +2,12 @@
 
 This page lists what the results in [results.md](results.md) do *not*
 show. It was written for commit `c118027` (tag `v0.1-hardened`) and updated
-on 2026-09-26 for `131e793`, the design of record since `25e331e`: the same
+on 2026-09-26 for `131e793`, the design of record from `25e331e` until `d76f1cc`: the same
 RTL with the LibreLane settings of optimizer promotion p010 in
-`src/config.json`. Items that no longer hold are kept and marked
-**Resolved** or **Obsolete**, with their evidence. Each item names the
+`src/config.json`, and on 2026-09-27 for `d76f1cc`, which constrains the
+flow at 15 ns (66.7 MHz; optimizer promotion p018) while the operating
+clock stays 50 MHz. Items that no longer hold are kept and marked
+**Resolved**, **Obsolete** or **Superseded**, with their evidence. Each item names the
 evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
 
 ## 1. No hardware observation
@@ -26,6 +28,41 @@ evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
 
 ## 2. Timing closure
 
+- **The flow's timing constraint is 15 ns; the operating clock is 50 MHz.**
+  Since `d76f1cc`, `src/config.json` sets `CLOCK_PERIOD` 15, so the flow
+  repairs and signs off timing at 66.7 MHz; `info.yaml` `clock_hz` stays
+  50000000, and the firmware, the host library, `pe_timing` and the
+  datasheet assume 50 MHz ([timing-closure.md](timing-closure.md)
+  section 10). What this does and does not establish:
+  - **Official 15 ns result pending.** The `gds` run of `d76f1cc`
+    (36298635436; results.md R85) was in progress at 2026-09-27 08:40 UTC.
+    Until it finishes, the 15 ns figures are those of p018's local
+    sign-off (R84): setup WS typ/fast/slow +5.95/+6.92/+2.24 ns with 0
+    violations, hold WS min +0.165 ns, precheck 9/9, gate level 0 fail.
+  - **The 50 MHz margins are a re-analysis, not a result of the official
+    flow.** The flow times the design at 15 ns only. The margins at 20 ns
+    (setup WS +8.95/+9.92/+6.79 ns, hold unchanged; R86) come from running
+    the flow's own STA script and SDC on p018's final netlist and parasitics
+    with `CLOCK_PERIOD` 20 (Slurm job 24077956). Two controls reproduce the
+    flow's numbers exactly, but the re-analysis is local and its files are
+    not in git (results.md section 9, item 15).
+  - **The input and output delays are an assumption.** `base.sdc` sets
+    every input and output delay to 20% of the period
+    (`IO_DELAY_CONSTRAINT` 20, not set in `src/config.json`): 3.0 ns at the
+    15 ns sign-off and 4.0 ns in the 20 ns re-analysis, applied to setup
+    and hold alike. They are not derived from the Tiny Tapeout multiplexer,
+    the pads or the demo board. Input-to-output paths, which carry the
+    delay at both ends, gain only 3 ns from 15 to 20 ns and are the worst
+    typ and fast paths (`ui_in[7]` → `uo_out[5]`); they lose margin first if
+    the real delays are larger.
+  - **The 6x4 fallback is signed off at 20 ns only.** Its overlay pins
+    `CLOCK_PERIOD` 20 and `clock_hz` 50000000, so the 15 ns change does not
+    reach it ([6x4.md](6x4.md); results.md section 2c).
+  - **13.33 ns (75.0 MHz) is not signed off.** The optimizer's 13.33 ns
+    track has fast-mode trials only (best slow-corner WS +0.756 ns); its
+    first promotion, p024 (full run job 24068227), had not finished at
+    2026-09-27 08:40 UTC ([optimization.md](optimization.md), "Current
+    results").
 - **Resolved: the slow corner meets setup at 50 MHz.** The official build
   of `131e793` (run 36257636798; R16 in results.md) has setup worst slack
   +7.88 ns at `nom_typ_1p20V_25C`, +9.31 ns at `nom_fast_1p32V_m40C` and
@@ -36,7 +73,10 @@ evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
   "DELAY 4", density and macro placement; [timing-closure.md](timing-closure.md)
   section 9). The promoted full run of that configuration (job 24010051)
   had produced a byte-identical `metrics.csv`, and its fast-mode trial (job
-  24009268) the same slack values (R19).
+  24009268) the same slack values (R19). This is the 20 ns build of
+  `131e793`; since `d76f1cc` the slow corner also meets setup at 15 ns in
+  the local sign-off (+2.24 ns, R84), and the same layout re-timed at 20 ns
+  has +6.79 ns (R86).
 
   The item as first written, for `c118027` (run 36144357821; R7): setup
   worst slack −8.52 ns at the slow corner, with 2,482 violating endpoints.
@@ -55,21 +95,28 @@ evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
   missed the slow corner would still pass the gds action. The optimizer
   ranks its trials by the minimum slack over all three corners
   ([optimization.md](optimization.md), "Objective").
-- **No clock above 50 MHz is signed off by the official flow or
-  committed.** The optimizer's 15 ns (66.7 MHz) promotion p018 passed the
+- **Superseded by `d76f1cc` (first item of this section): "No clock above
+  50 MHz is signed off by the official flow or committed."** A 15 ns
+  configuration is now committed; its official sign-off is pending (R85).
+  The item as written before `d76f1cc`: the optimizer's 15 ns (66.7 MHz) promotion p018 passed the
   local sign-off pipeline (full run with LVS 0, precheck 9/9, gate-level
   tests with 0 failures; setup WS typ/fast/slow +5.95/+6.92/+2.24 ns;
   results.md R84), but `src/config.json` and `info.yaml` still state 20 ns
   and 50 MHz, so no GitHub action has built it. The 13.33 ns (75.0 MHz)
   track had fast-mode trials only (best slow WS +0.76 ns) as of
   2026-09-27 01:20 UTC.
-  Frequencies derived from the 20 ns slack, 1000 / (20 − WS) (typ 82.5 MHz,
-  slow 58.7 MHz for `131e793`), are extrapolations: the constrained input
-  and output delays scale with the period ([optimization.md](optimization.md),
-  "Frequency tracks and the SDC").
-- **Hold margin at the fast corner is small.** Hold is met at every corner;
-  the worst slack is +0.11 ns at the fast corner (typ +0.32 ns, slow
-  +0.66 ns; R17). It was +0.107 ns in `c118027` (R8).
+- **fmax figures derived from one period are extrapolations.** Frequencies
+  derived from the 20 ns slack, 1000 / (20 − WS) (typ 82.5 MHz, slow
+  58.7 MHz for `131e793`), assume that every path gains the full period
+  change, but the constrained input and output delays scale with the period
+  ([optimization.md](optimization.md), "Frequency tracks and the SDC";
+  [timing-closure.md](timing-closure.md) section 10).
+- **Hold margin at the fast corner is small.** Hold is met at every corner.
+  In p018's local sign-off (R84) the worst slack is +0.165 ns at the fast
+  corner (typ +0.372 ns, slow +0.743 ns); the worst hold paths are
+  register to register, so the value is the same at 15 and 20 ns (R86).
+  The official build of `131e793` had +0.11 ns at the fast corner (typ
+  +0.32 ns, slow +0.66 ns; R17), and `c118027` +0.107 ns (R8).
 - **The RTL variants did not close the slow corner.** In local runs at
   `73536f0`, `rstreg` gave −7.52 ns (register to register −0.96 ns) and
   `cn_s2` gave −4.99 ns, with its worst path register to register
@@ -78,8 +125,11 @@ evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
   and the named variants `rstreg_timing` and `cn_s2_timing` did not close
   it either ([timing-closure.md](timing-closure.md) section 7). These
   results stand; the closure of `131e793` comes from the flow settings.
-- **Design-rule counts are not zero.** The official build of `131e793`
-  reports max-slew / max-capacitance / max-fan-out violations of 1/0/3 at
+- **Design-rule counts are not zero.** p018's local full run (R84) reports
+  max-slew / max-capacitance / max-fan-out violations of 1/0/1 at the
+  typical corner, 0/1/1 at the fast corner and 4/0/1 at the slow corner, the
+  same at 15 and 20 ns. The official build of `131e793`
+  reports 1/0/3 at
   the typical corner, 0/0/3 at the fast corner and 4/0/3 at the slow corner
   (R18). For `c118027` they were 42/70/524 (typical) and 290/70/524 (slow).
   They are reported but not fatal in this flow.
@@ -151,8 +201,8 @@ processor, under these assumptions:
   bounded (BMC 48). No unbounded proof has finished
   ([formal-depth.md](formal-depth.md), "What is still unproven").
 
-**Revision.** The `formal_depth/` results are for `73536f0`. `c118027` and
-`131e793` have the same core, but those jobs have not been re-run on them.
+**Revision.** The `formal_depth/` results are for `73536f0`. `c118027`,
+`131e793` and `d76f1cc` have the same core, but those jobs have not been re-run on them.
 
 ## 4. What simulation evidence does not cover
 
@@ -230,7 +280,9 @@ processor, under these assumptions:
   `131e793`, 84 in that of `c118027`.
 - **Tile size.** The official build is 8x4 tiles. That the competition
   accepts 8x4 is not confirmed in this repository. The 6x4 fallback
-  (`diet4`, [6x4.md](6x4.md)) is built by the `gds_6x4` workflow:
+  (`diet4`, [6x4.md](6x4.md)) is built by the `gds_6x4` workflow at
+  `CLOCK_PERIOD` 20, so it is signed off at 50 MHz only, not at the 15 ns
+  of the 8x4 build (section 2):
   - Its configuration before `25e331e` passed gds, precheck and gl_test in
     runs 36225500529 and 36238342669, with slow-corner setup −2.80 ns
     (results.md, R80).
@@ -243,7 +295,11 @@ processor, under these assumptions:
   - Since `8a05de7` and `fdc23f2` the overlay states all 33 keys the
     optimizer treats as flow knobs, and the `info.yaml` overlay restates
     `clock_hz` (results.md section 9, item 13). A key outside that list can
-    still reach the 6x4 build from `src/config.json`.
+    still reach the 6x4 build from `src/config.json`. The run of `1e5b1d8`
+    (36285537630) passed with metrics byte-identical to those of `4bd30c8`
+    (R87), and the 6x4 build files of `d76f1cc` are byte-identical to those
+    of `1e5b1d8`; the run of `d76f1cc` (36298635404) passed all five jobs
+    with the same `metrics.csv` and netlist (R89).
 
   Earlier state, kept for reference: the first 6x4 candidate (`diet4` on
   `fp6_tworow`, results.md R52) had 14 precheck Pin-check errors from the
@@ -258,10 +314,12 @@ processor, under these assumptions:
 
 - **Many campaign results are for `73536f0`.** This covers the random and
   mutation campaigns, `formal_depth/`, the peers, the host library, the
-  timing analyzer and the FPGA simulations. `c118027` and `131e793` have the
-  same `src/protocol_emulator_core.v` and `firmware/`; they change the tests
-  and the hardening configuration. Their official CI results are in
-  results.md, sections 2 and 2b.
+  timing analyzer and the FPGA simulations. `c118027`, `131e793` and
+  `d76f1cc` have the same `src/protocol_emulator_core.v`; `firmware/`
+  changed after `c118027` only in the I²C images (`fb79f31`, the I²C timing
+  fix), and `131e793` and `d76f1cc` have the same `firmware/`. Otherwise
+  these commits change the tests and the hardening configuration. Their official CI results are in
+  results.md, sections 2, 2b and 2d.
 - **Not all raw data is public.** Per-seed results, raw per-test logs and
   the job logs stay on the cluster. The repository keeps summaries. The
   89.4% gap-closure summary is not committed (results.md, section 9, item

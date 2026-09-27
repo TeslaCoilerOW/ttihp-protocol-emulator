@@ -500,17 +500,29 @@ gives 434 clocks per bit, which is 115,207 baud at 50 MHz.
 
 ## Limitations
 
-- There is no silicon yet. The official Tiny Tapeout gds, precheck and
-  gate-level test actions pass (commit 131e793, GitHub run 36257636798), but
-  50 MHz is a timing target, not a measured frequency. Post-route static
-  timing meets setup at 50 MHz at the typical, fast and slow corners (worst
-  slack +2.95 ns, at the slow corner) and hold at every corner (worst slack
-  +0.11 ns, at the fast corner). The first hardened build, tag
-  v0.1-hardened, missed setup at the slow corner by 8.52 ns, mostly on paths
-  from the reset input; the same RTL now meets it with different LibreLane
-  settings. No clock above 50 MHz has been signed off by the official flow;
-  a 15 ns (66.7 MHz) configuration has passed the local sign-off only
-  (`docs/results.md` R84).
+- There is no silicon yet. The operating clock is 50 MHz: the firmware
+  images and the protocol timing figures in this datasheet (baud rates,
+  bit times, timeouts) assume it, and it is a
+  timing target, not a measured frequency. Operation above 50 MHz is not
+  claimed.
+- Since commit d76f1cc the hardening flow signs the timing off at a 15 ns
+  period (66.7 MHz), which leaves margin at 50 MHz. In the local sign-off
+  run of that configuration, post-route static timing meets setup at 15 ns
+  at the typical, fast and slow corners (worst slack +2.24 ns, at the slow
+  corner) and hold at every corner (worst slack +0.165 ns, at the fast
+  corner). The official GitHub run of d76f1cc (36298635436) was in progress
+  when this was written. Re-timed at 50 MHz with the flow's own timing
+  script, the same layout has setup slack +8.95 ns (typical), +9.92 ns
+  (fast) and +6.79 ns (slow) and the same hold slack. That figure is a
+  re-analysis, not a run of the official flow, and like the sign-off it
+  assumes input and output delays of 20% of the clock period
+  (`docs/results.md` R84 to R86).
+- Earlier builds: commit 131e793 passed the official gds, precheck and
+  gate-level test actions at 50 MHz (GitHub run 36257636798), with worst
+  setup slack +2.95 ns (slow corner) and worst hold slack +0.11 ns (fast
+  corner). The first hardened build, tag v0.1-hardened, missed setup at the
+  slow corner by 8.52 ns, mostly on paths from the reset input; the same RTL
+  meets it with different LibreLane settings.
 - The host port is synchronous and its inputs are not synchronized, so the host
   must share the chip clock.
 - UART has no flow-control wire. When engine 1's RX queue is full, the strict

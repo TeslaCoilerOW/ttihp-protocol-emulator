@@ -2,11 +2,20 @@
 
 This page lists every headline number that the repository states. It was
 compiled at commit `c118027` (tag `v0.1-hardened`). On 2026-09-26 and
-2026-09-27 (UTC) it was updated with the official results of `131e793`, the
-design of record since `25e331e` (section 2b), the local sign-off of a
-15 ns configuration (R84), the 6x4 build (section 2c), the mutation score of
-`aa07868` (R23c) and the `diet4` mutation rerun (R23d). A row that a later result replaces is marked
-**Superseded** and kept, with its commit and run. Each row gives:
+2026-09-27 (UTC) it was updated with:
+
+- the official results of `131e793`, the 20 ns configuration of record from
+  `25e331e` until `d76f1cc` (section 2b);
+- the local sign-off of the 15 ns configuration p018 (R84), committed in
+  `d76f1cc`; its official run (R85), its timing re-analysed at the 50 MHz
+  operating clock (R86) and the same knob values run at 20 ns (R88) are in
+  section 2d;
+- the 6x4 build (section 2c, R80 to R83, R87 and R89);
+- the mutation score of `aa07868` (R23c) and the `diet4` mutation rerun
+  (R23d).
+
+A row that a later result replaces is marked **Superseded** and kept, with
+its commit and run. Each row gives:
 
 - the claim;
 - where the repository states it;
@@ -105,7 +114,8 @@ Per-step wall times in seconds:
 ## 2. Official Tiny Tapeout results (`v0.1-hardened`, commit `c118027`)
 
 These were the results of record until `25e331e` changed
-`src/config.json`; section 2b gives the current ones. Run
+`src/config.json`; section 2b gives the 20 ns results that followed, and
+section 2d the current 15 ns configuration. Run
 [36144357821](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36144357821)
 is the `gds` workflow on push of `c118027`, started 2026-09-25 13:58 UTC.
 The metrics are from `tt_submission/stats/metrics.csv` in that run's
@@ -149,9 +159,11 @@ same way.
 The runs on the tag push (`test` 36188299625, `formal` 36188299526, `regen`
 36188299483, `docs` 36188299516) also succeeded.
 
-## 2b. Official Tiny Tapeout results of `131e793` (design of record since `25e331e`)
+## 2b. Official Tiny Tapeout results of `131e793` (20 ns configuration of record from `25e331e` until `d76f1cc`)
 
-These are the results of record. Run
+These were the results of record until `d76f1cc` set `CLOCK_PERIOD` 15 in
+`src/config.json` (section 2d). They remain true for `131e793`; `src/` and
+`info.yaml` are unchanged from `131e793` to `1e5b1d8`. Run
 [36257636798](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36257636798)
 is the `gds` workflow on push of `131e793`, started 2026-09-26 17:03 UTC. The
 metrics are from `tt_submission/stats/metrics.csv` of that run's
@@ -175,11 +187,11 @@ true, `CTS_SINK_CLUSTERING_SIZE` 16 and `GRT_LAYER_ADJUSTMENTS`
 | # | Claim | Stated in | Evidence | Reproduce |
 |---|---|---|---|---|
 | R15 | gds, precheck and gl_test PASS on `131e793`; gl_test: 102 tests, 46 pass, 56 skip, 0 fail | README.md (Status) | Run 36257636798: job `gds` success, 1 h 51 min; job `precheck` "Precheck passed" (KLayout SG13CMOS5L DRC 10,501 s; the zero-area, top-macro-name, forbidden-layer, prBoundary and pin checks also ran); job `gl_test` `TESTS=102 PASS=46 FAIL=0 SKIP=56`. Job `viewer` failed with "Creating Pages deployment failed" (HTTP 404), as in run 36144357821 | CI |
-| R16 | Setup met at all three corners at 50 MHz: WS typ +7.88, fast +9.31, slow +2.95 ns, with 0 setup-violating endpoints at every corner. The gain over `c118027` (R6, R7) is +6.99, +3.15 and +11.47 ns, from configuration only | README.md (Status); [timing-closure.md](timing-closure.md) section 9; [limitations.md](limitations.md) section 2; [info.md](info.md), "Limitations" | `timing__setup__ws` typ 7.8797, fast 9.3075, slow 2.9539; `timing__setup_vio__count` 0 at every corner; slow `timing__setup__tns` 0 (was −9,744.1); slow register-to-register WS +2.954 ns, 0 violations (was −0.116 ns, 1 violation). Arithmetic checked with AXLE (Lean 4, `<work dir>/docs-timing/axle/`) | CI. Local: the promoted full run of p010 (R19) |
-| R17 | Hold met at every corner: fast +0.112, typ +0.318, slow +0.657 ns; 0 hold violations | README.md (Status); limitations.md section 2 | `timing__hold__ws` per corner; `timing__hold_vio__count` 0 at every corner; 137 hold buffers (was 10) | CI |
-| R18 | Utilization 61.9% (61.92%; standard cells 57.64%); route DRC 0; LVS 0; antenna 0; 94,248 instances; max-slew / max-cap / max-fan-out violations typ 1/0/3, fast 0/0/3, slow 4/0/3 (were 42/70/524, 13/73/524 and 290/70/524); 86 Magic illegal overlaps, waived as in R9 | README.md (Status); limitations.md sections 2 and 5 | `design__instance__utilization` 0.619173, `__stdcell` 0.576428; `route__drc_errors` 0 (the last detailed-routing iteration, 17, ended at 0); every `design__lvs_*` counter 0; `route__antenna_violation__count` 0, with 25 antenna diodes; `design__instance__count` 94,248 (41,005 standard cells); `design__max_{slew,cap,fanout}_violation__count__corner:*`; `magic__illegal_overlap__count` 86 | CI |
-| R19 | The local prediction matched: the promoted full run of p010 produced a `metrics.csv` byte-identical to that of run 36257636798 and the same gate-level netlist; its fast-mode trial gave the same setup and hold slack at all three corners, utilization, instance count and slew/cap/fan-out counts | [optimization.md](optimization.md), "Starting point" | Trial `dor-26a873-c8bf57e#94`, job 24009268 (fast mode, 32 threads); promotion p010: full run job 24010051 (`OPENROAD_THREADS` 4, LVS 0), precheck job 24011934 (9/9), gate-level job 24011935 (102 tests, 46 pass, 56 skip, 0 fail). `cmp` of the full run's `out/metrics.csv` with the artifact's: identical; netlist sha256 `8ce27ccc…` for both the artifact's `tt_um_teslacoilerow_protocol_emulator.v` and the run's `final/nl`. The trial was compared field by field from `<work dir>/optimizer/store/events.jsonl`. Record: `<work dir>/docs-timing/artifact_comparisons.out` | Cluster: [optimization.md](optimization.md), "Operation" |
-| R84 | Optimizer promotion p018 passes the local sign-off at 15 ns (66.7 MHz): full run legal with LVS 0 and route DRC 0; setup WS typ +5.95, fast +6.92, slow +2.24 ns at 15 ns with 0 violations; hold WS min +0.165 ns (fast); utilization 65.30%; precheck 9/9; gate level 102 tests, 46 pass, 56 skip, 0 fail. It differs from the committed `src/config.json` in four keys: `CLOCK_PERIOD` 15, `DESIGN_REPAIR_MAX_CAP_PCT` 45, `GRT_LAYER_ADJUSTMENTS` [0, 0.2, 0.2, 0.1, 0], `PL_RESIZER_SETUP_SLACK_MARGIN` 5.8. **Not committed and not built by CI**; the design of record stays 20 ns / 50 MHz | [optimization.md](optimization.md), "Current results"; [limitations.md](limitations.md) section 2; [info.md](info.md), "Limitations" | Trial `dor15-26a873-8x4-p15-f174dc0#1`, job 24024343 (fast mode, same setup WS); full run job 24042265 (`OPENROAD_THREADS` 4; `out/metrics.csv`: `timing__setup__ws__corner:*` 5.9499 / 6.9240 / 2.2400, `timing__hold__ws` 0.1650, `design__instance__utilization` 0.653002, `route__drc_errors` 0, `design__lvs_net_difference__count` 0); precheck job 24053971 (9/9); gate-level job 24053972. The run's `params.json` `config_changes_vs_repo` lists the four keys (and `MACROS`, equal to the committed placement) | Cluster: [optimization.md](optimization.md), "Operation" |
+| R16 | **20 ns result of `131e793`**, superseded as the current configuration by `d76f1cc` (section 2d) and still true for that commit. Setup met at all three corners at 50 MHz: WS typ +7.88, fast +9.31, slow +2.95 ns, with 0 setup-violating endpoints at every corner. The gain over `c118027` (R6, R7) is +6.99, +3.15 and +11.47 ns, from configuration only | README.md (Status); [timing-closure.md](timing-closure.md) section 9; [limitations.md](limitations.md) section 2; [info.md](info.md), "Limitations" | `timing__setup__ws` typ 7.8797, fast 9.3075, slow 2.9539; `timing__setup_vio__count` 0 at every corner; slow `timing__setup__tns` 0 (was −9,744.1); slow register-to-register WS +2.954 ns, 0 violations (was −0.116 ns, 1 violation). Arithmetic checked with AXLE (Lean 4, `<work dir>/docs-timing/axle/`) | CI. Local: the promoted full run of p010 (R19) |
+| R17 | **20 ns result of `131e793`**, superseded as the current configuration by `d76f1cc` (section 2d) and still true for that commit. Hold met at every corner: fast +0.112, typ +0.318, slow +0.657 ns; 0 hold violations | README.md (Status); limitations.md section 2 | `timing__hold__ws` per corner; `timing__hold_vio__count` 0 at every corner; 137 hold buffers (was 10) | CI |
+| R18 | **20 ns result of `131e793`**, superseded as the current configuration by `d76f1cc` (section 2d) and still true for that commit. Utilization 61.9% (61.92%; standard cells 57.64%); route DRC 0; LVS 0; antenna 0; 94,248 instances; max-slew / max-cap / max-fan-out violations typ 1/0/3, fast 0/0/3, slow 4/0/3 (were 42/70/524, 13/73/524 and 290/70/524); 86 Magic illegal overlaps, waived as in R9 | README.md (Status); limitations.md sections 2 and 5 | `design__instance__utilization` 0.619173, `__stdcell` 0.576428; `route__drc_errors` 0 (the last detailed-routing iteration, 17, ended at 0); every `design__lvs_*` counter 0; `route__antenna_violation__count` 0, with 25 antenna diodes; `design__instance__count` 94,248 (41,005 standard cells); `design__max_{slew,cap,fanout}_violation__count__corner:*`; `magic__illegal_overlap__count` 86 | CI |
+| R19 | **20 ns result of `131e793`**, superseded as the current configuration by `d76f1cc` (section 2d) and still true for that commit. The local prediction matched: the promoted full run of p010 produced a `metrics.csv` byte-identical to that of run 36257636798 and the same gate-level netlist; its fast-mode trial gave the same setup and hold slack at all three corners, utilization, instance count and slew/cap/fan-out counts | [optimization.md](optimization.md), "Starting point" | Trial `dor-26a873-c8bf57e#94`, job 24009268 (fast mode, 32 threads); promotion p010: full run job 24010051 (`OPENROAD_THREADS` 4, LVS 0), precheck job 24011934 (9/9), gate-level job 24011935 (102 tests, 46 pass, 56 skip, 0 fail). `cmp` of the full run's `out/metrics.csv` with the artifact's: identical; netlist sha256 `8ce27ccc…` for both the artifact's `tt_um_teslacoilerow_protocol_emulator.v` and the run's `final/nl`. The trial was compared field by field from `<work dir>/optimizer/store/events.jsonl`. Record: `<work dir>/docs-timing/artifact_comparisons.out` | Cluster: [optimization.md](optimization.md), "Operation" |
+| R84 | Optimizer promotion p018 passes the local sign-off at 15 ns (66.7 MHz): full run legal with LVS 0 and route DRC 0; setup WS typ +5.95, fast +6.92, slow +2.24 ns at 15 ns with 0 violations; hold WS min +0.165 ns (fast); utilization 65.30%; precheck 9/9; gate level 102 tests, 46 pass, 56 skip, 0 fail. It differed from the `src/config.json` of `131e793` in four keys: `CLOCK_PERIOD` 15, `DESIGN_REPAIR_MAX_CAP_PCT` 45, `GRT_LAYER_ADJUSTMENTS` [0, 0.2, 0.2, 0.1, 0], `PL_RESIZER_SETUP_SLACK_MARGIN` 5.8. **Committed since `d76f1cc`**, which sets exactly these four keys; `info.yaml` `clock_hz` stays 50000000 (the operating clock). The official run of `d76f1cc` is R85. (Until `d76f1cc` this row read: "Not committed and not built by CI; the design of record stays 20 ns / 50 MHz".) | README.md (Status); [optimization.md](optimization.md), "Current results" and "Adoption of p018"; [limitations.md](limitations.md) section 2; [info.md](info.md), "Limitations"; [timing-closure.md](timing-closure.md) section 10 | Trial `dor15-26a873-8x4-p15-f174dc0#1`, job 24024343 (fast mode, same setup WS); full run job 24042265 (`OPENROAD_THREADS` 4; `out/metrics.csv`: `timing__setup__ws__corner:*` 5.9499 / 6.9240 / 2.2400, `timing__hold__ws` 0.1650, `design__instance__utilization` 0.653002, `route__drc_errors` 0, `design__lvs_net_difference__count` 0); precheck job 24053971 (9/9; its submission-like directory carries the snapshot's `info.yaml` with `clock_hz` 66666667, which the precheck does not read); gate-level job 24053972. The run's `params.json` `config_changes_vs_repo` lists exactly the four keys (the placement, `MACROS`, is equal and so not listed); `git show d76f1cc -- src/config.json` changes the same four keys | Cluster: [optimization.md](optimization.md), "Operation" |
 
 **Other workflows on `131e793`** (all on push, 2026-09-26): `test`
 [36257636760](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36257636760)
@@ -187,12 +199,34 @@ true, `CTS_SINK_CLUSTERING_SIZE` 16 and `GRT_LAYER_ADJUSTMENTS`
 `formal` 36257636810 (the generation job and all 16 matrix jobs succeeded),
 `regen` 36257636763 and `docs` 36257636924 all succeeded.
 
-**Later commits.** `f0e9c19`, `4bd30c8`, `8a05de7`, `24b807b` and
-`fdc23f2` do not change `src/`. For `4bd30c8`, `test` 36274474552, `regen`
-36274474544, `docs` 36274474541 and `formal` 36274474545 (all 17 jobs)
-succeeded, and in `gds` 36274474548 the jobs `gds` and `gl_test` (`TESTS=102
-PASS=46 FAIL=0 SKIP=56`) succeeded; its `precheck` was still running at
-2026-09-27 01:40 UTC.
+**Later commits.** `f0e9c19`, `4bd30c8`, `8a05de7`, `24b807b`, `fdc23f2`,
+`d733cef` and `1e5b1d8` do not change `src/`.
+
+- **`4bd30c8`.** `test` 36274474552, `regen` 36274474544, `docs`
+  36274474541 and `formal` 36274474545 (all 17 jobs) succeeded. In `gds`
+  36274474548 the jobs `gds`, `gl_test` (`TESTS=102 PASS=46 FAIL=0
+  SKIP=56`) and `precheck` ("Precheck passed", finished 2026-09-27 01:57
+  UTC) succeeded; `viewer` failed as in every run. The first version of
+  this paragraph, written at about 2026-09-27 01:26 UTC for `1e5b1d8`,
+  recorded the precheck as still running and gave the time as 01:40 UTC.
+- **`1e5b1d8`** (pushed 2026-09-27 01:26 UTC). `test` 36285537637, `formal`
+  36285537631 (all 17 jobs), `regen` 36285537627 and `docs` 36285537639
+  succeeded. In `gds` 36285537636 the jobs `gds` (1 h 49 min) and `gl_test`
+  (`TESTS=102 PASS=46 FAIL=0 SKIP=56`) succeeded and `viewer` failed; its
+  `precheck` passed ("Precheck passed", finished 2026-09-27 06:41 UTC).
+  `gds_6x4` 36285537630 passed all five jobs (R87).
+- **`d76f1cc`** (pushed 2026-09-27 05:56 UTC) sets the 15 ns configuration
+  in `src/config.json` (section 2d). `test` 36298635420 (job `lint` success;
+  job `test` `TESTS=102 PASS=102 FAIL=0 SKIP=0`), `formal` 36298635454 (all
+  17 jobs), `regen` 36298635381 and `docs` 36298635413 succeeded. `gds`
+  36298635436 (R85) was in progress at 2026-09-27 08:40 UTC (its `gds` job, in the
+  "Build GDS" step since 05:56 UTC). In `gds_6x4` 36298635404 the jobs
+  `core_current`, `rtl_test`, `gds` and `gl_test` (`TESTS=102 PASS=46
+  FAIL=0 SKIP=56`) and `precheck` ("Precheck passed") succeeded, with
+  metrics byte-identical to the earlier 6x4 runs (section 2c).
+- **`f511c97`** changes only `tools/opt/driver.py` and `tools/opt/tracks.py`
+  (the optimizer's track weights; [optimization.md](optimization.md),
+  "Allocation"). It had no CI run of its own when this was written.
 
 ## 2c. The 6x4 fallback build (`.github/workflows/gds_6x4.yaml`)
 
@@ -207,12 +241,50 @@ is reported and not signed off, as for 8x4.
 | R81 | `gds_6x4` failed on `131e793`, because the overlay set placement, obstruction, density and halo but no timing key, and so inherited the p010 timing keys of `src/config.json` | 6x4.md section 5b; [optimization.md](optimization.md), "Starting point" | Run 36257636751, job `gds` (4 h 10 min): `Checker.TrDRC` "69 Routing DRC errors found" (deferred), `Checker.IllegalOverlap` 73 (warning), Netgen LVS "Top level cell failed pin matching" (28,200 against 28,212 nets), then LibreLane stopped on a `JSONDecodeError` ("Invalid \escape") reading Netgen's output: "harden failed". `precheck` and `gl_test` were skipped; `core_current` and `rtl_test` (`TESTS=102 PASS=102`) passed. The same configuration locally: trial `diet4_6x4` #0 (job 24024332, fast mode) route DRC 69; control promotion p012, full run 24029191, route DRC 69 and stopped in `Netgen.LVS` | CI; cluster |
 | R82 | Optimizer promotion p014 (trial `diet4_6x4` #8) passes the local sign-off: full run legal with LVS 0, route DRC 0 and antenna 0; setup WS typ +7.71, fast +10.52, slow +2.74 ns; hold WS min +0.051 ns (fast); utilization 58.90%; precheck 9/9; gate level 102 tests, 46 pass, 56 skip, 0 fail. `4bd30c8` puts it into the overlay, and the merged configuration equals the run's key for key | 6x4.md section 4b; commit message of `4bd30c8` | Trial job 24032431 (fast mode, same setup WS); full run job 24036160; precheck job 24041156 (`promotions/p014-diet4_6x4/precheck/result.json`: 9 checks, 0 fail); gate-level job 24041157 (`gl/result.json`, `PE_VARIANT` diet4). Key comparison: `<work dir>/docs-timing/check_overlay_equals_p014.py`, 0 differences over 47 keys (`OPENROAD_THREADS` excluded) | Cluster |
 | R83 | The official `gds_6x4` run of `4bd30c8` passed `gds`, `precheck` and `gl_test` with the p014 configuration (R82): setup WS typ +7.71, fast +10.52, slow +2.74 ns, 0 setup and 0 hold violations; hold WS min +0.051 ns (fast); utilization 58.90% (standard cells 52.48%); route DRC 0; LVS 0; antenna 0. The artifact's `metrics.csv` is byte-identical to that of the local full run 24036160 | [6x4.md](6x4.md) sections 4b and 5b; README.md ("Tile size"); [limitations.md](limitations.md) section 5 | Run [36274474540](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36274474540): all five jobs succeeded; `gl_test` `TESTS=102 PASS=46 FAIL=0 SKIP=56`; "Precheck passed" (KLayout DRC 5,919 s). `tt_submission` artifact `stats/metrics.csv` (`timing__setup__ws` 2.7368, per corner typ 7.7060, fast 10.5185, slow 2.7368; `timing__hold__ws` 0.0513; `design__instance__utilization` 0.58896; `route__drc_errors` 0; `design__lvs_net_difference__count` 0; `antenna__violating__nets` 0); `cmp` with the full run's `metrics.csv` reports no difference | CI |
+| R87 | The `gds_6x4` run of `1e5b1d8`, after `8a05de7` and `fdc23f2` made the overlay state every flow knob key and `clock_hz`, passed all five jobs, and its `metrics.csv` is byte-identical to that of run 36274474540 (`4bd30c8`, R83) | [6x4.md](6x4.md) section 5b; README.md ("Tile size") | Run [36285537630](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36285537630): `core_current`, `rtl_test` (`TESTS=102 PASS=102 FAIL=0 SKIP=0`), `gds`, `precheck` ("Precheck passed") and `gl_test` (`TESTS=102 PASS=46 FAIL=0 SKIP=56`) succeeded. The `tt_submission` artifact's `commit_id.json` names `1e5b1d8` and the run; `cmp` of its `stats/metrics.csv` with that of run 36274474540 reports no difference (artifact in `<work dir>/ci-artifacts/36285537630/`) | CI |
+| R89 | The `gds_6x4` run of `d76f1cc` passed all five jobs, with a `metrics.csv` and gate-level netlist byte-identical to those of runs 36285537630 and 36274474540: the 15 ns `CLOCK_PERIOD` of `d76f1cc` does not reach the 6x4 build, which stays signed off at 20 ns | README.md ("Tile size"); [6x4.md](6x4.md) section 5b; [limitations.md](limitations.md) sections 2 and 5 | Run [36298635404](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36298635404): `core_current`, `rtl_test`, `gds`, `gl_test` (`TESTS=102 PASS=46 FAIL=0 SKIP=56`) and `precheck` ("Precheck passed", 08:37 UTC) succeeded. `commit_id.json` names `d76f1cc`; `cmp` of `stats/metrics.csv` with runs 36285537630 and 36274474540 and of the netlist with both: no difference (artifact in `<work dir>/ci-artifacts/36298635404/`). `switch.py apply` on exports of `1e5b1d8` and `d76f1cc`: byte-identical `src/` and `info.yaml` (`<work dir>/docs-15ns/check_6x4_merged.out`) | CI |
 
 The official `gds_6x4` run of `4bd30c8`
 ([36274474540](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36274474540))
 confirmed R82 with byte-identical metrics (R83). `8a05de7` then made the
 overlay state every flow knob key without changing the merged
 configuration (section 9, item 13).
+
+The run of `1e5b1d8` confirmed that with byte-identical metrics (R87).
+`d76f1cc` changes `CLOCK_PERIOD` in `src/config.json` to 15, but the overlay
+pins `CLOCK_PERIOD` 20 and every other knob key, and
+`variants6x4/info.overlay.json` pins `clock_hz` 50000000. `switch.py apply`
+on exports of `1e5b1d8` and `d76f1cc` writes a byte-identical
+`src/config.json`, `info.yaml` and `src/` (sha256 of each file in
+`<work dir>/docs-15ns/check_6x4_merged.out`), so the 6x4 build is
+unchanged and is signed off at 20 ns (50 MHz) only. In its `gds_6x4` run
+on `d76f1cc`, 36298635404, `core_current`, `rtl_test` and `gds` passed; the
+`tt_submission` `commit_id.json` names `d76f1cc`, and its
+`stats/metrics.csv` and gate-level netlist are byte-identical to those of
+runs 36285537630 and 36274474540 (`cmp`; artifact in
+`<work dir>/ci-artifacts/36298635404/`). Its `gl_test` (`TESTS=102 PASS=46
+FAIL=0 SKIP=56`) and `precheck` ("Precheck passed", finished 2026-09-27
+08:37 UTC) passed, so the run passed all five jobs.
+
+## 2d. The 15 ns sign-off of `d76f1cc` (current configuration)
+
+`d76f1cc` puts optimizer promotion p018 (R84) into `src/config.json`:
+`CLOCK_PERIOD` 15 (66.7 MHz), `DESIGN_REPAIR_MAX_CAP_PCT` 45,
+`GRT_LAYER_ADJUSTMENTS` [0, 0.2, 0.2, 0.1, 0] and
+`PL_RESIZER_SETUP_SLACK_MARGIN` 5.8; every other key is p010's
+([timing-closure.md](timing-closure.md) section 10). `info.yaml` `clock_hz`
+stays 50000000: the operating clock is 50 MHz, which the firmware, the
+host library, `pe_timing` and the datasheet assume. The RTL is
+byte-identical to `c118027`. Tiles, PDK and LibreLane are as in section 2.
+
+| # | Claim | Stated in | Evidence | Reproduce |
+|---|---|---|---|---|
+| R85 | Official `gds`, `precheck` and `gl_test` of `d76f1cc`, the first official build at 15 ns. **In progress**: no official 15 ns result exists yet, and the local sign-off (R84) is the evidence until it does | README.md (Status); [timing-closure.md](timing-closure.md) section 10.2 | Run [36298635436](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36298635436), the `gds` workflow on push of `d76f1cc`, started 2026-09-27 05:56 UTC: job `gds` still in its "Build GDS" step at 08:40 UTC; `precheck` and `gl_test` wait for it. (p018's local full run took 7,833 s of flow time against 2,785 s for p010, whose official `gds` job took 1 h 51 min.) | CI |
+| R86 | At the 50 MHz operating clock (20 ns), the p018 layout has setup WS typ +8.950, fast +9.924, slow +6.790 ns and hold WS typ +0.372, fast +0.165, slow +0.743 ns, with 0 setup and 0 hold violations. In the same analysis the 20 ns layout of `131e793` (p010) has +7.880 / +9.307 / +2.954 ns and +0.318 / +0.112 / +0.657 ns. From 15 to 20 ns the worst slack of each path class moves by +5 ns (register to register), +4 ns (input to register, register to output) and +3 ns (input to output); hold by 0, +1, +1 and +2 ns. This is a re-analysis with the flow's STA script, not a result of the official flow, which times the design at 15 ns | README.md (Status); [info.md](info.md), "Limitations"; [limitations.md](limitations.md) section 2; [timing-closure.md](timing-closure.md) sections 10.3 to 10.5 | Slurm job 24077956 (array 0 to 2): OpenSTA 2.7.0 in the `librelane-3.1.0.dev3` image, LibreLane's `corner.tcl` and `base.sdc` unmodified, the step's environment with only `CLOCK_PERIOD` and the netlist changed. Control (a): p018 at 15 ns equals the full run's `metrics.csv` (10 timing metrics at 3 corners, maximum absolute difference 0). Control (c): the `tt_submission` netlist and SPEF of run 36257636798 at 20 ns equal that run's `stats/metrics.csv` (maximum absolute difference 0). Per-class worst paths from `scripts/pe_extra.tcl`, the same start and end point at both periods. `<work dir>/sta50/` (`README.md`, `results.json`, `results.md`, `manifest.json`); 84 theorems checked with AXLE (`<work dir>/sta50/axle/`, `okay: true`) | Cluster: `<work dir>/sta50/README.md` ("Reproduce"), about one minute per corner run on 3 CPUs |
+| R88 | With the same knob values, the flow run at 20 ns gives less margin at 50 MHz than the flow run at 15 ns: control promotion p027 (p018's knob set with `CLOCK_PERIOD` 20) has setup WS typ +7.864, fast +9.389, slow +2.998 ns, and the p018 layout re-timed at 20 ns (R86) has +1.085, +0.535 and +3.792 ns more. One pair of runs | [timing-closure.md](timing-closure.md) section 10.6; README.md (Status) | p027: full run job 24077610 (`OPENROAD_THREADS` 4; legal, LVS 0; hold WS +0.362 / +0.154 / +0.724 ns; utilization 0.6196), precheck job 24081008 (9/9), gate-level job 24081009 (102 tests, 46 pass, 56 skip, 0 fail); verdict PASS in the leaderboard of 2026-09-27 08:36 UTC. It is the committed configuration of the optimizer's `dor` track since tree `f511c97`, imported trial `#114` (= v1 `dor-26a873-c8bf57e#118`, fast mode, job 24014107). Arithmetic checked with AXLE (`<work dir>/docs-15ns/axle/`) | Cluster: [optimization.md](optimization.md), "Promotion" |
+
+Until R85 finishes, README.md and [info.md](info.md) quote the local
+numbers of R84 and label them local.
 
 ## 3. Simulation-based verification
 
@@ -398,3 +470,9 @@ owning documents can be corrected. No number above depends on them.
    in the present tense. That described the `c118027` configuration (R7); the
    sentence now says so, and that the design of record meets the slow corner
    since `25e331e` (R16).
+15. **The 50 MHz margins (R86).** The scripts, inputs, reports and the AXLE
+   check of the re-analysis are in `<work dir>/sta50/`, not in git, so the
+   figures cannot be re-run from a clone. They use only files that the
+   repository's flow produces (the final netlist and nominal SPEF) and the
+   LibreLane 3.1.0.dev3 image of the local sign-off runs. The official flow reports the
+   design at 15 ns only (R85).

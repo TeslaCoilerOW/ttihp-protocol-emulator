@@ -1,5 +1,11 @@
 # Slow-corner timing closure by RTL restructuring
 
+Status, 2026-09-27: since `d76f1cc`, `src/config.json` constrains the flow
+at `CLOCK_PERIOD` 15 ns (66.7 MHz; optimizer promotion p018), and the operating
+clock is still 50 MHz. Section 10 describes that sign-off and the
+slack of the same layout re-timed at 20 ns. The 20 ns results below remain
+true for the commits they name.
+
 Status, 2026-09-26 (updated): the slow corner of the design of record is
 closed at 50 MHz, by LibreLane configuration and not by RTL. The official
 build of `131e793` (GitHub run 36257636798), whose RTL is byte-identical to
@@ -673,6 +679,9 @@ promotion p010 (trial `dor-26a873-c8bf57e#94`) into `src/config.json`.
 `git diff --stat c118027 131e793 -- src/` lists only `src/config.json`:
 `src/project.v`, `src/protocol_emulator_core.v` and `src/sram_pdn_cfg.tcl`
 are byte-identical, so the closure below is a property of the flow settings.
+This section describes the 20 ns configuration committed from `25e331e`
+until `d76f1cc`; section 10 describes the 15 ns configuration that replaced
+it.
 
 ### 9.1 Before and after (official builds)
 
@@ -799,3 +808,257 @@ settings, the variants did not close the slow corner.
   ("Promotion", "Operation"). The commit message of `25e331e` records that a
   snapshot rebuilt from that commit with `scripts/sweep/make_snapshot.py`
   has no configuration differences from the promoted run.
+
+## 10. Sign-off at 15 ns, operation at 50 MHz (optimizer promotion p018, `d76f1cc`)
+
+Commit `d76f1cc` put optimizer promotion p018 (trial
+`dor15-26a873-8x4-p15-f174dc0#1`) into `src/config.json`. It sets
+`CLOCK_PERIOD` 15 (66.7 MHz), so the flow's timing repair and its post-route
+multi-corner STA work at 15 ns. `info.yaml` `clock_hz` stays 50000000: the
+operating clock is 50 MHz, and the firmware images, the host library,
+`pe_timing` and the datasheet assume that clock. tt-support-tools
+`d66cf179e` checks only that `clock_hz` is an integer and uses it in
+generated documentation; it does not read `CLOCK_PERIOD`
+([optimization.md](optimization.md), "Frequency tracks and the SDC"). The
+RTL did not change.
+
+The flow fails on a setup violation at the typical corner or a hold
+violation at any corner; setup at the fast and slow corners is reported,
+not gated ([limitations.md](limitations.md) section 2).
+
+### 10.1 What changed
+
+`git show d76f1cc -- src/config.json` changes four keys (and adds
+comments). Every other key is p010's (section 9.2).
+
+| Key | `131e793` (p010) | `d76f1cc` (p018) |
+|---|---|---|
+| `CLOCK_PERIOD` | 20 | 15 |
+| `DESIGN_REPAIR_MAX_CAP_PCT` | 50 | 45 |
+| `GRT_LAYER_ADJUSTMENTS` | [0, 0.2, 0, 0.1, 0] | [0, 0.2, 0.2, 0.1, 0] |
+| `PL_RESIZER_SETUP_SLACK_MARGIN` | 5.75 | 5.8 |
+
+These four keys are the `config_changes_vs_repo` of p018's full run against
+the tree it ran on (`131e793`; [results.md](results.md) R84), so the
+committed file is the promoted configuration. Why p018 and not the other
+15 ns promotions: [optimization.md](optimization.md), "Adoption of p018".
+
+### 10.2 Results at 15 ns
+
+The local column is p018's promoted full run (Slurm job 24042265,
+`OPENROAD_THREADS` 4, `out/metrics.csv`). The official column is the `gds`
+workflow run on `d76f1cc`; the 20 ns build of `131e793` is shown for
+comparison.
+
+| | `131e793`, run 36257636798, 20 ns (superseded) | p018 full run 24042265, 15 ns (local) | `d76f1cc`, run 36298635436, 15 ns (official) |
+|---|---|---|---|
+| Setup WS typ / fast / slow | +7.880 / +9.307 / +2.954 ns | +5.950 / +6.924 / +2.240 ns | in progress |
+| Setup-violating endpoints | 0 at every corner | 0 at every corner | in progress |
+| Hold WS typ / fast / slow | +0.318 / +0.112 / +0.657 ns | +0.372 / +0.165 / +0.743 ns | in progress |
+| Max-slew / max-cap / max-fan-out violations, typ; fast; slow | 1/0/3; 0/0/3; 4/0/3 | 1/0/1; 0/1/1; 4/0/1 | in progress |
+| Utilization (standard cells) | 61.92% (57.64%) | 65.30% (61.41%) | in progress |
+| Instances (standard cells) | 94,248 (41,005) | 92,526 (42,919) | in progress |
+| Timing-repair / setup / hold buffers | 10,375 / 0 / 137 | 12,261 / 1,232 / 4,134 | in progress |
+| Route DRC / LVS / antenna | 0 / 0 / 0 | 0 / 0 / 0 | in progress |
+| Precheck | PASS | 9/9 (job 24053971) | in progress |
+| Gate level | 102 tests, 46 pass, 56 skip, 0 fail | 102 tests, 46 pass, 56 skip, 0 fail (job 24053972) | in progress |
+
+The buffer counts are the `metrics.csv` keys
+`design__instance__count__class:timing_repair_buffer`,
+`design__instance__count__setup_buffer` and
+`design__instance__count__hold_buffer`. The worst setup path at 15 ns is
+`ui_in[7]` → `uo_out[5]` at the typical and fast corners and
+`core.instruction_sram_e1_hi/A_DOUT[0]` → `_62360_/D` at the slow corner.
+
+### 10.3 Margin at 50 MHz: the same layout re-timed at 20 ns
+
+The official flow times the design at 15 ns only. To measure the margin at
+the operating clock, the p018 layout was re-timed at 20 ns with the flow's
+own STA step. The work is in `<work dir>/sta50/` (`README.md`,
+`results.json`, `results.md`); Slurm job 24077956 ran it.
+
+- **Tool and script.** OpenSTA 2.7.0 inside the `librelane-3.1.0.dev3`
+  image, running LibreLane's `OpenROAD.STAPostPNR` script
+  (`scripts/openroad/sta/corner.tcl` with `base.sdc`) unmodified, with the
+  environment that the step builds. Only `CLOCK_PERIOD` (and the netlist)
+  differ between runs. Every variable that `base.sdc` reads was checked
+  against each layout's `resolved.json`.
+- **Inputs.** p018's final netlist and nominal SPEF, the files that its
+  STAPostPNR step read (sha256 checked against `final/SHA256SUMS`); and the
+  `tt_submission` netlist and SPEF of run 36257636798 (`131e793`, p010).
+- **Controls.** (a) p018 at 15 ns reproduces all 10 timing metrics at all
+  three corners of the full run's `metrics.csv` exactly (maximum absolute
+  difference 0). (c) The p010 artifact at 20 ns reproduces the CI
+  `stats/metrics.csv` of run 36257636798 exactly. So the re-analysis gives
+  the flow's own numbers where they exist.
+
+Setup and hold WS in ns (setup-violating and hold-violating endpoints: 0 in
+every run):
+
+| Corner | (a) p018 at 15 ns, control | (b) p018 at 20 ns | (c) p010 at 20 ns, control | (b) − (c) |
+|---|---:|---:|---:|---:|
+| Setup, typ | +5.950 | +8.950 | +7.880 | +1.070 |
+| Setup, fast | +6.924 | +9.924 | +9.307 | +0.617 |
+| Setup, slow | +2.240 | +6.790 | +2.954 | +3.836 |
+| Hold, typ | +0.372 | +0.372 | +0.318 | +0.054 |
+| Hold, fast | +0.165 | +0.165 | +0.112 | +0.053 |
+| Hold, slow | +0.743 | +0.743 | +0.657 | +0.086 |
+
+At 20 ns the worst setup path of p018 is `ui_in[7]` → `uo_out[5]` at the
+typical and fast corners and `ui_in[7]` → `_61238_/D` at the slow corner.
+The max-slew, max-cap and max-fan-out counts are the same at both periods
+(typ 1/0/1, fast 0/1/1, slow 4/0/1).
+
+So the layout that the flow signs off at 15 ns has, at 50 MHz, 1.07 ns
+(typical), 0.62 ns (fast) and 3.84 ns (slow) more setup slack than the
+20 ns layout of `131e793`, and slightly more hold slack at every corner.
+
+### 10.4 Why the slack shifts by path class
+
+`base.sdc` makes two terms depend on the period T: the clock period itself
+and the input and output delay X = T × `IO_DELAY_CONSTRAINT` / 100, with
+`IO_DELAY_CONSTRAINT` 20 (not set in `src/config.json`), so X is 3.0 ns at
+15 ns and 4.0 ns at 20 ns. The clock uncertainty (0.25 ns), clock
+transition, derate (±5%, on cell and net delays only), output load and
+driving cell do not depend on T. The netlist and parasitics are the same,
+so every data arrival and clock latency is unchanged. Going from 15 to
+20 ns (ΔT = 5 ns, ΔX = 1 ns), each path's slack therefore changes by an
+amount fixed by its class:
+
+| Class | Setup slack depends on | Setup change | Hold change |
+|---|---|---:|---:|
+| register to register | required time T later | +ΔT = +5 ns | 0 |
+| input to register | required time T later, arrival ΔX later | ΔT − ΔX = +4 ns | +ΔX = +1 ns |
+| register to output | required time T − X | ΔT − ΔX = +4 ns | +ΔX = +1 ns |
+| input to output | required time T − X, arrival ΔX later | ΔT − 2·ΔX = +3 ns | +2·ΔX = +2 ns |
+
+**Why input-to-output paths gain 3 ns.** Both ends of such a path carry an
+I/O delay: the input arrives X after the clock edge, and the output is
+required X before the next edge. The path therefore has T − 2X = 0.6·T of
+the period (before uncertainty and its own delay), against 0.8·T for a path
+with one I/O end and T for a register-to-register path. Lengthening the
+period by 5 ns gives it 0.6 × 5 = 3 ns. Hold slack changes because the
+input and output delays are set without `-min`/`-max`, so they also apply
+to hold: the input arrival moves by ΔX, and the hold requirement at an
+output is −X.
+
+This design has such paths: the window-select bits `ui[7:6]` of the host
+port drive write-ready and read-valid (`uo[4]`, `uo[5]`) combinationally
+([info.md](info.md), "Host interface": they "drop immediately when the
+window bits change"). `ui_in[7]` → `uo_out[5]` is the worst setup path at
+the typical and fast corners at both periods, so a rule that "I/O paths
+gain 4 ns" would overstate the typical and fast margin by 1 ns.
+
+### 10.5 Measured shifts
+
+`scripts/pe_extra.tcl`, sourced by `corner.tcl` before its reports, wrote
+the worst path of each class. Setup WS in ns:
+
+| Corner | Class | Worst path (the same at both periods) | 15 ns | 20 ns | Change |
+|---|---|---|---:|---:|---:|
+| typ | register to register | `core.instruction_sram_e1_hi/A_DOUT[0]` → `_62360_/D` | +7.098166 | +12.098166 | +5.000000 |
+| typ | input to register | `ui_in[7]` → `_61238_/D` | +6.175710 | +10.175710 | +4.000000 |
+| typ | register to output | `_60769_/Q` → `uo_out[4]` | +8.050797 | +12.050797 | +4.000000 |
+| typ | input to output | `ui_in[7]` → `uo_out[5]` | +5.949929 | +8.949929 | +3.000000 |
+| fast | register to register | `_60776_/Q` → `_61238_/D` | +9.716922 | +14.716923 | +5.000001 |
+| fast | input to register | `ui_in[7]` → `_61238_/D` | +8.148133 | +12.148133 | +4.000000 |
+| fast | register to output | `_60769_/Q` → `uo_out[4]` | +9.277676 | +13.277677 | +4.000001 |
+| fast | input to output | `ui_in[7]` → `uo_out[5]` | +6.924049 | +9.924049 | +3.000000 |
+| slow | register to register | `core.instruction_sram_e1_hi/A_DOUT[0]` → `_62360_/D` | +2.239966 | +7.239967 | +5.000001 |
+| slow | input to register | `ui_in[7]` → `_61238_/D` | +2.789646 | +6.789646 | +4.000000 |
+| slow | register to output | `_60769_/Q` → `uo_out[4]` | +5.944791 | +9.944792 | +4.000001 |
+| slow | input to output | `ui_in[7]` → `uo_out[5]` | +4.317587 | +7.317587 | +3.000000 |
+
+Hold WS change of each class, 15 → 20 ns, in ns:
+
+| Corner | Register to register | Input to register | Register to output | Input to output |
+|---|---:|---:|---:|---:|
+| typ | 0 | +1.000000 | +1.000000 | +1.999999 |
+| fast | 0 | +1.000001 | +1.000000 | +1.999999 |
+| slow | 0 | +1.000000 | +1.000000 | +2.000001 |
+
+The worst hold path is register to register at every corner, so the hold
+WS does not change. The residues of ±0.000001 ns are numerical: OpenSTA
+stores times as single-precision seconds (a unit in the last place is
+about 0.0000009 ns from 7.45 to 14.9 ns and 0.0000018 ns from 14.9 to
+29.8 ns), and the
+class values are printed to 6 decimals.
+
+**Prediction check.** With the 15 ns class values, the overall WS at 20 ns
+should be min(register to register + 5, input to register + 4, register to
+output + 4, input to output + 3):
+
+| Corner | Reg→reg + 5 | In→reg + 4 | Reg→out + 4 | In→out + 3 | Predicted | Measured at 20 ns |
+|---|---:|---:|---:|---:|---:|---:|
+| typ | 12.098166 | 10.175710 | 12.050797 | 8.949929 | 8.949929 | 8.949929 |
+| fast | 14.716922 | 12.148133 | 13.277676 | 9.924049 | 9.924049 | 9.924049 |
+| slow | 7.239966 | 6.789646 | 9.944791 | 7.317587 | 6.789646 | 6.789646 |
+
+At the slow corner the limiting class changes: register to register at
+15 ns (+2.239966 ns), input to register at 20 ns. The slow-corner gain is
+therefore 6.789646 − 2.239966 = 4.549680 ns, not 5 ns. At the typical and
+fast corners the input-to-output path limits at both periods, and the gain
+is 3 ns.
+
+**LibreLane's register-to-register metric.** `timing__setup_r2r__ws` changes
+by 5.601027 (typ), 7.487226 (fast) and 5.308217 ns (slow), not 5 ns. It is
+the minimum over the endpoints whose single worst path starts at a
+register, and that set depends on the period: an endpoint whose worst path
+comes from an SRAM output at 15 ns can have a worst path from an input at
+20 ns, because the register path gains 5 ns and the input path 4 ns. For
+example, the worst slow path into `_62360_/D` starts at
+`core.instruction_sram_e1_hi/A_DOUT[0]` at 15 ns (+2.239966 ns) and at
+`ui_in[7]` at 20 ns (+6.796289 ns, below +7.239966 ns), so that endpoint
+leaves the set. The class minimum over all register-to-register paths
+moves by 5 ns (table above).
+
+### 10.6 What this shows and what it does not
+
+- **The 50 MHz margins are a re-analysis.** They come from the flow's own
+  STA script and SDC on the signed-off netlist and parasitics, and the two
+  controls reproduce the flow's numbers exactly. They are not the output of
+  the official flow, which times the design at 15 ns only.
+- **The layout is not rebuilt.** Re-timing at 20 ns keeps the placement,
+  buffering and routing done at 15 ns. A flow run at 20 ns would repair to
+  different slacks and give a different layout (section 9 is that
+  configuration).
+- **The I/O delays are an assumption.** They are 20% of the period at both
+  periods (3.0 and 4.0 ns). They are not derived from the Tiny Tapeout
+  multiplexer, the pads or the demo board. Input-to-output paths are the
+  first to lose margin if the real delays are larger.
+- **Same knobs, two periods.** p018's knob values are those of v1 trial
+  `#118` (the seed "20 ns best #1" of the 15 ns track; [optimization.md](optimization.md),
+  "Seeds"). The optimizer ran that knob set through the whole pipeline at
+  20 ns as control promotion p027 (full run job 24077610, `OPENROAD_THREADS`
+  4, LVS 0; precheck job 24081008 9/9; gate-level job 24081009, 0 fail):
+  setup WS typ/fast/slow +7.864 / +9.389 / +2.998 ns, hold WS
+  +0.362 / +0.154 / +0.724 ns, utilization 0.6196 (the fast-mode trial,
+  job 24014107, gave identical setup WS and utilization). Placed and repaired at
+  15 ns and re-timed at 20 ns, the p018 layout has
+  +8.950 / +9.924 / +6.790 ns, that is +1.085, +0.535 and +3.792 ns more,
+  at a utilization of 0.6530. For this knob set, the larger margin at 50 MHz
+  therefore comes from constraining the flow at 15 ns. This is one pair of
+  runs; it does not show that the same holds for other knob sets
+  (results.md R88).
+- **The 6x4 fallback stays at 20 ns.** Its overlay pins `CLOCK_PERIOD` 20,
+  so it is signed off at 50 MHz only ([6x4.md](6x4.md)).
+- **13.33 ns (75.0 MHz) is not signed off.** The optimizer's 13.33 ns track
+  has fast-mode trials only; its first promotion, p024, was still in its
+  full run at 2026-09-27 08:40 UTC ([optimization.md](optimization.md), "Current results").
+
+The arithmetic of this section (the differences, the class shifts from the
+SDC terms, the prediction minima and the rounding) was checked with AXLE
+(Lean 4, `lean-4.28.0`, `okay: true`); the Lean files and results are in
+`<work dir>/sta50/axle/` and `<work dir>/docs-15ns/axle/`.
+
+### 10.7 Reproduction
+
+- **Local sign-off:** the promotion pipeline of
+  [optimization.md](optimization.md) ("Promotion", "Operation"); p018's
+  jobs are listed in [results.md](results.md) R84.
+- **Official:** the `gds` workflow run of `d76f1cc`, artifact
+  `tt_submission`, `stats/metrics.csv`.
+- **Re-analysis at 20 ns:** `<work dir>/sta50/README.md` ("Reproduce"):
+  `scripts/make_env.py`, `sbatch scripts/job.sh` (3 CPUs and 4 GB per corner
+  run, about one minute each), `scripts/collect.py`, `scripts/make_lean.py`,
+  then the AXLE check of `axle/sta50_checks.lean`.

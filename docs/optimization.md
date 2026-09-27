@@ -3,10 +3,10 @@
 `tools/opt/` is an autonomous search over LibreLane configuration knobs. It
 runs several **tracks**, each with its own optuna study:
 
-- the 8x4 design of record at `CLOCK_PERIOD` 20 ns (50 MHz), the period of
-  the submission;
-- the same design at 15 ns (66.7 MHz) and at 13.33 ns (75.0 MHz), the
-  **frequency tracks**;
+- the 8x4 design of record at `CLOCK_PERIOD` 20 ns (50 MHz, the operating
+  clock; the committed period until `d76f1cc`);
+- the same design at 15 ns (66.7 MHz; the committed period since
+  `d76f1cc`) and at 13.33 ns (75.0 MHz), the **frequency tracks**;
 - the 6x4 fallback: the `diet4` core with the committed `variants6x4/`
   overlay on the 6x4 die (`docs/6x4.md`);
 - one track per variant core that the variant workflow publishes
@@ -41,17 +41,41 @@ Three kinds of result appear on this page, with decreasing weight:
 3. **Fast-mode trial (local):** 32 threads, no LVS, no precheck, no
    gate-level test. It ranks configurations; it is not a sign-off.
 
-**Of record.** The design of record at 20 ns carries p010 since `25e331e`.
+**Of record.** Since `d76f1cc`, `src/config.json` carries the 15 ns
+promotion p018 (see [Adoption of p018](#adoption-of-p018-d76f1cc)): the flow
+signs the design off at 66.7 MHz, and the operating clock is 50 MHz
+(`info.yaml` `clock_hz` 50000000). p018 passed the local sign-off (full run
+24042265 legal with LVS 0; setup WS typ/fast/slow +5.950/+6.924/+2.240 ns at
+15 ns; precheck 24053971 9/9; gate level 24053972 0 fail; `docs/results.md`
+R84). Its official `gds` run, 36298635436, was in progress at 2026-09-27
+08:40 UTC (R85), so it is not yet a result of record in the sense of
+[Current results](#current-results), item 1. Re-timed at 20 ns with the
+flow's own STA script, the p018 layout has setup WS +8.950/+9.924/+6.790 ns
+(R86; `docs/timing-closure.md` section 10).
+
+From `25e331e` until `d76f1cc` the design of record was p010 at 20 ns:
 GitHub run 36257636798 on `131e793` passed gds, precheck and gl_test with
 setup WS typ/fast/slow +7.88/+9.31/+2.95 ns, and its `metrics.csv` is
 byte-identical to that of p010's full run, job 24010051 (`docs/results.md`,
-R16 to R19). The 6x4 overlay carries p014 since `4bd30c8`; its official
-`gds_6x4` run 36274474540 passed, with `metrics.csv` byte-identical to that
-of p014's full run, job 24036160 (`docs/results.md` R83; `docs/6x4.md`
-section 5b).
+R16 to R19; still true for that commit). The 6x4 overlay carries p014 since
+`4bd30c8`, at 20 ns; its official `gds_6x4` run 36274474540 passed, with
+`metrics.csv` byte-identical to that of p014's full run, job 24036160
+(`docs/results.md` R83; `docs/6x4.md` section 5b), and the run of `1e5b1d8`
+(36285537630) reproduced it byte for byte (R87).
 
-**Per track** (leaderboard of 2026-09-27 01:20 UTC, 2026-09-26 21:20
-cluster time; WS at the track's period):
+**Per track** (leaderboard of 2026-09-27 06:20 UTC, 02:20 cluster time,
+on tree `f511c97`; WS at the track's period):
+
+| Track | Trials (new + imported; legal) | Best fast-mode trial: min WS (corner), job | Best PASS promotion: typ / fast / slow WS | Promotions in flight |
+|---|---|---|---|---|
+| `dor`, 8x4, 20 ns | 84 + 134; 179 | +5.533 ns (slow), trial #175, job 24054351 | p022: +8.933 / +9.878 / +5.533 ns | p027 (control, full run 24077610) |
+| `dor15`, 8x4, 15 ns (66.7 MHz), committed since `d76f1cc` | 56 + 0; 27 | +2.556 ns (slow), trial #13, job 24037613 | p021: +5.806 / +6.737 / +2.556 ns (committed: p018, +5.950 / +6.924 / +2.240 ns) | none |
+| `dor13`, 8x4, 13.33 ns (75.0 MHz) | 24 + 0; 13 | +0.756 ns (slow), trial #1, job 24026489 | none | p024 (full run 24068227) |
+| `diet4_6x4`, 6x4, 20 ns | 47 + 0; 34 | +5.784 ns (slow), trial #43, job 24075174 | p025: +8.935 / +9.906 / +5.380 ns | none (p026 FAIL at gate level) |
+| 7 variant tracks, 8x4, 20 ns | 6 + 11 or 12 each | +4.722 (`cn_s2_timing`) to +5.863 ns (`diet2`) | none (variants are not promoted before 20 finished trials) | none |
+
+Superseded snapshot (leaderboard of 2026-09-27 01:20 UTC, 2026-09-26 21:20
+cluster time, on tree `24b807b`):
 
 | Track | Trials (new + imported; legal) | Best fast-mode trial: min WS (corner), job | Best PASS promotion: typ / fast / slow WS | Promotions in flight |
 |---|---|---|---|---|
@@ -61,16 +85,22 @@ cluster time; WS at the track's period):
 | `diet4_6x4`, 6x4, 20 ns | 28 + 0; 17 | +4.757 ns (slow), trial #25, job 24057279 | p020: +8.492 / +10.371 / +3.621 ns | p023 (full run 24060216) |
 | 7 variant tracks, 8x4, 20 ns | 4 + 11 or 12 each | +2.494 (`cn_s2_timing`) to +5.122 ns (`diet4` at 8x4) | none (variants are not promoted before 20 finished trials) | none |
 
-**Above 50 MHz there is a local sign-off, not an official one.** Promotion
-p018 (15 ns, 66.7 MHz) passed the full run (legal, LVS 0), the precheck
-(9/9) and the gate-level tests (0 fail): setup WS +5.95 / +6.92 / +2.24 ns
-and hold WS min +0.165 ns at 15 ns (`docs/results.md` R84). It is not
-committed, so no GitHub action has built it; `src/config.json` stays at
-20 ns and `info.yaml` at 50 MHz. The 13.33 ns track has fast-mode trials
-only. A frequency-track configuration becomes the result of record only
-after it is committed with `CLOCK_PERIOD` and `clock_hz` changed and the
-GitHub actions pass on that commit
-([Adopting a configuration](#adopting-a-configuration)).
+**15 ns is committed; its official run is pending.** Promotion p018 (15 ns,
+66.7 MHz) passed the full run (legal, LVS 0), the precheck (9/9) and the
+gate-level tests (0 fail): setup WS +5.95 / +6.92 / +2.24 ns and hold WS min
++0.165 ns at 15 ns (`docs/results.md` R84). `d76f1cc` committed it with
+`CLOCK_PERIOD` 15 and `clock_hz` unchanged at 50 MHz, the operating clock
+([Adoption of p018](#adoption-of-p018-d76f1cc)). It becomes the result of
+record when the GitHub actions pass on that commit (R85, in progress at
+2026-09-27 08:40 UTC). The 13.33 ns track has fast-mode trials only; its
+first promotion, p024, is in its full run.
+
+Until `d76f1cc` this paragraph read: "Above 50 MHz there is a local
+sign-off, not an official one. [...] It is not committed, so no GitHub
+action has built it; `src/config.json` stays at 20 ns and `info.yaml` at
+50 MHz. [...] A frequency-track configuration becomes the result of record
+only after it is committed with `CLOCK_PERIOD` and `clock_hz` changed and
+the GitHub actions pass on that commit."
 
 **Promotions of v2** (v1's p001 to p010 are in [Campaign record](#campaign-record)):
 
@@ -83,20 +113,52 @@ GitHub actions pass on that commit
 | p015 | `dor` #150 | 24037612: legal, LVS 0 | 24044821: 9/9 | 24044822: 102 tests, 46 pass, 56 skip, 0 fail | +7.641 / +9.035 / +4.275 ns | PASS |
 | p016 | `dor` #154 | 24038331: legal, LVS 0 | 24043244: 9/9 | 24043245: 102 tests, 46 pass, 56 skip, 0 fail | +7.986 / +9.271 / +4.835 ns | PASS |
 | p017 | `diet4_6x4` #12 | 24041769: legal, LVS 0 | 24047685: 9/9 | 24047686: 102 tests, 46 pass, 56 skip, 0 fail (`PE_VARIANT` diet4) | +8.156 / +10.232 / +2.989 ns | PASS |
-| p018 | `dor15` #1 (15 ns) | 24042265: legal, LVS 0 | 24053971: 9/9 | 24053972: 102 tests, 46 pass, 56 skip, 0 fail | +5.950 / +6.924 / +2.240 ns at 15 ns | PASS |
-| p019 | `dor15` #11 (15 ns) | 24045480: running | | | | pending |
+| p018 | `dor15` #1 (15 ns) | 24042265: legal, LVS 0 | 24053971: 9/9 | 24053972: 102 tests, 46 pass, 56 skip, 0 fail | +5.950 / +6.924 / +2.240 ns at 15 ns | PASS; in `src/config.json` since `d76f1cc` |
+| p019 | `dor15` #11 (15 ns) | 24045480: legal, LVS 0 | 24061403: 9/9 | 24061404: 102 tests, 46 pass, 56 skip, 0 fail | +6.076 / +6.916 / +2.364 ns at 15 ns | PASS |
 | p020 | `diet4_6x4` #16 | 24047687: legal, LVS 0 | 24055302: 9/9 | 24055303: 102 tests, 46 pass, 56 skip, 0 fail (`PE_VARIANT` diet4) | +8.492 / +10.371 / +3.621 ns | PASS |
-| p021 | `dor15` #13 (15 ns) | 24048020: running | | | | pending |
-| p022 | `dor` #175 | 24057278: running | | | | pending |
-| p023 | `diet4_6x4` #25 | 24060216: running | | | | pending |
+| p021 | `dor15` #13 (15 ns) | 24048020: legal, LVS 0 | 24071210: 9/9 | 24071211: 102 tests, 46 pass, 56 skip, 0 fail | +5.806 / +6.737 / +2.556 ns at 15 ns | PASS |
+| p022 | `dor` #175 | 24057278: legal, LVS 0 | 24062465: 9/9 | 24062466: 102 tests, 46 pass, 56 skip, 0 fail | +8.933 / +9.878 / +5.533 ns | PASS |
+| p023 | `diet4_6x4` #25 | 24060216: legal, LVS 0 | 24063192: 9/9 | 24063193: 102 tests, 46 pass, 56 skip, 0 fail (`PE_VARIANT` diet4) | +8.926 / +10.208 / +4.757 ns | PASS |
+| p024 | `dor13` #1 (13.33 ns) | 24068227: running | | | | pending |
+| p025 | `diet4_6x4` #35 | 24069405: legal, LVS 0 | 24073830: 9/9 | 24073831: 102 tests, 46 pass, 56 skip, 0 fail (`PE_VARIANT` diet4) | +8.935 / +9.906 / +5.380 ns | PASS |
+| p026 | `diet4_6x4` #43 | 24076184: legal, LVS 0 | 24078116: 9/9 | 24078117: 102 tests, 38 pass, 56 skip, **8 fail** (`PE_VARIANT` diet4) | +9.406 / +10.221 / +5.784 ns | FAIL |
+| p027 | `dor` #114 (control: the committed configuration of the `dor` track since tree `f511c97`, that is p018's knob set at 20 ns) | 24077610: legal, LVS 0 | 24081008: 9/9 | 24081009: 102 tests, 46 pass, 56 skip, 0 fail | +7.864 / +9.389 / +2.998 ns | PASS (leaderboard of 2026-09-27 08:36 UTC) |
 
-p016 has the largest slow-corner slack of any signed-off 20 ns
-configuration (+4.835 ns against p010's +2.954 ns, fmax estimate at the slow
-corner 65.9 MHz), and p020 that of any signed-off 6x4 configuration
-(+3.621 ns against p014's +2.737 ns). Neither has been adopted:
-`src/config.json` carries p010 and the 6x4 overlay p014, the configurations
-built by CI (R16 to R19, R83). The verdicts are as of 2026-09-27 01:20 UTC;
-the live list is the leaderboard.
+The verdicts are as of 2026-09-27 06:20 UTC (leaderboard of 02:20 cluster
+time); the live list is the leaderboard.
+
+- **Adopted:** p018, in `src/config.json` since `d76f1cc`
+  ([Adoption of p018](#adoption-of-p018-d76f1cc)); p014, in the 6x4 overlay
+  since `4bd30c8`.
+- **15 ns:** p019 and p021 passed with more slow-corner slack than p018
+  (+2.364 and +2.556 ns against +2.240 ns) and were not adopted (same
+  section).
+- **20 ns:** p022 has the largest slow-corner slack of any signed-off 20 ns
+  configuration (+5.533 ns; p016 +4.835 ns, p010 +2.954 ns). No 20 ns
+  configuration is committed since `d76f1cc`.
+- **6x4:** p025 has the largest slow-corner slack of any signed-off 6x4
+  configuration (+5.380 ns; p023 +4.757 ns, p020 +3.621 ns, p014 of record
+  +2.737 ns). None has been adopted; the overlay carries p014.
+- **p026 failed at gate level.** Its full run is legal with LVS 0 and its
+  precheck passed, but 8 of the 46 gate-level tests that run failed
+  (`test_uart_tx`, `test_flagship_concurrent`, `test_random_lockstep`,
+  `test_gap_xfer_neighbour_pins` and four `test_kill_*` tests), with
+  lockstep mismatches against the reference model (`gl/result.json` and
+  `gl.log` of the promotion; netlist sha256 `e0471ec9…`). The cause has not
+  been analysed. A configuration with verdict FAIL is not eligible for
+  adoption ([Adopting a configuration](#adopting-a-configuration)).
+- **In flight:** p024 (13.33 ns), in its full run (still running at
+  2026-09-27 08:40 UTC). p027 (the `dor` control) was in its full run at
+  06:20 UTC and passed by 08:36 UTC: p018's knob set run at 20 ns gives
+  +2.998 ns at the slow corner, against +6.790 ns for the p018 layout
+  re-timed at 20 ns (`docs/results.md` R88).
+
+Earlier note (verdicts as of 2026-09-27 01:20 UTC): p016 had the largest
+slow-corner slack of any signed-off 20 ns configuration (+4.835 ns against
+p010's +2.954 ns, fmax estimate at the slow corner 65.9 MHz), and p020 that
+of any signed-off 6x4 configuration (+3.621 ns against p014's +2.737 ns).
+Neither was adopted: `src/config.json` then carried p010 and the 6x4 overlay
+p014 (R16 to R19, R83).
 
 ## Starting point
 
@@ -170,16 +232,30 @@ combination today.
 
 | Track | Core | Die | `CLOCK_PERIOD` | Committed configuration | Weight | Gate-level `PE_VARIANT` |
 |---|---|---|---|---|---:|---|
-| `dor` | `src/protocol_emulator_core.v` (sha256 `26a873db…`) | 8x4 | 20 ns (50 MHz) | `src/config.json` | 0.35 | `base` |
-| `dor15` | same | 8x4 | 15 ns (66.7 MHz) | `src/config.json` with `CLOCK_PERIOD` 15; `info.yaml` `clock_hz` 66666667 | 0.22 | `base` |
-| `dor13` | same | 8x4 | 13.33 ns (75.0 MHz) | `src/config.json` with `CLOCK_PERIOD` 13.33; `clock_hz` 75018755 | 0.08 | `base` |
+| `dor` | `src/protocol_emulator_core.v` (sha256 `26a873db…`) | 8x4 | 20 ns (50 MHz) | `src/config.json` with `CLOCK_PERIOD` 20 (as committed until `d76f1cc`) | 0.15 (0.35 until `f511c97`) | `base` |
+| `dor15` | same | 8x4 | 15 ns (66.7 MHz) | `src/config.json` as committed since `d76f1cc` (before: with `CLOCK_PERIOD` 15); the snapshot's `info.yaml` gets `clock_hz` 66666667 | 0.35 (0.22 until `f511c97`) | `base` |
+| `dor13` | same | 8x4 | 13.33 ns (75.0 MHz) | `src/config.json` with `CLOCK_PERIOD` 13.33; `clock_hz` 75018755 | 0.15 (0.08 until `f511c97`) | `base` |
 | `diet4_6x4` | `variants6x4/protocol_emulator_core.v` (`diet4`, sha256 `cc27c465…`) | 6x4 | 20 ns | `src/config.json` with `variants6x4/config.overlay.json` merged (RFC 7386, as `variants6x4/switch.py apply` does); `info.yaml` `tiles` "6x4" | 0.20 | `diet4` |
-| one per variant | `$PE_WORK/variants/cores/<name>.v` (sha256 as in its `MANIFEST.sha256`) | 8x4 | 20 ns | `src/config.json` | 0.15, shared | `<name>` |
+| one per variant | `$PE_WORK/variants/cores/<name>.v` (sha256 as in its `MANIFEST.sha256`) | 8x4 | 20 ns | `src/config.json` (with `CLOCK_PERIOD` 20 since `d76f1cc`) | 0.15, shared | `<name>` |
 
-The weights are the shares of new trials ([Allocation](#allocation)). The
-frequency tracks together get 0.30, split 0.22/0.08 because 15 ns is the
-primary target: the Tiny Tapeout demo board clock goes up to about 66.5 MHz
-(TT clock page, quoted in `docs/extension-study.md` section 3).
+The weights are the shares of new trials ([Allocation](#allocation)).
+Since `f511c97` (driver job 24077569, from 2026-09-27 01:57 cluster time)
+`dor15`, the committed period, gets the largest share: `dor15` 0.35,
+`dor13` 0.15, `dor` 0.15, `diet4_6x4` 0.20 and the variant tracks 0.15
+together, so the frequency tracks together get 0.50. Until then the
+frequency tracks together got 0.30, split 0.22/0.08 because 15 ns was the
+primary target (the Tiny Tapeout demo board clock goes up to about 66.5 MHz;
+TT clock page, quoted in `docs/extension-study.md` section 3), and `dor`
+got 0.35.
+
+Because the tracks derive their committed configuration from the frozen
+tree, the move of `src/config.json` to p018 changed two baselines at the
+relaunch on `f511c97`, without starting new tracks (the knob keys are not
+part of the track identity): the committed configuration of `dor15` is now
+p018's trial `#1`, and that of `dor` (and of each variant track) is
+p018's knob set at 20 ns. For `dor`, v1 had already run that knob set as
+trial `dor-26a873-c8bf57e#118` (imported as `#114`; fast mode, setup WS
++7.86 / +9.39 / +3.00 ns); its control promotion is p027.
 
 A variant core is used only if its sha256 matches the MANIFEST; a core whose
 body equals the design of record is skipped; every core is copied to
@@ -388,9 +464,13 @@ non-negative WS at a corner means that corner meets that period in the model.
 - The precheck does not read `clock_hz`.
 
 So a 15 ns configuration is a Tiny Tapeout submission with `CLOCK_PERIOD`
-15 in `src/config.json`. `clock_hz` 66666667 in `info.yaml` keeps the
-datasheet consistent. `make_snapshot.py` writes both in every frequency-track
-snapshot, and a promotion's precheck runs on that `info.yaml`. The gds action
+15 in `src/config.json`. `make_snapshot.py` writes `CLOCK_PERIOD` and
+`clock_hz` = 10⁹ / period (66666667 for 15 ns) into every frequency-track
+snapshot, and a promotion's precheck runs on that `info.yaml`. The
+repository sets them independently: `d76f1cc` commits `CLOCK_PERIOD` 15 and
+keeps `clock_hz` 50000000, because `clock_hz` states the clock the chip is
+operated at, and the datasheet, the firmware and the host library assume
+50 MHz ([Adoption of p018](#adoption-of-p018-d76f1cc)). The gds action
 fails on a typ-corner setup violation at the configured period
 (`TIMING_VIOLATION_CORNERS` `*typ*`), which is legality rule 1 below.
 
@@ -585,9 +665,11 @@ so `dor` and the variant tracks go straight to TPE sampling.
 
 The driver shares new trials between the tracks that may receive one:
 
-- **Weights:** `dor` 0.35, `dor15` 0.22, `dor13` 0.08, `diet4_6x4` 0.20,
-  and 0.15 for the variant tracks together. A variant track gets 0.15
-  divided by the number of variant tracks still receiving trials.
+- **Weights** (`WEIGHTS` in `driver.py`): since `f511c97`, `dor15` 0.35,
+  `dor13` 0.15, `dor` 0.15, `diet4_6x4` 0.20, and 0.15 for the variant
+  tracks together (until `f511c97`: `dor` 0.35, `dor15` 0.22, `dor13` 0.08,
+  the others unchanged). A variant track gets 0.15 divided by the number of
+  variant tracks still receiving trials (0.021 each for 7).
 - **What counts:** a track's count is the number of its trials submitted
   to LibreLane. Imported, duplicate and rejected trials use no CPUs and do
   not count.
@@ -620,9 +702,11 @@ The reasoning:
   0.05 ns promotion threshold.
 - 0.05 utilization separates the `diet` cores (0.40 to 0.45 at their best)
   from the rest (0.59 to 0.66).
-- The comparison is not between equal search efforts. `dor` gets 0.35 of
-  the new trials and each of the 7 variant tracks 0.15 / 7, about a
-  sixteenth of `dor`'s share, and `dor` also imported 134 v1 trials. At
+- The comparison is not between equal search efforts. Until `f511c97`
+  `dor` got 0.35 of the new trials and each of the 7 variant tracks
+  0.15 / 7, about a sixteenth of `dor`'s share (since `f511c97` `dor` gets
+  0.15, seven times a variant track's share), and `dor` also imported 134
+  v1 trials. At
   18:17 `dor` had 159 finished trials and each variant track 12 to 14. A
   variant track is judged after 40 trials against the best of `dor` after
   many more, so a variant that would improve with more trials can be
@@ -707,11 +791,17 @@ The verdict is PASS only if all three pass.
 What gets promoted (at most 5 promotions in flight):
 
 - **Control:** the committed configuration of `dor` and of
-  `diet4_6x4` goes through the whole pipeline once. For `dor` this was
-  already done: the committed configuration is v1's p010, which is PASS.
-  For `diet4_6x4` it was p012, the 6x4 build of the frozen tree `131e793`,
-  which is FAIL (route DRC 69). The driver still runs on that tree, so its
-  6x4 "committed configuration" is the pre-`4bd30c8` overlay, not p014.
+  `diet4_6x4` goes through the whole pipeline once. For `dor` on the trees
+  up to `24b807b` this was already done: the committed configuration was
+  v1's p010, which is PASS. On tree `f511c97` the committed configuration of
+  `dor` is p018's knob set at 20 ns; its control is p027 (full run job
+  24077610, submitted 2026-09-27 01:57 cluster time). For `diet4_6x4` the
+  control was p012, the 6x4 build of the frozen tree `131e793`, which is
+  FAIL (route DRC 69). When this was first written the driver still ran on
+  that tree, so its 6x4 "committed configuration" was the pre-`4bd30c8`
+  overlay; since the relaunch on `24b807b` (driver job 24059198) it is p014
+  (the leaderboard's committed 6x4 configuration is trial `#8`, p014's
+  trial), which is already PASS.
 - **Best of a track:** the best legal trial of a track is promoted when
   its minimum WS is at least 0.05 ns above the best promoted trial of that
   track. Promotions of the trials an imported trial stands for count here.
@@ -723,7 +813,8 @@ What gets promoted (at most 5 promotions in flight):
   threshold grows with every promotion of the track, including the
   best-of-track ones. For `dor` the ten v1 promotions count, so it started
   at 550 own trials; with p011, p013, p015 and p016 (14 promotions) it was
-  750 at 18:17, against 29 own trials. For `dor15`, with p018, it was 100.
+  750 at 18:17, against 29 own trials. For `dor15`, with p018, it was 100
+  (200 after p019 and p021).
 
 ### Scheduling limits, preemption and pruning
 
@@ -851,7 +942,7 @@ exact difference of its best legal configuration from the frozen
   `MACROS.RM_IHPSG13_1P_64x16_c2.instances` block from
   `floorplans/<id>.json`.
 
-Steps for the 8x4 design of record at 20 ns:
+Steps for the 8x4 design of record:
 
 1. Add the keys to `src/config.json` above the "DO NOT CHANGE" line, and
    remove the listed keys. Add a `"//"` comment that names the promotion id
@@ -866,9 +957,13 @@ Steps for the 8x4 design of record at 20 ns:
    run.
 
 **A frequency-track configuration** (`dor15` or `dor13`): the difference
-also contains `CLOCK_PERIOD`. In addition, set `info.yaml` `clock_hz` to
-the value the leaderboard gives (66666667 for 15 ns). The datasheet
-(`docs/info.md`) and any text that states 50 MHz then need the same change.
+also contains `CLOCK_PERIOD`. The leaderboard also prints the `clock_hz`
+of the track's snapshot (66666667 for 15 ns). Whether to change
+`info.yaml` `clock_hz` is a separate decision: it states the clock the chip
+is operated at, which the datasheet, the firmware and the host library
+assume. `d76f1cc` changed `CLOCK_PERIOD` to 15 and kept `clock_hz`
+50000000 (below). Until then this paragraph said to set `clock_hz` to the
+leaderboard's value and to change every text that states 50 MHz.
 
 **A 6x4 configuration** (`diet4_6x4`): the leaderboard prints a second
 difference, from the committed 6x4 build (`src/config.json` with
@@ -896,6 +991,64 @@ writes it).
   keeps the 6x4 `clock_hz` at 50 MHz. Keep it that
   way when adopting: the difference only changes keys that are already in
   the overlay.
+
+### Adoption of p018 (`d76f1cc`)
+
+`d76f1cc` (2026-09-27 05:56 UTC) put promotion p018 (trial
+`dor15-26a873-8x4-p15-f174dc0#1`) into `src/config.json`. The difference
+from the committed configuration of `131e793` was four keys:
+`CLOCK_PERIOD` 20 → 15, `DESIGN_REPAIR_MAX_CAP_PCT` 50 → 45,
+`GRT_LAYER_ADJUSTMENTS` [0, 0.2, 0, 0.1, 0] → [0, 0.2, 0.2, 0.1, 0] and
+`PL_RESIZER_SETUP_SLACK_MARGIN` 5.75 → 5.8 (the promotion's
+`config_changes_vs_repo`; `MACROS` equal). The commit changes exactly these
+keys and adds `"//"` comments that name the promotion and its jobs.
+
+**Clock.** `info.yaml` `clock_hz` stays 50000000. The chip is operated at
+50 MHz; the firmware images, the host library, `pe_timing` and the
+datasheet assume that clock, and tt-support-tools `d66cf179e` only checks
+that `clock_hz` is an integer and never reads `CLOCK_PERIOD`. p018's local
+precheck (job 24053971) ran on the snapshot's `info.yaml` with `clock_hz`
+66666667; the precheck does not read it. The flow therefore signs the
+design off at 66.7 MHz, and the margin at 50 MHz was measured separately
+by re-timing the p018 layout at 20 ns (`docs/results.md` R86;
+`docs/timing-closure.md` section 10).
+
+**6x4.** `variants6x4/config.overlay.json` pins `CLOCK_PERIOD` 20 and every
+other knob key, and `variants6x4/info.overlay.json` pins `clock_hz`, so the
+6x4 build is unchanged ([`docs/6x4.md`](6x4.md) section 4c;
+`docs/results.md` section 2c).
+
+**Why p018 and not p019 or p021.** All three 15 ns promotions passed the
+whole pipeline. Full-run values at 15 ns:
+
+| | p018 | p019 | p021 |
+|---|---:|---:|---:|
+| Setup WS typ / fast / slow (ns) | +5.950 / +6.924 / +2.240 | +6.076 / +6.916 / +2.364 | +5.806 / +6.737 / +2.556 |
+| Hold WS typ / fast / slow (ns) | +0.372 / +0.165 / +0.743 | +0.348 / +0.141 / +0.702 | +0.351 / +0.157 / +0.680 |
+| Max-slew / max-cap / max-fan-out violations (worst corner; sum) | 4 / 1 / 1 (6) | 1 / 6 / 3 (10) | 3 / 5 / 1 (9) |
+| Utilization | 0.6530 | 0.6646 | 0.6570 |
+| Keys changed from `131e793` | 4 | 5 (adds `PL_TARGET_DENSITY_PCT` 59) | 6 (adds `PL_TARGET_DENSITY_PCT` 60 and `DESIGN_REPAIR_MAX_SLEW_PCT` 40) |
+
+p019 and p021 have 0.124 and 0.316 ns more slow-corner setup slack. p018
+was chosen for its hold slack, the largest at every corner (at the fast
+corner +0.165 ns against +0.141 and +0.157 ns), the fewest slew, cap and
+fan-out violations, and the smallest difference from the configuration that
+CI had built; it also has the lowest utilization of the three. The
+optimizer's own ranking (minimum setup WS first) would have put p021
+first.
+
+**CI.** The `gds` run of `d76f1cc` (36298635436) was in progress at
+2026-09-27 08:40 UTC; `test`, `formal`, `regen` and `docs` passed on that
+commit (`docs/results.md` section 2b, "Later commits"). The official
+metrics are to be compared with the full run's `out/metrics.csv`; for
+p010 and p014 the two files were byte-identical (R19, R83).
+
+**Optimizer after the adoption.** `f511c97` changed the track weights so
+that `dor15`, now the committed period, gets the largest share
+([Tracks](#tracks)); driver job 24077569 runs on that tree. The `dor`
+track's committed configuration became p018's knob set at 20 ns, whose
+control promotion p027 passed (setup WS +7.864 / +9.389 / +2.998 ns at
+20 ns; `docs/results.md` R88).
 
 ## Campaign record
 
@@ -1132,6 +1285,8 @@ twice.
 | 24024261 | 14:11 | `05d186a8` | v2 launch |
 | 24037129 | 16:52 | `caa2d93f` | Documentation strings only (`space.py` text, `README.md`) |
 | 24038948 | 17:17 | `9b5326e2` | Seed revision 2. `dry_run.sh` also copies the study journals. Dry run 24038928 checked it on a copy of the live store first. |
+| 24059198 | 21:01 | `c1afc5db` | Tree `24b807b`: CPU cap 700 → 960. The tree also carries the p014 overlay of `4bd30c8`, so the 6x4 track's committed configuration became p014. |
+| 24077569 | 2026-09-27 01:57 | `4240a2a4` | Tree `f511c97`: `src/config.json` carries p018 (`d76f1cc`), and the weights favour `dor15` ([Tracks](#tracks)). No track was created; `dor15` and `dor` took the new committed configurations as their baselines. |
 
 ## Limitations
 
@@ -1156,11 +1311,12 @@ twice.
   checks that count.
 - **The slow corner is not a sign-off corner.** Objective 2 still ranks by
   it, because the goal is margin at all corners.
-- **No official sign-off above 50 MHz yet.** One 15 ns configuration,
-  p018, has passed the local sign-off pipeline (see
-  [Current results](#current-results)); none is committed, so none has been
-  built by the GitHub actions. The 13.33 ns track has fast-mode trials
-  only.
+- **No official sign-off above 50 MHz yet.** The 15 ns configuration p018
+  passed the local sign-off pipeline and is committed since `d76f1cc`; its
+  official `gds` run (36298635436) was in progress at 2026-09-27 08:40 UTC
+  (see [Current results](#current-results)). Before `d76f1cc` no 15 ns
+  configuration was committed. The 13.33 ns track has fast-mode trials
+  only; its first promotion (p024) is in its full run.
 - **fmax estimates extrapolate** from one period (see "Frequency tracks and
   the SDC"). The frequency tracks measure at their period instead.
 - **Variant-track gate-level tests** use the committed firmware images,
