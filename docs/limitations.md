@@ -34,18 +34,20 @@ evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
   50000000, and the firmware, the host library, `pe_timing` and the
   datasheet assume 50 MHz ([timing-closure.md](timing-closure.md)
   section 10). What this does and does not establish:
-  - **Official 15 ns result pending.** The `gds` run of `d76f1cc`
-    (36298635436; results.md R85) was in progress at 2026-09-27 08:40 UTC.
-    Until it finishes, the 15 ns figures are those of p018's local
-    sign-off (R84): setup WS typ/fast/slow +5.95/+6.92/+2.24 ns with 0
-    violations, hold WS min +0.165 ns, precheck 9/9, gate level 0 fail.
+  - **Official 15 ns result.** The `gds` run of `d76f1cc` (36298635436;
+    results.md R85) passed gds, precheck and gl_test: setup WS typ/fast/slow
+    +5.95/+6.92/+2.24 ns with 0 violations, hold WS min +0.165 ns, with
+    metrics byte-identical to p018's local sign-off (R84). The flow gates
+    setup at the typical corner only; the slow-corner figure is reported.
   - **The 50 MHz margins are a re-analysis, not a result of the official
     flow.** The flow times the design at 15 ns only. The margins at 20 ns
     (setup WS +8.95/+9.92/+6.79 ns, hold unchanged; R86) come from running
     the flow's own STA script and SDC on p018's final netlist and parasitics
     with `CLOCK_PERIOD` 20 (Slurm job 24077956). Two controls reproduce the
-    flow's numbers exactly, but the re-analysis is local and its files are
-    not in git (results.md section 9, item 15).
+    flow's numbers exactly. The re-analysis is local: its scripts are in
+    `tools/sta/`, but p018's netlist and parasitics are cluster files (the
+    netlist is byte-identical to the official artifact's; results.md
+    section 9, item 15).
   - **The input and output delays are an assumption.** `base.sdc` sets
     every input and output delay to 20% of the period
     (`IO_DELAY_CONSTRAINT` 20, not set in `src/config.json`): 3.0 ns at the
@@ -58,11 +60,13 @@ evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
   - **The 6x4 fallback is signed off at 20 ns only.** Its overlay pins
     `CLOCK_PERIOD` 20 and `clock_hz` 50000000, so the 15 ns change does not
     reach it ([6x4.md](6x4.md); results.md section 2c).
-  - **13.33 ns (75.0 MHz) is not signed off.** The optimizer's 13.33 ns
-    track has fast-mode trials only (best slow-corner WS +0.756 ns); its
-    first promotion, p024 (full run job 24068227), had not finished at
-    2026-09-27 08:40 UTC ([optimization.md](optimization.md), "Current
-    results").
+  - **13.33 ns (75.0 MHz) has a local sign-off only.** The optimizer's
+    first 13.33 ns promotion, p024, passed the full run (LVS 0; setup WS
+    typ/fast/slow +4.96/+6.10/+0.76 ns at 13.33 ns), the precheck (9/9),
+    the gate-level tests (0 fail) and the equivalence check (leaderboard of
+    2026-09-27 13:37 UTC). Its slow-corner margin is small, and it is not
+    committed, so no official build exists ([optimization.md](optimization.md),
+    "Current results").
 - **Resolved: the slow corner meets setup at 50 MHz.** The official build
   of `131e793` (run 36257636798; R16 in results.md) has setup worst slack
   +7.88 ns at `nom_typ_1p20V_25C`, +9.31 ns at `nom_fast_1p32V_m40C` and
@@ -97,7 +101,7 @@ evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
   ([optimization.md](optimization.md), "Objective").
 - **Superseded by `d76f1cc` (first item of this section): "No clock above
   50 MHz is signed off by the official flow or committed."** A 15 ns
-  configuration is now committed; its official sign-off is pending (R85).
+  configuration is now committed, and its official build passed (R85).
   The item as written before `d76f1cc`: the optimizer's 15 ns (66.7 MHz) promotion p018 passed the
   local sign-off pipeline (full run with LVS 0, precheck 9/9, gate-level
   tests with 0 failures; setup WS typ/fast/slow +5.95/+6.92/+2.24 ns;

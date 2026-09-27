@@ -54,9 +54,10 @@ signs the design off at 66.7 MHz, and the operating clock is 50 MHz
 (`info.yaml` `clock_hz` 50000000). p018 passed the local sign-off (full run
 24042265 legal with LVS 0; setup WS typ/fast/slow +5.950/+6.924/+2.240 ns at
 15 ns; precheck 24053971 9/9; gate level 24053972 0 fail; `docs/results.md`
-R84). Its official `gds` run, 36298635436, was in progress at 2026-09-27
-08:40 UTC (R85), so it is not yet a result of record in the sense of
-[Current results](#current-results), item 1. Re-timed at 20 ns with the
+R84). Its official `gds` run, 36298635436, passed gds, precheck and
+gl_test with a `metrics.csv` and a gate-level netlist byte-identical to the
+full run's (2026-09-27 13:33 UTC; R85), so it is the result of record in
+the sense of [Current results](#current-results), item 1. Re-timed at 20 ns with the
 flow's own STA script, the p018 layout has setup WS +8.950/+9.924/+6.790 ns
 (R86; `docs/timing-closure.md` section 10).
 
@@ -92,16 +93,17 @@ cluster time, on tree `24b807b`):
 | `diet4_6x4`, 6x4, 20 ns | 28 + 0; 17 | +4.757 ns (slow), trial #25, job 24057279 | p020: +8.492 / +10.371 / +3.621 ns | p023 (full run 24060216) |
 | 7 variant tracks, 8x4, 20 ns | 4 + 11 or 12 each | +2.494 (`cn_s2_timing`) to +5.122 ns (`diet4` at 8x4) | none (variants are not promoted before 20 finished trials) | none |
 
-**15 ns is committed; its official run is pending.** Promotion p018 (15 ns,
+**15 ns is committed and officially built.** Promotion p018 (15 ns,
 66.7 MHz) passed the full run (legal, LVS 0), the precheck (9/9) and the
 gate-level tests (0 fail): setup WS +5.95 / +6.92 / +2.24 ns and hold WS min
 +0.165 ns at 15 ns (`docs/results.md` R84). `d76f1cc` committed it with
 `CLOCK_PERIOD` 15 and `clock_hz` unchanged at 50 MHz, the operating clock
-([Adoption of p018](#adoption-of-p018-d76f1cc)). It becomes the result of
-record when the GitHub actions pass on that commit (R85, in progress at
-2026-09-27 08:40 UTC). The 13.33 ns track's first promotion, p024, passed
-the full run, the precheck and the gate-level tests by 2026-09-27 10:31
-UTC; its equivalence stage runs with the backfill
+([Adoption of p018](#adoption-of-p018-d76f1cc)). The GitHub actions passed
+on that commit (R85; the `gds` job took 4 h 24 min of GitHub's 6 h limit).
+The 13.33 ns track's first promotion, p024, passed the full run, the
+precheck and the gate-level tests by 2026-09-27 10:31 UTC and the
+equivalence stage (job 24098118) by 13:37 UTC: a local sign-off at
+75.0 MHz with setup WS +4.962 / +6.095 / +0.756 ns. It is not committed
 ([Promotion](#promotion)).
 
 Until `d76f1cc` this paragraph read: "Above 50 MHz there is a local
@@ -128,7 +130,7 @@ the GitHub actions pass on that commit."
 | p021 | `dor15` #13 (15 ns) | 24048020: legal, LVS 0 | 24071210: 9/9 | 24071211: 102 tests, 46 pass, 56 skip, 0 fail | +5.806 / +6.737 / +2.556 ns at 15 ns | PASS |
 | p022 | `dor` #175 | 24057278: legal, LVS 0 | 24062465: 9/9 | 24062466: 102 tests, 46 pass, 56 skip, 0 fail | +8.933 / +9.878 / +5.533 ns | PASS |
 | p023 | `diet4_6x4` #25 | 24060216: legal, LVS 0 | 24063192: 9/9 | 24063193: 102 tests, 46 pass, 56 skip, 0 fail (`PE_VARIANT` diet4) | +8.926 / +10.208 / +4.757 ns | PASS |
-| p024 | `dor13` #1 (13.33 ns) | 24068227: legal, LVS 0 | 24092337: 9/9 | 24092338: 102 tests, 46 pass, 56 skip, 0 fail | +4.962 / +6.095 / +0.756 ns at 13.33 ns | PASS (store of 2026-09-27 10:31 UTC) |
+| p024 | `dor13` #1 (13.33 ns) | 24068227: legal, LVS 0 | 24092337: 9/9 | 24092338: 102 tests, 46 pass, 56 skip, 0 fail | +4.962 / +6.095 / +0.756 ns at 13.33 ns | PASS, including equivalence (job 24098118; leaderboard of 2026-09-27 13:37 UTC) |
 | p025 | `diet4_6x4` #35 | 24069405: legal, LVS 0 | 24073830: 9/9 | 24073831: 102 tests, 46 pass, 56 skip, 0 fail (`PE_VARIANT` diet4) | +8.935 / +9.906 / +5.380 ns | PASS |
 | p026 | `diet4_6x4` #43 | 24076184: legal, LVS 0 | 24078116: 9/9 | 24078117: 102 tests, 38 pass, 56 skip, **8 fail** (`PE_VARIANT` diet4) | +9.406 / +10.221 / +5.784 ns | FAIL |
 | p027 | `dor` #114 (control: the committed configuration of the `dor` track since tree `f511c97`, that is p018's knob set at 20 ns) | 24077610: legal, LVS 0 | 24081008: 9/9 | 24081009: 102 tests, 46 pass, 56 skip, 0 fail | +7.864 / +9.389 / +2.998 ns | PASS (leaderboard of 2026-09-27 08:36 UTC) |
@@ -167,8 +169,8 @@ time); the live list is the leaderboard.
   `CTS_MAX_SLEW`, the knob implicated, is no longer sampled
   ([`CTS_MAX_SLEW` is fixed unset](#cts_max_slew-is-fixed-unset)).
 - **13.33 ns:** p024 passed the full run, the precheck and the gate-level
-  tests by 2026-09-27 10:31 UTC (table above); its equivalence stage runs
-  with the backfill. Until then this item read: "p024 (13.33 ns), in its
+  tests by 2026-09-27 10:31 UTC and the equivalence stage (job 24098118,
+  ABC 374 s) by 13:37 UTC (table above). Until then this item read: "p024 (13.33 ns), in its
   full run (still running at 2026-09-27 08:40 UTC)."
 - **`dor` control:** p027 was in its full run at 06:20 UTC and passed by
   08:36 UTC: p018's knob set run at 20 ns gives +2.998 ns at the slow
@@ -1464,11 +1466,12 @@ CI had built; it also has the lowest utilization of the three. The
 optimizer's own ranking (minimum setup WS first) would have put p021
 first.
 
-**CI.** The `gds` run of `d76f1cc` (36298635436) was in progress at
-2026-09-27 08:40 UTC; `test`, `formal`, `regen` and `docs` passed on that
-commit (`docs/results.md` section 2b, "Later commits"). The official
-metrics are to be compared with the full run's `out/metrics.csv`; for
-p010 and p014 the two files were byte-identical (R19, R83).
+**CI.** The `gds` run of `d76f1cc` (36298635436) passed: `gds` in 4 h 24 min,
+`gl_test` (102 tests, 46 pass, 56 skip, 0 fail) and `precheck` (finished
+2026-09-27 13:33 UTC); `test`, `formal`, `regen` and `docs` passed on that
+commit (`docs/results.md` section 2b, "Later commits"). As for p010 and
+p014 (R19, R83), the official `metrics.csv` is byte-identical to the full
+run's `out/metrics.csv`, and the gate-level netlists are identical (R85).
 
 **Optimizer after the adoption.** `f511c97` changed the track weights so
 that `dor15`, now the committed period, gets the largest share
@@ -1823,13 +1826,11 @@ relaunch used copies of the store in scratch optimizer roots and job names
   checks that count.
 - **The slow corner is not a sign-off corner.** Objective 2 still ranks by
   it, because the goal is margin at all corners.
-- **No official sign-off above 50 MHz yet.** The 15 ns configuration p018
-  passed the local sign-off pipeline and is committed since `d76f1cc`; its
-  official `gds` run (36298635436) was in progress at 2026-09-27 08:40 UTC
-  (see [Current results](#current-results)). Before `d76f1cc` no 15 ns
-  configuration was committed. At 13.33 ns, p024 passed the local
-  sign-off stages that existed before the equivalence stage (2026-09-27
-  10:31 UTC); no 13.33 ns configuration is committed.
+- **Official sign-off above 50 MHz: 15 ns only.** The 15 ns configuration
+  p018 is committed since `d76f1cc`, and its official `gds` run
+  (36298635436) passed (see [Current results](#current-results)). At
+  13.33 ns, p024 passed the local sign-off including the equivalence stage
+  (2026-09-27 13:37 UTC); no 13.33 ns configuration is committed.
 - **fmax estimates extrapolate** from one period (see "Frequency tracks and
   the SDC"). The frequency tracks measure at their period instead.
 - **Variant-track gate-level tests** use the committed firmware images,

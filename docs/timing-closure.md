@@ -847,21 +847,22 @@ committed file is the promoted configuration. Why p018 and not the other
 
 The local column is p018's promoted full run (Slurm job 24042265,
 `OPENROAD_THREADS` 4, `out/metrics.csv`). The official column is the `gds`
-workflow run on `d76f1cc`; the 20 ns build of `131e793` is shown for
-comparison.
+workflow run on `d76f1cc`, which passed all its jobs; its `metrics.csv`
+is byte-identical to the local run's, and so is its gate-level netlist
+(results.md R85). The 20 ns build of `131e793` is shown for comparison.
 
 | | `131e793`, run 36257636798, 20 ns (superseded) | p018 full run 24042265, 15 ns (local) | `d76f1cc`, run 36298635436, 15 ns (official) |
 |---|---|---|---|
-| Setup WS typ / fast / slow | +7.880 / +9.307 / +2.954 ns | +5.950 / +6.924 / +2.240 ns | in progress |
-| Setup-violating endpoints | 0 at every corner | 0 at every corner | in progress |
-| Hold WS typ / fast / slow | +0.318 / +0.112 / +0.657 ns | +0.372 / +0.165 / +0.743 ns | in progress |
-| Max-slew / max-cap / max-fan-out violations, typ; fast; slow | 1/0/3; 0/0/3; 4/0/3 | 1/0/1; 0/1/1; 4/0/1 | in progress |
-| Utilization (standard cells) | 61.92% (57.64%) | 65.30% (61.41%) | in progress |
-| Instances (standard cells) | 94,248 (41,005) | 92,526 (42,919) | in progress |
-| Timing-repair / setup / hold buffers | 10,375 / 0 / 137 | 12,261 / 1,232 / 4,134 | in progress |
-| Route DRC / LVS / antenna | 0 / 0 / 0 | 0 / 0 / 0 | in progress |
-| Precheck | PASS | 9/9 (job 24053971) | in progress |
-| Gate level | 102 tests, 46 pass, 56 skip, 0 fail | 102 tests, 46 pass, 56 skip, 0 fail (job 24053972) | in progress |
+| Setup WS typ / fast / slow | +7.880 / +9.307 / +2.954 ns | +5.950 / +6.924 / +2.240 ns | +5.950 / +6.924 / +2.240 ns |
+| Setup-violating endpoints | 0 at every corner | 0 at every corner | 0 at every corner |
+| Hold WS typ / fast / slow | +0.318 / +0.112 / +0.657 ns | +0.372 / +0.165 / +0.743 ns | +0.372 / +0.165 / +0.743 ns |
+| Max-slew / max-cap / max-fan-out violations, typ; fast; slow | 1/0/3; 0/0/3; 4/0/3 | 1/0/1; 0/1/1; 4/0/1 | 1/0/1; 0/1/1; 4/0/1 |
+| Utilization (standard cells) | 61.92% (57.64%) | 65.30% (61.41%) | 65.30% (61.41%) |
+| Instances (standard cells) | 94,248 (41,005) | 92,526 (42,919) | 92,526 (42,919) |
+| Timing-repair / setup / hold buffers | 10,375 / 0 / 137 | 12,261 / 1,232 / 4,134 | 12,261 / 1,232 / 4,134 |
+| Route DRC / LVS / antenna | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 |
+| Precheck | PASS | 9/9 (job 24053971) | PASS (finished 2026-09-27 13:33 UTC) |
+| Gate level | 102 tests, 46 pass, 56 skip, 0 fail | 102 tests, 46 pass, 56 skip, 0 fail (job 24053972) | 102 tests, 46 pass, 56 skip, 0 fail |
 
 The buffer counts are the `metrics.csv` keys
 `design__instance__count__class:timing_repair_buffer`,
@@ -1046,9 +1047,12 @@ moves by 5 ns (table above).
   (results.md R88).
 - **The 6x4 fallback stays at 20 ns.** Its overlay pins `CLOCK_PERIOD` 20,
   so it is signed off at 50 MHz only ([6x4.md](6x4.md)).
-- **13.33 ns (75.0 MHz) is not signed off.** The optimizer's 13.33 ns track
-  has fast-mode trials only; its first promotion, p024, was still in its
-  full run at 2026-09-27 08:40 UTC ([optimization.md](optimization.md), "Current results").
+- **13.33 ns (75.0 MHz) has a local sign-off only.** The optimizer's first
+  13.33 ns promotion, p024, passed the full run, the precheck, the
+  gate-level tests and the equivalence check (leaderboard of 2026-09-27
+  13:37 UTC), with a small slow-corner margin (setup WS +0.76 ns at
+  13.33 ns). It is not committed, so no official build exists
+  ([optimization.md](optimization.md), "Current results").
 
 The arithmetic of this section (the differences, the class shifts from the
 SDC terms, the prediction minima and the rounding) was checked with AXLE

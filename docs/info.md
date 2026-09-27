@@ -506,17 +506,17 @@ gives 434 clocks per bit, which is 115,207 baud at 50 MHz.
   timing target, not a measured frequency. Operation above 50 MHz is not
   claimed.
 - Since commit d76f1cc the hardening flow signs the timing off at a 15 ns
-  period (66.7 MHz), which leaves margin at 50 MHz. In the local sign-off
-  run of that configuration, post-route static timing meets setup at 15 ns
+  period (66.7 MHz), which leaves margin at 50 MHz. In the official build of
+  that configuration, post-route static timing meets setup at 15 ns
   at the typical, fast and slow corners (worst slack +2.24 ns, at the slow
   corner) and hold at every corner (worst slack +0.165 ns, at the fast
-  corner). The official GitHub run of d76f1cc (36298635436) was in progress
-  when this was written. Re-timed at 50 MHz with the flow's own timing
+  corner), in GitHub run 36298635436. Re-timed at 50 MHz with the flow's own timing
   script, the same layout has setup slack +8.95 ns (typical), +9.92 ns
   (fast) and +6.79 ns (slow) and the same hold slack. That figure is a
   re-analysis, not a run of the official flow, and like the sign-off it
   assumes input and output delays of 20% of the clock period
-  (`docs/results.md` R84 to R86).
+  (`docs/results.md` R84 to R86). The gate-level netlist of that build is
+  proven equivalent to the RTL (`docs/equivalence.md`).
 - Earlier builds: commit 131e793 passed the official gds, precheck and
   gate-level test actions at 50 MHz (GitHub run 36257636798), with worst
   setup slack +2.95 ns (slow corner) and worst hold slack +0.11 ns (fast

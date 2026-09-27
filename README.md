@@ -35,17 +35,16 @@ not be edited by hand. `src/project.v` is a thin Tiny Tapeout wrapper
 
 ## Status
 
-In short: the 8x4 build is constrained at 15 ns (66.7 MHz); its local
-sign-off passed and its official run is in progress. The operating clock is
+In short: the 8x4 build is constrained at 15 ns (66.7 MHz), and its
+official gds, precheck and gl_test runs pass. The operating clock is
 50 MHz, and operation above 50 MHz is not claimed. The 6x4 fallback build is
 signed off at 20 ns. There is no silicon.
 
 As of 2026-09-27, `src/config.json` constrains the Tiny Tapeout flow at
 `CLOCK_PERIOD` 15 ns (66.7 MHz): optimizer promotion p018, committed in
 `d76f1cc` ([docs/optimization.md](docs/optimization.md), "Adoption of p018").
-The flow therefore signs timing off at 66.7 MHz; in the local sign-off of
-p018, setup and hold are met at that period at all three corners (table
-below). The operating clock is 50 MHz (`info.yaml` `clock_hz` 50000000),
+The flow therefore signs timing off at 66.7 MHz; in the official build,
+setup and hold are met at that period at all three corners (table below). The operating clock is 50 MHz (`info.yaml` `clock_hz` 50000000),
 which all firmware, the host library, the firmware timing analyzer and the
 datasheet assume. In a local re-analysis (below), the layout signed off at
 15 ns has more setup margin at 50 MHz than the 20 ns layouts. The RTL is
@@ -54,10 +53,10 @@ and nothing has been run on an FPGA board yet.
 
 The official `gds` run of `d76f1cc`,
 [36298635436](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36298635436),
-was **in progress** at 2026-09-27 08:40 UTC, so the 15 ns column below
-gives the local sign-off of the same configuration (Slurm jobs; LibreLane
-3.1.0.dev3 image, `OPENROAD_THREADS` 4) and is labelled local. The 50 MHz
-row of that column is a re-analysis of the signed-off layout at 20 ns with
+passed gds (4 h 24 min), gl_test and precheck (finished 2026-09-27
+13:33 UTC). Its `metrics.csv` is byte-identical to that of the local
+sign-off run of p018 (job 24042265), as for the two earlier adoptions. The
+50 MHz row of that column is a re-analysis of the signed-off layout at 20 ns with
 the flow's own STA script and SDC, whose two controls reproduce the flow's
 numbers exactly ([docs/timing-closure.md](docs/timing-closure.md)
 section 10). The two other columns are the official results of earlier
@@ -65,14 +64,14 @@ configurations, kept as history: `131e793` (20 ns, promotion p010, adopted
 in `25e331e`) and tag `v0.1-hardened`. All three are IHP SG13CMOS5L, 8x4
 tiles, LibreLane 3.1.0.dev3.
 
-| Check | `d76f1cc`, 15 ns (current; local sign-off of p018, official run in progress) | `131e793`, 20 ns, run [36257636798](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36257636798) (superseded by `d76f1cc`) | `c118027`, tag `v0.1-hardened`, 20 ns, run [36144357821](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36144357821) (superseded) |
+| Check | `d76f1cc`, 15 ns, run [36298635436](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36298635436) (current) | `131e793`, 20 ns, run [36257636798](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36257636798) (superseded by `d76f1cc`) | `c118027`, tag `v0.1-hardened`, 20 ns, run [36144357821](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36144357821) (superseded) |
 |---|---|---|---|
-| gds | Official: in progress. Local (full run, job 24042265): utilization 65.3% (standard cells 61.4%); route DRC 0; LVS 0; antenna 0 | PASS: utilization 61.9% (standard cells 57.6%); route DRC 0; LVS 0; antenna 0 | PASS: utilization 58.5% (standard cells 53.9%); route DRC 0; LVS 0; antenna 0 |
-| Setup at the flow's period | 15 ns, local: met at all three corners: typical +5.95 ns, fast +6.92 ns, slow +2.24 ns; 0 violating endpoints | 20 ns: met at all three corners: typical +7.88 ns, fast +9.31 ns, slow +2.95 ns; 0 violating endpoints | 20 ns: typical +0.89 ns, fast +6.15 ns; slow −8.52 ns with 2,482 violating endpoints, almost all starting at `rst_n` |
-| Setup at 50 MHz (operating clock) | Re-analysis of the local layout at 20 ns (job 24077956): typical +8.95 ns, fast +9.92 ns, slow +6.79 ns; 0 violating endpoints | as above (the flow's period was 20 ns) | as above |
-| Hold | Local: met at every corner (worst +0.165 ns, fast corner); the same at 20 ns | met at every corner (worst +0.11 ns, fast corner) | met at every corner (worst +0.11 ns, fast corner) |
-| precheck | Official: in progress. Local (job 24053971): 9/9, including the KLayout SG13CMOS5L DRC and the pin check | PASS, including the KLayout SG13CMOS5L DRC and the pin check | PASS |
-| gl_test | Official: in progress. Local (job 24053972): 102 tests, 46 pass, 56 skipped by design at gate level, 0 fail | PASS: 102 tests, 46 pass, 56 skipped by design at gate level, 0 fail | PASS: 66 tests, 36 pass, 30 skipped, 0 fail |
+| gds | PASS: utilization 65.3% (standard cells 61.4%); route DRC 0; LVS 0; antenna 0 | PASS: utilization 61.9% (standard cells 57.6%); route DRC 0; LVS 0; antenna 0 | PASS: utilization 58.5% (standard cells 53.9%); route DRC 0; LVS 0; antenna 0 |
+| Setup at the flow's period | 15 ns: met at all three corners: typical +5.95 ns, fast +6.92 ns, slow +2.24 ns; 0 violating endpoints | 20 ns: met at all three corners: typical +7.88 ns, fast +9.31 ns, slow +2.95 ns; 0 violating endpoints | 20 ns: typical +0.89 ns, fast +6.15 ns; slow −8.52 ns with 2,482 violating endpoints, almost all starting at `rst_n` |
+| Setup at 50 MHz (operating clock) | Re-analysis at 20 ns of the p018 layout, whose netlist is byte-identical to the official one (job 24077956): typical +8.95 ns, fast +9.92 ns, slow +6.79 ns; 0 violating endpoints | as above (the flow's period was 20 ns) | as above |
+| Hold | met at every corner (worst +0.165 ns, fast corner); the same at 20 ns | met at every corner (worst +0.11 ns, fast corner) | met at every corner (worst +0.11 ns, fast corner) |
+| precheck | PASS, including the KLayout SG13CMOS5L DRC and the pin check | PASS, including the KLayout SG13CMOS5L DRC and the pin check | PASS |
+| gl_test | PASS: 102 tests, 46 pass, 56 skipped by design at gate level, 0 fail | PASS: 102 tests, 46 pass, 56 skipped by design at gate level, 0 fail | PASS: 66 tests, 36 pass, 30 skipped, 0 fail |
 | Netlist vs RTL equivalence (not a TT check) | Official netlist proven equivalent to the RTL with `formal_eq/` (local job 24093884; [docs/equivalence.md](docs/equivalence.md)) | Official netlist proven equivalent (local job 24093885) | not checked |
 | test, formal, regen, docs | Official: PASS on `d76f1cc`: 102/102 cocotb tests on RTL; all 16 SymbiYosys jobs meet their expectation | PASS on `131e793`: 102/102 cocotb tests on RTL; all 16 SymbiYosys jobs meet their expectation (proofs pass, both negative controls fail) | PASS on `c118027` with the 66-test suite |
 
