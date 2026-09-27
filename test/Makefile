@@ -23,7 +23,11 @@ SRAM_MODELS = $(SRAM_MODEL_DIR)/RM_IHPSG13_1P_64x16_c2.v \
 # copy). Another name simulates ../build/variants/<name>/protocol_emulator_core.v
 # (override with PE_CORE=path) against the reference model configured by
 # ../configs/variants/<name>.json.
-PE_VARIANT ?= base
+# Evaluation branch eval/diet8-rec16: src/ carries the diet8_rec16 core
+# (docs/extension.md section 12), so by default the suite runs that variant's
+# reference model against the core in src/.
+PE_VARIANT ?= diet8_rec16
+PE_CORE ?= $(SRC_DIR)/protocol_emulator_core.v
 ifeq ($(strip $(PE_VARIANT)),)
 PE_VARIANT := base
 endif
