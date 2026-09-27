@@ -10,6 +10,8 @@ Writes RUN_DIR/opt_post.json with
                post-route STA max.rpt files inside out/librelane-logs.tar.gz
   resizer      the RSZ-* messages of the post-CTS and post-GRT timing-repair steps (whether
                setup repair acted at all, buffers inserted, hold buffers), from the same tarball
+  clock_depth  clockdepth.py on out/final/nl/<top>.nl.v.gz: cells from the clk port to the
+               flip-flop and SRAM clock pins (a warning when the SRAM clocks are much deeper)
 
 Standard library only; Python 3.6+.
 """
@@ -26,6 +28,7 @@ import time
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import checks  # noqa: E402
+import clockdepth  # noqa: E402
 
 CORNER_DIRS = {"nom_typ_1p20V_25C": "typ", "nom_fast_1p32V_m40C": "fast", "nom_slow_1p08V_125C": "slow"}
 MEMBER_RE = re.compile(r"(?:^|/)\d+-openroad-stapostpnr/(nom_[a-z]+_[0-9p]+V_m?\d+C)/max\.rpt$")
@@ -88,6 +91,12 @@ def process(run_dir, job_id=None):
         pdn["file"] = os.path.basename(pdn.get("file") or "")
         post["pdn"] = pdn
     post["worst_paths"], post["resizer"] = scan_logs(os.path.join(run_dir, "out", "librelane-logs.tar.gz"))
+    nls = sorted(glob.glob(os.path.join(run_dir, "out", "final", "nl", "*.nl.v.gz")))
+    if nls:
+        try:
+            post["clock_depth"] = clockdepth.summary(nls[0])
+        except (IOError, OSError, EOFError, ValueError, KeyError, IndexError) as exc:
+            post["clock_depth"] = {"error": str(exc)[:300]}
     tmp = os.path.join(run_dir, "opt_post.json.tmp.%d" % os.getpid())
     with open(tmp, "w") as f:
         json.dump(post, f, indent=2)

@@ -15,7 +15,9 @@ runs several **tracks**, each with its own optuna study:
 It runs on the Engaging cluster through the sweep harness of `docs/sweep.md`,
 which it uses unchanged. It records every run in an append-only store, and it
 promotes the best configurations of each track to a full-flow run, the Tiny
-Tapeout precheck and the gate-level cocotb suite.
+Tapeout precheck, the gate-level cocotb suite and a formal RTL-vs-netlist
+equivalence check with [`formal_eq/`](../formal_eq/README.md)
+([Promotion](#promotion)).
 
 Like every local run, a result here is evidence. It is not the result of
 record (`docs/hardening.md` sections 7 and 9). A configuration becomes the
@@ -36,8 +38,13 @@ Three kinds of result appear on this page, with decreasing weight:
 1. **Result of record:** a configuration committed to `src/config.json` (or
    to `variants6x4/config.overlay.json`) and built by the GitHub actions.
 2. **Promoted sign-off run (local):** a full-mode run with
-   `OPENROAD_THREADS` 4 and LVS, the unmodified Tiny Tapeout precheck and
-   the gate-level cocotb suite. The verdict is PASS only if all three pass.
+   `OPENROAD_THREADS` 4 and LVS, the unmodified Tiny Tapeout precheck, the
+   gate-level cocotb suite and, in the tools after driver job 24077569, the
+   RTL-vs-netlist equivalence check (`formal_eq`, see [Equivalence
+   check](#equivalence-check)). The verdict is PASS only if all of them
+   pass ([Promotion](#promotion)). The verdicts in the tables below were
+   given before the equivalence stage existed; the next driver runs that
+   stage on every earlier promotion with a legal full run.
 3. **Fast-mode trial (local):** 32 threads, no LVS, no precheck, no
    gate-level test. It ranks configurations; it is not a sign-off.
 
@@ -92,8 +99,10 @@ gate-level tests (0 fail): setup WS +5.95 / +6.92 / +2.24 ns and hold WS min
 `CLOCK_PERIOD` 15 and `clock_hz` unchanged at 50 MHz, the operating clock
 ([Adoption of p018](#adoption-of-p018-d76f1cc)). It becomes the result of
 record when the GitHub actions pass on that commit (R85, in progress at
-2026-09-27 08:40 UTC). The 13.33 ns track has fast-mode trials only; its
-first promotion, p024, is in its full run.
+2026-09-27 08:40 UTC). The 13.33 ns track's first promotion, p024, passed
+the full run, the precheck and the gate-level tests by 2026-09-27 10:31
+UTC; its equivalence stage runs with the backfill
+([Promotion](#promotion)).
 
 Until `d76f1cc` this paragraph read: "Above 50 MHz there is a local
 sign-off, not an official one. [...] It is not committed, so no GitHub
@@ -119,7 +128,7 @@ the GitHub actions pass on that commit."
 | p021 | `dor15` #13 (15 ns) | 24048020: legal, LVS 0 | 24071210: 9/9 | 24071211: 102 tests, 46 pass, 56 skip, 0 fail | +5.806 / +6.737 / +2.556 ns at 15 ns | PASS |
 | p022 | `dor` #175 | 24057278: legal, LVS 0 | 24062465: 9/9 | 24062466: 102 tests, 46 pass, 56 skip, 0 fail | +8.933 / +9.878 / +5.533 ns | PASS |
 | p023 | `diet4_6x4` #25 | 24060216: legal, LVS 0 | 24063192: 9/9 | 24063193: 102 tests, 46 pass, 56 skip, 0 fail (`PE_VARIANT` diet4) | +8.926 / +10.208 / +4.757 ns | PASS |
-| p024 | `dor13` #1 (13.33 ns) | 24068227: running | | | | pending |
+| p024 | `dor13` #1 (13.33 ns) | 24068227: legal, LVS 0 | 24092337: 9/9 | 24092338: 102 tests, 46 pass, 56 skip, 0 fail | +4.962 / +6.095 / +0.756 ns at 13.33 ns | PASS (store of 2026-09-27 10:31 UTC) |
 | p025 | `diet4_6x4` #35 | 24069405: legal, LVS 0 | 24073830: 9/9 | 24073831: 102 tests, 46 pass, 56 skip, 0 fail (`PE_VARIANT` diet4) | +8.935 / +9.906 / +5.380 ns | PASS |
 | p026 | `diet4_6x4` #43 | 24076184: legal, LVS 0 | 24078116: 9/9 | 24078117: 102 tests, 38 pass, 56 skip, **8 fail** (`PE_VARIANT` diet4) | +9.406 / +10.221 / +5.784 ns | FAIL |
 | p027 | `dor` #114 (control: the committed configuration of the `dor` track since tree `f511c97`, that is p018's knob set at 20 ns) | 24077610: legal, LVS 0 | 24081008: 9/9 | 24081009: 102 tests, 46 pass, 56 skip, 0 fail | +7.864 / +9.389 / +2.998 ns | PASS (leaderboard of 2026-09-27 08:36 UTC) |
@@ -138,20 +147,33 @@ time); the live list is the leaderboard.
   configuration is committed since `d76f1cc`.
 - **6x4:** p025 has the largest slow-corner slack of any signed-off 6x4
   configuration (+5.380 ns; p023 +4.757 ns, p020 +3.621 ns, p014 of record
-  +2.737 ns). None has been adopted; the overlay carries p014.
+  +2.737 ns). None has been adopted; the overlay carries p014. p025 sets
+  `CTS_MAX_SLEW` 0.75 and has the same SRAM and flip-flop clock depths as
+  p026; it is outside the current search space
+  ([`CTS_MAX_SLEW` is fixed unset](#cts_max_slew-is-fixed-unset)).
 - **p026 failed at gate level.** Its full run is legal with LVS 0 and its
   precheck passed, but 8 of the 46 gate-level tests that run failed
   (`test_uart_tx`, `test_flagship_concurrent`, `test_random_lockstep`,
   `test_gap_xfer_neighbour_pins` and four `test_kill_*` tests), with
   lockstep mismatches against the reference model (`gl/result.json` and
-  `gl.log` of the promotion; netlist sha256 `e0471ec9…`). The cause has not
-  been analysed. A configuration with verdict FAIL is not eligible for
+  `gl.log` of the promotion; netlist sha256 `e0471ec9…`). The failure is a
+  race of the zero-delay simulation at an SRAM input, not a functional
+  difference of the netlist: the netlist is equivalent to its RTL
+  (`formal_eq` job 24093886, and job 24096968 in a test of the
+  equivalence stage), and STA meets hold at every corner ([The p026 case](#the-p026-case)). The Tiny
+  Tapeout gl_test action runs the same zero-delay simulation, so p026
+  stays FAIL, and a configuration with verdict FAIL is not eligible for
   adoption ([Adopting a configuration](#adopting-a-configuration)).
-- **In flight:** p024 (13.33 ns), in its full run (still running at
-  2026-09-27 08:40 UTC). p027 (the `dor` control) was in its full run at
-  06:20 UTC and passed by 08:36 UTC: p018's knob set run at 20 ns gives
-  +2.998 ns at the slow corner, against +6.790 ns for the p018 layout
-  re-timed at 20 ns (`docs/results.md` R88).
+  `CTS_MAX_SLEW`, the knob implicated, is no longer sampled
+  ([`CTS_MAX_SLEW` is fixed unset](#cts_max_slew-is-fixed-unset)).
+- **13.33 ns:** p024 passed the full run, the precheck and the gate-level
+  tests by 2026-09-27 10:31 UTC (table above); its equivalence stage runs
+  with the backfill. Until then this item read: "p024 (13.33 ns), in its
+  full run (still running at 2026-09-27 08:40 UTC)."
+- **`dor` control:** p027 was in its full run at 06:20 UTC and passed by
+  08:36 UTC: p018's knob set run at 20 ns gives +2.998 ns at the slow
+  corner, against +6.790 ns for the p018 layout re-timed at 20 ns
+  (`docs/results.md` R88).
 
 Earlier note (verdicts as of 2026-09-27 01:20 UTC): p016 had the largest
 slow-corner slack of any signed-off 20 ns configuration (+4.835 ns against
@@ -572,7 +594,7 @@ the committed value of a track.
 | `grt_hold` | `GRT_RESIZER_HOLD_SLACK_MARGIN` | 0.05, 0.02, 0.1 | (inactive; 0.05) | Only if post-GRT timing repair is on; only that step reads it. |
 | `CTS_SINK_CLUSTERING_SIZE` | same | unset, 10, 16, 25, 35 | 16 | Sinks per leaf cluster: clock latency and skew, which the input and reset paths see directly. |
 | `CTS_SINK_CLUSTERING_MAX_DIAMETER` | same | unset, 30, 60, 100 um | unset | Leaf cluster diameter. |
-| `CTS_MAX_SLEW` | same | unset, 0.4, 0.75, 1.2 ns | unset (lib: 2.5 ns) | CTS characterization slew limit. |
+| `CTS_MAX_SLEW` | same | fixed unset (up to driver job 24077569: unset, 0.4, 0.75, 1.2 ns) | unset (lib: 2.5 ns) | CTS characterization slew limit. Not sampled any more (next section). |
 | `CTS_MAX_CAP` | same | unset, 0.1, 0.2 pF | 0.2 | CTS characterization capacitance limit (lib: 0.3 pF). |
 | `CTS_CLK_MAX_WIRE_LENGTH` | same | 0, 250, 500 um | 0 | `repair_clock_nets` maximum wire length. |
 | `CTS_OBSTRUCTION_AWARE` | same | unset, true | true | Keeps clock buffers off the macros. |
@@ -586,7 +608,83 @@ restrictions (`space.defs("6x4")`, `tracks.Track.island_free_restrict()`):
   `variants6x4/config.overlay.json`, including its `FP_OBSTRUCTIONS` box;
 - the horizontal halo is fixed to 16.48;
 - `FP_MACRO_VERTICAL_HALO` is limited to the island-free values 10 and 5
-  (next section).
+  ([Macro halo and short power straps](#macro-halo-and-short-power-straps)).
+
+### `CTS_MAX_SLEW` is fixed unset
+
+In the tools after driver job 24077569, `CTS_MAX_SLEW` is no longer sampled
+(`space.FIXED`): every new knob set leaves it unset, so CTS characterization
+uses the library's slew limit (2.5 ns).
+
+**Why.** p026 failed 8 gate-level tests because the clock pins of its SRAM
+macros are several cells deeper than those of the flip-flops that drive
+them, which makes the zero-delay simulation race
+([The p026 case](#the-p026-case)).
+
+- p025 and p026 are the only promotions that set `CTS_MAX_SLEW` (0.75 and
+  1.2 ns). Both also set `CTS_CLK_MAX_WIRE_LENGTH` 250.
+- In both, the SRAM clock pins are 15 to 18 cells from the `clk` port and
+  the flip-flop clock pins 11 to 13. In the 24 other promotions with a
+  netlist, the deepest SRAM clock pin is 1 to 5 cells deeper than the
+  shallowest flip-flop clock pin; in p025 and p026 it is 7 (clock-depth
+  survey `gleq` job 24086842, reproduced by `tools/opt/clockdepth.py` in
+  job 24092904; [Clock depth warning](#clock-depth-warning)).
+- The CTS logs (`gleq` job 24087265: p014, p017, p018, p020, p022, p023,
+  p025, p026) show where the depth comes from. With
+  `configure_cts_characterization -max_slew` the register tree has 6 to 7
+  buffers (3 to 5 in the other six), and latency balancing adds 11 and 12
+  delay buffers (5 or 6 in the other six). The wire-length repair of
+  `CTS_CLK_MAX_WIRE_LENGTH` 250 inserted 29 and 28 buffers (`RSZ-0048`) in
+  p025 and p026, and 43 and 40 in p022 and p023, which have the same
+  setting without `CTS_MAX_SLEW`.
+
+**Caveat: two samples.** The evidence is two promotions, and one of them
+(p025) passed the gate-level tests with the same clock depths as p026.
+p022 and p023 set `CTS_CLK_MAX_WIRE_LENGTH` 250 without `CTS_MAX_SLEW` and
+passed; their SRAM clock pins are at most 1 and 5 cells deeper than the
+shallowest flip-flop clock pin. So the data name `CTS_MAX_SLEW` as the knob
+that deepened the register tree in both cases; they do not show that every
+value of it fails, or that no other knob can do the same.
+`CTS_CLK_MAX_WIRE_LENGTH` stays in the space. The clock-depth warning
+flags the same condition whatever knob causes it.
+
+**What changes in the driver.**
+
+- `space.suggest()` does not sample a fixed knob, and `space.fix()` sets it
+  unset in every new knob set: sampled trials, seeds and transfers. A seed
+  or transfer that was queued with `CTS_MAX_SLEW` set runs with it unset.
+- The knob's definition keeps its four values. optuna refuses a changed
+  categorical choice list for a parameter name that earlier trials of a
+  study used, and a stored knob set must still reproduce the run it
+  describes (`test_opt.py` checks both).
+- A finished trial with `CTS_MAX_SLEW` set is **outside the current search
+  space** (`space.outside()`). The driver does not promote it, seed or
+  transfer it, and its promotions do not count toward the bar that a new
+  best must clear ([Promotion](#promotion)).
+- The leaderboard's best legal configuration of a track is the best one
+  inside the space. When trials outside it rank higher, the section names
+  the best of them; the top-10 table marks them "outside the current
+  space".
+- The committed configurations leave `CTS_MAX_SLEW` unset, so every
+  track's baseline is inside the space (`test_opt.py` checks the design of
+  record and the 6x4 build).
+
+Trials outside the space, from the store of 2026-09-27 06:37 cluster time
+(2,057 events). The first column counts every trial with a knob set, the
+second the finished legal trials without duplicates:
+
+| Track | Trials with `CTS_MAX_SLEW` set (0.4 / 0.75 / 1.2 ns) | Legal trials: outside / all | Best legal trial | Best legal trial inside the space |
+|---|---|---|---|---|
+| `dor` | 15 (2 / 11 / 2) | 10 / 180 | #175, +5.533 ns | the same |
+| `dor15` | 15 (8 / 4 / 3) | 4 / 49 | #13, +2.556 ns | the same |
+| `dor13` | 6 (3 / 3 / 0) | 3 / 20 | #1, +0.756 ns | the same |
+| `diet4_6x4` | 17 (1 / 9 / 7) | 11 / 35 | #43 (p026's trial, 1.2 ns), +5.784 ns | #41, +4.894 ns (fourth overall) |
+
+For `diet4_6x4`, the best legal trial inside the space, #41 (job
+24073745), is 0.137 ns above the best promoted trial inside the space
+(#25, p023, +4.757 ns). This is more than the 0.05 ns promotion threshold,
+so the next driver promotes it. The dry runs of these tools planned it as
+p028 (jobs 24094067 and 24096961, [Campaign record](#v2-from-2026-09-26-1411)).
 
 ### Macro halo and short power straps
 
@@ -771,7 +869,7 @@ At the v2 launch no variant track had 40 finished trials (they had 10 to
 A promotion runs the same knob values in full mode, with the track's die and
 period, `OPENROAD_THREADS` 4 (the committed value), 8 CPUs and an 11 h limit.
 
-If that run is legal, including LVS 0, two jobs follow:
+If that run is legal, including LVS 0, three jobs follow in parallel:
 
 - **Precheck.** `tools/opt/precheck_job.sh` runs the precheck reproduction
   of `docs/drc-triage.md` on a submission-like directory: the snapshot's
@@ -785,10 +883,37 @@ If that run is legal, including LVS 0, two jobs follow:
   for the design-of-record tracks, `diet4` for `diet4_6x4`, and the variant
   name for a variant track. A variant without `configs/variants/<name>.json`
   in the frozen tree is reported as not run.
+- **Equivalence check** (in the tools after driver job 24077569).
+  `tools/opt/eq_job.sh` (job name `pe-v2-optimizer-peq-<pid>`) runs
+  `formal_eq/eq_check.py` of the frozen tree. It checks the
+  final netlist against the RTL it was built from, on 2 CPUs with 8 GB and
+  a 90-minute limit. See [Equivalence check](#equivalence-check).
 
-The verdict is PASS only if all three pass.
+**Verdict** (`tools/opt/gates.py`, `promotion_verdict()`): PASS only if the
+full run is legal and the precheck, the gate-level tests and the
+equivalence check all pass.
 
-What gets promoted (at most 5 promotions in flight):
+- A stage that fails decides FAIL at once; the leaderboard names the stage
+  and the reason, and lists the stages still pending.
+- While a stage is missing or running, the verdict is "sign-off in
+  progress".
+- A variant track without a reference-model configuration gets
+  INCOMPLETE. Until these tools that case read "PASS (gate-level tests not
+  run)"; no promotion had it.
+- **Backfill.** Promotions from before the equivalence stage have no such
+  stage. At its first start the new driver submits it for every promotion
+  whose full run is legal. The dry runs of these tools submitted 26: p001
+  to p027 without p012, whose full run failed (jobs 24094067 and
+  24096961). Of these, 20 are 8x4 netlists (`base`) and 6 are 6x4 netlists
+  (`diet4`). Until each of
+  them finishes, its verdict reads "sign-off in progress (equivalence)",
+  and p026 reads FAIL at once because of its gate-level result. The
+  equivalence stage does not count toward the 5 promotions in flight, so
+  the backfill does not hold up new promotions.
+
+What gets promoted (at most 5 promotions in flight, not counting
+equivalence stages; only trials inside the current search space, see
+[`CTS_MAX_SLEW` is fixed unset](#cts_max_slew-is-fixed-unset)):
 
 - **Control:** the committed configuration of `dor` and of
   `diet4_6x4` goes through the whole pipeline once. For `dor` on the trees
@@ -804,7 +929,9 @@ What gets promoted (at most 5 promotions in flight):
   trial), which is already PASS.
 - **Best of a track:** the best legal trial of a track is promoted when
   its minimum WS is at least 0.05 ns above the best promoted trial of that
-  track. Promotions of the trials an imported trial stands for count here.
+  track. Both are taken inside the current search space (since the tools
+  after driver job 24077569). Promotions of the trials an imported trial
+  stands for count here.
   A track first needs this many finished trials: `dor` 0, `dor15`/`dor13`
   10, `diet4_6x4` 10, variant 20.
 - **Periodic:** for `dor`, `dor15` and `dor13`, once a track has at least
@@ -815,6 +942,277 @@ What gets promoted (at most 5 promotions in flight):
   at 550 own trials; with p011, p013, p015 and p016 (14 promotions) it was
   750 at 18:17, against 29 own trials. For `dor15`, with p018, it was 100
   (200 after p019 and p021).
+
+### Equivalence check
+
+The stage runs [`formal_eq/eq_check.py`](../formal_eq/README.md), the
+repository's formal RTL-vs-netlist check. It asks whether the final netlist
+and the RTL produce the same outputs, cycle by cycle from reset, for every
+input sequence. [`docs/equivalence.md`](equivalence.md) gives the method,
+the controls that show the check can fail, what it does not cover, and the
+correction of the first recipe (its section 3).
+
+**Inputs** (`Driver.eq_inputs()`, then `tools/opt/eq_job.sh`):
+
+- **Gold** is `src/project.v` and the track's core. The core is the copy
+  the full run was built from, as its `params.json` records it:
+  `src/protocol_emulator_core.v` for `dor`, `dor15` and `dor13`,
+  `variants6x4/protocol_emulator_core.v` for `diet4_6x4`, the published
+  core for a variant track. `src/project.v` is the one in the frozen tree
+  the full run was built from (also in `params.json`). It is
+  byte-identical in all the frozen trees of the promotions (sha256
+  `2aacfd24…`).
+- **Variant.** It is the track's, as for the gate-level tests: `base`,
+  `diet4`, or the variant's name. For `base` and `diet4`, `formal_eq`
+  requires the core's first line to name the variant's configuration.
+- **Gate** is the unpowered final netlist of the promotion's `sub/`.
+- **PDK.** The cell functions come from the typical-corner standard-cell
+  liberty under the PDK root that LibreLane used for the full run
+  (`PDK_ROOT` in its `out/resolved.json`, else `params.json`, else the
+  sweep harness's default). It is passed as `--pdk-root`. For all 26
+  promotions with a legal full run that is the flow mirror's `pdk/`,
+  IHP-Open-PDK `2bbec755`.
+- **Checker.** It is `formal_eq/eq_check.py` of the driver's frozen tree,
+  which `launch.sh` exports from the commit together with `src/`.
+  `$PE_EQ_CHECK` overrides it. `launch.sh` refuses a commit without
+  `formal_eq/eq_check.py`.
+- **Tools.** yosys and yosys-abc come from `$OSS_CAD_SUITE/bin`.
+  `launch.sh` checks that they are there, and the driver passes
+  `OSS_CAD_SUITE` to its jobs. ABC runs on one thread.
+
+The command is:
+
+```
+eq_check.py check --netlist sub/<top>.v --variant <variant> --core <core copy>
+    --top <tree>/src/project.v --pdk-root <PDK root of the run>
+    --timeout 3600 --build-timeout 1200 --jobs 1 --out <node-local directory>
+```
+
+The stage does not use `--selftest`. The self-test's two netlist mutants
+and nine recipe controls ran with the checks of the official netlists
+(docs/equivalence.md, section 1). On an 8x4 netlist one mutant took ABC
+588 s.
+
+The job has 2 CPUs, 8 GB and 90 minutes (job name
+`pe-v2-optimizer-peq-<pid>`). `formal_eq` works in a node-local directory.
+The promotion keeps `eq/result.json` (the stage's verdict) and
+`eq/formal_eq/`: `formal_eq`'s own `result.json`, the yosys scripts,
+`abc.log` and the gzipped yosys logs.
+
+**Fail-closed verdict** (`tools/opt/gates.py`: `parse_eq()`,
+`check_inputs()`, `eq_record()`):
+
+- **Pass.** The stage passes only if all of the following hold:
+  - `formal_eq`'s `result.json` has schema `pe-formal-eq/1`, `verdict`
+    `equivalent`, `exit_code` 0 and `pass` true;
+  - the checker process exited 0;
+  - `formal_eq` recorded, for the netlist (source and copy), the core and
+    `src/project.v`, the sha256 of the files the job gave it;
+  - it used the PDK root of the full run and the track's variant.
+- **Fail.** Everything else fails, with the reason in `eq/result.json`:
+  - not equivalent, with the frame in which the miter output was
+    asserted;
+  - undecided;
+  - a time limit;
+  - an error, with `formal_eq`'s reason;
+  - no `result.json`, or one that is not valid JSON;
+  - a schema mismatch;
+  - fields that contradict each other;
+  - an input mismatch.
+- **Provenance.** The stage's `result.json` also records the following:
+  - `formal_eq`'s `tool_files`: the sha256 of `eq_check.py`, `wrap.v`, the
+    SRAM blackbox and the nine controls;
+  - the yosys version, the yosys-abc path, and the version line of
+    `yosys-abc -c version`;
+  - the PDK revision and the liberty's sha256;
+  - the miter AIG's sha256, the host and the CPU.
+- **Limits.** ABC gets 3,600 s, each yosys step 1,200 s, and the whole
+  checker 4,800 s. ABC took 62 to 71 s on the 6x4 netlists and 349 to
+  1,014 s on the 8x4 netlists (tables below). The longest was p018 through
+  the stage on an Intel Xeon Gold 6230 node (job 24096976), and the limit
+  is more than three times that.
+- **Retries** (`gates.eq_should_retry()`, used by `Driver.poll_promos()`).
+  A time limit is resubmitted, up to twice, because the time depends on the
+  node's load. That covers ABC's limit, a yosys step's, and the job's own.
+  The third time limit is FAIL. "Not equivalent", undecided and errors are
+  final at once. As for every sign-off stage, a job that ended without
+  writing a `result.json` at all (killed by Slurm, or a failed node) is
+  also resubmitted, up to the same three jobs.
+- **Why undecided fails.** mutB is p014's netlist with one random `nand2`
+  changed to `nor2`. `dprove` stopped undecided after 1,708 s (job
+  24093081), and the gate-level suite passes it (docs/equivalence.md,
+  section 4). A gate that passed on undecided would accept such a netlist.
+
+**The first checker was not a proof.** Until these tools the stage called
+`eq_check.sh` of the `gleq/` investigation in the cluster work directory.
+Its miter used `miter -equiv -ignore_gold_x` followed by `setundef -zero`.
+That turns the x test of each compared bit into "gold bit = 0", so the
+miter compared a bit only where the RTL value was 1 (docs/equivalence.md,
+section 3; `docs/results.md` R91). Ablation job 24094085 ran the recipe
+controls through that recipe. It called two different designs equivalent:
+c1 (gate `a|b` against gold `a`) and c4 (a difference after 13 cycles).
+
+- **Its "equivalent" results are superseded.** The earlier version of this
+  section quoted these:
+  - p014: `gleq` jobs 24087083 and 24088368; `eq_job.sh` 24092905; driver
+    path 24093377 and 24094084;
+  - p018: 24087778 and 24092982;
+  - p025: 24087438;
+  - p026: 24087083, 24088368, 24092983 and 24093380.
+
+  They showed only that no compared bit is ever 1 in the RTL and 0 in the
+  netlist. They were not proofs of equivalence, and the `formal_eq`
+  results below supersede them.
+- **Its "not equivalent" results stand.** The counterexamples for p014_mutA
+  and p026_mutC were genuine differences.
+- **Its timeout runs tested the retry path, not the proof.** Those are
+  jobs 24093661, 24093683 and 24093709.
+- **These tools do not use `gleq`.**
+
+**Results with `formal_eq`** (docs/equivalence.md, section 1; job records in
+`<work dir>/eq-repo/manifest.json`):
+
+| Netlist | Verdict | ABC | Job |
+|---|---|---|---|
+| Official 6x4 build: `gds_6x4` run 36298635404 on `d76f1cc`; byte-identical to p014's netlist (`f085554e…`) | equivalent, self-test passed | 67 s | 24093883 |
+| Official 8x4 build at 15 ns: `gds` run 36298635436 on `d76f1cc`; byte-identical to the final netlist of p018's full run (`09841e31…`) | equivalent, self-test passed | 692 s | 24093884 |
+| Official 8x4 build at 20 ns: `gds` run 36257636798 on `131e793` (p010's configuration) | equivalent, self-test passed | 349 s | 24093885 |
+| p018, its local full run | equivalent | 446 s | 24093888 |
+| p026 | equivalent | 71 s | 24093886 |
+| p025 | equivalent | 69 s | 24093887 |
+
+Each of these `result.json` files has `verdict` `equivalent`, `exit_code`
+0 and `pass` true.
+
+**The stage itself** was run with these tools (`af25eba8`). The runs used
+copies of the campaign's store in scratch optimizer roots, a tree exported
+from `e0b5223` (which contains `formal_eq/`) with the working tree's
+`tools/opt`, and job names `pe-v3-eqwire-*`. Each went through
+`Driver.submit_signoff()`, `eq_job.sh`, `formal_eq` and
+`gates.py eq-collect`. Then `Driver.poll_promos()` recorded the result, and
+`gates.promotion_verdict()` gave the promotion's verdict.
+
+| Promotion | Stage result | ABC; job wall time | Promotion verdict | Job |
+|---|---|---|---|---|
+| p014 | equivalent; the miter AIG is byte-identical to that of job 24093883 (`b06f5eff…`) | 62 s; 101 s | PASS | 24096966 |
+| p026 | equivalent; the miter AIG is byte-identical to that of job 24093886 (`2997de06…`) | 62 s; 87 s | FAIL (gate level: 8 of 102 failed), unchanged | 24096968 |
+| p018 | equivalent; the miter AIG is byte-identical to that of jobs 24093888 and 24093884 (`df863faf…`) | 1,014 s on an Intel Xeon Gold 6230 node; 1,094 s | PASS | 24096976 |
+| p014's run with `formal_eq`'s mutA netlist in `sub/` (`_32857_` `nand2_1` → `nor2_1`; a scratch promotion p901) | not equivalent, frame 8; final, not resubmitted | 0 s; 38 s | FAIL | 24096965 |
+| p014 with an ABC limit of 5 s | time limit, resubmitted twice, then FAIL | 5 s each | FAIL | 24096967, 24096999, 24097014 |
+
+The first attempt, with tools `0a19ce4b`, failed closed in every job:
+24096857, 24096858, 24096859 and 24096874 each gave "error: formal_eq
+wrote no result.json (checker exit 127)". Under Slurm, `$0` of a batch
+script is a spooled copy, so `eq_job.sh` looked for the checker next to
+that copy. It now finds the tree through `PE_OPT_HARNESS`, which the driver
+exports. `test_opt.py` runs `eq_job.sh` from a copy in another directory to
+catch this.
+
+**What the check covers.** It checks that the netlist implements the RTL
+cycle for cycle at the Tiny Tapeout outputs and at every SRAM macro input,
+independently of simulation event order. It caught the mutants above. LVS
+compares the layout with the netlist, and the precheck checks the layout's
+rules; neither compares the netlist with the RTL.
+
+**What it does not cover** (docs/equivalence.md, section 6):
+
+- the SRAM macros themselves, which are cut points;
+- the liberty cell functions against the cell layouts;
+- timing, including zero-delay simulation races (STA and the gate-level
+  tests cover those);
+- power-up values other than 0 of the 2,048 register bits of the base core
+  that no reset initialises;
+- a bug in the yosys front end, which the flow also synthesizes with, so
+  such a bug would affect both sides alike;
+- ABC itself: no proof certificate is checked.
+
+### The p026 case
+
+p026 (`diet4_6x4` trial #43) has a legal full run with LVS 0 (job
+24076184) and passed the precheck (job 24078116), but 8 gate-level tests
+failed (job 24078117). The `gleq` investigation in the cluster work
+directory found a race of the zero-delay simulation, and `formal_eq` showed
+that the netlist has no functional difference from its RTL
+(docs/equivalence.md, section 5).
+
+- **Deterministic.** A rerun of the full suite on the same netlist failed
+  the same 8 tests (job 24085496).
+- **Only the SRAM clocks matter.** With every clock pin of the netlist
+  rewired to the `clk` port, the suite passes (46 pass, 0 fail; job
+  24085496; the clock tree is buffers only, so the logic is unchanged).
+  With only the 8 SRAM `A_CLK` pins rewired it also passes (46 / 0), and
+  with only the flip-flop clock pins rewired 42 tests fail (job 24086215).
+- **Where.** A monitor that compares every flip-flop and SRAM input at the
+  `clk` edge with its value at the sink's own clock edge found 3,762 SRAM
+  race events in p026 and none in p014 or p025 (job 24086215), nor in p018
+  (job 24088391). Every event is at `core.instruction_sram_e0_lo`; in all
+  400 printed events the input that changed is `A_DIN[3]`. The first
+  divergence from the RTL is in cycle 232, a read of that macro (0x0036
+  instead of 0x003e, bit 3; job 24085806).
+- **Mechanism.** `A_DIN[3]` comes from flip-flop `_37730_` (the host
+  write-data shift register) through three cells. That flip-flop's clock
+  pin is 12 cells from `clk`, and the macro's `A_CLK` 18. In a zero-delay
+  simulation each cell costs an evaluation step, so the SRAM model
+  (`always @(posedge ...)` reading `A_DIN`) samples the value the
+  flip-flop launched at the same edge.
+- **Real timing is the other way round.** In the post-route clock report
+  of p026 (fast corner, job 24087092) the earliest clock arrival is at an
+  SRAM clock pin (0.796 ns) and the latest at a flip-flop (1.478 ns), and
+  STA meets hold at every corner (worst +0.114 ns, 0 violations).
+- **The netlist is equivalent to its RTL.** `formal_eq` proved it in job
+  24093886, and again in job 24096968, a test of the equivalence stage
+  ([Equivalence check](#equivalence-check)). The `gleq` checker had also called it
+  equivalent (jobs 24087083 and 24088368), but its recipe was unsound, so
+  those results were not proofs.
+
+**Consequence.** The Tiny Tapeout gl_test action runs the same zero-delay
+Icarus simulation, so a layout like p026 would also fail there. It stays
+FAIL. The optimizer now avoids the knob that produced it
+([`CTS_MAX_SLEW` is fixed unset](#cts_max_slew-is-fixed-unset)) and flags
+the condition on every run ([Clock depth warning](#clock-depth-warning)).
+The gate-level test bench is unchanged: making it independent of SRAM
+clock depth (for example by forcing the SRAM clocks to `clk` under
+`GL_TEST`) is a repository decision outside the optimizer.
+
+### Clock depth warning
+
+`postprocess.py` runs `tools/opt/clockdepth.py` on the final netlist of
+every trial and full run (`out/final/nl/`). It counts the cells between the
+`clk` port and each flip-flop clock pin and each SRAM `A_CLK` pin, and
+reports `sram_excess`: the deepest SRAM clock pin minus the shallowest
+flip-flop clock pin.
+
+- An excess of 6 or more is a warning. The leaderboard shows it as `WARN`
+  in the "clock depth FF / SRAM" column of the trial and promotion tables.
+  The driver writes it to its log and to the `promo_new` event when it
+  promotes such a trial.
+- It is not part of legality or the ranking, and it does not block a
+  promotion: the gate-level tests decide.
+- The equivalence job also records the clock depth of its netlist, so
+  promotions whose full run predates `clockdepth.py` get the column from
+  the backfill. Trials that finished before these tools show no value.
+
+Calibration (job 24092904, the final netlists of all promotions that have
+one; it reproduces the `gleq` survey of job 24086842):
+
+| Promotions | Flip-flop clock depth | SRAM clock depth | `sram_excess` |
+|---|---|---|---|
+| p001 to p027 without p012 (no netlist), p022, p023, p025 and p026 | 4 to 8 | 7 to 9 | 1 to 4 |
+| p022 (`CTS_CLK_MAX_WIRE_LENGTH` 250) | 12 to 15 | 10 to 13 | 1 |
+| p023 (`CTS_CLK_MAX_WIRE_LENGTH` 250) | 8 to 13 | 10 to 13 | 5 |
+| p025, p026 (`CTS_MAX_SLEW` 0.75 and 1.2 ns) | 11 to 13 | 15 to 18 | 7 |
+
+The fast-mode run of p026's trial (#43, job 24075174) has the same depths
+as p026's full run (excess 7), so the warning is available before a
+promotion. `diet4_6x4` #41 (job 24073745), which the next driver promotes,
+has flip-flop depths 9 to 13 and SRAM depths 10 to 13 (excess 4).
+
+The threshold separates the two promotions with `CTS_MAX_SLEW` from the 24
+others, and it rests on those two. It flags a risk, not a failure: p025 has
+the same depths as p026 and passed. A finer static measure (per SRAM input:
+launching flip-flop depth plus path cells, minus SRAM clock depth) gave −3
+both for the pin that raced in p026 and for two pins of p025 that did not,
+so it is not used.
 
 ### Scheduling limits, preemption and pruning
 
@@ -876,11 +1274,12 @@ not resubmit itself.
 
 ```sh
 export PE_WORK=<cluster work directory>
+export OSS_CAD_SUITE=<OSS CAD Suite root>   # yosys and yosys-abc of the equivalence stage
 python3 tools/opt/test_opt.py       # unit tests (standard library, no cluster)
 srun -p mit_quicktest -c 4 --mem 8G -t 15 tools/opt/dry_run.sh $PE_WORK/<scratch dir> 2
                                     # dry run: copy of the store, 2 loops, nothing submitted
-tools/opt/launch.sh                 # export HEAD + tools/opt, point optimizer/current at it,
-                                    # create the venv if missing, submit the driver (no-op if queued)
+tools/opt/launch.sh                 # export HEAD (with formal_eq/) + tools/opt, point optimizer/current
+                                    # at it, create the venv if missing, submit the driver (no-op if queued)
 P=$PE_WORK/optimizer/venv/bin/python
 $P $PE_WORK/optimizer/current/tools/opt/driver.py status   # per track: trials by state, imports, retirement
 less $PE_WORK/optimizer/leaderboard.md                     # rewritten after every finished trial
@@ -905,12 +1304,26 @@ The files under `$PE_WORK/optimizer/`:
 | `leaderboard.md`, `leaderboard.csv` | One section per track (committed configuration, best legal configuration with its exact config difference, promotions, top trials), the earlier tracks, blockers; every trial with every metric |
 | `manifest.json` | Every Slurm job id (drivers, trials, promotion stages) |
 | `runs/<track>/<run id>/` | Sweep-format run directories (`params.json`, `result.json`, `opt_post.json`, `out/`) |
-| `promotions/<pid>/` | `sub/` (submission-like directory), `precheck/`, `gl/` with `result.json` |
+| `promotions/<pid>/` | `sub/` (submission-like directory), `precheck/`, `gl/`, `eq/` (`result.json` with the verdict, the reason, the input sha256s, `formal_eq`'s provenance and the clock depth; `formal_eq/` with `formal_eq`'s own `result.json`, yosys scripts, `abc.log` and gzipped logs; `checker.log`) |
 | `driver.log`, `logs/` | Driver log; Slurm logs (gzipped when finished) |
 | `tree/<commit>-<tools>/`, `current` | Frozen exports; the driver job uses `current` |
 
 - **Stop:** `touch $PE_WORK/optimizer/STOP`. To stop at once, also run
   `scancel -n` on the job names.
+- **Equivalence checker.** `eq_job.sh` runs `formal_eq/eq_check.py` of
+  the driver's frozen tree. It finds that tree through `PE_OPT_HARNESS`,
+  which the driver exports.
+  - **Commit first.** `launch.sh` exports `formal_eq/` from the commit,
+    like `src/`, and refuses a commit without it. It notes uncommitted
+    changes to `formal_eq/`, which the tree does not get.
+  - **Tools.** `launch.sh` also checks that `$OSS_CAD_SUITE/bin` has yosys
+    and yosys-abc; without `OSS_CAD_SUITE` it takes them from `PATH`.
+  - **Override.** `$PE_EQ_CHECK` replaces the checker. `launch.sh` warns
+    when it is set. Leave it unset for the campaign.
+  - **Work files.** `formal_eq` works in a node-local temporary directory,
+    which the job removes.
+  - **At start** the driver logs the checker's path, whether it exists, and
+    `OSS_CAD_SUITE`.
 - **Stop only the driver** (to relaunch with new tools): `scancel` the
   `pe-v2-optimizer-driver` job. Trial and promotion jobs are separate jobs
   and keep running; the next driver records their results from the store
@@ -928,8 +1341,22 @@ The files under `$PE_WORK/optimizer/`:
 ## Adopting a configuration
 
 Only a promoted configuration with verdict PASS qualifies. That means a
-full run that is legal including LVS 0, the precheck passing all checks and
-the gate-level tests without failures. Each track's section of the
+full run that is legal including LVS 0, the precheck passing all checks,
+the gate-level tests without failures and, in the tools after driver job
+24077569, the equivalence check reporting "equivalent". The adopted p014 and
+p018 predate that stage. `formal_eq` proved their netlists equivalent to
+their RTL:
+
+- **p014.** The official 6x4 build's netlist is byte-identical to p014's
+  (job 24093883), and a test of the stage gave "equivalent" in job
+  24096966.
+- **p018.** Its local full run gave "equivalent" in job 24093888, and the
+  official 8x4 build at 15 ns, byte-identical to it, in job 24093884.
+- **The earlier results were not proofs.** The `gleq` checker had called
+  both equivalent (jobs 24088368 and 24087778), but its recipe was unsound
+  ([Equivalence check](#equivalence-check)).
+
+Each track's section of the
 leaderboard shows its promotions with their job ids. It also prints the
 exact difference of its best legal configuration from the frozen
 `src/config.json`:
@@ -1288,6 +1715,91 @@ twice.
 | 24059198 | 21:01 | `c1afc5db` | Tree `24b807b`: CPU cap 700 → 960. The tree also carries the p014 overlay of `4bd30c8`, so the 6x4 track's committed configuration became p014. |
 | 24077569 | 2026-09-27 01:57 | `4240a2a4` | Tree `f511c97`: `src/config.json` carries p018 (`d76f1cc`), and the weights favour `dor15` ([Tracks](#tracks)). No track was created; `dor15` and `dor` took the new committed configurations as their baselines. |
 
+**Equivalence stage and fixed `CTS_MAX_SLEW` (tools `931b809b`, never
+run by a driver).** Driver job 24077569 runs the earlier tools
+(`4240a2a4`); the changes take effect at the next driver start
+([Operation](#operation)). The equivalence checker of these tools was
+`gleq/eq_check.sh`, whose recipe was unsound. The "equivalent" results in
+this list are therefore not proofs, and the `formal_eq` results of the next
+item supersede them ([Equivalence check](#equivalence-check)). Checks
+before that relaunch, on copies of the store and under separate job names
+(`pe-v3-eq-opt-*`):
+
+- `tools/opt/test_opt.py`: 20 tests pass (9 before).
+- `eq_job.sh` alone (job 24092905): p014 equivalent (ABC 81 s), p014_mutA
+  not equivalent (frame 8), p014 with a 5 s ABC limit a timeout, so FAIL.
+- `clockdepth.py` on the 26 promotion netlists (job 24092904): the table
+  in [Clock depth warning](#clock-depth-warning), equal to the `gleq`
+  survey.
+- The gate through the driver's own code path: `Driver.submit_signoff()`
+  builds `sub/` and submits `eq_job.sh`, `Driver.poll_promos()` records the
+  result, and the leaderboard shows it.
+  - With tools `931b809b`: p014 equivalent (job 24094084, ABC 111 s).
+  - With earlier tools: p018 equivalent (job 24092982, tools `6c8051a1`,
+    ABC 913 s); p026 equivalent (jobs 24092983 and 24093380, tools
+    `6c8051a1` and `790341d9`); p014 equivalent (job 24093377, tools
+    `790341d9`). In the path test's leaderboard p018's verdict is PASS and
+    p026's stays FAIL on its gate-level result.
+  - p014 with a 5 s ABC limit (tools `5efda372`): the driver resubmitted
+    the timed-out check twice (jobs 24093661, 24093683, 24093709) and then
+    recorded FAIL.
+  - Differences from `931b809b`, apart from comments: all three earlier
+    versions gave ABC 2,400 s and the job 70 minutes; `6c8051a1` did not
+    yet copy the clock depth into the equivalence result or catch an error
+    while resubmitting a sign-off job; `790341d9` did not yet resubmit
+    timeouts or record a missing input file as an error.
+- Dry runs against copies of the store (jobs 24092979, 24093336, 24093680,
+  24093804 and, with tools `931b809b`, 24094067; two loops each). Each
+  planned 48 new trials, all with `CTS_MAX_SLEW` unset and none rejected,
+  so the existing optuna studies accept sampling without the knob. Each
+  planned the equivalence stage for the 26 promotions with a legal full
+  run and the promotion of `diet4_6x4` #41 as p028.
+
+**Equivalence stage on `formal_eq` (tools `af25eba8`, not yet running).**
+These tools replace the `gleq` checker with `formal_eq/eq_check.py` of the
+frozen tree ([Equivalence check](#equivalence-check)). They also add the
+checks of `launch.sh` for `formal_eq/` and the OSS CAD Suite. The driver
+job 24077569 still runs tools `4240a2a4`, which have no equivalence stage,
+and the campaign's store has no equivalence result. The checks before the
+relaunch used copies of the store in scratch optimizer roots and job names
+`pe-v3-eqwire-*`:
+
+- **Unit tests.** `tools/opt/test_opt.py`: 26 tests pass. New tests cover:
+  - the reading of `formal_eq`'s `result.json`: every verdict,
+    inconsistent fields, a missing or invalid file, a schema mismatch, and
+    sha256 mismatches of the netlist, its copy, the core and
+    `src/project.v`, the PDK root and the variant;
+  - the retry policy, both in `gates.eq_should_retry()` and through
+    `Driver.poll_promos()`: a time limit is resubmitted until the third
+    job, while undecided and "not equivalent" are final;
+  - `gates.py eq-collect` on real files;
+  - `eq_job.sh` run from a copy in another directory, with a stand-in
+    checker.
+- **The stage, live** (table in [Equivalence check](#equivalence-check)):
+  - p014 equivalent (job 24096966) and PASS;
+  - p026 equivalent (job 24096968), while its promotion stays FAIL on the
+    gate level;
+  - p018 equivalent (job 24096976, ABC 1,014 s) and PASS;
+  - a copy of p014's promotion with the mutA netlist: not equivalent,
+    final (job 24096965);
+  - p014 with an ABC limit of 5 s: three time limits (jobs 24096967,
+    24096999 and 24097014), then FAIL.
+- **The first attempt** with tools `0a19ce4b` failed closed with checker
+  exit 127 (jobs 24096857, 24096858, 24096859 and 24096874). The fix is in
+  [Equivalence check](#equivalence-check).
+- **Inputs of every promotion.** `Driver.eq_inputs()` was evaluated for
+  the 26 promotions with a legal full run, read-only. Each gives:
+  - the flow mirror's PDK root from its `out/resolved.json`;
+  - a core whose sha256 matches the track's record, and whose first line
+    names its variant's configuration (20 `base`, 6 `diet4`);
+  - a frozen tree whose `src/project.v` has sha256 `2aacfd24…`.
+- **Dry run** (job 24096961, two loops, tools `af25eba8` on `e0b5223`):
+  - it planned the equivalence stage for the 26 promotions and p028
+    (`diet4_6x4` #41);
+  - it planned 48 new trials, none with `CTS_MAX_SLEW` set;
+  - it created no track and logged no loop error;
+  - it logged the checker as present.
+
 ## Limitations
 
 - **Fast trials differ from promoted runs.**
@@ -1315,8 +1827,9 @@ twice.
   passed the local sign-off pipeline and is committed since `d76f1cc`; its
   official `gds` run (36298635436) was in progress at 2026-09-27 08:40 UTC
   (see [Current results](#current-results)). Before `d76f1cc` no 15 ns
-  configuration was committed. The 13.33 ns track has fast-mode trials
-  only; its first promotion (p024) is in its full run.
+  configuration was committed. At 13.33 ns, p024 passed the local
+  sign-off stages that existed before the equivalence stage (2026-09-27
+  10:31 UTC); no 13.33 ns configuration is committed.
 - **fmax estimates extrapolate** from one period (see "Frequency tracks and
   the SDC"). The frequency tracks measure at their period instead.
 - **Variant-track gate-level tests** use the committed firmware images,
@@ -1325,3 +1838,19 @@ twice.
   variant workflow.
 - **TPE is a heuristic.** The leaderboard reports only what was run. No
   claim is made that an optimum was reached.
+- **The equivalence check has limits** ([Equivalence
+  check](#equivalence-check); docs/equivalence.md, section 6).
+  - It does not cover the SRAM macros, the liberty cell functions against
+    the layout, timing, or other power-up values of the base core's
+    registers without reset.
+  - It shares the yosys front end with synthesis.
+  - Because undecided and time limits fail, it can also reject a correct
+    netlist. Every `formal_eq` check of a real netlist so far was decided.
+  - The stage runs without `formal_eq`'s self-test.
+- **Equivalence results before `formal_eq` were not proofs.** The `gleq`
+  checker's recipe compared an output bit only where the RTL value was 1
+  (ablation job 24094085). Its results are superseded
+  ([Equivalence check](#equivalence-check)).
+- **The clock-depth threshold rests on two promotions** (p025 and p026),
+  and `CTS_MAX_SLEW` was fixed unset on the same two samples
+  ([`CTS_MAX_SLEW` is fixed unset](#cts_max_slew-is-fixed-unset)).

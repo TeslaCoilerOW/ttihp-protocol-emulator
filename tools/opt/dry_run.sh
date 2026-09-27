@@ -33,8 +33,9 @@ if [ ! -d "$T" ]; then
   git -C "$REPO" archive "$COMMIT" | tar -x -C "$T"
   rm -rf "$T/tools/opt"; mkdir -p "$T/tools/opt"
   cp -p "$HERE"/*.py "$HERE"/*.sh "$HERE"/README.md "$T/tools/opt/"
-  printf '{"commit": "%s", "tools_sha8": "%s", "tools_uncommitted_files": %s, "exported": "%s", "dry_run": true}\n' \
-    "$COMMIT" "$TOOLS_SHA" "$(git -C "$REPO" status --porcelain -- tools/opt | wc -l)" "$(date -Is)" > "$T/OPT_TREE.json"
+  printf '{"commit": "%s", "tools_sha8": "%s", "tools_uncommitted_files": %s, "eq_check_sha256": "%s", "exported": "%s", "dry_run": true}\n' \
+    "$COMMIT" "$TOOLS_SHA" "$(git -C "$REPO" status --porcelain -- tools/opt | wc -l)" \
+    "$(sha256sum "$T/formal_eq/eq_check.py" 2>/dev/null | cut -c1-64 || true)" "$(date -Is)" > "$T/OPT_TREE.json"
 fi
 if [ ! -s "$DRY/store/events.jsonl" ]; then
   mkdir -p "$DRY/studies"

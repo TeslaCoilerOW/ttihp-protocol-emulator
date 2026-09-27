@@ -10,7 +10,10 @@ from the frozen src/config.json (for the 6x4 track also from the variants6x4
 overlay build), the promotion verdicts and the top trials. Everything here
 reports what the store records: fast-mode numbers come from trial runs
 (OPENROAD_THREADS 32, no LVS), sign-off numbers from promoted full runs
-(OPENROAD_THREADS 4, LVS), the TT precheck and the gate-level tests.
+(OPENROAD_THREADS 4, LVS), the TT precheck, the gate-level tests and the
+RTL-vs-netlist equivalence check (verdict: gates.promotion_verdict). "Best"
+means the best legal trial inside the current search space (space.FIXED); a
+better-ranked trial outside it is named, not promoted.
 Standard library only.
 """
 
@@ -22,6 +25,8 @@ import time
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import clockdepth as CD  # noqa: E402
+import gates as GATES  # noqa: E402
 import objective as OBJ  # noqa: E402
 import space as SPACE  # noqa: E402
 from store import State, Store  # noqa: E402
@@ -53,12 +58,19 @@ def title(tr):
     return "Earlier track %s" % tr["track"]
 
 
-def ranked(state, track, legal_only=True):
+def ranked(state, track, legal_only=True, in_space=False):
     ts = [t for t in state.trials_of(track) if t["state"] == "done" and not t.get("lost") and t.get("metrics")
           and not t.get("dup_of")]
     if legal_only:
         ts = [t for t in ts if t.get("legal")]
+    if in_space:
+        ts = [t for t in ts if not SPACE.outside(t.get("knobs"))]
     return sorted(ts, key=lambda t: OBJ.key(t["metrics"], t.get("legal")), reverse=True)
+
+
+def outside_text(t):
+    out = SPACE.outside(t.get("knobs"))
+    return ", ".join("%s=%s" % (k, json.dumps(v)) for k, v in sorted(out.items()))
 
 
 def stands_for(state, t):
@@ -127,19 +139,17 @@ def promo_rows(state, promos):
         fr = full.get("result") or {}
         fm = OBJ.derive_fmax(dict(fr.get("metrics") or {}),
                              float((state.tracks.get(p["track"]) or {}).get("period") or 20.0))
+        cd = ((st.get("eq") or {}).get("result") or {}).get("clock_depth") or {}
+        if fm.get("clk_ff_min") is None and cd.get("ff_min") is not None:
+            # full runs processed before postprocess.py computed it: from the equivalence job
+            for k in ("ff_min", "ff_max", "sram_min", "sram_max", "sram_excess"):
+                fm["clk_" + k] = cd.get(k)
+            fm["clk_warn"] = cd.get("warn")
         pc = (st.get("precheck") or {})
         gl = (st.get("gl") or {})
+        eq = (st.get("eq") or {})
         pcr, glr = pc.get("result") or {}, gl.get("result") or {}
-        if full.get("state") != "done":
-            verdict = "full run %s" % (full.get("state") or "not submitted")
-        elif not fr.get("legal"):
-            verdict = "FAIL (full run: %s)" % "; ".join((fr.get("blockers") or [])[:2])
-        elif pc.get("state") != "done" or gl.get("state") != "done":
-            verdict = "sign-off running"
-        elif pcr.get("pass") and glr.get("not_run"):
-            verdict = "PASS (gate-level tests not run)"
-        else:
-            verdict = "PASS" if (pcr.get("pass") and glr.get("pass")) else "FAIL"
+        verdict, passed = GATES.promotion_verdict(st)
         rows.append({
             "pid": p["pid"], "uid": p["uid"], "reason": p.get("reason"), "run_id": p.get("run_id"),
             "full_jobs": " ".join(s["job_id"] for s in full.get("submits", [])),
@@ -155,26 +165,31 @@ def promo_rows(state, promos):
                                                        glr.get("skipped"), glr.get("failed"))
                    if gl.get("state") == "done" else (gl.get("state") or "-")),
             "gl_jobs": " ".join(s["job_id"] for s in gl.get("submits", [])),
-            "verdict": verdict, "config_changes": p.get("config_changes"), "track": p["track"],
+            "eq": GATES.eq_text(eq), "eq_jobs": " ".join(s["job_id"] for s in eq.get("submits", [])),
+            "clk": CD.text(fm), "verdict": verdict, "passed": passed, "config_changes": p.get("config_changes"),
+            "track": p["track"], "outside": outside_text(state.trials.get(p["uid"]) or {}),
         })
     return rows
 
 
 PROMO_HEAD = ("| promotion | trial | reason | full-run jobs | legal | LVS | min WS | typ / fast / slow WS | "
-              "fmax typ/fast/slow MHz | util | precheck (jobs) | GL (jobs) | verdict |\n"
-              "|---|---|---|---|---|---:|---:|---|---|---:|---|---|---|")
+              "fmax typ/fast/slow MHz | util | clock depth FF / SRAM | precheck (jobs) | GL (jobs) | "
+              "equivalence (jobs) | verdict |\n"
+              "|---|---|---|---|---|---:|---:|---|---|---:|---|---|---|---|---|")
 
 
 def promo_line(r):
-    return "| %s | %s | %s | %s | %s | %s | %s | %s / %s / %s | %s | %s | %s (%s) | %s (%s) | %s |" % (
-        r["pid"], r["uid"], r["reason"], r["full_jobs"] or "-", fmt(r["legal"]), fmt(r["lvs"]), fmt(r["min_ws"], 3),
-        fmt(r["typ_ws"], 3), fmt(r["fast_ws"], 3), fmt(r["slow_ws"], 3), r["fmax"], fmt(r["util"], 4),
-        r["precheck"], r["precheck_jobs"] or "-", r["gl"], r["gl_jobs"] or "-", r["verdict"])
+    uid = r["uid"] + (" (outside the current space: %s)" % r["outside"] if r.get("outside") else "")
+    return "| %s | %s | %s | %s | %s | %s | %s | %s / %s / %s | %s | %s | %s | %s (%s) | %s (%s) | %s (%s) | %s |" % (
+        r["pid"], uid, r["reason"], r["full_jobs"] or "-", fmt(r["legal"]), fmt(r["lvs"]), fmt(r["min_ws"], 3),
+        fmt(r["typ_ws"], 3), fmt(r["fast_ws"], 3), fmt(r["slow_ws"], 3), r["fmax"], fmt(r["util"], 4), r["clk"],
+        r["precheck"], r["precheck_jobs"] or "-", r["gl"], r["gl_jobs"] or "-", r["eq"], r["eq_jobs"] or "-",
+        r["verdict"].replace("|", "/"))
 
 
 HEAD = ("| # | trial | legal | min WS ns (corner) | typ WS | fast WS | slow WS | fmax typ/fast/slow MHz | "
-        "slow worst start | slew/cap/fanout vio | util | job | configuration vs committed |\n"
-        "|---:|---|---|---|---:|---:|---:|---|---|---|---:|---|---|")
+        "slow worst start | slew/cap/fanout vio | util | clock depth FF / SRAM | job | configuration vs committed |\n"
+        "|---:|---|---|---|---:|---:|---:|---|---|---|---:|---|---|---|")
 
 
 def trial_row(i, t, T=None):
@@ -183,12 +198,15 @@ def trial_row(i, t, T=None):
     name = t["uid"].split("#")[1]
     if t.get("imported"):
         name += " (= %s)" % t["imported_from"]
-    return "| %s | %s | %s | %s (%s) | %s | %s | %s | %s | %s | %s/%s/%s | %s | %s | %s |" % (
+    if SPACE.outside(t.get("knobs")):
+        name += " (outside the current space)"
+    return "| %s | %s | %s | %s (%s) | %s | %s | %s | %s | %s | %s/%s/%s | %s | %s | %s | %s |" % (
         i, name, "yes" if t.get("legal") else "no", fmt(m.get("min_ws")), m.get("min_ws_corner") or "-",
         fmt(m.get("typ_setup_ws")), fmt(m.get("fast_setup_ws")), fmt(m.get("slow_setup_ws")),
         "/".join(fmt(m.get("%s_fmax_mhz" % c), 1) for c in OBJ.CORNERS),
         m.get("slow_worst_start") or "-", fmt(m.get("max_slew_vio")), fmt(m.get("max_cap_vio")),
-        fmt(m.get("max_fanout_vio")), fmt(m.get("utilization"), 4), job, knob_summary(t, T).replace("|", "/"))
+        fmt(m.get("max_fanout_vio")), fmt(m.get("utilization"), 4), CD.text(m), job,
+        knob_summary(t, T).replace("|", "/"))
 
 
 def best_text(b):
@@ -221,6 +239,7 @@ def track_section(L, state, tr, T, active):
     ts = state.trials_of(tid)
     done = [t for t in ts if t["state"] == "done"]
     rk = ranked(state, tid)
+    rk_in = ranked(state, tid, in_space=True)
     L.append("## %s" % title(tr))
     L.append("")
     L.append("Track `%s`: core sha256 `%s`, die %s, CLOCK_PERIOD %s ns, weight group %s. Trials: %d new, %d "
@@ -251,8 +270,14 @@ def track_section(L, state, tr, T, active):
     L.append("")
     promos = track_promos(state, tid)
     prows = promo_rows(state, promos)
-    if rk:
-        b = rk[0]
+    if rk and (not rk_in or rk[0]["uid"] != rk_in[0]["uid"]):
+        better = rk[:rk.index(rk_in[0])] if rk_in else rk
+        L.append("Outside the current search space (`space.FIXED`; not promoted, seeded or transferred), %d "
+                 "legal trial(s) rank higher, best `%s` (min WS %s ns; %s)." % (
+                     len(better), rk[0]["uid"], fmt(rk[0]["metrics"].get("min_ws"), 3), outside_text(rk[0])))
+        L.append("")
+    if rk_in:
+        b = rk_in[0]
         L.append(best_text(b))
         L.append("")
         mine = [r for r in prows if r["uid"] in stands_for(state, b)]
@@ -288,7 +313,7 @@ def track_section(L, state, tr, T, active):
                 json_block(L, s2, rm2)
             L.append("")
     else:
-        L.append("No legal trial yet.")
+        L.append("No legal trial inside the current search space yet.")
         L.append("")
     L.append("### Promotions of this track")
     L.append("")
@@ -365,7 +390,7 @@ def summary_row(state, tr, weight):
     tid = tr["track"]
     ts = state.trials_of(tid)
     done = [t for t in ts if t["state"] == "done"]
-    rk = ranked(state, tid)
+    rk = ranked(state, tid, in_space=True)
     m = rk[0]["metrics"] if rk else {}
     return "| `%s` | %s | %s | %s | %s | %d | %d | %d | %d | %s (%s) | %s / %s / %s | %s | %s | %d | %s |" % (
         tid, tr.get("kind") or "legacy", tr.get("tiles") or "8x4", fmt(tr.get("period")), weight,
@@ -392,7 +417,9 @@ def write_md(state, path, jobs=None, stop=None, tree=None, settings=None, tracks
     L.append("Generated %s by tools/opt/report.py from the results store; see docs/optimization.md. "
              "Trial numbers are fast-mode runs (post-route STA at all three corners at the track's CLOCK_PERIOD, "
              "antenna, power-port checks; no LVS; OPENROAD_THREADS 32). Sign-off numbers are promoted full runs "
-             "(OPENROAD_THREADS 4, LVS), the TT precheck and the gate-level tests. fmax estimates are "
+             "(OPENROAD_THREADS 4, LVS), the TT precheck, the gate-level tests and the RTL-vs-netlist equivalence "
+             "check; a promotion's verdict is PASS only if all four pass. Best trials are the best legal ones "
+             "inside the current search space (docs/optimization.md, \"Search space\"). fmax estimates are "
              "1000 / (period - setup WS) per corner (docs/optimization.md, \"Frequency tracks and the SDC\"). "
              "An imported trial is a finished run of an earlier track whose effective configuration is identical; "
              "it keeps that run's job id." % now)
@@ -413,7 +440,8 @@ def write_md(state, path, jobs=None, stop=None, tree=None, settings=None, tracks
     L.append("## Tracks")
     L.append("")
     L.append("| track | kind | die | period ns | weight | new trials | imported | legal | in flight | "
-             "best min WS (corner) | best typ / fast / slow WS | fmax typ/fast/slow MHz | util | promotions | state |")
+             "best min WS in space (corner) | best typ / fast / slow WS | fmax typ/fast/slow MHz | util | "
+             "promotions | state |")
     L.append("|---|---|---|---:|---:|---:|---:|---:|---:|---|---|---|---:|---:|---|")
     nvar = sum(1 for a in active if state.tracks[a].get("kind") == "variant" and not state.tracks[a].get("retired"))
     for a in active:

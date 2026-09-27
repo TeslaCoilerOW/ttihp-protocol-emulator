@@ -178,7 +178,8 @@ KNOBS = {
                                              source="steps/openroad.py (CTS)", why="Leaf cluster diameter (um)."),
     "CTS_MAX_SLEW": dict(kind="cat", choices=[None, 0.4, 0.75, 1.2], unset=None, key="CTS_MAX_SLEW",
                          source="steps/openroad.py (CTS); scripts/openroad/cts.tcl",
-                         why="CTS characterization slew limit (ns); unset = from the lib (2.5 ns)."),
+                         why="CTS characterization slew limit (ns); unset = from the lib (2.5 ns). Not "
+                             "sampled any more: fixed unset (FIXED)."),
     "CTS_MAX_CAP": dict(kind="cat", choices=[None, 0.1, 0.2], unset=None, key="CTS_MAX_CAP",
                         source="steps/openroad.py (CTS); scripts/openroad/cts.tcl",
                         why="CTS characterization capacitance limit (pF); unset = from the lib (0.3 pF)."),
@@ -207,6 +208,18 @@ KNOBS = {
 # from the detailed_route command of the OpenROAD build in the SIF; 64 is the
 # LibreLane default and the only value used since.
 RETIRED = {"DRT_OPT_ITERS": 64}
+
+# Knobs held at one value in every new knob set (docs/optimization.md, "CTS_MAX_SLEW is fixed
+# unset"). suggest() does not sample them and fix() sets them in seeds and transfers; their
+# definition in KNOBS (choices) is unchanged, so every optuna study keeps one distribution per
+# parameter name (optuna refuses a changed categorical choice list) and stored knob sets still
+# validate and still reproduce their own run. A stored trial with another value is outside the
+# current search space (outside()): the driver neither promotes it nor seeds or transfers it.
+# CTS_MAX_SLEW: promotions p025 (0.75) and p026 (1.2), the only two that set it, have SRAM
+# A_CLK pins 15-18 cells from the clk port against 11-13 for the flip-flops; p026 failed 8
+# gate-level tests through a zero-delay simulation race at an SRAM input (p025 did not). Two
+# samples: the evidence names the knob, not a threshold.
+FIXED = {"CTS_MAX_SLEW": None}
 
 ORDER = list(KNOBS)
 # Value of an "explicit" knob that a seed activates without giving it and the base leaves
@@ -260,10 +273,11 @@ def active(name, knobs, D=KNOBS):
 
 
 def suggest(trial, D=KNOBS):
-    """Define-by-run sampling with an optuna Trial. Returns {knob: value} (active knobs only)."""
+    """Define-by-run sampling with an optuna Trial. Returns {knob: value} (active knobs only;
+    FIXED knobs are not sampled and not returned: complete() and fix() supply them)."""
     out = {}
     for n in ORDER:
-        if not active(n, out, D):
+        if n in FIXED or not active(n, out, D):
             continue
         k = D[n]
         if k["kind"] == "cat":
@@ -321,6 +335,24 @@ def complete(partial, base, D=KNOBS):
 def canonical(knobs):
     """Identity of a complete knob set (the effective configuration within a track)."""
     return json.dumps(knobs, sort_keys=True, separators=(",", ":"))
+
+
+def outside(knobs):
+    """{knob: value} of the FIXED knobs a (stored or partial) knob set sets to another value;
+    empty when the knob set is inside the current search space. A knob the set does not
+    state is taken as inside (complete() fills it from the track's base)."""
+    return {n: knobs[n] for n, v in FIXED.items() if knobs and n in knobs and not same(knobs[n], v)}
+
+
+def fix(knobs):
+    """A copy of a complete knob set with every active FIXED knob at its fixed value (for new
+    knob sets only: seeds, transfers, sampled trials; a stored trial keeps the values it ran
+    with)."""
+    out = dict(knobs)
+    for n, v in FIXED.items():
+        if n in out:
+            out[n] = v
+    return out
 
 
 def _num(x):
@@ -493,7 +525,9 @@ def table_rows(base, D=KNOBS):
     rows = []
     for n in ORDER:
         k = D[n]
-        if k["kind"] == "cat":
+        if n in FIXED:
+            vals = "fixed: %s" % ("unset" if FIXED[n] is None else FIXED[n])
+        elif k["kind"] == "cat":
             vals = ", ".join("unset" if c is None else str(c) for c in k["choices"])
         else:
             vals = "%s..%s step %s" % (k["lo"], k["hi"], k["step"])

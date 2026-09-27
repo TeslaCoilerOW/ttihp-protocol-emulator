@@ -84,6 +84,11 @@ def flatten(res, post=None, period=20.0):
     cts = (post.get("resizer") or {}).get("resizertimingpostcts")
     m["rsz_postcts_setup_found"] = (None if cts is None else
                                     not any("RSZ-0098" in l for l in cts))  # RSZ-0098: no setup violations found
+    # clock depth (clockdepth.py): a warning only, not part of legality or the ranking
+    cd = post.get("clock_depth") or {}
+    for k in ("ff_min", "ff_max", "sram_min", "sram_max", "sram_excess"):
+        m["clk_" + k] = cd.get(k)
+    m["clk_warn"] = cd.get("warn")
     return m
 
 

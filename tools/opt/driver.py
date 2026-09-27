@@ -16,15 +16,21 @@ optuna TPE study. It records every trial in the append-only store (store.py),
 imports finished trials of earlier tracks whose effective configuration is
 identical, shares the CPUs between the tracks by weight, retires dominated
 variant tracks, promotes the best configurations of each track to a full-mode
-run with OPENROAD_THREADS 4, the TT precheck and the gate-level cocotb subset,
-and rewrites the leaderboard after every completed trial. It resumes from the
-store after preemption, and resubmits itself before its time limit until the
-budget is spent, the stop date is reached or <opt root>/STOP exists.
+run with OPENROAD_THREADS 4, then the TT precheck, the gate-level cocotb subset
+and the RTL-vs-netlist equivalence check (gates.py: the verdict is PASS only if
+all four pass), and rewrites the leaderboard after every completed trial. It
+resumes from the store after preemption, and resubmits itself before its time
+limit until the budget is spent, the stop date is reached or <opt root>/STOP
+exists. Knobs in space.FIXED are not sampled, and trials that set them to
+another value are not promoted, seeded or transferred.
 
 Environment: PE_WORK (cluster work directory: sram-flow/, variants/,
-drc-triage/, cocotb/, host/), optional PE_OPT_ROOT (default $PE_WORK/optimizer).
-The driver runs from a frozen export of the repository (launch.sh); the
-scripts/sweep, src/, floorplans/ and variants6x4/ it uses are that export's.
+drc-triage/, cocotb/, host/), OSS_CAD_SUITE (yosys and yosys-abc for the
+equivalence check; else PATH), optional PE_OPT_ROOT (default
+$PE_WORK/optimizer), optional PE_EQ_CHECK (overrides the equivalence checker,
+formal_eq/eq_check.py of the frozen tree; eq_job.sh). The driver runs from a
+frozen export of the repository (launch.sh); the scripts/sweep, src/,
+floorplans/, variants6x4/ and formal_eq/ it uses are that export's.
 """
 
 import argparse
@@ -52,6 +58,7 @@ if not os.environ.get("PE_WORK"):
 WORK = os.environ["PE_WORK"]
 OPT = os.environ.get("PE_OPT_ROOT", os.path.join(WORK, "optimizer"))
 
+import gates as GATES  # noqa: E402
 import objective as OBJ  # noqa: E402
 import report as REPORT  # noqa: E402
 import slurm as SL  # noqa: E402
@@ -107,6 +114,15 @@ TRIAL = dict(cpus=32, mem="64G", time="06:00:00", threads=32, mode="fast")
 PFULL = dict(cpus=8, mem="32G", time="11:00:00", threads=4, mode="full")
 PCHECK = dict(cpus=16, mem="48G", time="02:00:00")
 PGL = dict(cpus=4, mem="16G", time="04:00:00")
+# Equivalence check (eq_job.sh -> formal_eq/eq_check.py; docs/equivalence.md section 1): ABC
+# dprove proved the 6x4 netlists (5,139 latches) equivalent in 67-71 s and the 8x4 netlists
+# (7,795 latches) in 349-692 s (p018 alone: 446 s, job 24093888); it gave up (undecided) on a
+# one-gate mutant after 1,708 s. The limit is 3,600 s for ABC, 1,200 s for each yosys step,
+# and 3,600 + 1,200 s for the whole checker. Anything but "equivalent" fails (gates.py); only
+# a time limit is resubmitted, up to MAX_ATTEMPTS jobs in all (gates.eq_should_retry).
+EQ_LIMIT_S = 3600
+EQ_CHECK = os.environ.get("PE_EQ_CHECK") or os.path.join(TREE, "formal_eq", "eq_check.py")
+PEQ = dict(cpus=2, mem="8G", time="01:30:00")
 DRIVER = dict(cpus=2, mem="8G", time="2-00:00:00")
 
 TOP = "tt_um_teslacoilerow_protocol_emulator"
@@ -273,7 +289,7 @@ class Driver(object):
         t = self.T[tid]
         out = [("baseline (committed configuration%s)" % ("" if t.period == 20 else ", CLOCK_PERIOD %g" % t.period),
                 {})]
-        best20 = self.ranked(self.primary) if self.primary else []
+        best20 = self.ranked(self.primary, in_space=True) if self.primary else []
         if t.kind == "6x4":
             out.append(("6x4 point signed off before the p010 adoption (docs/6x4.md)", PRE_ADOPTION_6X4))
             for i, b in enumerate(best20[:SEED_TOP["6x4"]], 1):
@@ -290,10 +306,10 @@ class Driver(object):
         t = self.T[tid]
         out = []
         if rev == 2 and t.kind == "freq":
-            best20 = self.ranked(self.primary)[:SEED_TOP["freq"]] if self.primary else []
+            best20 = self.ranked(self.primary, in_space=True)[:SEED_TOP["freq"]] if self.primary else []
             for i, b in enumerate([{"uid": None, "knobs": {}}] + best20):
                 try:
-                    kn = t.complete(clean_knobs(b["knobs"]))
+                    kn = SPACE.fix(t.complete(clean_knobs(b["knobs"])))
                 except ValueError:
                     continue
                 m = kn["PL_RESIZER_SETUP_SLACK_MARGIN"]
@@ -309,7 +325,7 @@ class Driver(object):
     def legacy_ranked(self, core_sha, tiles):
         """Best legal trials of other tracks (active or not) with this core and die."""
         ts = [t for t in self.state.trials.values() if t["state"] == "done" and t.get("legal") and t.get("metrics")
-              and not t.get("dup_of") and not t.get("imported")
+              and not t.get("dup_of") and not t.get("imported") and not SPACE.outside(t.get("knobs"))
               and self.state.tracks.get(t["track"], {}).get("core_sha256") == core_sha
               and (self.state.tracks[t["track"]].get("tiles") or "8x4") == tiles]
         return sorted(ts, key=lambda t: OBJ.key(t["metrics"], True), reverse=True)
@@ -320,8 +336,8 @@ class Driver(object):
         seen = set()
         for label, partial in seeds:
             try:
-                kn = T.complete(clean_knobs(partial)) if T.space == "8x4" or not partial else \
-                    SPACE.translate(clean_knobs(partial), T.base, T.D)
+                kn = SPACE.fix(T.complete(clean_knobs(partial)) if T.space == "8x4" or not partial else
+                               SPACE.translate(clean_knobs(partial), T.base, T.D))
             except ValueError as e:
                 log("seed %s for %s skipped: %s" % (label, track, e))
                 continue
@@ -431,11 +447,16 @@ class Driver(object):
                   config_changes=T.diff_vs_repo(kn), source_config_changes=s.get("config_changes"))
 
     # ------------------------------------------------------------ bookkeeping helpers
-    def ranked(self, track, legal_only=True):
+    def ranked(self, track, legal_only=True, in_space=False):
+        """Finished trials of a track, best first. in_space: only trials inside the current
+        search space (no FIXED knob at another value, space.outside()); those are the ones
+        the driver promotes, seeds and transfers."""
         ts = [t for t in self.state.trials_of(track) if t["state"] == "done" and not t.get("lost")
               and t.get("metrics") and not t.get("dup_of")]
         if legal_only:
             ts = [t for t in ts if t.get("legal")]
+        if in_space:
+            ts = [t for t in ts if not SPACE.outside(t.get("knobs"))]
         return sorted(ts, key=lambda t: OBJ.key(t["metrics"], t.get("legal")), reverse=True)
 
     def chain(self, t):
@@ -471,6 +492,8 @@ class Driver(object):
         env = ["ALL", "PE_WORK=" + WORK, "PE_OPT_ROOT=" + OPT, "PE_HARNESS=" + os.path.join(TREE, "scripts", "sweep"),
                "PE_OPT_HARNESS=" + HERE, "PE_FLOW_ROOT=" + os.path.join(WORK, "sram-flow"),
                "PE_OPT_PY=" + os.path.join(OPT, "venv", "bin", "python")]
+        if os.environ.get("OSS_CAD_SUITE"):  # yosys/yosys-abc of the equivalence check (eq_job.sh)
+            env.append("OSS_CAD_SUITE=" + os.environ["OSS_CAD_SUITE"])
         for k, v in (extra or {}).items():
             env.append("%s=%s" % (k, v))
         return "--export=" + ",".join(env)
@@ -522,13 +545,13 @@ class Driver(object):
         track once per distinct best."""
         if track == self.primary or not self.primary:
             return
-        ranked = self.ranked(self.primary)
+        ranked = self.ranked(self.primary, in_space=True)
         if not ranked:
             return
         T = self.T[track]
         try:
-            kn = (T.complete(clean_knobs(ranked[0]["knobs"])) if T.space == "8x4"
-                  else SPACE.translate(clean_knobs(ranked[0]["knobs"]), T.base, T.D))
+            kn = SPACE.fix(T.complete(clean_knobs(ranked[0]["knobs"])) if T.space == "8x4"
+                           else SPACE.translate(clean_knobs(ranked[0]["knobs"]), T.base, T.D))
         except ValueError:
             return
         key = SPACE.canonical(kn)
@@ -542,7 +565,7 @@ class Driver(object):
         for ft in study.get_trials(deepcopy=False, states=(optuna.trial.TrialState.WAITING,)):
             fixed = (ft.system_attrs or {}).get("fixed_params") or {}
             try:
-                if SPACE.canonical(T.complete(fixed)) == key:
+                if SPACE.canonical(SPACE.fix(T.complete(fixed))) == key:
                     return  # already queued (a seed)
             except ValueError:
                 continue
@@ -556,7 +579,8 @@ class Driver(object):
         uid = "%s#%d" % (track, trial.number)
         label = trial.user_attrs.get("label") or "sampled"
         try:
-            knobs = T.complete(SPACE.suggest(trial, T.D))
+            # FIXED knobs are not sampled; fix() also overrides them in a queued seed or transfer
+            knobs = SPACE.fix(T.complete(SPACE.suggest(trial, T.D)))
         except ValueError as e:
             self.emit("trial_new", uid=uid, track=track, number=trial.number, label=label, knobs=None, snap=None,
                       overrides=None, run_id=None, run_dir=None, tree=self.tinfo)
@@ -712,10 +736,13 @@ class Driver(object):
             self.promo_skip.add(t["uid"])
             self.emit("note", text="promotion of %s not built: %s" % (t["uid"], str(e)[:300]))
             return None
+        m = t.get("metrics") or {}
+        warn = ("clock depth: SRAM A_CLK up to %s cells, flip-flop CLK from %s (excess %s)"
+                % (m.get("clk_sram_max"), m.get("clk_ff_min"), m.get("clk_sram_excess"))) if m.get("clk_warn") else None
         self.emit("promo_new", pid=pid, uid=t["uid"], track=track, reason=reason, run_id=params["run_id"],
-                  run_dir=run_dir, config_changes=params.get("config_changes_vs_repo"))
+                  run_dir=run_dir, config_changes=params.get("config_changes_vs_repo"), warning=warn)
         self.submit_promo_full(self.state.promos[pid], attempt=1)
-        log("promotion %s of %s (%s)" % (pid, t["uid"], reason))
+        log("promotion %s of %s (%s)%s" % (pid, t["uid"], reason, "; WARNING " + warn if warn else ""))
         return pid
 
     def submit_promo_full(self, p, attempt):
@@ -747,37 +774,57 @@ class Driver(object):
                     shutil.copyfile(info, os.path.join(self.promo_dir(p["pid"]), "info.yaml"))
                 self.after_run(p["run_dir"], full["job_id"], keep_snap=False)
                 self.dirty = True
-            for stage in ("precheck", "gl"):
+            for stage in GATES.SIGNOFF:
                 s = st.get(stage)
                 if s and s.get("state") == "submitted":
                     if s["job_id"] in jobs and jobs[s["job_id"]]["state"] in SL.ACTIVE:
                         continue
                     res = self.read_signoff(p, stage, s["job_id"])
+                    if res is not None and stage == "eq" and GATES.eq_should_retry(res, s.get("attempt", 1),
+                                                                                     MAX_ATTEMPTS):
+                        # a time limit can come from a loaded node (ABC on p018's netlist: 446 s
+                        # alone, 692 s next to its self-test); undecided, "not equivalent" and
+                        # errors are final
+                        log("promotion %s eq: time limit in job %s (%s); resubmitting"
+                            % (p["pid"], s["job_id"], res.get("reason")))
+                        try:
+                            self.submit_signoff(p, stage, s.get("attempt", 1) + 1)
+                            continue
+                        except (IOError, OSError) as e:
+                            res = {"pass": False, "error": str(e)[:300]}
                     if res is None:
                         acct = SL.sacct([s["job_id"]]).get(str(s["job_id"]), {})
                         ago = SL.ended_seconds_ago(acct.get("end"))
                         if ago is None or ago < RESULT_GRACE_S:
                             continue
                         if s.get("attempt", 1) < MAX_ATTEMPTS:
-                            self.submit_signoff(p, stage, s.get("attempt", 1) + 1)
-                            continue
-                        res = {"pass": False, "error": "no result from job %s" % s["job_id"]}
+                            try:
+                                self.submit_signoff(p, stage, s.get("attempt", 1) + 1)
+                                continue
+                            except (IOError, OSError) as e:
+                                res = {"pass": False, "error": str(e)[:300]}
+                        else:
+                            res = {"pass": False, "error": "no result from job %s" % s["job_id"]}
                     self.emit("promo_done", pid=p["pid"], stage=stage, result=res)
-                    log("promotion %s %s: pass %s" % (p["pid"], stage, res.get("pass")))
+                    log("promotion %s %s: pass %s%s" % (p["pid"], stage, res.get("pass"),
+                                                        " (%s)" % res.get("reason") if stage == "eq" else ""))
                     if stage == "precheck":
                         for g in glob.glob(os.path.join(self.promo_dir(p["pid"]), "sub", "*.gds")):
                             os.remove(g)  # the gzip copy stays in the run's out/final
                     self.dirty = True
 
-    def prepare_sub(self, p):
-        """Submission-like directory for the precheck and the GL test: info.yaml, GDS, LEF and
-        the unpowered final netlist (what the gds action puts in tt_submission/)."""
+    def prepare_sub(self, p, need=("gds", "lef", "v")):
+        """Submission-like directory for the precheck, the GL test and the equivalence check:
+        info.yaml, GDS, LEF and the unpowered final netlist (what the gds action puts in
+        tt_submission/). need: the files a stage uses (the equivalence check: the netlist)."""
         d = self.promo_dir(p["pid"])
         sub = os.path.join(d, "sub")
         os.makedirs(sub, exist_ok=True)
-        if not os.path.exists(os.path.join(sub, "info.yaml")):
+        if "gds" in need and not os.path.exists(os.path.join(sub, "info.yaml")):
             shutil.copyfile(os.path.join(d, "info.yaml"), os.path.join(sub, "info.yaml"))
         for src, ext in (("gds/%s.gds.gz", "gds"), ("lef/%s.lef.gz", "lef"), ("nl/%s.nl.v.gz", "v")):
+            if ext not in need:
+                continue
             dst = os.path.join(sub, "%s.%s" % (TOP, ext))
             if os.path.exists(dst):
                 continue
@@ -792,21 +839,59 @@ class Driver(object):
         for p in self.state.promos.values():
             full = p["stages"].get("full") or {}
             if full.get("state") == "done" and (full.get("result") or {}).get("legal"):
-                for stage in ("precheck", "gl"):
+                # promotions from before the equivalence stage existed get it too (backfill)
+                for stage in GATES.SIGNOFF:
                     if stage not in p["stages"]:
                         out.append((p, stage))
         return out
 
+    def eq_inputs(self, p):
+        """What the promotion's full run was built from, for the equivalence check:
+        {core, core_sha, tree, variant, pdk_root, pdk_source}. The core copy and the frozen
+        tree come from its params.json (make_snapshot records both), else the track record and
+        the driver's tree; the variant is the track's (as for the gate-level tests); the PDK
+        root is the one LibreLane used (out/resolved.json PDK_ROOT), else the one
+        make_snapshot recorded (params.json flow.pdk_root), else the sweep harness's default
+        ($PE_PDK_ROOT, else $PE_WORK/sram-flow/pdk, as scripts/sweep/run_one.sh)."""
+        params = load_json(os.path.join(p["run_dir"], "params.json"), {}) or {}
+        tr = self.state.tracks.get(p["track"]) or {}
+        core = params.get("core_path") or params.get("core") or tr.get("core")
+        sha = params.get("core_sha256") or tr.get("core_sha256")
+        tree = (params.get("repo") or {}).get("path") or TREE
+        if not core or not os.path.exists(core):
+            raise IOError("core %s of %s not found" % (core, p["pid"]))
+        if not os.path.exists(os.path.join(tree, "src", "project.v")):
+            tree = TREE
+        variant = tr.get("gl_variant") or ("base" if tr.get("primary") else tr.get("name")) or "base"
+        resolved = load_json(os.path.join(p["run_dir"], "out", "resolved.json"), {}) or {}
+        flow = params.get("flow") if isinstance(params.get("flow"), dict) else {}
+        if resolved.get("PDK_ROOT"):
+            pdk, how = resolved["PDK_ROOT"], "out/resolved.json PDK_ROOT"
+        elif flow.get("pdk_root"):
+            pdk, how = flow["pdk_root"], "params.json flow.pdk_root"
+        else:
+            pdk = os.environ.get("PE_PDK_ROOT") or os.path.join(WORK, "sram-flow", "pdk")
+            how = "sweep default"
+        return {"core": core, "core_sha": sha, "tree": tree, "variant": variant, "pdk_root": pdk,
+                "pdk_source": how}
+
     def submit_signoff(self, p, stage, attempt):
         d = self.promo_dir(p["pid"])
-        need = PCHECK["cpus"] if stage == "precheck" else PGL["cpus"]
-        if self.free < need:
+        res = {"precheck": PCHECK, "gl": PGL, "eq": PEQ}[stage]
+        if self.free < res["cpus"]:
             return None
-        sub = self.prepare_sub(p)
+        if stage == "eq":
+            ei = self.eq_inputs(p)
+        sub = self.prepare_sub(p, need=("v",) if stage == "eq" else ("gds", "lef", "v"))
         out = os.path.join(d, stage + (".a%d" % attempt if attempt > 1 else ""))
         os.makedirs(out, exist_ok=True)
         if stage == "precheck":
             jid = self.submit("pchk-%s" % p["pid"], PCHECK, os.path.join(HERE, "precheck_job.sh"), [sub, out],
+                              signal=False)
+        elif stage == "eq":
+            jid = self.submit("peq-%s" % p["pid"], PEQ, os.path.join(HERE, "eq_job.sh"),
+                              [os.path.join(sub, TOP + ".v"), ei["core"], ei["core_sha"] or "-", ei["tree"], out,
+                               str(EQ_LIMIT_S), ei["variant"], ei["pdk_root"], ei["pdk_source"]],
                               signal=False)
         else:
             tr = self.state.tracks[p["track"]]
@@ -837,8 +922,10 @@ class Driver(object):
         return [p for p in self.state.promos.values() if p["track"] == track or p["uid"] in uids]
 
     def maybe_promote(self, budget_left):
+        # the equivalence stage (2 CPUs, at most 90 min) does not count: its backfill on the
+        # promotions made before it existed must not hold up new promotions
         inflight = [p for p in self.state.promos.values()
-                    if any(s.get("state") == "submitted" for s in p["stages"].values())]
+                    if any(s.get("state") == "submitted" for k, s in p["stages"].items() if k != "eq")]
         if len(inflight) >= MAX_PROMOS_IN_FLIGHT or budget_left <= 0:
             return
         real = self.promoted_uids()
@@ -848,7 +935,9 @@ class Driver(object):
             tr = self.state.tracks[track]
             if tr.get("retired"):
                 continue
-            ranked = self.ranked(track)
+            # only trials inside the current search space are promoted (space.FIXED), and only
+            # their promotions set the bar a new best must clear
+            ranked = self.ranked(track, in_space=True)
             done = [t for t in self.state.trials_of(track) if t["state"] == "done" and not t.get("dup_of")]
             # control: the committed build of the design of record and of the 6x4 fallback goes
             # through the pipeline once (unless an identical configuration already has)
@@ -862,7 +951,7 @@ class Driver(object):
                 continue
             best = ranked[0]
             prom = [t for t in done if self.chain(t) & real and t.get("metrics")
-                    and t["metrics"].get("min_ws") is not None]
+                    and t["metrics"].get("min_ws") is not None and not SPACE.outside(t.get("knobs"))]
             prom_ws = [t["metrics"]["min_ws"] for t in prom]
             if not (self.chain(best) & promoted) and \
                     (not prom_ws or best["metrics"]["min_ws"] > max(prom_ws) + PROMO_MIN_GAIN):
@@ -1101,6 +1190,9 @@ class Driver(object):
                   dry_run=self.dry, settings=settings())
         log("driver start: job %s tree %s tools %s" % (self.job_id, self.tinfo.get("commit"),
                                                        self.tinfo.get("tools_sha8")))
+        log("equivalence checker %s (%s); OSS_CAD_SUITE %s" % (
+            EQ_CHECK, "present" if os.path.isfile(EQ_CHECK) else "MISSING: every equivalence stage will fail",
+            os.environ.get("OSS_CAD_SUITE") or "unset (yosys from PATH)"))
         self.discover_tracks()
         self.last_scan = time.time()
         self.reconcile()
@@ -1161,7 +1253,9 @@ def settings():
                        "util_margin": RETIRE_UTIL_MARGIN},
             "promotion": {"max_in_flight": MAX_PROMOS_IN_FLIGHT, "min_trials": PROMO_MIN_TRIALS,
                           "periodic_every": PERIODIC_EVERY, "min_gain_ns": PROMO_MIN_GAIN},
-            "trial": TRIAL, "promotion_full": PFULL, "precheck": PCHECK, "gl": PGL, "partitions": PARTITIONS,
+            "trial": TRIAL, "promotion_full": PFULL, "precheck": PCHECK, "gl": PGL,
+            "eq": dict(PEQ, limit_s=EQ_LIMIT_S, checker=EQ_CHECK, oss_cad_suite=os.environ.get("OSS_CAD_SUITE")),
+            "fixed_knobs": SPACE.FIXED, "partitions": PARTITIONS,
             "job_prefix": JOB_PREFIX}
 
 

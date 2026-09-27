@@ -2,12 +2,16 @@
 # SPDX-License-Identifier: Apache-2.0
 # Freeze the inputs of the optimizer and submit its driver job (docs/optimization.md).
 #
-#   PE_WORK=<cluster work dir> tools/opt/launch.sh [--commit REV] [--no-submit]
+#   PE_WORK=<cluster work dir> OSS_CAD_SUITE=<OSS CAD Suite root> tools/opt/launch.sh [--commit REV] [--no-submit]
 #
+# 0. checks that REV has formal_eq/eq_check.py (the equivalence checker of the
+#    promotion stage, unless $PE_EQ_CHECK overrides it) and that yosys and yosys-abc
+#    are in $OSS_CAD_SUITE/bin (else on PATH); the driver passes OSS_CAD_SUITE to its
+#    jobs;
 # 1. exports the committed tree REV (default HEAD) with `git archive` to
 #    $PE_WORK/optimizer/tree/<commit12>-<tools sha8>/: src/, macros/, floorplans/,
-#    scripts/sweep/ and test/ come from the commit, never from the working tree
-#    (other work may be in progress there);
+#    scripts/sweep/, test/ and formal_eq/ come from the commit, never from the
+#    working tree (other work may be in progress there);
 # 2. overlays tools/opt/ from the working tree (the optimizer itself, which may be
 #    newer than REV) and records both in OPT_TREE.json;
 # 3. points $PE_WORK/optimizer/current at that tree;
@@ -29,6 +33,25 @@ while [ $# -gt 0 ]; do
   esac
 done
 COMMIT=$(git -C "$REPO" rev-parse "$REV")
+if [ -n "${PE_EQ_CHECK:-}" ]; then
+  echo "WARNING: PE_EQ_CHECK=$PE_EQ_CHECK overrides formal_eq/eq_check.py of the frozen tree" >&2
+elif ! git -C "$REPO" cat-file -e "$COMMIT:formal_eq/eq_check.py" 2>/dev/null; then
+  echo "commit $COMMIT has no formal_eq/eq_check.py: every equivalence stage would fail; commit formal_eq/ first" >&2
+  exit 2
+fi
+if [ -n "$(git -C "$REPO" status --porcelain -- formal_eq)" ]; then
+  echo "note: formal_eq/ has uncommitted changes; the frozen tree uses the version of $COMMIT" >&2
+fi
+if [ -n "${OSS_CAD_SUITE:-}" ]; then
+  for b in yosys yosys-abc; do
+    [ -x "$OSS_CAD_SUITE/bin/$b" ] || { echo "OSS_CAD_SUITE=$OSS_CAD_SUITE has no bin/$b" >&2; exit 2; }
+  done
+elif command -v yosys >/dev/null 2>&1 && command -v yosys-abc >/dev/null 2>&1; then
+  echo "note: OSS_CAD_SUITE is unset; the equivalence jobs take yosys from PATH ($(command -v yosys))" >&2
+else
+  echo "set OSS_CAD_SUITE to the OSS CAD Suite root (yosys and yosys-abc of the equivalence stage)" >&2
+  exit 2
+fi
 TOOLS_SHA=$(cd "$HERE" && cat $(ls *.py *.sh README.md | sort) | sha256sum | cut -c1-8)
 NAME=${COMMIT:0:12}-$TOOLS_SHA
 T=$OPT/tree/$NAME
@@ -40,8 +63,9 @@ if [ ! -d "$T" ]; then
   cp -p "$HERE"/*.py "$HERE"/*.sh "$HERE"/README.md "$tmp/tools/opt/"
   chmod +x "$tmp"/tools/opt/*.sh "$tmp"/scripts/sweep/*.sh
   dirty=$(git -C "$REPO" status --porcelain -- tools/opt | wc -l)
-  printf '{"commit": "%s", "tools_sha8": "%s", "tools_uncommitted_files": %s, "exported": "%s"}\n' \
-    "$COMMIT" "$TOOLS_SHA" "$dirty" "$(date -Is)" > "$tmp/OPT_TREE.json"
+  eqsha=$(sha256sum "$tmp/formal_eq/eq_check.py" 2>/dev/null | cut -c1-64 || true)
+  printf '{"commit": "%s", "tools_sha8": "%s", "tools_uncommitted_files": %s, "eq_check_sha256": "%s", "exported": "%s"}\n' \
+    "$COMMIT" "$TOOLS_SHA" "$dirty" "$eqsha" "$(date -Is)" > "$tmp/OPT_TREE.json"
   mv "$tmp" "$T"   # never modified afterwards (running jobs use it)
 fi
 ln -sfn "tree/$NAME" "$OPT/current.new" && mv -T "$OPT/current.new" "$OPT/current"

@@ -20,8 +20,8 @@ Events (field "ev"):
                  track whose effective configuration is identical, recorded without a new run)
   track_retire   track, reason                (no new trials; docs/optimization.md, "Retirement")
   track_seeds    track, revision              (the track's seed queue includes that revision's seeds)
-  promo_new      pid, uid, track, reason, run_id, run_dir
-  promo_submit   pid, stage (full|precheck|gl), job_id, attempt
+  promo_new      pid, uid, track, reason, run_id, run_dir, warning (clock depth, if any)
+  promo_submit   pid, stage (full|precheck|gl|eq), job_id, attempt
   promo_done     pid, stage, result
   note           text
 """
