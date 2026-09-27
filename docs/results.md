@@ -355,6 +355,21 @@ Reproduce: `formal_depth/run.sh generate`, then
 `FD_PARALLEL=8 formal_depth/run.sh local <work dir> --only '<regex>'`
 without Slurm. The heavy classes need up to 32 GB per task.
 
+**RTL-vs-netlist equivalence (`formal_eq/`, local and in the optimizer's
+promotions; not in CI; see [equivalence.md](equivalence.md)).** Yosys builds a
+miter of the RTL (`src/project.v` plus the variant's core) and the gate-level
+netlist, with cell functions from the standard-cell liberty, the eight SRAM
+macros as cut points and reset forced in the first cycle; ABC `dprove`
+decides it. Only "equivalent" passes; "not equivalent", "undecided", a time
+limit or an error fail. The Tiny Tapeout flow does not compare its netlist
+with the RTL (LVS compares the layout with the netlist).
+
+| # | Claim | Stated in | Evidence | Reproduce |
+|---|---|---|---|---|
+| R90 | The netlists of the official builds are equivalent to their RTL: 8x4 at 15 ns (run 36298635436, `d76f1cc`; ABC 692 s), 6x4 (run 36298635404; 67 s) and 8x4 at 20 ns (run 36257636798, `131e793`; 349 s). In each run the self-test also passed: the recipe controls and two mutated netlists (one cell function changed, two SRAM data pins swapped), which were found not equivalent | [equivalence.md](equivalence.md) | Slurm jobs 24093884, 24093883 and 24093885 (`<work dir>/eq-repo/runs-final/*/result.json`, verdict `equivalent`, exit 0; the netlist sha256 in each equals the artifact's). A third mutant (one random cell) stayed undecided after 1,708 s (job 24093081), which the gate counts as a failure | `python3 formal_eq/eq_check.py check --run-dir <tt_submission artifact> --variant base\|diet4 --selftest` ([formal_eq/README.md](../formal_eq/README.md)); about 2 to 13 min on one CPU |
+| R91 | The first recipe (`miter -equiv -ignore_gold_x` followed by `setundef -zero`) was unsound: it compared an output bit only where the RTL value was 1. Its earlier "equivalent" results were not proofs and are superseded by R90. The packaged recipe drops the flag and adds nine recipe controls, including the two cases the old recipe misclassified | [equivalence.md](equivalence.md) | Ablation job 24094085 (`<work dir>/eq-repo/ablation/ablation.json`): with the old recipe, controls c1 (gate `a\|b` against gold `a`) and c4 (a difference after 13 cycles) were reported equivalent; with the packaged recipe all nine controls meet their expectation | `python3 formal_eq/eq_check.py controls` |
+| R92 | The gate-level failure of optimizer promotion p026 (6x4; 8 of 102 tests) is a race in the zero-delay simulation, not a logic change: its netlist is equivalent to the RTL, the SRAM clock branch is 15 to 18 buffers deep against 11 to 13 for the flip-flops, and with the SRAM clock pins tied to `clk` the gate-level subset passes (46 pass, 0 fail). Real timing is the other way round (SRAM clock latency 0.796 ns against up to 1.478 ns at the flip-flops, fast corner) | [equivalence.md](equivalence.md); [optimization.md](optimization.md) | Equivalence job 24093886; simulations 24085496 and 24086215; clock report 24087092 (`<work dir>/gleq/`) | Cluster |
+
 ## 5. Static timing analysis of the firmware
 
 | # | Claim | Stated in | Evidence | Reproduce |

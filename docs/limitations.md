@@ -269,6 +269,15 @@ processor, under these assumptions:
 
 ## 5. Physical implementation
 
+- **Netlist equivalence has a stated scope.** `formal_eq/` proves that the
+  official netlists compute the same outputs as the RTL (results.md R90),
+  but not the SRAM macros (they are cut points), the match between a cell's
+  liberty function and its layout, timing, or behaviour from power-up
+  values other than 0 of the 2,048 register bits of the base core that no
+  reset initialises. It runs locally and in the optimizer's promotions, not
+  in CI (`formal_eq/ci-proposal.yaml` is an inactive proposal). A netlist
+  mutant with one random cell changed stayed undecided, so the check fails
+  closed on "undecided" ([equivalence.md](equivalence.md)).
 - **Magic DRC is not run in the official flow.** `RUN_MAGIC_DRC` is false
   since `1e2cfb3`. The Tiny Tapeout precheck's KLayout SG13CMOS5L deck is
   the DRC gate, and it passed. The Magic markers of earlier local runs were

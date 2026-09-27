@@ -73,6 +73,7 @@ tiles, LibreLane 3.1.0.dev3.
 | Hold | Local: met at every corner (worst +0.165 ns, fast corner); the same at 20 ns | met at every corner (worst +0.11 ns, fast corner) | met at every corner (worst +0.11 ns, fast corner) |
 | precheck | Official: in progress. Local (job 24053971): 9/9, including the KLayout SG13CMOS5L DRC and the pin check | PASS, including the KLayout SG13CMOS5L DRC and the pin check | PASS |
 | gl_test | Official: in progress. Local (job 24053972): 102 tests, 46 pass, 56 skipped by design at gate level, 0 fail | PASS: 102 tests, 46 pass, 56 skipped by design at gate level, 0 fail | PASS: 66 tests, 36 pass, 30 skipped, 0 fail |
+| Netlist vs RTL equivalence (not a TT check) | Official netlist proven equivalent to the RTL with `formal_eq/` (local job 24093884; [docs/equivalence.md](docs/equivalence.md)) | Official netlist proven equivalent (local job 24093885) | not checked |
 | test, formal, regen, docs | Official: PASS on `d76f1cc`: 102/102 cocotb tests on RTL; all 16 SymbiYosys jobs meet their expectation | PASS on `131e793`: 102/102 cocotb tests on RTL; all 16 SymbiYosys jobs meet their expectation (proofs pass, both negative controls fail) | PASS on `c118027` with the 66-test suite |
 
 The flow fails on a setup violation at the typical corner or a hold
@@ -166,6 +167,7 @@ Milestones:
 | `firmware/` | Assembled firmware images and sources, plus `flagship-scenario.json` |
 | `test/` | cocotb tests, lockstep reference model (`test/model/`) and protocol peers |
 | `formal/` | SymbiYosys harnesses and `run.sh` |
+| `formal_eq/` | RTL-vs-netlist sequential equivalence of a hardened netlist ([docs/equivalence.md](docs/equivalence.md)) |
 | `macros/` | Vendored IHP SRAM views (GDS, LEF, Liberty, CDL) |
 | `models/` | IHP SRAM behavioral simulation models and an interface-only blackbox |
 | `scripts/` | `generate.sh` (Hardcaml to Verilog), `lint.sh`, pinned opam packages |
