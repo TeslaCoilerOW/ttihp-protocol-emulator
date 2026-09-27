@@ -278,8 +278,9 @@ processor, under these assumptions:
   but not the SRAM macros (they are cut points), the match between a cell's
   liberty function and its layout, timing, or behaviour from power-up
   values other than 0 of the 2,048 register bits of the base core that no
-  reset initialises. It runs locally and in the optimizer's promotions, not
-  in CI (`formal_eq/ci-proposal.yaml` is an inactive proposal). A netlist
+  reset initialises. It runs locally, in the optimizer's promotions and in
+  CI after every `gds` and `gds_6x4` build (`.github/workflows/equiv.yaml`;
+  [equivalence.md](equivalence.md) section 7). A netlist
   mutant with one random cell changed stayed undecided, so the check fails
   closed on "undecided" ([equivalence.md](equivalence.md)).
 - **Magic DRC is not run in the official flow.** `RUN_MAGIC_DRC` is false

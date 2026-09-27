@@ -301,26 +301,69 @@ Per case, the directory `OUT/<case>/` (`netlist`, `mutA`, `mutC`,
 `controls/<name>/case`) holds the yosys scripts and logs, `miter.aig` and
 `abc.log`. `OUT/gold/` holds the RTL build.
 
-## CI proposal
+## CI
 
-[`ci-proposal.yaml`](ci-proposal.yaml) is a proposed workflow. It is
-deliberately not in `.github/workflows/`, so it is not active.
+[`.github/workflows/equiv.yaml`](../.github/workflows/equiv.yaml) (workflow
+`equivalence`) runs this check on GitHub.
 
-- **Trigger.** It runs after a `gds` or `gds_6x4` run, or by hand with a
-  run id.
-- **Artifact.** It downloads that run's `tt_submission` artifact.
-- **PDK.** It fetches only the standard-cell liberty directory of the
-  revision in `pdk.json`, by partial clone and sparse checkout: 13 MB on
-  disk, 1 s in a test on the cluster login node. It writes the same
-  `SOURCES` line as Tiny Tapeout's installer.
-- **Tools.** It sets up OSS CAD Suite 2026-07-29.
-- **Check.** It runs the unit tests, then `check --selftest --jobs 2
-  --timeout 2700` on the built commit. It fails unless the verdict is
-  `equivalent`, every control passed, and the artifact's `src/` equals the
-  checkout.
+- **When.** After every `gds` or `gds_6x4` run whose `gds` job succeeded
+  (`workflow_run`), and by hand with a run id (`workflow_dispatch`, input
+  `run_id`). The run's own conclusion is not used, because a `gds` run ends
+  `failure` when only its `viewer` job fails and a `gds_6x4` run can be
+  cancelled by a newer push after its `gds` job succeeded. The workflow sets the variant:
+  `gds` gives `base`, `gds_6x4` gives `diet4`.
+- **Where results appear.** A run started by `workflow_run` is listed under
+  the default branch's latest commit, not under the built commit; its job
+  summary names the built commit and the `gds` run. When the `gds` job of
+  the triggering run did not succeed, the `check` job is skipped and the
+  equivalence run shows as successful although nothing was checked.
+- **`select` job.** It reads the run, its jobs and its artifacts from the
+  API. It requires all of the following:
+  - a completed run of this repository, of `gds.yaml` or `gds_6x4.yaml`,
+    started by `push` or `workflow_dispatch`;
+  - a `gds` job that succeeded;
+  - an unexpired `tt_submission` artifact built from the run's head commit,
+    with a sha256 digest.
 
-The evaluation, with a runtime estimate for a 4-vCPU runner, is in
-docs/equivalence.md, section 7.
+  After `workflow_run`, a run whose `gds` job did not succeed is skipped and
+  the `check` job shows as skipped. After `workflow_dispatch`, such a run
+  fails the job.
+- **`check` job.** Each step must pass, in this order:
+  1. It checks out `formal_eq/` from the workflow's own commit, and only
+     `src/` and `variants6x4/` of the built commit.
+  2. It downloads only that artifact and checks the zip against the digest
+     the API reports.
+  3. `pdk.json` must name `ihp-sg13cmos5l` and a revision listed in
+     `LIBERTY_PINS`. `commit_id.json` must name the built commit.
+  4. The artifact's `src/project.v` and `src/protocol_emulator_core.v` must
+     equal the built commit's RTL (`cmp`).
+  5. It fetches only the typical liberty file of that revision (partial
+     clone, one-file sparse checkout). It checks the commit and the pinned
+     sha256. `eq_check.py` reads the revision from that checkout's HEAD.
+  6. It downloads OSS CAD Suite 2026-07-29 and checks the archive against a
+     pinned sha256.
+  7. It runs the unit tests. A skipped test fails the step.
+  8. It runs `check --selftest --jobs 2 --timeout 3600`, which must exit 0.
+  9. `result.json` must show: verdict `equivalent`, self-test passed,
+     `artifact_src_matches` true for both files, the built commit, the
+     pinned PDK revision and liberty sha256, and `formal_eq/` at the
+     workflow's commit, unmodified.
+- **Output.** A job summary: verdict, self-test, ABC time, netlist sha256,
+  commit, run link, artifact digest, PDK and tool commit. The artifact
+  `equivalence-<run id>-<variant>` holds `result.json`, the logs and the
+  netlist's `miter.aig`.
+- **Hardening.**
+  - The permissions are `contents: read` and `actions: read`.
+  - Event, input, API and artifact values reach scripts only through
+    `env:`. Each is matched against a strict pattern before use.
+  - Actions are pinned by commit, and checkouts keep no credentials.
+  - Concurrency is one check per built commit and variant. A running check
+    is never cancelled; a newer queued check replaces a waiting one.
+  - The time limit is 120 min for `check` and 10 min for `select`.
+
+Before activation, every step was run on the cluster by an emulator that
+executes the workflow's `run:` scripts verbatim. The results, the negative
+cases and the runtime estimate are in docs/equivalence.md, section 7.
 
 ## Files
 
@@ -331,4 +374,3 @@ docs/equivalence.md, section 7.
 | `controls/c*.v` | recipe controls (gold and `PE_GATE` versions, expected verdict in the header) |
 | `slurm_job.sh` | optional Slurm body for `eq_check.py check` |
 | `test_eq_check.py` | unit tests (parsers, preconditions, mutations, verdict mapping, inputs; the controls when yosys is found) |
-| `ci-proposal.yaml` | the proposed GitHub Actions workflow (inactive) |

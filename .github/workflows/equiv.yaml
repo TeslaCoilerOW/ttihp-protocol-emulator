@@ -1,0 +1,376 @@
+name: equivalence
+# RTL-vs-netlist sequential equivalence (formal_eq/, docs/equivalence.md) of
+# the netlist in the tt_submission artifact of a gds or gds_6x4 run: after
+# every such run whose gds job succeeded (workflow_run), or for a given run id
+# (workflow_dispatch). gds -> variant base (8x4), gds_6x4 -> variant diet4
+# (6x4). It never changes the triggering run or any other workflow.
+#
+# Fail closed: the check job passes only when formal_eq/eq_check.py proves the
+# netlist equivalent to the RTL of the built commit (exit 0), both netlist
+# mutants and every recipe control meet their expected verdict (--selftest),
+# and the artifact's src/ equals the built commit's RTL.
+#
+# Trust:
+# - formal_eq/ is taken from this workflow's own commit (the default branch
+#   for workflow_run). The built commit supplies only the RTL (src/ and
+#   variants6x4/), checked out sparsely into rtl/.
+# - Values from the event, the inputs, the GitHub API and the artifact reach
+#   scripts only through env: and are matched against a strict pattern before
+#   use. Nothing from the artifact is executed.
+# - The artifact zip is checked against the sha256 digest the API reports;
+#   the liberty file and the OSS CAD Suite archive against the pins below.
+
+on:
+  workflow_run:
+    workflows: [gds, gds_6x4]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "id of a completed gds or gds_6x4 run (digits only)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read            # read runs, jobs and artifacts of another run
+
+defaults:
+  run:
+    shell: bash            # bash --noprofile --norc -eo pipefail
+
+env:
+  OSS_CAD_SUITE_RELEASE: "2026-07-29"   # the release formal.yaml pins
+  OSS_CAD_SUITE_SHA256: "89ea1152ea84bc600f18cc685f721d534d1f018e09831662787865a3d79ce4aa"
+  IHP_PDK_REPO: "https://github.com/IHP-GmbH/IHP-Open-PDK.git"
+  # One line per IHP-Open-PDK commit: "<commit> <sha256 of
+  # ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/lib/sg13cmos5l_stdcell_typ_1p20V_25C.lib>".
+  # A pdk.json revision that is not listed fails the job.
+  LIBERTY_PINS: |
+    2bbec755dc67ca3db0261c3d6163e15735d66710 34163f3e7de9f854afac57332ba06f1739b78e7ac35660a8a5ddd39c570124ad
+
+jobs:
+  select:
+    name: select the run
+    # A gds run ends 'failure' when only its viewer job fails (no GitHub
+    # Pages), and a gds_6x4 run can be cancelled by a newer push after its
+    # gds job succeeded, so the run's conclusion is not used; this step reads
+    # the gds job's own conclusion from the API.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success' ||
+      github.event.workflow_run.conclusion == 'failure' ||
+      github.event.workflow_run.conclusion == 'cancelled' ||
+      github.event.workflow_run.conclusion == 'timed_out'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      go: ${{ steps.sel.outputs.go }}
+      run_id: ${{ steps.sel.outputs.run_id }}
+      head_sha: ${{ steps.sel.outputs.head_sha }}
+      variant: ${{ steps.sel.outputs.variant }}
+      artifact_id: ${{ steps.sel.outputs.artifact_id }}
+      artifact_sha256: ${{ steps.sel.outputs.artifact_sha256 }}
+    steps:
+      - name: Select the run, its variant and its tt_submission artifact
+        id: sel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          WR_ID: ${{ github.event.workflow_run.id }}
+          WR_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WR_PATH: ${{ github.event.workflow_run.path }}
+          IN_RUN_ID: ${{ inputs.run_id }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; printf 'equivalence: %s\n' "$1" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
+          skip() {
+            printf 'equivalence skipped: %s\n' "$1" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+          id_re='^[1-9][0-9]{0,19}$'
+          sha_re='^[0-9a-f]{40}$'
+          [[ $REPO =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || fail "unexpected repository name"
+          case "$EVENT_NAME" in
+            workflow_run)
+              [[ $WR_ID =~ $id_re ]] || fail "workflow_run.id is not a run id"
+              [[ $WR_HEAD_SHA =~ $sha_re ]] || fail "workflow_run.head_sha is not a commit id"
+              [[ $WR_PATH =~ ^\.github/workflows/gds(_6x4)?\.yaml$ ]] || fail "workflow_run.path is not gds.yaml or gds_6x4.yaml"
+              run_id=$WR_ID ;;
+            workflow_dispatch)
+              [[ $IN_RUN_ID =~ $id_re ]] || fail "input run_id must be a run id (digits only)"
+              run_id=$IN_RUN_ID ;;
+            *) fail "unexpected event" ;;
+          esac
+
+          # The run itself, from the API: this repository, completed, one of
+          # the two gds workflows, started by push or workflow_dispatch.
+          run=$(gh api "repos/$REPO/actions/runs/$run_id") || fail "run $run_id not found"
+          jq -e --arg repo "$REPO" \
+            '.status == "completed" and .repository.full_name == $repo and .head_repository.full_name == $repo' \
+            <<<"$run" >/dev/null || fail "run $run_id is not a completed run of this repository"
+          path=$(jq -r .path <<<"$run")
+          event=$(jq -r .event <<<"$run")
+          head_sha=$(jq -r .head_sha <<<"$run")
+          case "$path" in
+            .github/workflows/gds.yaml) variant=base ;;
+            .github/workflows/gds_6x4.yaml) variant=diet4 ;;
+            *) fail "run $run_id is not a run of gds.yaml or gds_6x4.yaml" ;;
+          esac
+          case "$event" in
+            push|workflow_dispatch) ;;
+            *) fail "run $run_id was not started by push or workflow_dispatch" ;;
+          esac
+          [[ $head_sha =~ $sha_re ]] || fail "run $run_id has no valid head_sha"
+          if [ "$EVENT_NAME" = workflow_run ]; then
+            if [ "$head_sha" != "$WR_HEAD_SHA" ] || [ "$path" != "$WR_PATH" ]; then
+              fail "the event and the API disagree about run $run_id"
+            fi
+          fi
+
+          # The gds job (latest attempt) must have succeeded.
+          gds=$(gh api --paginate "repos/$REPO/actions/runs/$run_id/jobs?per_page=100" \
+                  --jq '.jobs[] | select(.name == "gds") | (.conclusion // "none")') \
+            || fail "cannot list the jobs of run $run_id"
+          [ "$(grep -c . <<<"$gds")" = 1 ] || fail "run $run_id does not have exactly one job named gds"
+          [[ $gds =~ ^[a-z_]+$ ]] || fail "unexpected conclusion of the gds job of run $run_id"
+          if [ "$gds" != success ]; then
+            msg="the gds job of run $run_id concluded '$gds', so there is no netlist to check"
+            if [ "$EVENT_NAME" = workflow_run ]; then skip "$msg"; else fail "$msg"; fi
+          fi
+
+          # Its newest unexpired tt_submission artifact, built from head_sha.
+          art=$(gh api --paginate "repos/$REPO/actions/runs/$run_id/artifacts?name=tt_submission&per_page=100" \
+                  --jq '.artifacts[] | select(.name == "tt_submission" and .expired == false)
+                        | [.created_at, .id, (.digest // "none"), (.workflow_run.head_sha // "none")] | @tsv' \
+                | sort | tail -n 1) || fail "cannot list the artifacts of run $run_id"
+          [ -n "$art" ] || fail "run $run_id has no unexpired tt_submission artifact"
+          IFS=$'\t' read -r _ art_id art_digest art_sha <<<"$art"
+          [[ $art_id =~ $id_re ]] || fail "unexpected artifact id"
+          [[ $art_digest =~ ^sha256:[0-9a-f]{64}$ ]] || fail "the tt_submission artifact of run $run_id has no sha256 digest"
+          [ "$art_sha" = "$head_sha" ] || fail "the tt_submission artifact of run $run_id is not from its head_sha"
+
+          {
+            echo "go=true"
+            echo "run_id=$run_id"
+            echo "head_sha=$head_sha"
+            echo "variant=$variant"
+            echo "artifact_id=$art_id"
+            echo "artifact_sha256=${art_digest#sha256:}"
+          } >> "$GITHUB_OUTPUT"
+          printf 'run %s (%s, %s) of %s: variant %s, tt_submission artifact %s (%s)\n' \
+            "$run_id" "$path" "$event" "$head_sha" "$variant" "$art_id" "$art_digest" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  check:
+    name: equivalence (${{ needs.select.outputs.variant }})
+    needs: select
+    if: needs.select.outputs.go == 'true'
+    runs-on: ubuntu-24.04
+    # The 8x4 check with self-test took 755 s on an AMD EPYC 9474F and the
+    # plain 8x4 check 1,082 s on a Xeon Gold 6230 (docs/equivalence.md).
+    timeout-minutes: 120
+    # One check per built commit and variant at a time. A running check is
+    # never cancelled; a newer queued check replaces a waiting one (GitHub
+    # keeps one pending job per group). Other workflows are not affected.
+    concurrency:
+      group: equivalence-${{ needs.select.outputs.head_sha }}-${{ needs.select.outputs.variant }}
+      cancel-in-progress: false
+    env:
+      RUN_ID: ${{ needs.select.outputs.run_id }}
+      HEAD_SHA: ${{ needs.select.outputs.head_sha }}
+      VARIANT: ${{ needs.select.outputs.variant }}
+      ARTIFACT_ID: ${{ needs.select.outputs.artifact_id }}
+      ARTIFACT_SHA256: ${{ needs.select.outputs.artifact_sha256 }}
+    steps:
+      - name: Validate the selection
+        run: |
+          [[ $RUN_ID =~ ^[1-9][0-9]{0,19}$ ]]
+          [[ $HEAD_SHA =~ ^[0-9a-f]{40}$ ]]
+          [[ $VARIANT =~ ^(base|diet4)$ ]]
+          [[ $ARTIFACT_ID =~ ^[1-9][0-9]{0,19}$ ]]
+          [[ $ARTIFACT_SHA256 =~ ^[0-9a-f]{64}$ ]]
+          case "$VARIANT" in
+            base) echo "RTL_CORE=src/protocol_emulator_core.v" >> "$GITHUB_ENV" ;;
+            diet4) echo "RTL_CORE=variants6x4/protocol_emulator_core.v" >> "$GITHUB_ENV" ;;
+            *) exit 1 ;;
+          esac
+
+      - name: Check out formal_eq/ (this workflow's commit)
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          path: tool
+          persist-credentials: false
+
+      - name: Check out the RTL of the built commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ needs.select.outputs.head_sha }}
+          path: rtl
+          persist-credentials: false
+          sparse-checkout: |
+            src
+            variants6x4
+
+      - name: Download the tt_submission artifact and check its digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          [[ $REPO =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
+          zip="$RUNNER_TEMP/tt_submission.zip"
+          gh api "repos/$REPO/actions/artifacts/$ARTIFACT_ID/zip" > "$zip"
+          echo "$ARTIFACT_SHA256  $zip" | sha256sum -c -
+          rm -rf artifact
+          mkdir artifact
+          unzip -q "$zip" -d artifact
+          rm -f "$zip"
+          ls -l artifact artifact/tt_submission artifact/src
+
+      - name: Check pdk.json and commit_id.json
+        run: |
+          d=artifact/tt_submission
+          pdk=$(jq -r .PDK "$d/pdk.json")
+          rev=$(jq -r .PDK_VERSION "$d/pdk.json")
+          commit=$(jq -r .commit "$d/commit_id.json")
+          jq . "$d/pdk.json"
+          if [ "$pdk" != ihp-sg13cmos5l ]; then echo "::error::pdk.json: PDK is not ihp-sg13cmos5l"; exit 1; fi
+          if ! [[ $rev =~ ^[0-9a-f]{40}$ ]]; then echo "::error::pdk.json: PDK_VERSION is not a commit id"; exit 1; fi
+          if [ "$commit" != "$HEAD_SHA" ]; then echo "::error::commit_id.json does not name the run's head_sha"; exit 1; fi
+          lib_sha=$(awk -v r="$rev" '$1 == r { print $2 }' <<<"$LIBERTY_PINS")
+          if ! [[ $lib_sha =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::no pinned liberty sha256 for IHP-Open-PDK $rev (LIBERTY_PINS)"
+            exit 1
+          fi
+          { echo "PDK_REV=$rev"; echo "LIBERTY_SHA256=$lib_sha"; } >> "$GITHUB_ENV"
+
+      - name: Require the artifact's src/ to equal the built commit's RTL
+        run: |
+          cmp artifact/src/project.v rtl/src/project.v
+          cmp artifact/src/protocol_emulator_core.v "rtl/$RTL_CORE"
+          sha256sum artifact/src/project.v artifact/src/protocol_emulator_core.v
+
+      # Only the typical-corner standard-cell liberty file of the pdk.json
+      # revision: partial clone (depth 1, no blobs) plus a one-file sparse
+      # checkout. eq_check.py reads the revision from this checkout's HEAD
+      # and refuses one that differs from pdk.json.
+      - name: Fetch the standard-cell liberty of that PDK revision
+        run: |
+          lib=ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/lib/sg13cmos5l_stdcell_typ_1p20V_25C.lib
+          rm -rf pdk
+          git init -q pdk
+          git -C pdk remote add origin "$IHP_PDK_REPO"
+          git -C pdk sparse-checkout set --no-cone "/$lib"
+          git -C pdk fetch -q --depth 1 --filter=blob:none origin "$PDK_REV"
+          git -C pdk checkout -q FETCH_HEAD
+          test "$(git -C pdk rev-parse HEAD)" = "$PDK_REV"
+          echo "$LIBERTY_SHA256  pdk/$lib" | sha256sum -c -
+          du -sh pdk
+
+      - name: Install OSS CAD Suite (pinned release, checked archive)
+        run: |
+          tgz="$RUNNER_TEMP/oss-cad-suite.tgz"
+          url="https://github.com/YosysHQ/oss-cad-suite-build/releases/download/$OSS_CAD_SUITE_RELEASE/oss-cad-suite-linux-x64-${OSS_CAD_SUITE_RELEASE//-/}.tgz"
+          curl -fsSL --retry 3 -o "$tgz" "$url"
+          echo "$OSS_CAD_SUITE_SHA256  $tgz" | sha256sum -c -
+          tar -xzf "$tgz" -C "$RUNNER_TEMP"
+          rm -f "$tgz"
+          echo "OSS_CAD_SUITE=$RUNNER_TEMP/oss-cad-suite" >> "$GITHUB_ENV"
+
+      - name: Tool versions
+        run: |
+          "$OSS_CAD_SUITE/bin/yosys" -V
+          python3 --version
+          git -C tool rev-parse HEAD
+          nproc
+          grep -m1 'model name' /proc/cpuinfo
+
+      # The recipe controls in the unit tests need yosys; a skipped test fails.
+      - name: Unit tests of formal_eq
+        working-directory: tool
+        run: |
+          python3 -m unittest -v formal_eq/test_eq_check.py 2>&1 | tee "$RUNNER_TEMP/unittest.log"
+          if grep -q skipped "$RUNNER_TEMP/unittest.log"; then echo "::error::a unit test was skipped"; exit 1; fi
+
+      # ABC is single-threaded; --jobs 2 runs the netlist and the slow mutant
+      # (mutA) side by side on the runner's 4 vCPUs. --timeout is per ABC run.
+      - name: Equivalence check with self-test
+        run: |
+          python3 tool/formal_eq/eq_check.py check \
+            --run-dir artifact --variant "$VARIANT" \
+            --top rtl/src/project.v --core "rtl/$RTL_CORE" \
+            --pdk-root "$PWD/pdk" \
+            --selftest --jobs 2 --timeout 3600 \
+            --label "run-$RUN_ID" --out eq-out
+
+      - name: Require the verdict, the self-test and the provenance in result.json
+        run: |
+          jq -e --arg sha "$HEAD_SHA" --arg variant "$VARIANT" --arg rev "$PDK_REV" \
+                --arg lib "$LIBERTY_SHA256" --arg tool "$GITHUB_SHA" '
+            .verdict == "equivalent" and .exit_code == 0 and .pass == true
+            and .selftest.pass == true and (.selftest.missed | length) == 0
+            and (.selftest.netlist_controls | length) == 2
+            and (.selftest.recipe_controls | length) > 0
+            and .inputs.variant == $variant
+            and .inputs.artifact_src_matches["project.v"] == true
+            and .inputs.artifact_src_matches["protocol_emulator_core.v"] == true
+            and .inputs.run.commit_id.commit == $sha
+            and .inputs.pdk.version == $rev and .inputs.pdk.matches_netlist == true
+            and .inputs.liberty.sha256 == $lib
+            and .tool_git.commit == $tool and .tool_git.formal_eq_modified == false
+          ' eq-out/result.json
+
+      - name: Job summary
+        if: always()
+        env:
+          SERVER_URL: ${{ github.server_url }}
+          REPO: ${{ github.repository }}
+        run: |
+          [[ $SERVER_URL =~ ^https://[A-Za-z0-9.-]+$ ]]
+          [[ $REPO =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
+          r=eq-out/result.json
+          {
+            echo "### RTL-vs-netlist equivalence of run $RUN_ID ($VARIANT)"
+            echo
+            if [ -f "$r" ]; then
+              jq -r --arg link "$SERVER_URL/$REPO/actions/runs/$RUN_ID" --arg art "$ARTIFACT_ID" \
+                    --arg artsha "$ARTIFACT_SHA256" '
+                def s: if . == null then "-" else tostring end;
+                "| | |", "|---|---|",
+                "| verdict | **\(.verdict | s)** (exit \(.exit_code | s)) |",
+                "| self-test | \(if .selftest == null then "not run"
+                                 elif .selftest.pass then "pass"
+                                 else "FAILED: " + (.selftest.missed | join(", ")) end) |",
+                "| netlist controls | \(.selftest.netlist_controls // [] | map("\(.name): \(.verdict) at frame \(.abc.frame | s), ABC \(.steps.abc.wall_s | s) s") | join("; ")) |",
+                "| recipe controls | \([.selftest.recipe_controls // [] | .[] | select(.met_expectation)] | length) of \(.selftest.recipe_controls // [] | length) as expected |",
+                "| ABC time (netlist) | \(.case.steps.abc.wall_s | s) s (ABC reports \(.case.abc.abc_reported_s | s) s) |",
+                "| miter | \(.case.abc.aig_strashed.latches | s) latches, \(.case.abc.aig_strashed.and_nodes | s) AND nodes |",
+                "| check wall time | \(.wall_s | s) s on \(.cpu_model | s) |",
+                "| netlist sha256 | `\(.inputs.netlist.sha256 | s)` |",
+                "| commit | `\(.inputs.run.commit_id.commit | s)` |",
+                "| gds run | \($link) |",
+                "| artifact | \($art), sha256 `\($artsha)` |",
+                "| PDK | IHP-Open-PDK `\(.inputs.pdk.version | s)`, liberty sha256 `\(.inputs.liberty.sha256 | s)` |",
+                "| formal_eq | `\(.tool_git.commit | s)`, \(.tools.yosys_version | s) |",
+                (if .why then "| why | \(.why | gsub("\\|"; "\\|")) |" else empty end)
+              ' "$r"
+            else
+              echo "No result.json: the check did not run. See the first failed step."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload result.json, logs and the miter
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: equivalence-${{ needs.select.outputs.run_id }}-${{ needs.select.outputs.variant }}
+          path: |
+            eq-out/result.json
+            eq-out/*/*.log
+            eq-out/*/*.ys
+            eq-out/netlist/miter.aig
+            eq-out/controls/*/case/abc.log
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 90

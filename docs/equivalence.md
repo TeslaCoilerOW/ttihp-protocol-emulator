@@ -315,65 +315,171 @@ case.
   family that LibreLane uses for synthesis.
 - **Proof certificates.** ABC is trusted; no proof certificate is checked.
 
-## 7. CI evaluation
+## 7. CI
 
-[`formal_eq/ci-proposal.yaml`](../formal_eq/ci-proposal.yaml) is a proposed
-workflow. It is not in `.github/workflows/` and has not run on GitHub. It
-passes `actionlint` 1.7.12 without findings (shellcheck was not
-available).
+[`.github/workflows/equiv.yaml`](../.github/workflows/equiv.yaml) (workflow
+`equivalence`) runs `eq_check.py check --selftest` on GitHub. It checks the
+`tt_submission` artifact of every `gds` and `gds_6x4` run whose `gds` job
+succeeded, and of any such run given by hand. Its steps, pins and hardening
+are listed in the CI section of
+[formal_eq/README.md](../formal_eq/README.md#ci). It replaces the inactive
+proposal `formal_eq/ci-proposal.yaml`, whose sparse PDK checkout the
+section 1 row "with the CI proposal's PDK" used. When this section was
+written, the workflow had not yet run on GitHub. The results below come
+from an emulation on the cluster.
 
-**What it needs.**
+**Design.**
 
-- **The artifact.** After a `gds` or `gds_6x4` run (`workflow_run`), or
-  given a run id, it downloads that run's `tt_submission` artifact
-  (`actions/download-artifact` with `run-id`, `actions: read`) and checks
-  out the commit that was built.
-- **The exact PDK.**
-  - The revision is the artifact's `pdk.json` `PDK_VERSION`.
-    `TinyTapeout/tt-gds-action@ihp-cmos5l` installs `ihp-sg13cmos5l` with
-    `install_sg13cmos5l.sh`: a shallow fetch of IHP-Open-PDK at a pinned
-    commit (`2bbec755`), plus a `SOURCES` line.
-  - The proposal fetches only
-    `ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/lib/` of the `pdk.json`
-    revision, by partial clone (`--filter=blob:none`, depth 1) and sparse
-    checkout. It then writes the same `SOURCES` line and caches the result
-    by revision.
-  - On the cluster login node these commands took 1 s and left 13 MB. The
-    typical liberty file was byte-identical to the flow's (`34163f3e…`).
-    The job 24093889 above used that sparse checkout as its PDK root.
-  - `eq_check.py` refuses a PDK whose revision differs from `pdk.json`.
-- **Tools.** `YosysHQ/setup-oss-cad-suite@v4` with release 2026-07-29 (as
-  `formal.yaml`), for yosys and yosys-abc. Python 3 needs only its standard
-  library.
-- **Fail closed.** The job fails unless all of the following hold:
-  - `eq_check.py` exits 0 (equivalent, every control as expected);
-  - the artifact's `src/` equals the checked-out RTL;
-  - the unit tests pass.
+- **Which runs.** Run 36298635436 ended `failure` although its `gds`,
+  `precheck` and `gl_test` jobs succeeded: only its `viewer` job, which
+  needs GitHub Pages, failed. So the workflow reads the `gds` job's own
+  conclusion from the API and does not use the run's conclusion. It also
+  requires an unexpired `tt_submission` artifact with a digest.
+- **Which tool.** `formal_eq/` comes from the workflow's own commit, and
+  the built commit supplies only `src/` and `variants6x4/`. After
+  `workflow_run`, the workflow file and `formal_eq/` both come from the
+  default branch, so a pushed branch cannot change the check applied to its
+  netlist. Commits older than `formal_eq/` can be checked too. `d76f1cc`,
+  the commit of both official artifacts, is one of them.
+- **Which PDK.** Only the typical liberty file of the `pdk.json` revision is
+  fetched. Its sha256 must match `LIBERTY_PINS`, so a new PDK revision needs
+  a new pin. No `SOURCES` file is written: `eq_check.py` reads the revision
+  from the checkout's HEAD.
+- **Which tools.** The workflow downloads the OSS CAD Suite 2026-07-29
+  archive itself and checks it against a pinned sha256 (`89ea1152…`, the
+  digest GitHub reports for the release asset). The archive downloaded in
+  the emulation matched it.
+- **Parallelism.** It uses `--jobs 2`. With `--selftest` on the 15 ns 8x4
+  netlist, both the netlist and mutA are long ABC runs, and they run side by
+  side.
 
-**Runtime.** This has not been measured on GitHub; the estimate is from the
-cluster runs above.
+**Static checks.** `actionlint` 1.7.12 found nothing, with shellcheck 0.11.0
+on `PATH`. shellcheck 0.11.0 with every optional check (`-o all`) at
+severity warning was also run on each extracted `run:` script (at the
+default severity it also lists style notes SC2250, SC2292 and SC2312). It
+reported only SC2154 (variables that `env:`
+sets, which actionlint also disables) and one missing default `case`
+branch, which was then added. No `run:` script contains `${{`.
 
-- **CPU basis.**
-  - ABC is single-threaded. `--jobs 2` puts the netlist and mutA on the two
-    physical cores of a standard 4-vCPU runner.
-  - On the cluster, the 6x4 check with self-test took 96–97 s (EPYC 9654).
-  - The 8x4 checks with self-test took 389–755 s (EPYC 9474F). The plain
-    8x4 check took 483 s (EPYC 7513).
-- **Estimate.** Assume a runner core runs these steps between as fast as
-  and twice as slowly as the cluster cores, plus about 2 min for setup
-  (tool download, PDK, artifact). A 6x4 job would then take about 3.5–5.5
-  min and an 8x4 job about 8.5–27 min.
-- **Limits.** The job limit (60 min) and the ABC limit (2,700 s per case)
-  leave room above that estimate.
-- **Cost of the self-test.** The 15 ns 8x4 mutA took 588 s to refute (frame
-  44, by interpolation). That adds 588 s of CPU time to the 692 s of the
-  check itself, but little wall time, because the two run side by side.
-  Without `--selftest`, the job still runs the unit tests, which include the
-  recipe controls.
+**Emulation.** `<work dir>/eq-ci/emulate.py` runs the workflow file on the
+cluster:
 
-**Not decided here.** Whether to add the workflow is a repository decision.
-A job that follows `gds` does not lengthen the `gds` job itself, which is
-the one near GitHub's 6 h limit.
+- Every `run:` script runs verbatim with
+  `bash --noprofile --norc -eo pipefail`, the command `shell: bash` gives on
+  a runner.
+- The `${{ }}` expressions of `env:`, `with:`, `if:`, `outputs:` and job
+  names are evaluated from an event built from the API. For
+  `workflow_dispatch`, the event is built from the input.
+- `GITHUB_OUTPUT`, `GITHUB_ENV` and `GITHUB_STEP_SUMMARY` are read back
+  after each step.
+- `actions/checkout` is replaced by the equivalent git commands (sparse
+  checkout, depth-1 fetch of the commit), and `actions/upload-artifact` by a
+  copy.
+- `github.token` is the operator's `gh` token.
+- `RUNNER_TEMP` is node-local; the workspace is on the cluster file system.
+
+Each case ran in a clean directory. The job ids are in
+`<work dir>/eq-ci/manifest.json`. Both official artifacts pass:
+
+| Case | Event | Slurm job | CPU | Steps before the check | Check step | Check job | Result |
+|---|---|---|---|---|---|---|---|
+| 6x4, `gds_6x4` run 36298635404 | `workflow_run` | 24119482 | AMD EPYC 9474F, 4 Slurm CPUs (8 threads) | 22.6 s (OSS CAD Suite 17.8 s) | 86.1 s | 109.0 s | equivalent, self-test passed, every gate passed |
+| 8x4, `gds` run 36298635436 | `workflow_dispatch` | 24119483 | AMD EPYC 7542, 4 Slurm CPUs (4 threads) | 28.5 s (OSS CAD Suite 22.6 s) | 1,032.7 s | 1,061.4 s | equivalent, self-test passed, every gate passed |
+
+In both cases the `select` job took 1.0 s. The unit tests ran all 28 tests,
+including the yosys recipe controls, in under 1 s.
+
+- **6x4.** ABC proved the netlist in 61.9 s. mutA and mutC were refuted at
+  frames 8 and 6 in 0.2 s each.
+- **8x4.** ABC proved the netlist in 693.0 s, on the same miter as
+  section 1 (AIG sha256 `df863faf…`). mutA was refuted at frame 44 in
+  958.5 s, and mutC at frame 4 in 0.4 s.
+- **Critical path.** In the 8x4 case, mutA is the critical path of the
+  check. On the EPYC 9474F of section 1 it took 588 s.
+- **Summary.** The job summary had the verdict, the self-test, the ABC time,
+  the netlist sha256, the commit, the run link, the artifact digest, the
+  PDK and the tool commit.
+- **Upload.** The uploaded files came to 6.2 MB for the 8x4 case, before
+  compression.
+
+**Negative cases.** Each of these ended with the job failing, at the step
+named. The `select` cases ran on the login node, since they only call the
+API:
+
+| Case | Where it stopped |
+|---|---|
+| `run_id` `36298635436; id`, `$(id)`, or with an appended line `go=true` | `select`: not a run id |
+| `run_id` of a `test` run (36323174079) | `select`: not a run of `gds.yaml` or `gds_6x4.yaml` |
+| `gds_6x4` run 36257636751, whose `gds` job failed, by `workflow_dispatch` | `select`: the `gds` job did not succeed |
+| cancelled `gds` run 36120104740, by `workflow_dispatch` | `select`: the `gds` job was cancelled |
+| `workflow_run` event whose `head_sha` differs from the API | `select`: the event and the API disagree |
+| `workflow_run` event whose `path` carries shell text | `select`: not `gds.yaml` or `gds_6x4.yaml` |
+| variant `diet4` forced for the 8x4 run | `check`: the artifact's core differs from `variants6x4/` |
+| wrong artifact digest | `check`: download |
+| wrong liberty pin | `check`: liberty fetch |
+| `pdk.json` revision not pinned | `check`: `pdk.json` check |
+| `head_sha` of another commit | `check`: `commit_id.json` check |
+| `run_id` `1;id` passed to `check` | `check`: selection validation |
+| wrong OSS CAD Suite digest | `check`: OSS CAD Suite install |
+
+The seven `check` cases (Slurm job 24119484) replace a `select` output or a
+pin inside the emulator. They show that `check` does not rely on `select`
+alone. In every one, the summary and upload steps still ran. Two cases skip
+without failing:
+
+- After `workflow_run`, run 36257636751 was skipped: `select` succeeded with
+  `go=false`, and `check` did not run.
+- After `workflow_run`, run 36120104740 was skipped by the `select` job's
+  `if:`.
+
+**What the emulation does not cover.**
+
+- whether GitHub fires `workflow_run` (only for a workflow file on the
+  default branch);
+- the permissions and the concurrency queue;
+- the two actions themselves;
+- runner start-up and the runner's CPU.
+
+The emulation used `jq` 1.6 and `gh` 2.95.0. The runner image has its own
+versions.
+
+**Runtime on GitHub (estimate).** For 8x4, ABC takes nearly all of the
+time, and its time depends on the CPU and on what else runs on it:
+
+- The 8x4 netlist took 446 s alone on an EPYC 7513 (job 24093888).
+- It took 692 s next to mutA on an EPYC 9474F (job 24093884).
+- It took 693 s next to mutA on an EPYC 7542 (job 24119483, the emulation).
+- It took 1,006 s alone on a Xeon Gold 6230 (job 24095479).
+
+All four runs used the same miter (AIG sha256 `df863faf…`).
+
+The public-repository `ubuntu-24.04` runner has 4 vCPUs, and `--jobs 2`
+keeps two ABC runs on them. Suppose each step on the runner takes between
+as long as in the emulation and twice as long. Then the check job would
+take 109–218 s for 6x4 and 1,061–2,123 s (18–35 min) for 8x4, plus runner
+start-up and the download of the 737 MB OSS CAD Suite archive. The limits
+are well above that:
+
+- 3,600 s per ABC run, more than 3.5 times the longest ABC run measured on
+  an official netlist or its self-test mutants (1,006 s);
+- 120 min per `check` job, more than 6 times the emulated 8x4 job;
+- both well under GitHub's 6 h job limit.
+
+A run that reaches the ABC limit ends `timeout` (exit 3), and the job
+fails.
+
+The sums, ratios and roundings in this section were checked with AXLE
+(Lean 4, `<work dir>/eq-ci/axle/`, `okay: true`).
+
+**Activation.** The workflow runs on GitHub only once it is on the default
+branch. `workflow_run` then fires for `gds` and `gds_6x4` runs that
+complete afterwards. Earlier runs, such as the official ones, are checked
+by hand:
+
+```sh
+gh workflow run equiv.yaml -f run_id=36298635404   # gds_6x4, 6x4 (diet4)
+gh workflow run equiv.yaml -f run_id=36298635436   # gds, 8x4 (base)
+```
 
 ## 8. Reproducing
 
