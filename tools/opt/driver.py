@@ -24,6 +24,15 @@ limit until the budget is spent, the stop date is reached or <opt root>/STOP
 exists. Knobs in space.FIXED are not sampled, and trials that set them to
 another value are not promoted, seeded or transferred.
 
+Runtime (runtime.py; docs/optimization.md, "Runtime and the 6-hour limit"): every
+run's step times are recorded (in its metrics; runs from before v3 once from their
+result.json). In the tracks of the kinds in runtime.RULE_KINDS (dor15, dor13 and
+diet4_6x4, which the gds and gds_6x4 actions build) a trial is promoted only if the
+official job projected from its step times fits runtime.BOUND_S (5.5 h), trials rank
+by min WS and then that projection, the TPE value of an ineligible trial is lowered
+(also for a duplicate of a trial told before v3), trial jobs get TRIAL_RULE_TIME, and
+the leaderboard's promotion verdict requires the full run's projection to fit.
+
 Environment: PE_WORK (cluster work directory: sram-flow/, variants/,
 drc-triage/, cocotb/, host/), OSS_CAD_SUITE (yosys and yosys-abc for the
 equivalence check; else PATH), optional PE_OPT_ROOT (default
@@ -61,6 +70,7 @@ OPT = os.environ.get("PE_OPT_ROOT", os.path.join(WORK, "optimizer"))
 import gates as GATES  # noqa: E402
 import objective as OBJ  # noqa: E402
 import report as REPORT  # noqa: E402
+import runtime as RT  # noqa: E402
 import slurm as SL  # noqa: E402
 import space as SPACE  # noqa: E402
 import tracks as TR  # noqa: E402
@@ -70,7 +80,8 @@ from store import State, Store  # noqa: E402
 LABEL = "optimizer"
 JOB_PREFIX = "pe-v2-%s-" % LABEL
 PARTITIONS = "mit_preemptable,mit_normal"
-CPU_CAP = 960                    # all pe-v2-optimizer-* jobs, queued + running, driver included (per-user cap 1024)
+CPU_CAP = 700                    # all pe-v2-optimizer-* jobs, queued + running, driver included (per-user cap 1024;
+                                 # 960 until v3, which leaves CPUs to the other workstreams)
 USER_JOB_CAP = 400               # stay below the 448 submitted-job limit per user (all workstreams)
 MAX_SUBMIT_PER_LOOP = 24
 MAX_NOSUBMIT_PER_LOOP = 40       # duplicate/rejected trials per loop (they use no CPUs)
@@ -80,10 +91,14 @@ PROMO_RESERVE = 20               # runs kept back from trials for the final prom
 STOP_AT = datetime.datetime(2026, 10, 24, 0, 0, 0)   # local time of the cluster
 # Share of new trials per weight group (tracks.py); a variant track gets WEIGHTS["variant"]
 # divided by the number of variant tracks still receiving trials. Groups without a track
-# that may receive a trial drop out, and the others keep their proportions.
+# that may receive a trial drop out, and the others keep their proportions. The shares
+# count the trials submitted since the first driver start with the current WEIGHTS
+# (weights_epoch()), so a change of weights applies to the trials that follow it.
 # Since d76f1cc the committed CLOCK_PERIOD is 15 ns (p018), so dor15 is the committed track
-# (weights until then: dor20 0.35, dor15 0.22, dor13 0.08).
-WEIGHTS = {"dor20": 0.15, "dor15": 0.35, "dor13": 0.15, "6x4": 0.20, "variant": 0.15}
+# (weights until then: dor20 0.35, dor15 0.22, dor13 0.08; from d76f1cc to v3: dor20 0.15,
+# dor15 0.35, dor13 0.15, 6x4 0.20, variant 0.15). v3 aims at an official sign-off at 13.33 ns
+# (docs/optimization.md, "The 75 MHz plan"), so dor13 is the main track.
+WEIGHTS = {"dor20": 0.05, "dor15": 0.15, "dor13": 0.45, "6x4": 0.20, "variant": 0.15}
 VARIANT_TRIAL_CAP = 200          # trials per variant track
 # Retirement of a variant track (docs/optimization.md, "Retirement"): at least
 # RETIRE_MIN_TRIALS finished trials, and either no legal trial, or its best legal min WS
@@ -102,7 +117,16 @@ SEED_TOP = {"freq": 8, "6x4": 5, "variant": 3}   # best 20 ns configurations see
 # 2: for the frequency tracks, the committed and the best 20 ns configurations with
 # PL_RESIZER_SETUP_SLACK_MARGIN scaled by period / 20 ns (the first 13.33 ns trials, with the
 # 20 ns margins of 5.75 to 6 ns, were still in post-CTS repair after 3 hours).
-SEED_REVISION = 2
+# 3 (v3): for the frequency tracks (the rule tracks whose space has the knob), the
+# RUNTIME_SEED_TOP best legal trials of the track whose projected official job exceeds the bound
+# (runtime.py), each with PL_RESIZER_SETUP_REPAIR_TNS_PCT at each of RUNTIME_SEED_TNS (the
+# runtime knob, space.py). On the committed configuration at
+# 13.33 ns (p024's), 0 gave slow WS -0.988 ns and 10 gave +0.142 ns with the repair cut from
+# 10,842 to 3,272 normalized seconds (jobs 24120814, 24120815; docs/optimization.md, "The 75 MHz
+# plan"), so 0 is not seeded.
+SEED_REVISION = 3
+RUNTIME_SEED_TOP = 3
+RUNTIME_SEED_TNS = (25, 10)
 KEEP_FINAL_TOP = 10              # keep out/final of the top-N legal trials per track
 RESULT_GRACE_S = 600             # a finished job's result may appear late on the pool
 MAX_ATTEMPTS = 3
@@ -111,6 +135,10 @@ DRIVER_RESUBMIT_S = 1800
 DISCOVER_S = 600
 
 TRIAL = dict(cpus=32, mem="64G", time="06:00:00", threads=32, mode="fast")
+# Time limit of a trial of a track with the runtime rule (runtime.RULE_KINDS). An eligible trial's
+# flow takes at most runtime.trial_time_limit_s() = 16,710 s (4.64 h) on the slowest local node
+# measured (speed factor 2.15); the job gets USR1 900 s before its limit, which leaves 4.75 h.
+TRIAL_RULE_TIME = "05:00:00"
 PFULL = dict(cpus=8, mem="32G", time="11:00:00", threads=4, mode="full")
 PCHECK = dict(cpus=16, mem="48G", time="02:00:00")
 PGL = dict(cpus=4, mem="16G", time="04:00:00")
@@ -177,8 +205,11 @@ def track_period(tr):
 
 
 def clean_knobs(knobs):
-    """Stored knob set without retired knobs at their accepted value."""
-    return {k: v for k, v in (knobs or {}).items() if not (k in SPACE.RETIRED and v == SPACE.RETIRED[k])}
+    """Knob set without retired knobs at their accepted value; a complete stored knob set from
+    before a LATE knob existed gets that knob's unset value, the value its run used
+    (space.upgrade)."""
+    return SPACE.upgrade({k: v for k, v in (knobs or {}).items()
+                          if not (k in SPACE.RETIRED and v == SPACE.RETIRED[k])})
 
 
 # ---------------------------------------------------------------- optuna
@@ -220,6 +251,7 @@ class Driver(object):
         self.legacy_cfg = {}
         self.import_skip = set()
         self.promo_skip = set()  # trials whose promotion snapshot could not be built
+        self._ctx = None         # runtime.Context of the current state (rebuilt after every event)
         if dry_run and os.path.abspath(OPT) == os.path.abspath(os.path.join(WORK, "optimizer")):
             raise SystemExit("--dry-run needs a scratch PE_OPT_ROOT (it records fake job ids)")
         self.import_sweep()
@@ -236,7 +268,56 @@ class Driver(object):
     def emit(self, ev, **kw):
         rec = self.store.append(ev, **kw)
         self.state.apply(rec)
+        self._ctx = None
         return rec
+
+    # ------------------------------------------------------------ runtime (runtime.py)
+    def ctx(self):
+        if self._ctx is None:
+            self._ctx = RT.Context(self.state)
+        return self._ctx
+
+    def is_rule(self, track):
+        """True for a track with the runtime rule (runtime.RULE_KINDS: dor15, dor13)."""
+        return (self.state.tracks.get(track) or {}).get("kind") in RT.RULE_KINDS
+
+    def projection(self, t, metrics):
+        """Projected official gds job seconds of a trial from its (new) metrics."""
+        ctx = self.ctx()
+        rt = RT.from_metrics(metrics) or {}
+        key = ctx.key(t)
+        ctx.speed.add(key, rt.get("synth_s"))
+        return RT.project_trial(rt, ctx.speed.factor(key, rt.get("synth_s")))
+
+    def backfill_runtime(self):
+        """Record the step runtimes of runs that finished before the metrics carried them
+        (trial_runtime / promo_runtime events; read once from each run's result.json)."""
+        n = 0
+        for t in list(self.state.trials.values()):
+            if t["state"] != "done" or t.get("dup_of") or not t.get("run_dir") or \
+                    RT.Context.trial_runtime(t) is not None:
+                continue
+            res = load_json(os.path.join(t["run_dir"], "result.json"))
+            resolved = load_json(os.path.join(t["run_dir"], "out", "resolved.json"))
+            self.emit("trial_runtime", uid=t["uid"], runtime=RT.extract(res, resolved) if res else {"missing": True})
+            n += 1
+        for p in list(self.state.promos.values()):
+            full = p["stages"].get("full") or {}
+            if full.get("state") != "done" or RT.Context.promo_runtime(p) is not None:
+                continue
+            res = load_json(os.path.join(p["run_dir"], "result.json"))
+            resolved = load_json(os.path.join(p["run_dir"], "out", "resolved.json"))
+            self.emit("promo_runtime", pid=p["pid"], runtime=RT.extract(res, resolved) if res else {"missing": True})
+            n += 1
+        if n:
+            log("recorded the step runtimes of %d earlier runs" % n)
+
+    def promo_runtime_ok(self, t):
+        """False if every promotion that stands for trial t fails the runtime rule
+        (runtime.Context.promo_ok), else True."""
+        ctx = self.ctx()
+        ps = [p for p in self.state.promos.values() if p["uid"] in self.chain(t)]
+        return not ps or any(ctx.promo_ok(p) is not False for p in ps)
 
     # ------------------------------------------------------------ tracks
     def ensure_core_copy(self, src, name, sha):
@@ -320,6 +401,20 @@ class Driver(object):
                 out.append(("%s, setup margin scaled to the period (%.2f -> %.2f ns)"
                             % ("committed configuration" if b["uid"] is None else "20 ns best #%d %s" % (i, b["uid"]),
                                m, scaled), kn))
+        if rev == 3 and t.kind in RT.RULE_KINDS and "PL_RESIZER_SETUP_REPAIR_TNS_PCT" in t.D:
+            ctx = self.ctx()
+            over = [b for b in self.ranked(tid, in_space=True) if not ctx.trial(b)["eligible"]]
+            bases = [("best #%d over the runtime bound %s" % (i, b["uid"]), b["knobs"])
+                     for i, b in enumerate(over[:RUNTIME_SEED_TOP], 1)]
+            for label, partial in bases:
+                try:
+                    kn = SPACE.fix(t.complete(clean_knobs(partial)))
+                except ValueError:
+                    continue
+                for v in RUNTIME_SEED_TNS:
+                    k2 = dict(kn)
+                    k2["PL_RESIZER_SETUP_REPAIR_TNS_PCT"] = v
+                    out.append(("%s, PL_RESIZER_SETUP_REPAIR_TNS_PCT %s" % (label, v), k2))
         return out
 
     def legacy_ranked(self, core_sha, tiles):
@@ -404,10 +499,13 @@ class Driver(object):
                 continue
             study = self.study(tid)
             dist = SPACE.distributions(T.D)
+            val = float(s.get("value") if s.get("value") is not None else OBJ.FAIL_VALUE)
+            vobj = None
+            if self.is_rule(tid) and s.get("metrics"):
+                vobj = s.get("value_objective") if s.get("value_objective") is not None else val
+                val = RT.penalized_value(vobj, self.ctx().trial(s)["proj_s"])
             try:
-                ft = optuna.trial.create_trial(value=float(s.get("value") if s.get("value") is not None
-                                                           else OBJ.FAIL_VALUE),
-                                               params=kn, distributions={n: dist[n] for n in kn},
+                ft = optuna.trial.create_trial(value=val, params=kn, distributions={n: dist[n] for n in kn},
                                                user_attrs={"label": "imported", "imported_from": s["uid"]})
             except ValueError as e:
                 log("import %s: %s" % (s["uid"], e))
@@ -415,7 +513,7 @@ class Driver(object):
                 continue
             number = len(study.get_trials(deepcopy=False))
             study.add_trial(ft)
-            self.record_import(tid, number, kn, s)
+            self.record_import(tid, number, kn, s, value=val, value_objective=vobj)
             have.add((tid, s["uid"]))
             n_new += 1
         if n_new:
@@ -433,16 +531,17 @@ class Driver(object):
             for ft in self.study(tid).get_trials(deepcopy=False, states=(optuna.trial.TrialState.COMPLETE,)):
                 src = (ft.user_attrs or {}).get("imported_from")
                 if src and ft.number not in known and src in self.state.trials:
-                    self.record_import(tid, ft.number, dict(ft.params), self.state.trials[src])
+                    self.record_import(tid, ft.number, dict(ft.params), self.state.trials[src], value=ft.value)
                     log("recorded the import of %s as %s#%d" % (src, tid, ft.number))
 
-    def record_import(self, tid, number, kn, s):
+    def record_import(self, tid, number, kn, s, value=None, value_objective=None):
         T = self.T[tid]
         m = OBJ.derive_fmax(dict(s["metrics"]), T.period)
         self.emit("trial_import", uid="%s#%d" % (tid, number), track=tid, number=number, knobs=kn,
                   key=SPACE.canonical(kn), label="imported from %s" % s["uid"], imported_from=s["uid"],
                   metrics=m, legal=s.get("legal"), blockers=s.get("blockers"), magnitude=s.get("magnitude"),
-                  value=s.get("value"), run_id=s.get("run_id"), run_dir=s.get("run_dir"),
+                  value=s.get("value") if value is None else value, value_objective=value_objective,
+                  runtime=s.get("runtime"), run_id=s.get("run_id"), run_dir=s.get("run_dir"),
                   job_id=s.get("done_job") or s.get("job_id"), snap=s.get("snap"), overrides=s.get("overrides"),
                   config_changes=T.diff_vs_repo(kn), source_config_changes=s.get("config_changes"))
 
@@ -457,6 +556,11 @@ class Driver(object):
             ts = [t for t in ts if t.get("legal")]
         if in_space:
             ts = [t for t in ts if not SPACE.outside(t.get("knobs"))]
+        if self.is_rule(track):
+            # min WS (10 ps), then the projected official runtime (runtime.rank_key)
+            ctx = self.ctx()
+            return sorted(ts, key=lambda t: RT.rank_key(OBJ.key(t["metrics"], t.get("legal")),
+                                                        ctx.trial(t)["proj_s"]), reverse=True)
         return sorted(ts, key=lambda t: OBJ.key(t["metrics"], t.get("legal")), reverse=True)
 
     def chain(self, t):
@@ -619,7 +723,8 @@ class Driver(object):
 
     def submit_trial(self, t, attempt):
         name = "%s-%d" % (self.state.tracks[t["track"]]["name"], t["number"])
-        jid = self.submit(name, TRIAL, os.path.join(HERE, "trial_job.sh"), [t["run_dir"]])
+        res = dict(TRIAL, time=TRIAL_RULE_TIME) if self.is_rule(t["track"]) else TRIAL
+        jid = self.submit(name, res, os.path.join(HERE, "trial_job.sh"), [t["run_dir"]])
         if jid:
             self.emit("trial_submit", uid=t["uid"], job_id=jid, attempt=attempt, cpus=TRIAL["cpus"],
                       partition=PARTITIONS)
@@ -627,10 +732,19 @@ class Driver(object):
         return jid
 
     def finish_dup(self, t, orig):
+        value, extra = orig.get("value"), {}
+        if self.is_rule(t["track"]) and orig.get("metrics") and value is not None \
+                and orig.get("value_objective") is None:
+            # the original's value was told before the runtime rule (pre-v3): penalize the duplicate
+            proj = self.ctx().trial(orig)["proj_s"]
+            extra = {"value_objective": value, "ci_proj_s": proj}
+            value = RT.penalized_value(value, proj)
+        elif orig.get("value_objective") is not None:
+            extra = {"value_objective": orig.get("value_objective"), "ci_proj_s": orig.get("ci_proj_s")}
         self.emit("trial_done", uid=t["uid"], job_id=orig.get("done_job"), metrics=orig.get("metrics"),
                   legal=orig.get("legal"), blockers=orig.get("blockers"), magnitude=orig.get("magnitude"),
-                  value=orig.get("value"), dup_of=orig["uid"], lost=orig.get("lost", False))
-        self.tell(t, orig.get("value"))
+                  value=value, dup_of=orig["uid"], lost=orig.get("lost", False), **extra)
+        self.tell(t, value)
 
     def tell(self, t, value):
         study = self.study(t["track"])
@@ -649,7 +763,7 @@ class Driver(object):
         if not post or str(post.get("job_id")) != str(job_id):
             import postprocess
             post = postprocess.process(run_dir, job_id)
-        m = OBJ.flatten(res, post, period=period)
+        m = OBJ.flatten(res, post, period=period, resolved=load_json(os.path.join(run_dir, "out", "resolved.json")))
         legal, blockers, mag = OBJ.legality(m, mode=mode)
         return {"metrics": m, "legal": legal, "blockers": blockers, "magnitude": mag,
                 "value": OBJ.value(m, legal, mag), "status": res.get("status")}
@@ -691,15 +805,22 @@ class Driver(object):
                 lost = True
             else:
                 lost = False
+            extra = {}
+            if self.is_rule(t["track"]) and ev["metrics"] and ev["metrics"].get("min_ws") is not None:
+                # runtime rule: the TPE value of an ineligible trial is lowered (runtime.penalized_value)
+                proj = self.projection(t, ev["metrics"])
+                extra = {"value_objective": ev["value"], "ci_proj_s": proj}
+                ev["value"] = RT.penalized_value(ev["value"], proj)
             self.emit("trial_done", uid=t["uid"], job_id=t["job_id"], metrics=ev["metrics"], legal=ev["legal"],
-                      blockers=ev["blockers"], magnitude=ev["magnitude"], value=ev["value"], lost=lost)
+                      blockers=ev["blockers"], magnitude=ev["magnitude"], value=ev["value"], lost=lost, **extra)
             self.tell(t, ev["value"])
             for d in self.state.trials.values():
                 if d["state"] == "dup" and d.get("dup_of") == t["uid"]:
                     self.finish_dup(d, self.state.trials[t["uid"]])
             m = ev["metrics"] or {}
-            log("done %s job %s: legal %s min WS %s (%s) value %.3f %s" % (
+            log("done %s job %s: legal %s min WS %s (%s) value %.3f%s %s" % (
                 t["uid"], t["job_id"], ev["legal"], m.get("min_ws"), m.get("min_ws_corner"), ev["value"],
+                " projected CI %.2f h" % (extra["ci_proj_s"] / 3600.0) if extra.get("ci_proj_s") else "",
                 "; ".join(ev["blockers"][:3])))
             self.after_run(t["run_dir"], t["job_id"], keep_snap=False)
             self.dirty = True
@@ -938,6 +1059,11 @@ class Driver(object):
             # only trials inside the current search space are promoted (space.FIXED), and only
             # their promotions set the bar a new best must clear
             ranked = self.ranked(track, in_space=True)
+            rule = self.is_rule(track)
+            if rule:
+                # runtime rule: only trials whose projected official gds job fits the bound
+                ctx = self.ctx()
+                ranked = [t for t in ranked if ctx.trial(t)["eligible"]]
             done = [t for t in self.state.trials_of(track) if t["state"] == "done" and not t.get("dup_of")]
             # control: the committed build of the design of record and of the 6x4 fallback goes
             # through the pipeline once (unless an identical configuration already has)
@@ -951,7 +1077,8 @@ class Driver(object):
                 continue
             best = ranked[0]
             prom = [t for t in done if self.chain(t) & real and t.get("metrics")
-                    and t["metrics"].get("min_ws") is not None and not SPACE.outside(t.get("knobs"))]
+                    and t["metrics"].get("min_ws") is not None and not SPACE.outside(t.get("knobs"))
+                    and (not rule or self.promo_runtime_ok(t))]
             prom_ws = [t["metrics"]["min_ws"] for t in prom]
             if not (self.chain(best) & promoted) and \
                     (not prom_ws or best["metrics"]["min_ws"] > max(prom_ws) + PROMO_MIN_GAIN):
@@ -983,10 +1110,17 @@ class Driver(object):
             out.append(tid)
         return out
 
+    def weights_epoch(self):
+        """Time of the first driver start whose settings had the current WEIGHTS (None if none)."""
+        for d in self.state.drivers:
+            if ((d.get("settings") or {}).get("weights") or {}) == WEIGHTS:
+                return d.get("t")
+        return None
+
     def pick_track(self, counts_new, counts_all, exclude=()):
-        """counts_new: trials submitted to LibreLane per track (imported, duplicate and rejected
-        trials use no CPUs and do not count). A track without any goes first (in weight order);
-        then the track with the smallest (count + 1) / weight."""
+        """counts_new: trials submitted to LibreLane per track since weights_epoch() (imported,
+        duplicate and rejected trials use no CPUs and do not count). A track without any goes
+        first (in weight order); then the track with the smallest (count + 1) / weight."""
         cands = self.candidates(counts_all, exclude)
         if not cands:
             return None
@@ -1057,9 +1191,10 @@ class Driver(object):
         if stop:
             return 0
         counts_new, counts_all = {}, {}
+        epoch = self.weights_epoch() or ""
         for t in self.state.trials.values():
             counts_all[t["track"]] = counts_all.get(t["track"], 0) + 1
-            if t.get("submits"):
+            if t.get("submits") and (t.get("created") or "") >= epoch:
                 counts_new[t["track"]] = counts_new.get(t["track"], 0) + 1
         n = 0
         # trials created but never submitted (sbatch failed, or the driver stopped in between)
@@ -1193,6 +1328,7 @@ class Driver(object):
         log("equivalence checker %s (%s); OSS_CAD_SUITE %s" % (
             EQ_CHECK, "present" if os.path.isfile(EQ_CHECK) else "MISSING: every equivalence stage will fail",
             os.environ.get("OSS_CAD_SUITE") or "unset (yosys from PATH)"))
+        self.backfill_runtime()
         self.discover_tracks()
         self.last_scan = time.time()
         self.reconcile()
@@ -1256,7 +1392,11 @@ def settings():
             "trial": TRIAL, "promotion_full": PFULL, "precheck": PCHECK, "gl": PGL,
             "eq": dict(PEQ, limit_s=EQ_LIMIT_S, checker=EQ_CHECK, oss_cad_suite=os.environ.get("OSS_CAD_SUITE")),
             "fixed_knobs": SPACE.FIXED, "partitions": PARTITIONS,
-            "job_prefix": JOB_PREFIX}
+            "job_prefix": JOB_PREFIX,
+            "runtime": {"limit_s": RT.LIMIT_S, "bound_s": RT.BOUND_S, "overhead_s": RT.OVERHEAD_S, "s_ci": RT.S_CI,
+                        "c_full": RT.C_FULL, "k_rsz": RT.K_RSZ, "k_rest": RT.K_REST, "rule_kinds": RT.RULE_KINDS,
+                        "penalty_ns": RT.PENALTY_NS, "trial_rule_time": TRIAL_RULE_TIME,
+                        "seed_tns": RUNTIME_SEED_TNS, "seed_top": RUNTIME_SEED_TOP}}
 
 
 def status():

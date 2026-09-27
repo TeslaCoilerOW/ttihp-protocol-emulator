@@ -20,6 +20,11 @@ value is the LibreLane/PDK default and the committed config sets the key. The
 same knob set therefore gives the same effective configuration whatever the
 committed configuration is.
 
+A knob may belong to one search space only (KNOBS[...]["spaces"]; the v3 runtime knobs
+are 8x4 only): defs() leaves it out of the other space, and every knob set of that
+space leaves its key at the LibreLane default. knob_keys(space) lists the keys a knob
+set of a space decides (the 6x4 overlay states exactly these).
+
 Never searched (kept exactly as in src/config.json and the TT template):
 die size / tiles, the PDN keys (FP_PDN_*), pin placement (FP_IO_*, the DEF
 template), RT_MAX_LAYER, everything below "DO NOT CHANGE", and every
@@ -155,6 +160,29 @@ KNOBS = {
                                           key="PL_RESIZER_SETUP_MAX_UTIL_PCT", source="steps/openroad.py",
                                           why="Utilization cap (-max_utilization) for setup repair; bounds "
                                               "the area cost of large margins."),
+    # Runtime of the post-CTS setup repair (docs/optimization.md, "Runtime and the 6-hour limit"),
+    # added in v3, 8x4 space only. repair_timing (OpenROAD dcf36133, src/rsz/src/RepairSetup.cc)
+    # works through every endpoint whose slack is below the setup margin, worst first; its early
+    # stop divides the TNS change by the initial TNS, which is 0 when no endpoint has negative
+    # slack, so with a margin of several ns it visits all of them (p024: 3,898 endpoints,
+    # 67,857 iterations, 21,807 s).
+    "PL_RESIZER_SETUP_REPAIR_TNS_PCT": dict(kind="cat", choices=[None, 50, 25, 10, 5, 0], unset=None,
+                                            key="PL_RESIZER_SETUP_REPAIR_TNS_PCT", spaces=("8x4",),
+                                            source="steps/openroad.py; scripts/openroad/rsz_timing_postcts.tcl",
+                                            why="-repair_tns: share of the endpoints below the setup margin "
+                                                "that setup repair visits (unset = 100; 0 = the worst endpoint "
+                                                "only). Bounds the repair runtime."),
+    "PL_RESIZER_SETUP_GATE_CLONING": dict(kind="cat", choices=[True, False], unset=True,
+                                          key="PL_RESIZER_SETUP_GATE_CLONING", spaces=("8x4",),
+                                          source="steps/openroad.py; scripts/openroad/rsz_timing_postcts.tcl",
+                                          why="False = -skip_gate_cloning. The clone move never committed in "
+                                              "the 559 trials with a post-CTS repair log (no RSZ-0049), but it "
+                                              "is evaluated in every pass that reaches it."),
+    "PL_RESIZER_SETUP_BUFFER_REMOVAL": dict(kind="cat", choices=[True, False], unset=True,
+                                            key="PL_RESIZER_SETUP_BUFFER_REMOVAL", spaces=("8x4",),
+                                            source="steps/openroad.py; scripts/openroad/rsz_timing_postcts.tcl",
+                                            why="False = -skip_buffer_removal. The unbuffer move never "
+                                                "committed in the same 559 trials (no RSZ-0059)."),
     "RUN_POST_GRT_RESIZER_TIMING": dict(kind="cat", choices=[False, True], unset=False,
                                         key="RUN_POST_GRT_RESIZER_TIMING", source="flows/classic.py",
                                         why="repair_timing again with global-route parasitics "
@@ -164,6 +192,11 @@ KNOBS = {
                                            when=("RUN_POST_GRT_RESIZER_TIMING", (True,)),
                                            source="steps/openroad.py; scripts/openroad/rsz_timing_postgrt.tcl",
                                            why="Setup margin of the post-GRT repair (only read by that step)."),
+    "GRT_RESIZER_SETUP_REPAIR_TNS_PCT": dict(kind="cat", choices=[None, 50, 25, 10, 5, 0], unset=None,
+                                             key="GRT_RESIZER_SETUP_REPAIR_TNS_PCT", spaces=("8x4",),
+                                             when=("RUN_POST_GRT_RESIZER_TIMING", (True,)),
+                                             source="steps/openroad.py; scripts/openroad/rsz_timing_postgrt.tcl",
+                                             why="As PL_RESIZER_SETUP_REPAIR_TNS_PCT for the post-GRT repair."),
     "grt_hold": dict(kind="cat", choices=[0.05, 0.02, 0.1], unset="explicit", key="GRT_RESIZER_HOLD_SLACK_MARGIN",
                      when=("RUN_POST_GRT_RESIZER_TIMING", (True,)),
                      source="steps/openroad.py; scripts/openroad/rsz_timing_postgrt.tcl",
@@ -222,6 +255,12 @@ RETIRED = {"DRT_OPT_ITERS": 64}
 FIXED = {"CTS_MAX_SLEW": None}
 
 ORDER = list(KNOBS)
+# Knobs added after the v2 launch (v3). A stored knob set from before has no value for them, and
+# the run it records used their unset value, so canonical() leaves a late knob out while it has
+# that value: the identity ("key") of every stored trial stays what it was.
+# upgrade() gives such a stored knob set the late knobs at their unset value before complete().
+LATE = ("PL_RESIZER_SETUP_REPAIR_TNS_PCT", "PL_RESIZER_SETUP_GATE_CLONING", "PL_RESIZER_SETUP_BUFFER_REMOVAL",
+        "GRT_RESIZER_SETUP_REPAIR_TNS_PCT")
 # Value of an "explicit" knob that a seed activates without giving it and the base leaves
 # inactive: the LibreLane default of the post-GRT hold margin, and the halo that suits every
 # floorplan with a free halo choice.
@@ -234,7 +273,7 @@ SIMPLE = ("FP_MACRO_VERTICAL_HALO", "SYNTH_STRATEGY", "MAX_FANOUT_CONSTRAINT", "
           "DESIGN_REPAIR_MAX_CAP_PCT", "RUN_POST_GRT_DESIGN_REPAIR", "PL_RESIZER_SETUP_SLACK_MARGIN",
           "PL_RESIZER_SETUP_MAX_UTIL_PCT", "RUN_POST_GRT_RESIZER_TIMING", "GRT_RESIZER_SETUP_SLACK_MARGIN",
           "CTS_SINK_CLUSTERING_SIZE", "CTS_SINK_CLUSTERING_MAX_DIAMETER", "CTS_MAX_SLEW", "CTS_MAX_CAP",
-          "CTS_CLK_MAX_WIRE_LENGTH", "CTS_OBSTRUCTION_AWARE", "GRT_MACRO_EXTENSION")
+          "CTS_CLK_MAX_WIRE_LENGTH", "CTS_OBSTRUCTION_AWARE", "GRT_MACRO_EXTENSION") + LATE
 # Every LibreLane key a knob can write (materialize() decides each of them for every trial).
 COMPOSITE_KEYS = ("FP_MACRO_HORIZONTAL_HALO", "SYNTH_ABC_BUFFERING", "SYNTH_SIZING", "GPL_CELL_PADDING",
                   "DPL_CELL_PADDING", "GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH", "GRT_LAYER_ADJUSTMENTS")
@@ -246,14 +285,28 @@ ABSENT = object()
 UNSET_GRT_LAYER_ADJUSTMENTS = [0, 0, 0, 0, 0]
 
 
+def in_space(name, space):
+    """True if knob `name` belongs to search space `space` (KNOBS[...]["spaces"], default all)."""
+    return space in KNOBS[name].get("spaces", ("8x4", "6x4"))
+
+
+def knob_keys(space):
+    """The LibreLane keys a knob set of `space` decides (KNOB_KEYS without the keys of knobs
+    outside the space). The 6x4 overlay states exactly these (variants6x4/config.overlay.json)."""
+    out = [k for k in KNOB_KEYS if not any(KNOBS[n]["key"] == k and not in_space(n, space) for n in SIMPLE)]
+    return tuple(out)
+
+
 def defs(space="8x4", restrict=None):
     """Knob definitions of one track's search space: "8x4" (the fp8_* floorplans) or "6x4"
-    (the committed 6x4 floorplan). restrict: {knob: [allowed choices]} (a subset, in order)."""
-    D = copy.deepcopy(KNOBS)
+    (the committed 6x4 floorplan). restrict: {knob: [allowed choices]} (a subset, in order).
+    Knobs whose "spaces" exclude the space are left out; targets() then leaves their key at
+    the LibreLane default (ABSENT) in every knob set of that space."""
+    if space not in ("8x4", "6x4"):
+        raise ValueError("unknown space %r" % space)
+    D = {n: copy.deepcopy(k) for n, k in KNOBS.items() if in_space(n, space)}
     if space == "6x4":
         D["floorplan"]["choices"] = list(FLOORPLANS_6X4)
-    elif space != "8x4":
-        raise ValueError("unknown space %r" % space)
     for n, allowed in (restrict or {}).items():
         if D[n]["kind"] != "cat":
             raise ValueError("restrict: %s is not categorical" % n)
@@ -277,7 +330,7 @@ def suggest(trial, D=KNOBS):
     FIXED knobs are not sampled and not returned: complete() and fix() supply them)."""
     out = {}
     for n in ORDER:
-        if n in FIXED or not active(n, out, D):
+        if n not in D or n in FIXED or not active(n, out, D):
             continue
         k = D[n]
         if k["kind"] == "cat":
@@ -312,7 +365,7 @@ def complete(partial, base, D=KNOBS):
     (only their accepted value is allowed)."""
     out = {}
     for n in ORDER:
-        if not active(n, out, D):
+        if n not in D or not active(n, out, D):
             continue
         if n in partial:
             v = partial[n]
@@ -326,15 +379,36 @@ def complete(partial, base, D=KNOBS):
     for n, v in RETIRED.items():
         if n in partial and partial[n] != v:
             raise ValueError("knob %s=%r is retired (only %r is accepted)" % (n, partial[n], v))
-    unknown = set(partial) - set(D) - set(RETIRED)
+    # a knob of another space is accepted at its unset value only (a stored 8x4 knob set that
+    # predates it, translated or imported into a space without it, says nothing about it)
+    other = {n for n in partial if n in KNOBS and n not in D}
+    bad = [n for n in sorted(other) if not same(partial[n], KNOBS[n]["unset"])]
+    if bad:
+        raise ValueError("knobs %s are not in this search space" % bad)
+    unknown = set(partial) - set(D) - set(RETIRED) - other
     if unknown:
         raise ValueError("unknown knobs %s" % sorted(unknown))
     return out
 
 
+def upgrade(knobs):
+    """A stored complete knob set (it has "floorplan" and "density", which no partial seed of
+    the driver has) that predates a LATE knob gets that knob at its unset value: its run used
+    the LibreLane default. Without this, complete() would fill the knob from the track's base,
+    which differs once src/config.json sets it. Partial seeds are returned unchanged."""
+    out = dict(knobs or {})
+    if "floorplan" in out and "density" in out:
+        for n in LATE:
+            if n not in out:
+                out[n] = KNOBS[n]["unset"]
+    return out
+
+
 def canonical(knobs):
-    """Identity of a complete knob set (the effective configuration within a track)."""
-    return json.dumps(knobs, sort_keys=True, separators=(",", ":"))
+    """Identity of a complete knob set (the effective configuration within a track). A LATE knob
+    at its unset value is left out, so knob sets recorded before it existed keep their key."""
+    return json.dumps({n: v for n, v in knobs.items() if not (n in LATE and same(v, KNOBS[n]["unset"]))},
+                      sort_keys=True, separators=(",", ":"))
 
 
 def outside(knobs):
@@ -476,6 +550,8 @@ def base_knobs(cfg, floorplans, D=KNOBS):
     out = {}
     act = {}
     for n in ORDER:
+        if n not in D:
+            continue
         if active(n, act, D):
             act[n] = out[n] = _check(n, kn[n], D)
         else:
@@ -510,6 +586,8 @@ def distributions(D=KNOBS):
     import optuna.distributions as OD
     out = {}
     for n in ORDER:
+        if n not in D:
+            continue
         k = D[n]
         if k["kind"] == "cat":
             out[n] = OD.CategoricalDistribution(copy.copy(k["choices"]))
@@ -524,6 +602,8 @@ def table_rows(base, D=KNOBS):
     """(knob, LibreLane key, values, committed value, rationale) for documentation."""
     rows = []
     for n in ORDER:
+        if n not in D:
+            continue
         k = D[n]
         if n in FIXED:
             vals = "fixed: %s" % ("unset" if FIXED[n] is None else FIXED[n])

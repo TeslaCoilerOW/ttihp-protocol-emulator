@@ -27,9 +27,14 @@ GitHub gds, precheck and gl_test actions pass on that commit (see
 
 The first version of the optimizer (v1, 2026-09-26 03:36 to 13:40) searched
 the design of record at 20 ns and the variant cores. Its record is in
-[Campaign record](#campaign-record). The current version (v2) added the
-frequency tracks, the 6x4 track, absolute knob values, the import of
-identical earlier trials, weighted allocation and retirement.
+[Campaign record](#campaign-record). v2 added the frequency tracks, the 6x4
+track, absolute knob values, the import of identical earlier trials,
+weighted allocation and retirement; it runs today. v3 (the tools of this
+page's runtime sections, not yet running) makes the length of the official
+`gds` and `gds_6x4` jobs part of the search: GitHub stops such a job after
+6 hours, and p024, the 13.33 ns promotion, is projected to exceed that
+([Runtime and the 6-hour limit](#runtime-and-the-6-hour-limit),
+[The 75 MHz plan](#the-75-mhz-plan)).
 
 ## Current results
 
@@ -105,6 +110,14 @@ precheck and the gate-level tests by 2026-09-27 10:31 UTC and the
 equivalence stage (job 24098118) by 13:37 UTC: a local sign-off at
 75.0 MHz with setup WS +4.962 / +6.095 / +0.756 ns. It is not committed
 ([Promotion](#promotion)).
+
+**75 MHz: the official job would be too long.** p024's full run took
+26,549 s of flow time (7.37 h), 82.1% of it in post-CTS timing repair, on a
+node whose synthesis step took 2.15 times as long as on the fastest local
+nodes. The v3 runtime model projects its official `gds` job at 7.37 h from
+the full run and 9.92 h from its trial, against GitHub's 6 h limit
+([Runtime and the 6-hour limit](#runtime-and-the-6-hour-limit)). The plan
+for an official 13.33 ns sign-off is in [The 75 MHz plan](#the-75-mhz-plan).
 
 Until `d76f1cc` this paragraph read: "Above 50 MHz there is a local
 sign-off, not an official one. [...] It is not committed, so no GitHub
@@ -256,14 +269,17 @@ combination today.
 
 | Track | Core | Die | `CLOCK_PERIOD` | Committed configuration | Weight | Gate-level `PE_VARIANT` |
 |---|---|---|---|---|---:|---|
-| `dor` | `src/protocol_emulator_core.v` (sha256 `26a873db…`) | 8x4 | 20 ns (50 MHz) | `src/config.json` with `CLOCK_PERIOD` 20 (as committed until `d76f1cc`) | 0.15 (0.35 until `f511c97`) | `base` |
-| `dor15` | same | 8x4 | 15 ns (66.7 MHz) | `src/config.json` as committed since `d76f1cc` (before: with `CLOCK_PERIOD` 15); the snapshot's `info.yaml` gets `clock_hz` 66666667 | 0.35 (0.22 until `f511c97`) | `base` |
-| `dor13` | same | 8x4 | 13.33 ns (75.0 MHz) | `src/config.json` with `CLOCK_PERIOD` 13.33; `clock_hz` 75018755 | 0.15 (0.08 until `f511c97`) | `base` |
+| `dor` | `src/protocol_emulator_core.v` (sha256 `26a873db…`) | 8x4 | 20 ns (50 MHz) | `src/config.json` with `CLOCK_PERIOD` 20 (as committed until `d76f1cc`) | v3: 0.05 (0.15 from `f511c97`; 0.35 before) | `base` |
+| `dor15` | same | 8x4 | 15 ns (66.7 MHz) | `src/config.json` as committed since `d76f1cc` (before: with `CLOCK_PERIOD` 15); the snapshot's `info.yaml` gets `clock_hz` 66666667 | v3: 0.15 (0.35 from `f511c97`; 0.22 before) | `base` |
+| `dor13` | same | 8x4 | 13.33 ns (75.0 MHz) | `src/config.json` with `CLOCK_PERIOD` 13.33; `clock_hz` 75018755 | v3: 0.45 (0.15 from `f511c97`; 0.08 before) | `base` |
 | `diet4_6x4` | `variants6x4/protocol_emulator_core.v` (`diet4`, sha256 `cc27c465…`) | 6x4 | 20 ns | `src/config.json` with `variants6x4/config.overlay.json` merged (RFC 7386, as `variants6x4/switch.py apply` does); `info.yaml` `tiles` "6x4" | 0.20 | `diet4` |
 | one per variant | `$PE_WORK/variants/cores/<name>.v` (sha256 as in its `MANIFEST.sha256`) | 8x4 | 20 ns | `src/config.json` (with `CLOCK_PERIOD` 20 since `d76f1cc`) | 0.15, shared | `<name>` |
 
-The weights are the shares of new trials ([Allocation](#allocation)).
-Since `f511c97` (driver job 24077569, from 2026-09-27 01:57 cluster time)
+The weights are the shares of new trials ([Allocation](#allocation)). In
+v3 `dor13` gets the largest share, 0.45, because the goal is an official
+sign-off at 13.33 ns ([The 75 MHz plan](#the-75-mhz-plan)); `dor15` gets
+0.15, `dor` 0.05, `diet4_6x4` 0.20 and the variant tracks 0.15 together.
+From `f511c97` (driver job 24077569, from 2026-09-27 01:57 cluster time)
 `dor15`, the committed period, gets the largest share: `dor15` 0.35,
 `dor13` 0.15, `dor` 0.15, `diet4_6x4` 0.20 and the variant tracks 0.15
 together, so the frequency tracks together get 0.50. Until then the
@@ -418,6 +434,15 @@ every active track whose recorded revision is lower (`SEED_REVISION` in
   configuration, margin 5.75 ns, job 24024333) was still in
   `OpenROAD.ResizerTimingPostCTS` after almost 3 hours. At 17:12 its log
   showed 3,773 endpoints below the margin.
+- Revision 3 (v3) adds to `dor15` and `dor13` the three best legal trials
+  of the track whose projected official job exceeds 5.5 h, each with
+  `PL_RESIZER_SETUP_REPAIR_TNS_PCT` 25 and 10 (the runtime knob,
+  [Timing-repair runtime knobs](#timing-repair-runtime-knobs-v3)); the 6x4
+  space has no such knob. Which trials those are depends on the store at
+  the relaunch: dry run 24130924 (store of 18:20) enqueued 6 seeds in each,
+  from `dor13` #51, #1 (p024's trial) and #52 and from `dor15` #13
+  (p021's), #128 and #126. The value 0 is not seeded
+  ([Experiment](#experiment-pl_resizer_setup_repair_tns_pct-on-the-committed-configuration)).
 
 ## Frequency tracks and the SDC
 
@@ -498,6 +523,483 @@ operated at, and the datasheet, the firmware and the host library assume
 fails on a typ-corner setup violation at the configured period
 (`TIMING_VIOLATION_CORNERS` `*typ*`), which is legality rule 1 below.
 
+## Runtime and the 6-hour limit
+
+GitHub stops a job on a hosted runner after 6 hours (21,600 s). The Tiny
+Tapeout `gds` job is one such job. It sets up the runner, runs the whole
+LibreLane flow on the runner's 4 vCPUs (`OPENROAD_THREADS` 4), then writes
+the summaries, uploads the artifacts and renders a PNG of the layout. A
+configuration is signed off officially only if that job finishes.
+The `gds_6x4` job, which builds the 6x4 fallback, has the same limit.
+`tools/opt/runtime.py` (v3) projects the job's length from a local run, and
+the driver uses the projection as a promotion rule in the tracks that an
+official action builds: `dor15` and `dor13` (`gds`) and `diet4_6x4`
+(`gds_6x4`). The `dor` track (20 ns) has not been built by an official
+action since `d76f1cc` set `CLOCK_PERIOD` 15, and the variant tracks never
+are; they have no rule.
+
+### The official jobs
+
+Every official `gds` or `gds_6x4` job whose configuration has a local full
+run was paired with that run. The pairing rebuilt the local run's
+configuration from its frozen tree's `src/config.json` and its recorded
+`config_changes_vs_repo`, and compared it key by key with the commit's
+`src/config.json`, with `variants6x4/config.overlay.json` merged for 6x4.
+All 18 pairs are identical, `OPENROAD_THREADS` included. The official step
+times come from the job logs: LibreLane's `Running '<step>'` lines with
+GitHub's timestamps. The local ones come from each run's `result.json`.
+
+| Configuration | Local full run: job, node, flow time | Official jobs: commit, GitHub run, job length |
+|---|---|---|
+| p001: 8x4, 20 ns, committed from `c118027` to `39d21e8` | 23993269, node1631, 5,500 s | `39d21e8` 36238342723 11,160 s; `be7dbda` 36225500459 10,637 s; `8ba08e5` 36225133221 10,501 s; `aa07868` 36222609980 10,455 s; `ea98c08` 36221321894 10,625 s; `c118027` 36188299524 10,450 s and 36144357821 6,798 s |
+| p010: 8x4, 20 ns, committed from `131e793` to `4bd30c8` | 24010051, node1605, 2,785 s | `131e793` 36257636798 6,687 s; `1e5b1d8` 36285537636 6,566 s; `4bd30c8` 36274474548 4,117 s |
+| p018: 8x4, 15 ns, committed since `d76f1cc` | 24042265, node1611, 7,833 s | `d76f1cc` 36298635436 15,856 s; `4c30622` 36308043760 9,966 s; `fff6746` 36323174075 15,967 s |
+| p014: 6x4, 20 ns, in the overlay since `4bd30c8` | 24036160, node1380, 3,495 s | `gds_6x4` of `4bd30c8` 36274474540 3,983 s; `1e5b1d8` 36285537630 4,106 s; `d76f1cc` 36298635404 3,989 s; `4c30622` 36308043804 4,074 s; `fff6746` 36323174037 3,926 s |
+
+The `gds_6x4` job of `131e793` (36257636751) is not in the table because it
+failed: route DRC 69 after 15,009 s, with no complete flow. Its
+configuration is that of p012, whose full run (24029191) failed the same
+way ([Starting point](#starting-point)), so neither has a complete flow time.
+
+**Variance.** The same configuration took 9,966 to 15,967 s (p018), 4,117 to
+6,687 s (p010) and 6,798 to 11,160 s (p001), a factor of 1.60 to 1.64
+between the fastest and the slowest job. The five 6x4 jobs took 3,926 to
+4,106 s. Relative to the local full run, the official flow took 1.044 to
+1.913 times as long, and the whole job 1.123 to 2.401 times.
+
+The spread comes from two machines: the runner and the local node.
+
+- **Speed factor.** The yosys synthesis step is single-threaded and does
+  the same work for the same synthesis settings and core, so its time
+  measures the machine. The speed factor of a run is s = its synthesis time
+  / the fastest synthesis time with the same synthesis key among the
+  optimizer's runs.
+- **Runners.** The runners fall into two groups: s = 0.908 to 0.974 (3
+  jobs: p018 on `4c30622`, p010 on `4bd30c8` and the first `c118027` job)
+  and s = 1.401 to 1.517 (the other 15).
+- **Local nodes.** They range from s = 1.00 (node16xx, node31xx) to 2.15
+  (node1384, where p024's full run ran), the maximum observed.
+- **Normalized.** Divided by s, the official flow took 1.189 to 1.333 times
+  the local full run's in all 18 jobs, against 1.044 to 1.913 before the
+  division.
+
+Around the flow, the job spent 116 to 167 s before it (checkout, tool
+installation) and 141 to 151 s (6x4) or 617 to 1,217 s (8x4) after it.
+Most of the time after the flow is `tt_tool.py --create-png`: 570 to
+1,151 s for 8x4, 87 to 98 s for 6x4.
+
+**Where the time goes at 13.33 ns.** p024's full run (job 24068227,
+node1384) took 26,549 s of flow time. 21,807 s of it (82.1%) was
+`OpenROAD.ResizerTimingPostCTS`. Its trial (job 24026489, node1620) took
+13,484 s, 12,082 s of it (89.6%) in that step. In p018's official jobs the
+step took 7,687 and 7,556 s on the slower runners and 4,752 s on the
+faster one; p018's local full run took 4,133 s there.
+
+### Model
+
+`runtime.py` takes each constant as the maximum over the 18 jobs, rounded
+up (`K_RSZ` with more headroom, see its row):
+
+| Constant | Value | Maximum observed |
+|---|---:|---|
+| `S_CI`, runner speed factor | 1.52 | 1.517 (`gds_6x4` job of `1e5b1d8`) |
+| `C_FULL`, normalized official flow / normalized local full-run flow | 1.34 | 1.333 (p018, `fff6746`) |
+| `K_RSZ`, normalized official timing repair / normalized trial repair | 1.65 | 1.556 measured (p018, `fff6746`; the only configuration of the 18 jobs with a long repair). p021's full run took 1.197 times its trial's repair (normalized), against 1.172 for p018, and 1.197 × p018's largest official/full ratio 1.328 is 1.589, so the value is raised to 1.65. |
+| `K_REST`, the same for the flow without the repair | 3.74 | 3.738 (p001, `39d21e8`) |
+| `OVERHEAD_S`, job time outside the flow | 1,370 s | 1,367 s (p018, `d76f1cc`) |
+
+With F the flow time, R the timing-repair time (post-CTS plus post-GRT) and
+s the run's speed factor:
+
+- **From a full run** (`OPENROAD_THREADS` 4):
+  job ≤ 1,370 + 1.52 × 1.34 × F / s.
+- **From a fast-mode trial** (32 threads):
+  job ≤ 1,370 + 1.52 × (1.65 × R + 3.74 × (F − R)) / s.
+- **Complete flows only.** Both need a flow that ran to its end
+  (`flow_complete` in `result.json`). A timed-out or failed run has no
+  projection; `dor13` #26 and #27, which timed out in detailed routing,
+  would otherwise have looked short.
+- **Why the repair is separate.** The repair hardly speeds up with threads.
+  Normalized, a full run's repair took 0.94 to 1.20 times its trial's in the
+  four promotions with a long repair (p018, p019, p021 and p024). The rest
+  of the flow took 1.75 to 2.93 times as long at 4 threads as at 32 threads
+  (all 29 promotions).
+
+**Validation.**
+
+- Both projections exceed each of the 18 official jobs: the full-run one by
+  at least 310 s (4.6%), the trial one by at least 770 s. `test_opt.py`
+  checks the constants and both projections against the 18 jobs.
+- Over the 28 promotions with a complete full run (p012's did not
+  complete), the trial projection is 0.96 to 1.46 times the full-run
+  projection, and the two agree on the 5.5 h bound in all 28.
+- **No trial margin.** Only p001 has a trial projection below its full-run
+  one (0.963 times). A trial bound 2% or more below 5.5 h would have
+  rejected p018 (trial 5.45 h, full run 4.75 h, official jobs at most
+  4.44 h). The full-run projection is part of the verdict instead (below),
+  so a trial projection that is too low costs one full run, not an
+  adoption.
+
+**Local flow-time bound.** For the official job to stay under 5.5 h
+(19,800 s) on the slower runner group:
+
+- A full run's normalized flow time must be at most
+  (19,800 − 1,370) / (1.52 × 1.34) = 9,048 s. That is 2.51 h on the fastest
+  local nodes (s = 1), and 9,048 × s seconds on a slower node.
+- For a trial the condition is 1.65 × R / s + 3.74 × (F − R) / s ≤ 12,125 s.
+
+Projections of the promotions with an official job or a period below 20 ns
+(reference synthesis time 56.638 s for the 8x4 core with DELAY 4, as the
+driver computes it):
+
+| Promotion | Full run: job, node, flow time, s | Projected official job | Official jobs |
+|---|---|---:|---|
+| p010 (20 ns) | 24010051, node1605, 2,785 s, 1.008 | 1.94 h | 1.14 to 1.86 h |
+| p001 (20 ns) | 23993269, node1631, 5,500 s, 1.016 | 3.44 h | 1.89 to 3.10 h |
+| p014 (6x4) | 24036160, node1380, 3,495 s, 1.740 | 1.52 h | 1.09 to 1.14 h |
+| p018 (15 ns) | 24042265, node1611, 7,833 s, 1.013 | 4.75 h | 2.77 to 4.44 h |
+| p019 (15 ns) | 24045480, node1600, 9,888 s, 1.021 | 5.86 h | none |
+| p021 (15 ns) | 24048020, node1398, 16,321 s, 1.565 | 6.28 h | none |
+| p024 (13.33 ns) | 24068227, node1384, 26,549 s, 2.150 | 7.37 h | none |
+
+p024's official job is projected at 7.37 h from its full run and 9.92 h
+from its trial, above 6 h on the slower runner group, which ran 15 of the 18
+jobs. With the faster group's maxima instead (s 0.974, 781.6 s outside the
+flow, the same 1.333), the projection from the full run is 4.67 h. The job
+would therefore depend on the runner it gets.
+
+### The rule in the driver (v3)
+
+- **Step times.** Every run's metrics carry the step times of `runtime.py`
+  (`rt_synth_s`, `rt_rsz_s`, `rt_rsz_grt_s`, `rt_drt_s`, `rt_flow_s`,
+  `rt_wall_s`, node, threads), whether the flow ran to its end
+  (`rt_complete`), and the synthesis settings of the run's
+  `out/resolved.json` (`rt_synth_cfg`). Runs that finished before v3 get
+  them once from their `result.json` and `out/resolved.json`
+  (`trial_runtime` and `promo_runtime` events).
+- **Synthesis key.** The key is `SYNTH_STRATEGY`, the ABC fine-tuning,
+  `MAX_FANOUT_CONSTRAINT` and the core, plus `CLOCK_PERIOD` for the
+  strategies that read it. It is taken from the run's resolved configuration
+  when recorded, else from its knob set. That matters for the `*-ccca9e6`
+  trials whose recorded knobs do not describe their runs
+  ([Absolute knob values](#absolute-knob-values)): `dor-26a873-ccca9e6` #13
+  and #20 recorded AREA 0 and fan-out 10 but ran DELAY 4 and fan-out 8. The
+  reference time of a key is the minimum synthesis time over the store's
+  runs with that key.
+- **Rule tracks.** `runtime.RULE_KINDS`: `dor15`, `dor13` and
+  `diet4_6x4`.
+- **Eligibility.** In a rule track, a trial is promoted only if its
+  projection is at most 5.5 h. A trial without a projection is not
+  eligible. A promotion whose projection exceeds the bound (from its full
+  run once that has finished, else from its trial) does not set the bar
+  that a new best must clear. So p019, p021 and p024 no longer hold back a
+  promotion.
+- **Verdict.** In a rule track, a promotion whose four gates pass is PASS
+  only if its full run's projection is at most 5.5 h. Above that the
+  leaderboard shows "PASS (over CI time bound: projected official job …)",
+  which is not eligible for adoption; p019 (5.86 h), p021 (6.28 h) and p024
+  (7.37 h) read that way in the dry runs. A full run without a projection
+  reads "PASS (CI time not projected …)".
+- **Ranking.** Trials rank by min WS (10 ps), then by projection, then by
+  the rest of the objective.
+- **Leaderboard.** It shows the projection of every trial and promotion.
+  "Best" in these tracks is the best eligible trial, and better-ranked
+  ineligible trials are named.
+- **TPE.** The value of an ineligible trial is lowered by 1 ns, plus 1 ns
+  per hour over 5.5 h. The values of trials told before v3 stay as they
+  were told; the study is not re-valued. A duplicate of such a trial (an
+  identical knob set sampled again) is told the penalized value, and the
+  `trial_done` event records the objective's own value and the projection
+  (`value_objective`, `ci_proj_s`).
+- **Trial time limit.** Trial jobs of the rule tracks get 5 h instead of
+  6 h. An eligible trial's flow takes at most 12,125 / 1.65 = 7,348
+  normalized seconds, which is 15,799 s (4.39 h) at s = 2.15, the slowest
+  local node observed; a slower node would need longer. The job is warned
+  900 s before its limit.
+
+## The 75 MHz plan
+
+**Goal.** An official Tiny Tapeout sign-off of the design of record at
+`CLOCK_PERIOD` 13.33 ns (75.0 MHz), with `info.yaml` `clock_hz` unchanged
+at 50000000, the operating clock. Official means that the `gds`,
+`precheck` and `gl_test` actions pass, with setup met at every corner. A
+13.33 ns configuration counts only after those actions pass on it. The
+local promotion comes before that as a gate: the same LibreLane image, the
+Tiny Tapeout precheck, the gate-level cocotb suite with the CI's simulator,
+and `formal_eq`.
+
+### Where it stands
+
+These numbers come from dry run 24130924 on a copy of the store of
+2026-09-27 18:20 cluster time (2,545 events).
+
+- **p024.** p024 (`dor13` #1, the committed configuration at 13.33 ns)
+  passed the local sign-off with setup WS +4.962 / +6.095 / +0.756 ns. Its
+  official job is projected at 7.37 h from the full run and 9.92 h from
+  the trial. It is not eligible, its verdict reads "PASS (over CI time
+  bound …)", and on the slower runner group its job would exceed 6 h
+  ([Runtime and the 6-hour limit](#runtime-and-the-6-hour-limit)).
+- **Best legal `dor13` trial.** Since 2026-09-27 17:45 cluster time it is
+  #51 (job 24113063, margin 8.55 ns): +4.656 / +5.645 / +0.796 ns,
+  projected 8.42 h, not eligible.
+- **Eligible `dor13` trials.** 18 of the 34 legal `dor13` trials are
+  eligible. The best is `dor13` #14 (job 24070219, setup margin 4.45 ns),
+  with setup WS +4.569 / +5.634 / +0.450 ns, hold WS minimum +0.121 ns
+  (fast) and a projection of 4.62 h. The dry run promoted it (p033 in its
+  copy of the store).
+- **`dor15`.** 32 of the 83 legal trials are eligible. The best is #16
+  (job 24043124), with +5.741 / +6.682 / +2.473 ns and a projection of
+  3.70 h (p032 in the dry run). The committed p018 projects to 4.75 h, and
+  its official jobs took 2.77 to 4.44 h. p019 (5.86 h) and p021 (6.28 h)
+  exceed the bound.
+- **`diet4_6x4`.** 56 of the 62 legal trials are eligible; the other 6
+  project to up to 9.26 h (#13). The best, #79 (+5.960 ns at the slow
+  corner, projected 1.70 h), is promotion p031 of the running campaign.
+
+### Why the repair takes that long
+
+The first `repair_timing` call of `OpenROAD.ResizerTimingPostCTS` is
+`repair_timing -setup -setup_margin <PL_RESIZER_SETUP_SLACK_MARGIN>`. It
+works through every endpoint whose slack is below the margin, worst first
+(OpenROAD `dcf36133`, the build in the image, `src/rsz/src/RepairSetup.cc`).
+
+- **Per endpoint.** An endpoint gets up to `-max_passes` (10,000) passes.
+  It stops when it reaches the margin, when a pass changes nothing, or
+  after more than 50 passes without improvement.
+- **The early stop.** Every 100 iterations after the first 1,000,
+  `terminateProgress()` divides the improvement in total negative slack
+  (TNS) since its last check by the initial TNS. It stops the current
+  endpoint when that rate is below a threshold (0.01%, doubled every 1,000
+  iterations), and two such stops in a row end the repair.
+- **Why it never stops here.** With a margin of several nanoseconds and no
+  negative slack at the start, the initial TNS is 0 and the rate is 0/0
+  (not a number). The comparison is then false, so the repair visits every
+  endpoint below the margin.
+
+In p024 (margin 5.8 ns) that meant 3,898 endpoints and 67,857 iterations.
+The resizer's worst slack (placement parasitics) rose from +0.407 to
++2.005 ns by iteration 320 (0.47% of the iterations) and ended at +2.018 ns
+(from iteration 28,401 on). In all, the repair resized 5,593 instances and
+inserted 1,253 buffers (area +7.6%). Trials whose
+initial worst slack is negative stop early instead. For example, `dor15`
+#76 (AREA 1 synthesis, initial worst slack −0.416 ns, margin 6.9 ns)
+stopped after 1,200 iterations and 276 s.
+
+The knob that bounds this loop is `PL_RESIZER_SETUP_REPAIR_TNS_PCT`
+([Timing-repair runtime knobs](#timing-repair-runtime-knobs-v3)). With it,
+only the worst endpoints are repaired. p024's post-route worst endpoint had
+at least +2.018 ns in the resizer's view (its worst slack) and +0.756 ns
+after routing, and the
+[experiment](#experiment-pl_resizer_setup_repair_tns_pct-on-the-committed-configuration)
+shows the post-route slack falling with a partial repair.
+
+### Slow-corner paths of p024 at 13.33 ns
+
+`tools/sta/` on p024's full run (job 24119756). Control 1 passed: 51
+metrics are equal to the run's `metrics.csv`, with maximum difference 0.
+The worst path of each class at the slow corner:
+
+| Class | Setup WS | Worst path |
+|---|---:|---|
+| register to register (macros included) | +0.756 ns | `core.instruction_sram_e2_hi/A_DOUT[14]` → `_62488_/D` (`core.completed_instructions_0[31]`) |
+| input to register | +1.635 ns | `ui_in[1]` → `_61195_/D` |
+| input to output | +3.907 ns | `ena` → `uio_out[5]` |
+| register to output | +4.813 ns | `_62088_/Q` → `uio_out[5]` |
+
+Hold WS is +0.736 ns at the slow corner. The flow's own slow-corner report
+(`max.rpt` of job 24068227) lists the 1,000 worst setup endpoints, all
+between +0.756 and +2.040 ns:
+
+- **Start points.** 446 of the paths start at an SRAM output: 434 of them
+  end at a flip-flop and 12 at an SRAM input (both ends on the SRAM clock).
+  The other 554 start and end at a flip-flop.
+- **Below +1.0 ns: 6 endpoints.** Four are bits 27, 29, 30 and 31 of
+  `core.completed_instructions_0`, from `instruction_sram_e2_hi`, at
+  +0.756 to +0.963 ns. One is `core._2457`, from `instruction_sram_e1_lo`,
+  at +0.984 ns. One is flip-flop to flip-flop, `core._1623[6]` →
+  `core._2033[7]`, at +0.996 ns. The generator's name numbering does not
+  identify the engine (`docs/timing-closure.md` section 6.1).
+- **+1.0 to +1.25 ns: 46 more.** These are SRAM paths into
+  `completed_instructions_0[28]`, `x_0`, `x_2`, `y_0`, `y_2`,
+  `completed_instructions_2` and unnamed registers.
+
+The worst path, in the order a signal takes:
+
+- **Launch.** The SRAM's `A_CLK` sees the clock at 1.477 ns. That includes
+  five delay buffers (`delaybuf_0_clk` to `delaybuf_4_clk`, 0.721 ns), which
+  CTS's latency balancing inserts between the macro tree and the register
+  tree.
+- **SRAM read.** The SRAM clock-to-output delay is 5.257 ns at the slow
+  corner, 39.4% of the period.
+- **Logic.** 6.724 ns of logic follows. Its last 2.836 ns are an AND4
+  chain ending in XOR2 and NOR2 at bit 31: the counter's increment, with
+  the late enable inside the carry chain (docs/timing-closure.md section 4,
+  "The carry-chain effect").
+- **Capture.** The capture clock latency is 1.350 ns, the uncertainty
+  0.25 ns and the setup time 0.215 ns, so the required time is 14.215 ns
+  against an arrival of 13.458 ns.
+
+p021's 15 ns layout re-timed at 13.33 ns (job 24119757) gives +0.886 ns at
+the slow corner, its +2.556 ns shifted by the period difference.
+
+### Can configuration knobs reach +1 ns at the slow corner?
+
+- **What is needed.** +0.244 ns on the 6 endpoints below +1.0 ns, with the
+  next 46 between +1.0 and +1.25 ns.
+- **What trials have reached.**
+  - No legal trial of `dor13` or `dor15` reaches the equivalent of +1.0 ns
+    at 13.33 ns.
+  - The best legal slow-corner slacks are +0.796 ns at 13.33 ns (`dor13`
+    #51; p024 has +0.756 ns) and +2.556 ns at 15 ns. The 15 ns one is +0.886 ns at 13.33 ns when
+    re-timed (above), and it needed an exhaustive repair (p021, 6.28 h
+    projected).
+  - Among the eligible trials the best is +0.450 ns.
+- **The SRAM delay is fixed.** Configuration knobs do not change the
+  SRAM's 5.26 ns.
+- **The delay buffers cannot be switched off.** LibreLane passes
+  `CTS_DELAY_BUFFER_DERATE_PCT` as `-delay_buffer_derate`, but the OpenROAD
+  build of the image stores that option without using it: in the 26 files
+  of `src/cts/src` at `dcf36133`, `getDelayBufferDerate()` is called only by
+  the Tcl getter `get_delay_buffer_derate`.
+  The latency balancing itself (`insertionDelayEnabled`) is not a LibreLane
+  variable.
+- **The runtime knob costs slack here.** On the committed configuration,
+  `PL_RESIZER_SETUP_REPAIR_TNS_PCT` 0 and 10 ended at −0.988 and +0.142 ns
+  at the slow corner, against +0.756 ns with the full repair (experiment
+  below; the slacks of 25 are pending).
+- **Assessment.** The evidence does not support +1 ns at the slow corner
+  from configuration knobs alone within the runtime bound, and it does not
+  rule it out: TPE has not yet searched the space with the rule and the
+  new knobs.
+
+### RTL change for more margin (described, not implemented)
+
+Four of the six endpoints below +1.0 ns are bits of a 32-bit counter whose
+increment enable comes from the SRAM output through the instruction
+decoder, and their paths end in its carry chain. Two behaviour-preserving
+timing options of the generator remove exactly this structure
+(`docs/timing-closure.md` section 4):
+
+- `split_instruction_decode` gives the completed counter its own increment
+  enable. The 256-way multiplexer between the SRAM output and the counter
+  goes away.
+- `keep_counter_increments` puts a `keep` attribute on the incremented
+  value of the wide counters (PC, completed, blocked, repeat and wait
+  counters). ABC can then no longer merge the enable into the carry chain.
+  A Yosys experiment measured 32 gate levels from the enable to the flops
+  without the attribute and 1 with it.
+
+The design of record uses neither: every timing option is false in
+`configs/instruction-sram-32.json`. The named variants `rstreg_timing` and
+`cn_s2_timing` use them together with other reset styles. The optimizer
+has run those only at 20 ns.
+
+The change would set the two options for the design of record and
+regenerate `src/protocol_emulator_core.v`. It would then repeat the checks
+of `docs/timing-closure.md` section 6 and the repository's verification.
+The new core sha256 starts new optimizer tracks. The expected effect on the
+four counter endpoints is the removal of the 2.836 ns carry-chain tail
+(an estimate; not measured). The next limits in p024's layout are
+`core._2457` (+0.984 ns), the flip-flop path (+0.996 ns) and the SRAM paths
+into `x`, `y` and unnamed registers (+1.02 to +1.25 ns), which these
+options are not designed to change.
+
+### Steps
+
+1. **Relaunch the optimizer with v3** ([Operation](#operation)). `dor13`
+   then gets 45% of the new trials. The revision-3 seeds run
+   `PL_RESIZER_SETUP_REPAIR_TNS_PCT` 25 and 10 on the three best trials
+   of `dor13` and `dor15` that exceed the runtime bound.
+2. **Promote the best eligible `dor13` trial.** At first this is #14. The
+   promotion must pass the four local gates. Its full-run projection (the
+   leaderboard's "projected CI job h (full run)") must be at most 5.5 h,
+   which means a normalized full-run flow of at most 9,048 s.
+3. **Run the candidate through the official actions on a branch** (next
+   subsection).
+4. **Adopt it on `main`** ([Adopting a configuration](#adopting-a-configuration))
+   with `CLOCK_PERIOD` 13.33 and `clock_hz` unchanged. The `gds` run of that
+   commit is the result of record.
+5. **If more slow-corner margin is wanted,** make the RTL change above.
+
+### Official verification on a branch
+
+`.github/workflows/gds.yaml` runs on every push to any branch (`on: push`).
+It runs `gds`, then `precheck`, `gl_test` and `viewer`, and it has no
+concurrency group, so a branch run does not cancel a run on `main`.
+`gds_6x4.yaml` runs on pushes to `main` only, or through
+`workflow_dispatch`: for a 6x4 candidate on a branch, run
+`gh workflow run gds_6x4.yaml --ref <branch>`. Since `a15f6f2` the `equivalence` workflow
+(`equiv.yaml`) runs `formal_eq` on the `tt_submission` artifact after every
+`gds` run whose `gds` job succeeded (`workflow_run`, no branch filter), so a
+branch run gets it too once `equiv.yaml` is on the default branch.
+
+1. **Check the runtime first.** Push only a candidate whose full-run
+   projection is at most 5.5 h. The model over-predicted each of the 18
+   official jobs, and GitHub stops a job at 6 h.
+2. **Make the branch commit.** Branch from `main`. Write the leaderboard's
+   exact difference of the promoted trial into `src/config.json` (it
+   includes `CLOCK_PERIOD` 13.33), add a `"//"` comment with the promotion
+   id and its jobs, leave `info.yaml` unchanged, and push the branch.
+3. **Compare with the local full run.** When `gds`, `precheck` and
+   `gl_test` have passed, download the `tt_submission` artifact
+   (`gh run download <run id> -n tt_submission`) and check:
+   - `cmp` of its `stats/metrics.csv` with the full run's `out/metrics.csv`.
+     They were byte-identical for p010, p014 and p018 (`docs/results.md`
+     R19, R83, R85).
+   - the gate-level netlist `tt_um_teslacoilerow_protocol_emulator.v`
+     against the full run's `out/final/nl/` (sha256);
+   - the setup and hold WS of every corner in `metrics.csv`;
+   - the `gds` job's length against the projection;
+   - the `equivalence` run of that `gds` run: "equivalent" with its
+     self-test passed.
+4. **Adopt on `main`** only after all of that holds, with the same
+   `src/config.json`.
+
+### Experiment: `PL_RESIZER_SETUP_REPAIR_TNS_PCT` on the committed configuration
+
+The committed configuration at 13.33 ns (p024's knob set, margin 5.8 ns)
+was run with `PL_RESIZER_SETUP_REPAIR_TNS_PCT` 0, 10 and 25. The runs went
+through the optimizer's own code path (`tracks.Track.materialize()`,
+`make_snapshot.py`, `trial_job.sh`) in a scratch directory, in fast mode
+with `OPENROAD_THREADS` 8 on 8 CPUs. p024's trial (32 threads) and full
+run (4 threads) have the same slacks, so the thread count is not expected
+to change them. All three found the same 3,898 endpoints below the margin
+(`RSZ-0094`) as p024.
+
+| | p024's trial (unset = 100%) | 0 | 10 | 25 |
+|---|---|---|---|---|
+| Job, node | 24026489, node1620 | 24120814, node1407 | 24120815, node1408 | 24120816, node1414 |
+| Endpoints repaired (`RSZ-0099`) | 3,898 | 1 | 389 | 974 |
+| Post-CTS repair, seconds (normalized) | 12,082 (10,842) | 198 (119) | 5,120 (3,272) | 10,260 (6,265) |
+| Resized / buffers / area | 5,593 / 1,253 / +7.6% | 166 / 73 / +0.2% | 1,145 / 358 / +1.6% | 1,955 / 544 / +2.8% |
+| Resizer's worst slack after repair (placement parasitics) | +2.018 ns | +2.005 ns | +2.005 ns | +2.007 ns |
+| Setup WS typ / fast / slow | +4.962 / +6.095 / +0.756 ns | +3.331 / +5.179 / **−0.988** ns | +4.055 / +5.323 / +0.142 ns | – |
+| Hold WS typ / fast / slow | +0.368 / +0.163 / +0.736 ns | +0.358 / +0.146 / +0.720 ns | +0.359 / +0.148 / +0.722 ns | – |
+| Utilization | 0.6723 | 0.6296 | 0.6374 | – |
+| Projected official job (trial model) | 9.92 h | – | 5.56 h, over the bound (its rest ran at 8 threads, which the model's 32-thread constant does not cover) | – |
+
+- **0 (only the worst endpoint):** the repair took 198 s, and the slow
+  corner fails by 0.988 ns at 579 endpoints. The worst path is `ui_in[3]` →
+  `_59994_`; register-to-register paths keep +0.089 ns.
+- **10:** the repair drops to 3,272 normalized seconds (70% less), and the
+  run is legal with route DRC 0 and antenna 0. But the slow corner falls
+  to +0.142 ns, 0.614 ns below p024 and below the best eligible trial
+  (+0.450 ns, `dor13` #14, which instead lowers the margin to 4.45 ns and
+  repairs every endpoint below it).
+- **25:** the repair took 6,265 normalized seconds, 42% less than the full
+  repair. The job was in detailed routing at 18:27 cluster time, so its
+  slacks are pending (its run directory is listed in
+  `<work dir>/mhz75/manifest.json`).
+
+In the resizer's own view the worst slack after repair is +2.005 ns with
+0 and 10 against +2.018 ns with the full repair. After routing, the slow
+corner differs by 1.744 ns between 0 and the full repair, so the endpoints
+beyond the worst ones carry the post-route margin. On this configuration a
+partial repair buys runtime with slow-corner slack, and a lower margin gave
+more slack for the same runtime. Revision-3
+seeds therefore use 25 and 10 only, and only on trials over the runtime
+bound. The knob keeps 0 among its values for TPE.
+
 ## Objective
 
 A run is ranked lexicographically (`tools/opt/objective.py`). Everything is
@@ -538,6 +1040,14 @@ nanoseconds, adjusted as follows:
 
 A legal result therefore always scores above an illegal one. The leaderboard
 uses the exact lexicographic order, not the scalar.
+
+**Rule tracks (v3).** In `dor15`, `dor13` and `diet4_6x4` the projected official job
+length ([Runtime and the 6-hour limit](#runtime-and-the-6-hour-limit)) is
+inserted after criterion 2 (lower first), and the scalar of a trial whose
+projection exceeds 5.5 h is lowered by 1 ns plus 1 ns per hour over. The
+driver records the scalar it told the study and, for these tracks, the
+objective's own value and the projection (`value_objective`, `ci_proj_s`
+in the `trial_done` event).
 
 ### How the two power-port checks were validated
 
@@ -591,9 +1101,13 @@ the committed value of a track.
 | `PL_RESIZER_SETUP_SLACK_MARGIN` | same | 0..9 ns step 0.05 | 5.75 | Post-CTS setup-repair margin (see observation 1). v1 searched 0..6. |
 | `pl_hold` | `PL_RESIZER_HOLD_SLACK_MARGIN` | 0.1, 0.05, 0.15, 0.2 | 0.15 | Post-CTS hold margin. In sweep job 23749131_12, margins 0/0 left a fast-corner hold violation. |
 | `PL_RESIZER_SETUP_MAX_UTIL_PCT` | same | unset, 65, 75 | unset | Utilization cap of setup repair; bounds the area cost of large margins. |
+| `PL_RESIZER_SETUP_REPAIR_TNS_PCT` (v3, 8x4 only) | same | unset, 50, 25, 10, 5, 0 | unset (100%) | Share of the endpoints below the margin that setup repair visits; bounds its runtime ([Timing-repair runtime knobs](#timing-repair-runtime-knobs-v3)). |
+| `PL_RESIZER_SETUP_GATE_CLONING` (v3, 8x4 only) | same | true, false | true | false = `-skip_gate_cloning`; the clone move never committed in 559 trials. |
+| `PL_RESIZER_SETUP_BUFFER_REMOVAL` (v3, 8x4 only) | same | true, false | true | false = `-skip_buffer_removal`; the unbuffer move never committed in 559 trials. |
 | `RUN_POST_GRT_RESIZER_TIMING` | same | false, true | false | Timing repair with global-route parasitics (`OpenROAD.ResizerTimingPostGRT`, marked experimental). |
 | `GRT_RESIZER_SETUP_SLACK_MARGIN` | same | 0..4 ns step 0.05 | (inactive; default 0.025) | Only if post-GRT timing repair is on; only that step reads it. |
 | `grt_hold` | `GRT_RESIZER_HOLD_SLACK_MARGIN` | 0.05, 0.02, 0.1 | (inactive; 0.05) | Only if post-GRT timing repair is on; only that step reads it. |
+| `GRT_RESIZER_SETUP_REPAIR_TNS_PCT` (v3, 8x4 only) | same | unset, 50, 25, 10, 5, 0 | (inactive; unset) | Only if post-GRT timing repair is on; as `PL_RESIZER_SETUP_REPAIR_TNS_PCT` for that step. |
 | `CTS_SINK_CLUSTERING_SIZE` | same | unset, 10, 16, 25, 35 | 16 | Sinks per leaf cluster: clock latency and skew, which the input and reset paths see directly. |
 | `CTS_SINK_CLUSTERING_MAX_DIAMETER` | same | unset, 30, 60, 100 um | unset | Leaf cluster diameter. |
 | `CTS_MAX_SLEW` | same | fixed unset (up to driver job 24077569: unset, 0.4, 0.75, 1.2 ns) | unset (lib: 2.5 ns) | CTS characterization slew limit. Not sampled any more (next section). |
@@ -610,7 +1124,66 @@ restrictions (`space.defs("6x4")`, `tracks.Track.island_free_restrict()`):
   `variants6x4/config.overlay.json`, including its `FP_OBSTRUCTIONS` box;
 - the horizontal halo is fixed to 16.48;
 - `FP_MACRO_VERTICAL_HALO` is limited to the island-free values 10 and 5
-  ([Macro halo and short power straps](#macro-halo-and-short-power-straps)).
+  ([Macro halo and short power straps](#macro-halo-and-short-power-straps));
+- the four v3 timing-repair runtime knobs are not in the 6x4 space: every
+  6x4 knob set leaves their keys at the LibreLane default.
+
+### Timing-repair runtime knobs (v3)
+
+The v3 tools add four knobs, all in the 8x4 space only (`"spaces"` in
+`space.py`), so the 6x4 track and its overlay are unchanged. Each is a
+variable of `OpenROAD.ResizerTimingPostCTS` or
+`OpenROAD.ResizerTimingPostGRT` (`steps/openroad.py`). Its script,
+`scripts/openroad/rsz_timing_postcts.tcl` or `rsz_timing_postgrt.tcl`,
+passes it to `repair_timing` of OpenROAD `dcf36133`
+([Why the repair takes that long](#why-the-repair-takes-that-long)).
+
+| Knob | Values searched | Unset | `repair_timing` option | Why |
+|---|---|---|---|---|
+| `PL_RESIZER_SETUP_REPAIR_TNS_PCT` | unset, 50, 25, 10, 5, 0 | unset (100%) | `-repair_tns` | The share of the endpoints below the setup margin that the repair visits, worst first. With 0 only the worst endpoint is visited (OpenROAD always repairs at least one). This bounds the repair loop. |
+| `PL_RESIZER_SETUP_GATE_CLONING` | true, false | true | `-skip_gate_cloning` when false | No clone move committed in the 559 trials with a post-CTS repair log (no `RSZ-0049` message). The move is still evaluated in every pass that reaches it. |
+| `PL_RESIZER_SETUP_BUFFER_REMOVAL` | true, false | true | `-skip_buffer_removal` when false | No unbuffer move committed in those 559 trials (no `RSZ-0059`). |
+| `GRT_RESIZER_SETUP_REPAIR_TNS_PCT` | unset, 50, 25, 10, 5, 0 | unset | `-repair_tns` of the post-GRT repair | Only when `RUN_POST_GRT_RESIZER_TIMING` is true. |
+
+**Considered and not added.**
+
+- **`PL_RESIZER_SETUP_MAX_BUFFER_PCT` and
+  `GRT_RESIZER_SETUP_MAX_BUFFER_PCT`.** LibreLane passes
+  `-max_buffer_percent` to the setup call too. In OpenROAD `dcf36133` only
+  `rsz::repair_hold` takes it (`Resizer.tcl`), so it has no effect on setup
+  repair.
+- **`PL_RESIZER_SETUP_BUFFERING`** (`-skip_buffering`). Buffer moves
+  committed in 412 of the 559 trials (`RSZ-0040`). Switching it off would
+  change the result, not only the runtime.
+- **`-max_passes`, `-max_iterations`, `-max_repairs_per_pass`,
+  `-skip_last_gasp`, `-skip_pin_swap` and `-sequence`.** These are options
+  of `repair_timing` that `rsz_timing_postcts.tcl` does not pass. No
+  configuration variable of LibreLane 3.1.0.dev3 reaches them.
+- **Already searched:** `RUN_POST_GRT_RESIZER_TIMING`,
+  `GRT_RESIZER_SETUP_SLACK_MARGIN` and `PL_RESIZER_SETUP_MAX_UTIL_PCT`.
+  Once the utilization cap is reached, `overMaxArea()` ends each remaining
+  endpoint after one pass.
+- **`CTS_DELAY_BUFFER_DERATE_PCT`.** Not used by the OpenROAD build
+  ([The 75 MHz plan](#the-75-mhz-plan)).
+
+**Identity of stored trials.**
+
+- A stored knob set has no value for the new knobs, and its run used their
+  unset values. `space.canonical()` leaves a new knob out while it has its
+  unset value, so the key of every stored trial is unchanged. This was
+  checked on the 651 stored trials of the 12 current tracks (store of
+  2026-09-27 18:20 cluster time).
+- A stored knob set from before v3 is completed with the new knobs at their
+  unset values, the values its run used (`space.upgrade()`), not with the
+  committed values. After an adoption that sets one of them, a stored
+  trial therefore still reproduces its own run, and `test_opt.py` checks
+  this on a copy of the tree with `PL_RESIZER_SETUP_REPAIR_TNS_PCT` 10
+  committed and stated `null` in the 6x4 overlay.
+- The track ids are unchanged too, because `src/config.json` sets none of
+  the four keys.
+- The 6x4 overlay states the 33 keys of the 6x4 space.
+  `test_opt.py` fails if `src/config.json` sets one of the four 8x4-only
+  keys without the overlay stating it.
 
 ### `CTS_MAX_SLEW` is fixed unset
 
@@ -765,14 +1338,20 @@ so `dor` and the variant tracks go straight to TPE sampling.
 
 The driver shares new trials between the tracks that may receive one:
 
-- **Weights** (`WEIGHTS` in `driver.py`): since `f511c97`, `dor15` 0.35,
-  `dor13` 0.15, `dor` 0.15, `diet4_6x4` 0.20, and 0.15 for the variant
-  tracks together (until `f511c97`: `dor` 0.35, `dor15` 0.22, `dor13` 0.08,
-  the others unchanged). A variant track gets 0.15 divided by the number of
-  variant tracks still receiving trials (0.021 each for 7).
+- **Weights** (`WEIGHTS` in `driver.py`): in v3 `dor13` 0.45, `dor15`
+  0.15, `dor` 0.05, `diet4_6x4` 0.20, and 0.15 for the variant tracks
+  together (from `f511c97`: `dor15` 0.35, `dor13` 0.15, `dor` 0.15; until
+  `f511c97`: `dor` 0.35, `dor15` 0.22, `dor13` 0.08; the others unchanged).
+  A variant track gets 0.15 divided by the number of variant tracks still
+  receiving trials (0.021 each for 7).
 - **What counts:** a track's count is the number of its trials submitted
   to LibreLane. Imported, duplicate and rejected trials use no CPUs and do
-  not count.
+  not count. In v3 only trials created since the first driver start with
+  the current weights count (`Driver.weights_epoch()`), so new weights
+  apply to the trials that follow them. Counting since the launch, `dor13`
+  would have received every new trial until its count caught up with its
+  new weight (dry run 24120704 planned 42 trials, all `dor13`; the later
+  dry runs, with the epoch, planned the mix of [Campaign record](#v3-tools-of-the-runtime-rule-not-yet-running)).
 - **Start:** a track with no submitted trial goes first, in weight order.
   So every track gets a trial in the first loop.
 - **After that:** the next trial goes to the track with the smallest
@@ -847,7 +1426,9 @@ At the v2 launch no variant track had 40 finished trials (they had 10 to
    - `row_islands.py` runs on the snapshot. A snapshot with an island is
      rejected.
 2. **Slurm job.** One job per trial: `tools/opt/trial_job.sh`, 32 CPUs,
-   64 GB, 6 h limit, on `mit_preemptable,mit_normal` with `--requeue` and
+   64 GB, 6 h limit (5 h in `dor15`, `dor13` and `diet4_6x4` in v3,
+   [Runtime and the 6-hour limit](#runtime-and-the-6-hour-limit)), on
+   `mit_preemptable,mit_normal` with `--requeue` and
    `--signal=B:USR1@900`. It runs `scripts/sweep/run_one.sh` in fast mode.
    - Fast mode skips `Magic.DRC`, `Magic.SpiceExtraction`, the
      illegal-overlap check and LVS.
@@ -893,7 +1474,10 @@ If that run is legal, including LVS 0, three jobs follow in parallel:
 
 **Verdict** (`tools/opt/gates.py`, `promotion_verdict()`): PASS only if the
 full run is legal and the precheck, the gate-level tests and the
-equivalence check all pass.
+equivalence check all pass. In the rule tracks (`dor15`, `dor13`,
+`diet4_6x4`, v3) the full run's projected official job must also be at
+most 5.5 h; otherwise the verdict is "PASS (over CI time bound: …)", which
+is not eligible for adoption ([Runtime and the 6-hour limit](#runtime-and-the-6-hour-limit)).
 
 - A stage that fails decides FAIL at once; the leaderboard names the stage
   and the reason, and lists the stages still pending.
@@ -915,7 +1499,9 @@ equivalence check all pass.
 
 What gets promoted (at most 5 promotions in flight, not counting
 equivalence stages; only trials inside the current search space, see
-[`CTS_MAX_SLEW` is fixed unset](#cts_max_slew-is-fixed-unset)):
+[`CTS_MAX_SLEW` is fixed unset](#cts_max_slew-is-fixed-unset); in v3, in
+`dor15`, `dor13` and `diet4_6x4`, only trials whose projected official job
+is at most 5.5 h, see [Runtime and the 6-hour limit](#runtime-and-the-6-hour-limit)):
 
 - **Control:** the committed configuration of `dor` and of
   `diet4_6x4` goes through the whole pipeline once. For `dor` on the trees
@@ -933,7 +1519,9 @@ equivalence stages; only trials inside the current search space, see
   its minimum WS is at least 0.05 ns above the best promoted trial of that
   track. Both are taken inside the current search space (since the tools
   after driver job 24077569). Promotions of the trials an imported trial
-  stands for count here.
+  stands for count here. In `dor15`, `dor13` and `diet4_6x4` (v3) both are also taken
+  among the eligible ones: a promotion whose projection exceeds 5.5 h (from
+  its full run once finished) does not set the bar.
   A track first needs this many finished trials: `dor` 0, `dor15`/`dor13`
   10, `diet4_6x4` 10, variant 20.
 - **Periodic:** for `dor`, `dor15` and `dor13`, once a track has at least
@@ -1220,10 +1808,11 @@ so it is not used.
 
 **Limits.**
 
-- All `pe-v2-optimizer-*` jobs together stay at or below 960 CPUs, queued
-  and running, driver included (700 until 2026-09-27; the partition's
-  per-user cap is 1,024, and the rest is left for other workstreams). Every submission is charged against the
-  CPUs free at the start of the loop.
+- All `pe-v2-optimizer-*` jobs together stay at or below 700 CPUs in v3,
+  queued and running, driver included (960 from tree `24b807b`, driver job
+  24059198, to v3; 700 before). The partition's per-user cap is 1,024, and
+  the rest is left for other workstreams. Every submission is charged
+  against the CPUs free at the start of the loop.
 - Submissions stop while this user has 400 or more jobs queued (the
   per-user limit is 448, shared by all workstreams).
 - At most 24 submissions per loop.
@@ -1385,8 +1974,19 @@ Steps for the 8x4 design of record:
    commit are the result of record; compare their timing with the promoted
    run.
 
-**A frequency-track configuration** (`dor15` or `dor13`): the difference
-also contains `CLOCK_PERIOD`. The leaderboard also prints the `clock_hz`
+**Runtime (v3).** For `dor15`, `dor13` and `diet4_6x4` the verdict must be
+exactly PASS, which includes a full-run projection of at most 5.5 h
+([Runtime and the 6-hour limit](#runtime-and-the-6-hour-limit)). The `dor`
+track (20 ns) and the variant tracks are not built by an official action
+today; adopting one of their configurations would make it a CI target, so
+check its full-run projection (the leaderboard shows it) the same way.
+
+**A frequency-track configuration** (`dor15` or `dor13`): its full-run
+projection must be at most 5.5 h ([Runtime and the 6-hour limit](#runtime-and-the-6-hour-limit);
+the leaderboard's "projected CI job h (full run)"), and it goes through the
+official actions on a branch before `main`
+([Official verification on a branch](#official-verification-on-a-branch)).
+The difference also contains `CLOCK_PERIOD`. The leaderboard also prints the `clock_hz`
 of the track's snapshot (66666667 for 15 ns). Whether to change
 `info.yaml` `clock_hz` is a separate decision: it states the clock the chip
 is operated at, which the datasheet, the firmware and the host library
@@ -1414,12 +2014,15 @@ writes it).
   differs from the committed 6x4 build. At `4bd30c8` the knob keys that
   were equal stayed inherited from `src/config.json`, among them
   `SYNTH_STRATEGY`, `PL_TIMING_DRIVEN` and `DESIGN_REPAIR_MAX_WIRE_LENGTH`.
-  Since `8a05de7` and `fdc23f2` the overlay states all 33 knob keys
-  (`docs/6x4.md` section 4c), so an adoption for the 8x4 build no longer
-  changes the 6x4 build's knob settings, and `variants6x4/info.overlay.json`
-  keeps the 6x4 `clock_hz` at 50 MHz. Keep it that
-  way when adopting: the difference only changes keys that are already in
-  the overlay.
+  Since `8a05de7` and `fdc23f2` the overlay states all 33 knob keys of the
+  6x4 space (`docs/6x4.md` section 4c), so an adoption for the 8x4 build no
+  longer changes the 6x4 build's knob settings, and
+  `variants6x4/info.overlay.json` keeps the 6x4 `clock_hz` at 50 MHz. Keep
+  it that way when adopting: the difference only changes keys that are
+  already in the overlay. The four v3 timing-repair runtime keys are 8x4
+  only and not in the overlay. An 8x4 adoption that sets one of them in
+  `src/config.json` must add it to the overlay as `null`;
+  `tools/opt/test_opt.py` fails until it does.
 
 ### Adoption of p018 (`d76f1cc`)
 
@@ -1717,6 +2320,7 @@ twice.
 | 24038948 | 17:17 | `9b5326e2` | Seed revision 2. `dry_run.sh` also copies the study journals. Dry run 24038928 checked it on a copy of the live store first. |
 | 24059198 | 21:01 | `c1afc5db` | Tree `24b807b`: CPU cap 700 → 960. The tree also carries the p014 overlay of `4bd30c8`, so the 6x4 track's committed configuration became p014. |
 | 24077569 | 2026-09-27 01:57 | `4240a2a4` | Tree `f511c97`: `src/config.json` carries p018 (`d76f1cc`), and the weights favour `dor15` ([Tracks](#tracks)). No track was created; `dor15` and `dor` took the new committed configurations as their baselines. |
+| 24097862 | 2026-09-27 08:42 | `af25eba8` | Tree `0f8576e`: the equivalence stage on `formal_eq` and `CTS_MAX_SLEW` fixed unset (the next two items). |
 
 **Equivalence stage and fixed `CTS_MAX_SLEW` (tools `931b809b`, never
 run by a driver).** Driver job 24077569 runs the earlier tools
@@ -1758,7 +2362,9 @@ before that relaunch, on copies of the store and under separate job names
   planned the equivalence stage for the 26 promotions with a legal full
   run and the promotion of `diet4_6x4` #41 as p028.
 
-**Equivalence stage on `formal_eq` (tools `af25eba8`, not yet running).**
+**Equivalence stage on `formal_eq` (tools `af25eba8`; running since driver
+job 24097862, 2026-09-27 08:42 cluster time; this item was written before
+that start).**
 These tools replace the `gleq` checker with `formal_eq/eq_check.py` of the
 frozen tree ([Equivalence check](#equivalence-check)). They also add the
 checks of `launch.sh` for `formal_eq/` and the OSS CAD Suite. The driver
@@ -1803,6 +2409,73 @@ relaunch used copies of the store in scratch optimizer roots and job names
   - it created no track and logged no loop error;
   - it logged the checker as present.
 
+### v3 (tools of the runtime rule; not yet running)
+
+The v3 tools add `tools/opt/runtime.py`, the four timing-repair runtime
+knobs, the eligibility rule and ranking of the 15 ns and 13.33 ns tracks,
+the recording of step times, seed revision 3, the new weights and CPU cap
+([Allocation](#allocation), [Scheduling limits, preemption and
+pruning](#scheduling-limits-preemption-and-pruning)), and the 5 h limit for
+trials of the rule tracks. A driver runs them only after the relaunch
+([Operation](#operation)). The checks before the relaunch used scratch
+optimizer roots and job names `pe-v4-mhz75-*`:
+
+- **Unit tests.** `tools/opt/test_opt.py`: 36 tests pass (26 before). The
+  new tests cover:
+  - the knobs' spaces and materialization, the keys of stored trials and
+    the track ids, on the committed tree and on a copy after an adoption
+    that commits `PL_RESIZER_SETUP_REPAIR_TNS_PCT` 10 (with `null` in the
+    6x4 overlay);
+  - the runtime constants against the 18 official jobs, including p021's
+    repair ratio for `K_RSZ`;
+  - the bound, the TPE penalty, the projection of incomplete flows (none),
+    the extraction of step times and resolved synthesis settings, and the
+    speed factor;
+  - the verdict with the full-run projection;
+  - the driver's ranking, promotion, bar and revision-3 seeds in a rule
+    track, the penalty of a duplicate of a pre-v3 trial, the synthesis key
+    from the resolved configuration, the trial time limit, the weights
+    epoch, and the backfill of step times.
+- **Adoption, end to end.** On a copy of the repository with
+  `PL_RESIZER_SETUP_REPAIR_TNS_PCT` 10 in `src/config.json` and `null` in
+  the 6x4 overlay, all 36 tests pass and `variants6x4/switch.py check`
+  passes. Without the `null`, two tests fail
+  (`test_overlay_states_every_knob`, `test_matches_switch_py`).
+- **Stored trials.** The new tools reproduce the recorded key of all 651
+  trials of the 12 current tracks and derive the same 12 track ids as the
+  running campaign (store of 2026-09-27 18:20 cluster time).
+- **Independent review** of the v3 tools and this page; its 11 minor
+  findings (the penalty of duplicates, the verdict, the 6x4 rule, the
+  trial time limit's basis and the synthesis key of mis-recorded runs, stale
+  counts, adoption-proof tests, incomplete flows, `K_RSZ`, the `gds_6x4`
+  exclusion reason, a path count, a stale Lean file) are fixed in these
+  tools.
+- **Dry runs** on copies of the store, two loops each: job 24120704, whose
+  weights still counted trials since the launch; jobs 24120795 and
+  24121599, whose revision-3 seeds still included the value 0 and the
+  committed configuration; jobs 24128457 and 24130828, before the review
+  fixes were complete; job 24130924 (tools `eb18202e`, store of 18:20 with
+  2,545 events), the source of the numbers in
+  [Where it stands](#where-it-stands); and job 24131206 with the final
+  tools (`be2998b3` on `a15f6f2`, which differ from `eb18202e` in comments
+  only; store of 18:26 with 2,552 events). Job 24131206:
+  - recorded the step times of 862 earlier runs;
+  - enqueued 6 seeds each in `dor15` and `dor13` (revision 3);
+  - promoted `dor15` #16 (p032, projection 3.70 h) and `dor13` #14 (p033,
+    4.62 h); the running campaign had meanwhile made p030 (`diet2` #16) and
+    p031 (`diet4_6x4` #79);
+  - planned 42 new trials: 18 `dor13`, 8 `diet4_6x4`, 6 `dor15`, 2 `dor`
+    and one for each of the 8 variant tracks (`diet8_rec16`, which the
+    running campaign created at 16:45, included);
+  - showed "PASS (over CI time bound …)" for p019, p021 and p024 and PASS
+    for every other promotion whose four gates passed;
+  - created no track and logged no loop error.
+- **STA of p024** at 13.33 ns (job 24119756) and of p021's layout re-timed
+  at 13.33 ns (job 24119757): [The 75 MHz plan](#the-75-mhz-plan).
+- **Experiment** with `PL_RESIZER_SETUP_REPAIR_TNS_PCT` 0, 10 and 25 on the
+  committed configuration at 13.33 ns (jobs 24120814, 24120815 and
+  24120816): [The 75 MHz plan](#experiment-pl_resizer_setup_repair_tns_pct-on-the-committed-configuration).
+
 ## Limitations
 
 - **Fast trials differ from promoted runs.**
@@ -1830,7 +2503,24 @@ relaunch used copies of the store in scratch optimizer roots and job names
   p018 is committed since `d76f1cc`, and its official `gds` run
   (36298635436) passed (see [Current results](#current-results)). At
   13.33 ns, p024 passed the local sign-off including the equivalence stage
-  (2026-09-27 13:37 UTC); no 13.33 ns configuration is committed.
+  (2026-09-27 13:37 UTC); no 13.33 ns configuration is committed, and p024's
+  official job is projected above 6 h ([The 75 MHz plan](#the-75-mhz-plan)).
+- **The runtime model rests on 18 official jobs of 4 configurations.**
+  - Only one of them (p018) has a long timing repair, so `K_RSZ` comes from
+    3 jobs; it is set above the measured maximum (1.65 against 1.556) to
+    cover p021's larger full-run/trial repair ratio.
+  - The speed factor assumes that a node's synthesis speed predicts its
+    speed in the other steps. After the division by s, the official flow
+    still took 1.189 to 1.333 times the local full run's.
+  - The reference synthesis time is the fastest one in the store. A faster
+    node class appearing later would lower it and every projection with it.
+  - The runners seen so far fall into two speed groups. A slower runner
+    would break the bound. The trial time limit likewise rests on the
+    slowest local node observed (s = 2.15).
+  - The TPE values of trials told before v3 are not re-valued; only
+    duplicates of them get the penalty.
+  - The model is empirical: it over-predicted every one of the 18 jobs, and
+    it is not a guarantee.
 - **fmax estimates extrapolate** from one period (see "Frequency tracks and
   the SDC"). The frequency tracks measure at their period instead.
 - **Variant-track gate-level tests** use the committed firmware images,

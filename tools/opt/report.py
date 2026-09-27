@@ -13,7 +13,12 @@ reports what the store records: fast-mode numbers come from trial runs
 (OPENROAD_THREADS 4, LVS), the TT precheck, the gate-level tests and the
 RTL-vs-netlist equivalence check (verdict: gates.promotion_verdict). "Best"
 means the best legal trial inside the current search space (space.FIXED); a
-better-ranked trial outside it is named, not promoted.
+better-ranked trial outside it is named, not promoted. In the tracks with the
+runtime rule (runtime.py: dor15, dor13, diet4_6x4) trials rank by min WS, then
+projected official job time, "best" is the best eligible trial (projection at most
+runtime.BOUND_S), and a promotion's verdict is PASS only if its full run's
+projection is at most the bound too; every trial and promotion row shows its
+projection.
 Standard library only.
 """
 
@@ -28,6 +33,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import clockdepth as CD  # noqa: E402
 import gates as GATES  # noqa: E402
 import objective as OBJ  # noqa: E402
+import runtime as RT  # noqa: E402
 import space as SPACE  # noqa: E402
 from store import State, Store  # noqa: E402
 
@@ -58,14 +64,32 @@ def title(tr):
     return "Earlier track %s" % tr["track"]
 
 
-def ranked(state, track, legal_only=True, in_space=False):
+def is_rule(state, track):
+    return (state.tracks.get(track) or {}).get("kind") in RT.RULE_KINDS
+
+
+def ranked(state, track, legal_only=True, in_space=False, ctx=None):
+    """As Driver.ranked: in a rule track (with ctx) min WS, then projected runtime."""
     ts = [t for t in state.trials_of(track) if t["state"] == "done" and not t.get("lost") and t.get("metrics")
           and not t.get("dup_of")]
     if legal_only:
         ts = [t for t in ts if t.get("legal")]
     if in_space:
         ts = [t for t in ts if not SPACE.outside(t.get("knobs"))]
+    if ctx is not None and is_rule(state, track):
+        return sorted(ts, key=lambda t: RT.rank_key(OBJ.key(t["metrics"], t.get("legal")), ctx.trial(t)["proj_s"]),
+                      reverse=True)
     return sorted(ts, key=lambda t: OBJ.key(t["metrics"], t.get("legal")), reverse=True)
+
+
+def proj_text(r, rule):
+    """Leaderboard cell of a projection (runtime.Context.trial/promo result)."""
+    if not r or r.get("proj_s") is None:
+        return "-"
+    h = "%.2f" % (r["proj_s"] / 3600.0)
+    if rule:
+        return "%s (%s)" % (h, "eligible" if r["eligible"] else "over %.1f h" % (RT.BOUND_S / 3600.0))
+    return h
 
 
 def outside_text(t):
@@ -96,7 +120,7 @@ def knob_summary(t, T=None):
     """What differs from the track's committed configuration."""
     if T is not None and t.get("knobs"):
         try:
-            kn = T.complete({k: v for k, v in t["knobs"].items() if k not in SPACE.RETIRED})
+            kn = T.complete(SPACE.upgrade({k: v for k, v in t["knobs"].items() if k not in SPACE.RETIRED}))
         except ValueError:
             kn = None
         if kn is not None:
@@ -131,7 +155,8 @@ def diff_block(changes, floorplan=None):
     return set_, remove
 
 
-def promo_rows(state, promos):
+def promo_rows(state, promos, ctx=None):
+    ctx = ctx or RT.Context(state)
     rows = []
     for p in promos:
         st = p["stages"]
@@ -149,7 +174,10 @@ def promo_rows(state, promos):
         gl = (st.get("gl") or {})
         eq = (st.get("eq") or {})
         pcr, glr = pc.get("result") or {}, gl.get("result") or {}
-        verdict, passed = GATES.promotion_verdict(st)
+        ci = None
+        if is_rule(state, p["track"]):
+            ci = dict(ctx.promo(p), bound_s=RT.BOUND_S)
+        verdict, passed = GATES.promotion_verdict(st, ci)
         rows.append({
             "pid": p["pid"], "uid": p["uid"], "reason": p.get("reason"), "run_id": p.get("run_id"),
             "full_jobs": " ".join(s["job_id"] for s in full.get("submits", [])),
@@ -168,31 +196,33 @@ def promo_rows(state, promos):
             "eq": GATES.eq_text(eq), "eq_jobs": " ".join(s["job_id"] for s in eq.get("submits", [])),
             "clk": CD.text(fm), "verdict": verdict, "passed": passed, "config_changes": p.get("config_changes"),
             "track": p["track"], "outside": outside_text(state.trials.get(p["uid"]) or {}),
+            "ci": proj_text(ctx.promo(p), is_rule(state, p["track"])),
         })
     return rows
 
 
 PROMO_HEAD = ("| promotion | trial | reason | full-run jobs | legal | LVS | min WS | typ / fast / slow WS | "
               "fmax typ/fast/slow MHz | util | clock depth FF / SRAM | precheck (jobs) | GL (jobs) | "
-              "equivalence (jobs) | verdict |\n"
-              "|---|---|---|---|---|---:|---:|---|---|---:|---|---|---|---|---|")
+              "equivalence (jobs) | verdict | projected CI job h (full run) |\n"
+              "|---|---|---|---|---|---:|---:|---|---|---:|---|---|---|---|---|---|")
 
 
 def promo_line(r):
     uid = r["uid"] + (" (outside the current space: %s)" % r["outside"] if r.get("outside") else "")
-    return "| %s | %s | %s | %s | %s | %s | %s | %s / %s / %s | %s | %s | %s | %s (%s) | %s (%s) | %s (%s) | %s |" % (
+    return "| %s | %s | %s | %s | %s | %s | %s | %s / %s / %s | %s | %s | %s | %s (%s) | %s (%s) | %s (%s) | %s | %s |" % (
         r["pid"], uid, r["reason"], r["full_jobs"] or "-", fmt(r["legal"]), fmt(r["lvs"]), fmt(r["min_ws"], 3),
         fmt(r["typ_ws"], 3), fmt(r["fast_ws"], 3), fmt(r["slow_ws"], 3), r["fmax"], fmt(r["util"], 4), r["clk"],
         r["precheck"], r["precheck_jobs"] or "-", r["gl"], r["gl_jobs"] or "-", r["eq"], r["eq_jobs"] or "-",
-        r["verdict"].replace("|", "/"))
+        r["verdict"].replace("|", "/"), r.get("ci") or "-")
 
 
 HEAD = ("| # | trial | legal | min WS ns (corner) | typ WS | fast WS | slow WS | fmax typ/fast/slow MHz | "
-        "slow worst start | slew/cap/fanout vio | util | clock depth FF / SRAM | job | configuration vs committed |\n"
-        "|---:|---|---|---|---:|---:|---:|---|---|---|---:|---|---|---|")
+        "slow worst start | slew/cap/fanout vio | util | clock depth FF / SRAM | projected CI job h | job | "
+        "configuration vs committed |\n"
+        "|---:|---|---|---|---:|---:|---:|---|---|---|---:|---|---|---|---|")
 
 
-def trial_row(i, t, T=None):
+def trial_row(i, t, T=None, ci="-"):
     m = t["metrics"]
     job = t.get("done_job") or t.get("job_id") or "-"
     name = t["uid"].split("#")[1]
@@ -200,12 +230,12 @@ def trial_row(i, t, T=None):
         name += " (= %s)" % t["imported_from"]
     if SPACE.outside(t.get("knobs")):
         name += " (outside the current space)"
-    return "| %s | %s | %s | %s (%s) | %s | %s | %s | %s | %s | %s/%s/%s | %s | %s | %s | %s |" % (
+    return "| %s | %s | %s | %s (%s) | %s | %s | %s | %s | %s | %s/%s/%s | %s | %s | %s | %s | %s |" % (
         i, name, "yes" if t.get("legal") else "no", fmt(m.get("min_ws")), m.get("min_ws_corner") or "-",
         fmt(m.get("typ_setup_ws")), fmt(m.get("fast_setup_ws")), fmt(m.get("slow_setup_ws")),
         "/".join(fmt(m.get("%s_fmax_mhz" % c), 1) for c in OBJ.CORNERS),
         m.get("slow_worst_start") or "-", fmt(m.get("max_slew_vio")), fmt(m.get("max_cap_vio")),
-        fmt(m.get("max_fanout_vio")), fmt(m.get("utilization"), 4), CD.text(m), job,
+        fmt(m.get("max_fanout_vio")), fmt(m.get("utilization"), 4), CD.text(m), ci, job,
         knob_summary(t, T).replace("|", "/"))
 
 
@@ -234,12 +264,15 @@ def json_block(L, s, rm):
         L.append("Keys to remove: %s" % ", ".join(rm))
 
 
-def track_section(L, state, tr, T, active):
+def track_section(L, state, tr, T, active, ctx=None):
+    ctx = ctx or RT.Context(state)
     tid = tr["track"]
+    rule = is_rule(state, tid)
+    ci = lambda t: proj_text(ctx.trial(t), rule)  # noqa: E731
     ts = state.trials_of(tid)
     done = [t for t in ts if t["state"] == "done"]
-    rk = ranked(state, tid)
-    rk_in = ranked(state, tid, in_space=True)
+    rk = ranked(state, tid, ctx=ctx)
+    rk_in = ranked(state, tid, in_space=True, ctx=ctx)
     L.append("## %s" % title(tr))
     L.append("")
     L.append("Track `%s`: core sha256 `%s`, die %s, CLOCK_PERIOD %s ns, weight group %s. Trials: %d new, %d "
@@ -261,7 +294,7 @@ def track_section(L, state, tr, T, active):
                 "" if float(tr.get("period") or 20) == 20 else " at CLOCK_PERIOD %g" % float(tr["period"])))
             L.append("")
             L.append(HEAD)
-            L.append(trial_row("base", base[0], T))
+            L.append(trial_row("base", base[0], T, ci(base[0])))
             L.append("")
         else:
             L.append("Committed configuration: no finished trial yet.")
@@ -269,23 +302,39 @@ def track_section(L, state, tr, T, active):
     L.append("### Best legal configuration")
     L.append("")
     promos = track_promos(state, tid)
-    prows = promo_rows(state, promos)
+    prows = promo_rows(state, promos, ctx)
     if rk and (not rk_in or rk[0]["uid"] != rk_in[0]["uid"]):
         better = rk[:rk.index(rk_in[0])] if rk_in else rk
         L.append("Outside the current search space (`space.FIXED`; not promoted, seeded or transferred), %d "
                  "legal trial(s) rank higher, best `%s` (min WS %s ns; %s)." % (
                      len(better), rk[0]["uid"], fmt(rk[0]["metrics"].get("min_ws"), 3), outside_text(rk[0])))
         L.append("")
+    if rule:
+        el = [t for t in rk_in if ctx.trial(t)["eligible"]]
+        if rk_in and (not el or rk_in[0]["uid"] != el[0]["uid"]):
+            over = rk_in[:rk_in.index(el[0])] if el else rk_in
+            L.append("Runtime rule (`runtime.py`, projected official gds job at most %.1f h): %d legal trial(s) "
+                     "inside the space rank higher but exceed it (not promoted), best `%s` (min WS %s ns; "
+                     "projected %s h)." % (RT.BOUND_S / 3600.0, len(over), over[0]["uid"],
+                                           fmt(over[0]["metrics"].get("min_ws"), 3),
+                                           fmt(RT.hours(ctx.trial(over[0])["proj_s"]), 2)))
+            L.append("")
+        rk_in = el
     if rk_in:
         b = rk_in[0]
         L.append(best_text(b))
+        if rule:
+            L.append("")
+            r = ctx.trial(b)
+            L.append("Projected official gds job (from this trial, `runtime.py`): %s h (%s)." % (
+                fmt(RT.hours(r["proj_s"]), 2), "eligible" if r["eligible"] else "not eligible"))
         L.append("")
         mine = [r for r in prows if r["uid"] in stands_for(state, b)]
         L.append("Promotion: %s." % ("; ".join("%s %s" % (r["pid"], r["verdict"]) for r in mine)
                                      if mine else "not promoted"))
         L.append("")
         if T is not None:
-            kn = T.complete({k: v for k, v in b["knobs"].items() if k not in SPACE.RETIRED})
+            kn = T.complete(SPACE.upgrade({k: v for k, v in b["knobs"].items() if k not in SPACE.RETIRED}))
             s, rm = diff_block(T.diff_vs_repo(kn), kn["floorplan"])
             L.append("Exact difference from the frozen `src/config.json` (keys to set; `OPENROAD_THREADS` is a "
                      "local-only deviation and not part of it):")
@@ -329,7 +378,7 @@ def track_section(L, state, tr, T, active):
     if rk:
         L.append(HEAD)
         for i, t in enumerate(rk[:10], 1):
-            L.append(trial_row(i, t, T))
+            L.append(trial_row(i, t, T, ci(t)))
     else:
         L.append("None.")
     L.append("")
@@ -386,17 +435,25 @@ def write_manifest(state, path, settings):
     os.replace(tmp, path)
 
 
-def summary_row(state, tr, weight):
+def summary_row(state, tr, weight, ctx=None):
+    ctx = ctx or RT.Context(state)
     tid = tr["track"]
     ts = state.trials_of(tid)
     done = [t for t in ts if t["state"] == "done"]
-    rk = ranked(state, tid, in_space=True)
+    rk = ranked(state, tid, in_space=True, ctx=ctx)
     m = rk[0]["metrics"] if rk else {}
-    return "| `%s` | %s | %s | %s | %s | %d | %d | %d | %d | %s (%s) | %s / %s / %s | %s | %s | %d | %s |" % (
+    if is_rule(state, tid):
+        el = [t for t in rk if ctx.trial(t)["eligible"]]
+        best_el = ("%s (%s h)" % (fmt(el[0]["metrics"].get("min_ws"), 3), fmt(RT.hours(ctx.trial(el[0])["proj_s"]), 2))
+                   if el else "none")
+    else:
+        best_el = "(no rule)"
+    return "| `%s` | %s | %s | %s | %s | %d | %d | %d | %d | %s (%s) | %s | %s / %s / %s | %s | %s | %d | %s |" % (
         tid, tr.get("kind") or "legacy", tr.get("tiles") or "8x4", fmt(tr.get("period")), weight,
         sum(1 for t in ts if not t.get("imported")), sum(1 for t in ts if t.get("imported")),
         sum(1 for t in done if t.get("legal")), sum(1 for t in ts if t["state"] == "submitted"),
-        fmt(m.get("min_ws"), 3), m.get("min_ws_corner") or "-", fmt(m.get("typ_setup_ws")), fmt(m.get("fast_setup_ws")),
+        fmt(m.get("min_ws"), 3), m.get("min_ws_corner") or "-", best_el, fmt(m.get("typ_setup_ws")),
+        fmt(m.get("fast_setup_ws")),
         fmt(m.get("slow_setup_ws")), "/".join(fmt(m.get("%s_fmax_mhz" % c), 1) for c in OBJ.CORNERS) if m else "-",
         fmt(m.get("utilization"), 4), len(track_promos(state, tid)),
         ("retired" if tr.get("retired") else "active"))
@@ -412,6 +469,7 @@ def write_md(state, path, jobs=None, stop=None, tree=None, settings=None, tracks
     inflight = state.in_flight_trials()
     mine = {k: v for k, v in (jobs or {}).items() if v["name"].startswith(settings.get("job_prefix", "pe-v2-optimizer-"))}
     W = settings.get("weights") or {}
+    ctx = RT.Context(state)
     L.append("# Physical-design optimizer: leaderboard")
     L.append("")
     L.append("Generated %s by tools/opt/report.py from the results store; see docs/optimization.md. "
@@ -422,7 +480,11 @@ def write_md(state, path, jobs=None, stop=None, tree=None, settings=None, tracks
              "inside the current search space (docs/optimization.md, \"Search space\"). fmax estimates are "
              "1000 / (period - setup WS) per corner (docs/optimization.md, \"Frequency tracks and the SDC\"). "
              "An imported trial is a finished run of an earlier track whose effective configuration is identical; "
-             "it keeps that run's job id." % now)
+             "it keeps that run's job id. \"Projected CI job h\" is the projected length of the official gds job "
+             "(GitHub stops it at 6 h) from the run's step times (docs/optimization.md, \"Runtime and the 6-hour "
+             "limit\"); in the dor15, dor13 and diet4_6x4 tracks a trial is promoted only if its projection is at "
+             "most %.1f h, trials rank by min WS, then projection, and a promotion's verdict is PASS only if its "
+             "full run's projection is within that bound too." % (now, RT.BOUND_S / 3600.0))
     L.append("")
     L.append("| Item | Value |")
     L.append("|---|---|")
@@ -440,9 +502,9 @@ def write_md(state, path, jobs=None, stop=None, tree=None, settings=None, tracks
     L.append("## Tracks")
     L.append("")
     L.append("| track | kind | die | period ns | weight | new trials | imported | legal | in flight | "
-             "best min WS in space (corner) | best typ / fast / slow WS | fmax typ/fast/slow MHz | util | "
-             "promotions | state |")
-    L.append("|---|---|---|---:|---:|---:|---:|---:|---:|---|---|---|---:|---:|---|")
+             "best min WS in space (corner) | best eligible min WS (projected CI job h) | best typ / fast / slow WS | "
+             "fmax typ/fast/slow MHz | util | promotions | state |")
+    L.append("|---|---|---|---:|---:|---:|---:|---:|---:|---|---|---|---|---:|---:|---|")
     nvar = sum(1 for a in active if state.tracks[a].get("kind") == "variant" and not state.tracks[a].get("retired"))
     for a in active:
         tr = state.tracks[a]
@@ -450,12 +512,12 @@ def write_md(state, path, jobs=None, stop=None, tree=None, settings=None, tracks
             w = "%.3f" % (W.get("variant", 0) / max(nvar, 1)) if not tr.get("retired") else "0"
         else:
             w = str(W.get(tr.get("weight"), "-"))
-        L.append(summary_row(state, tr, w))
+        L.append(summary_row(state, tr, w, ctx))
     L.append("")
     order = [a for a in active if not state.tracks[a].get("retired")] + \
             [a for a in active if state.tracks[a].get("retired")]
     for a in order:
-        track_section(L, state, state.tracks[a], tracks.get(a), active)
+        track_section(L, state, state.tracks[a], tracks.get(a), active, ctx)
 
     # ---- earlier tracks
     old = [tr for tid, tr in state.tracks.items() if tid not in active]
@@ -489,7 +551,7 @@ def write_md(state, path, jobs=None, stop=None, tree=None, settings=None, tracks
             L.append("Promotions of earlier tracks:")
             L.append("")
             L.append(PROMO_HEAD)
-            for r in promo_rows(state, sorted(oldp, key=lambda p: p["pid"])):
+            for r in promo_rows(state, sorted(oldp, key=lambda p: p["pid"]), ctx):
                 L.append(promo_line(r))
             L.append("")
     else:

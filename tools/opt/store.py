@@ -14,7 +14,8 @@ Events (field "ev"):
   trial_reject   uid, reason                  (snapshot/floorplan check refused the point)
   trial_submit   uid, job_id, attempt, cpus, partition
   trial_dup      uid, of                      (identical effective configuration)
-  trial_done     uid, job_id, metrics, legal, blockers, magnitude, value
+  trial_done     uid, job_id, metrics, legal, blockers, magnitude, value (the value told to TPE);
+                 in the runtime-rule tracks (v3) also value_objective and ci_proj_s
   trial_import   uid, track, number, knobs, imported_from, metrics, legal, blockers, magnitude,
                  value, run_id, run_dir, job_id, config_changes (a finished trial of another
                  track whose effective configuration is identical, recorded without a new run)
@@ -23,6 +24,9 @@ Events (field "ev"):
   promo_new      pid, uid, track, reason, run_id, run_dir, warning (clock depth, if any)
   promo_submit   pid, stage (full|precheck|gl|eq), job_id, attempt
   promo_done     pid, stage, result
+  trial_runtime  uid, runtime                 (step runtimes of a run finished before the metrics
+                                               carried them; read once from its result.json)
+  promo_runtime  pid, runtime                 (the same for a promotion's full run)
   note           text
 """
 
@@ -107,7 +111,8 @@ class State(object):
             if t is not None:
                 t.update(state="done", metrics=e.get("metrics"), legal=e.get("legal"),
                          blockers=e.get("blockers"), magnitude=e.get("magnitude"), value=e.get("value"),
-                         done_job=e.get("job_id"), finished=e["t"], lost=e.get("lost", False))
+                         done_job=e.get("job_id"), finished=e["t"], lost=e.get("lost", False),
+                         value_objective=e.get("value_objective"), ci_proj_s=e.get("ci_proj_s"))
         elif ev == "trial_import":
             t = dict(e)
             t.update(state="done", submits=[], created=e["t"], finished=e["t"], imported=True,
@@ -137,6 +142,14 @@ class State(object):
             if p is not None:
                 st = p["stages"].setdefault(e["stage"], {"submits": []})
                 st.update(state="done", result=e.get("result"), finished=e["t"])
+        elif ev == "trial_runtime":
+            t = self.trials.get(e["uid"])
+            if t is not None:
+                t["runtime"] = e.get("runtime") or {}
+        elif ev == "promo_runtime":
+            p = self.promos.get(e["pid"])
+            if p is not None:
+                p["runtime"] = e.get("runtime") or {}
         elif ev == "note":
             self.notes.append(e)
 

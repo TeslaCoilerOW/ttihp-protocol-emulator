@@ -21,7 +21,11 @@ They check the properties the driver relies on (docs/optimization.md):
     gates.eq_should_retry() and in Driver.poll_promos(); a promotion is PASS only if
     the full run, the precheck, the gate-level tests and the equivalence check all
     pass;
-  * the clock-depth warning (clockdepth.py) on a small netlist.
+  * the clock-depth warning (clockdepth.py) on a small netlist;
+  * the runtime knobs (8x4 space only; keys of stored trials unchanged) and the runtime
+    model (runtime.py): the constants cover the 18 official gds jobs paired with a local
+    full run, both projections exceed every one of those jobs, and the driver promotes
+    only eligible trials of a rule track and ranks them by min WS, then projection.
 """
 
 import copy
@@ -39,6 +43,7 @@ import clockdepth as CD  # noqa: E402
 import gates as GATES  # noqa: E402
 import objective as OBJ  # noqa: E402
 import report as REPORT  # noqa: E402
+import runtime as RT  # noqa: E402
 import space as SPACE  # noqa: E402
 import tracks as TR  # noqa: E402
 from store import State  # noqa: E402
@@ -55,7 +60,7 @@ OTHER_PERIOD = 20.0 if COMMITTED_PERIOD != 20.0 else 15.0
 def random_knobs(D, rng):
     out = {}
     for n in SPACE.ORDER:
-        if not SPACE.active(n, out, D):
+        if n not in D or not SPACE.active(n, out, D):
             continue
         k = D[n]
         if k["kind"] == "cat":
@@ -159,7 +164,14 @@ class SixByFour(unittest.TestCase):
         sys.path.insert(0, os.path.join(REPO, "variants6x4"))
         import switch  # noqa: E402
         ov = switch.load_overlay(switch.CONFIG_OVERLAY)
-        self.assertEqual(set(ov) - {"MACROS"}, set(SPACE.KNOB_KEYS))
+        # every key a 6x4 knob set decides; the keys of 8x4-only knobs (space.py "spaces") are
+        # either stated too or absent from src/config.json, so nothing of the 8x4 build leaks
+        eight_only = set(SPACE.KNOB_KEYS) - set(SPACE.knob_keys("6x4"))
+        self.assertEqual(set(ov) - {"MACROS"} - eight_only, set(SPACE.knob_keys("6x4")))
+        with open(os.path.join(REPO, "src", "config.json")) as f:
+            cfg = json.load(f)
+        for k in eight_only:
+            self.assertTrue(k in ov or k not in cfg, "%s is set in src/config.json but not in the 6x4 overlay" % k)
 
     def test_island_free_vertical_halo(self):
         self.assertEqual(self.t.restrict, {"FP_MACRO_VERTICAL_HALO": [10.0, 5.0]})
@@ -616,6 +628,13 @@ class Gates(unittest.TestCase):
         self.assertIsNone(V(st)[1])
         self.assertTrue(V(st)[0].startswith("INCOMPLETE"))
         self.assertEqual(V({"full": {"state": "submitted"}}), ("full run submitted", None))
+        # rule tracks: the full run's projection is part of the verdict
+        self.assertEqual(V(self.stages(), {"proj_s": 17113.0, "bound_s": 19800}), ("PASS", True))
+        text, passed = V(self.stages(), {"proj_s": 26521.6, "bound_s": 19800})
+        self.assertIs(passed, False)
+        self.assertTrue(text.startswith("PASS (over CI time bound: projected official job 7.37 h"), text)
+        self.assertIs(V(self.stages(), {"proj_s": None, "bound_s": 19800})[1], None)
+        self.assertIs(V(self.stages(pc=False), {"proj_s": 100.0, "bound_s": 19800})[1], False)
         self.assertTrue(GATES.eq_text({"state": "done", "result": {"pass": False, "verdict": "undecided",
                                                                     "abc_s": 1466}}).startswith("FAIL (undecided"))
 
@@ -640,6 +659,403 @@ class Gates(unittest.TestCase):
         self.assertIs(row["passed"], False)
         self.assertIn("equivalence", row["verdict"])
         self.assertIn("| FAIL (undecided after 1466 s) (99) |", REPORT.promo_line(row))
+
+
+def adopted_tree(d, sets, overlay_nulls):
+    """A minimal copy of the repository in d (src/, floorplans/, macros/, variants6x4/) whose
+    src/config.json also sets `sets`, and whose 6x4 overlay states `overlay_nulls` as null: the
+    state after an 8x4 adoption of v3 knob values made as docs/optimization.md prescribes."""
+    import shutil
+    for sub in ("src", "floorplans", "macros", "variants6x4"):
+        shutil.copytree(os.path.join(REPO, sub), os.path.join(d, sub),
+                        ignore=shutil.ignore_patterns("__pycache__"))
+    with open(os.path.join(REPO, "src", "config.json")) as f:
+        cfg = json.load(f)
+    cfg.update(sets)
+    with open(os.path.join(d, "src", "config.json"), "w") as f:
+        json.dump(cfg, f, indent=2)
+    ovp = os.path.join(d, TR.SIXBY4["overlay"])
+    with open(ovp) as f:
+        ov = json.load(f)
+    for k in overlay_nulls:
+        ov[k] = None
+    with open(ovp, "w") as f:
+        json.dump(ov, f, indent=2)
+    return d
+
+
+class RuntimeKnobs(unittest.TestCase):
+    """The v3 knobs on the committed tree and on a tree after an adoption that sets one of them
+    (the checks are relative to the committed base, so both must pass)."""
+
+    @classmethod
+    def setUpClass(cls):
+        import tempfile
+        cls.tmp = tempfile.mkdtemp()
+        cls.adopted = adopted_tree(cls.tmp, {"PL_RESIZER_SETUP_REPAIR_TNS_PCT": 10},
+                                   ["PL_RESIZER_SETUP_REPAIR_TNS_PCT"])
+        cls.trees = {}
+        for name, tree in (("committed", REPO), ("adopted", cls.adopted)):
+            core = os.path.join(tree, "src", "protocol_emulator_core.v")
+            cls.trees[name] = (
+                TR.Track(tree, "dor13", "freq", core, "8x4", 13.33, "dor13", "base"),
+                TR.Track(tree, "diet4_6x4", "6x4", os.path.join(tree, TR.SIXBY4["core"]), "6x4", 20.0, "6x4",
+                         "diet4", overlay=os.path.join(tree, TR.SIXBY4["overlay"])))
+
+    @classmethod
+    def tearDownClass(cls):
+        import shutil
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def test_spaces(self):
+        for name, (dor, six) in self.trees.items():
+            for n in SPACE.LATE:
+                self.assertIn(n, dor.D, name)
+                self.assertNotIn(n, six.D, name)
+                self.assertNotIn(n, six.base, name)
+            # the committed knob value is the base (absolute semantics)
+            self.assertEqual(dor.base["PL_RESIZER_SETUP_REPAIR_TNS_PCT"],
+                             dor.repo_cfg.get("PL_RESIZER_SETUP_REPAIR_TNS_PCT"), name)
+            self.assertEqual(dor.diff_vs_repo({}), {"CLOCK_PERIOD": {"repo": dor.repo_cfg["CLOCK_PERIOD"],
+                                                                     "run": 13.33}}, name)
+
+    def test_materialize(self):
+        for name, (dor, six) in self.trees.items():
+            kn = dor.complete({"PL_RESIZER_SETUP_REPAIR_TNS_PCT": 10, "PL_RESIZER_SETUP_GATE_CLONING": False,
+                               "PL_RESIZER_SETUP_BUFFER_REMOVAL": False, "RUN_POST_GRT_RESIZER_TIMING": True,
+                               "GRT_RESIZER_SETUP_REPAIR_TNS_PCT": 0})
+            eff = dor.effective(kn)
+            self.assertEqual((eff["PL_RESIZER_SETUP_REPAIR_TNS_PCT"], eff["PL_RESIZER_SETUP_GATE_CLONING"],
+                              eff["PL_RESIZER_SETUP_BUFFER_REMOVAL"], eff["GRT_RESIZER_SETUP_REPAIR_TNS_PCT"]),
+                             (10, False, False, 0), name)
+            # a knob at its unset value leaves the key out, whatever the committed value
+            kn = dor.complete({n: SPACE.KNOBS[n]["unset"] for n in SPACE.LATE})
+            for n in SPACE.LATE:
+                self.assertNotIn(n, dor.effective(kn), name)
+            # a 0 % (worst endpoint only) is a value, not "unset"
+            self.assertEqual(dor.effective(dor.complete({"PL_RESIZER_SETUP_REPAIR_TNS_PCT": 0}))
+                             ["PL_RESIZER_SETUP_REPAIR_TNS_PCT"], 0, name)
+            # the post-GRT knob is inactive (and its key absent) without the post-GRT step
+            kn = dor.complete({"GRT_RESIZER_SETUP_REPAIR_TNS_PCT": 10, "RUN_POST_GRT_RESIZER_TIMING": False})
+            self.assertNotIn("GRT_RESIZER_SETUP_REPAIR_TNS_PCT", kn)
+            with self.assertRaises(ValueError):
+                six.complete({"PL_RESIZER_SETUP_REPAIR_TNS_PCT": 10})
+            self.assertEqual(six.complete({"PL_RESIZER_SETUP_REPAIR_TNS_PCT": None}), six.complete({}))
+            # the 6x4 build never gets an 8x4-only key
+            for n in SPACE.LATE:
+                self.assertNotIn(n, six.effective(six.complete({})), name)
+
+    def test_stored_keys_and_ids_unchanged(self):
+        """A stored knob set from before v3 (no late knobs) completes (space.upgrade) to the late
+        knobs' unset values, the values its run used, and keeps its key on both trees; the track
+        ids do not depend on the late knobs' committed values."""
+        ids = {}
+        for name, (dor, six) in self.trees.items():
+            full = dor.complete({n: SPACE.KNOBS[n]["unset"] for n in SPACE.LATE})
+            old = {n: v for n, v in full.items() if n not in SPACE.LATE}
+            up = dor.complete(SPACE.upgrade(old))
+            for n in SPACE.LATE:
+                if n in up:
+                    self.assertTrue(SPACE.same(up[n], SPACE.KNOBS[n]["unset"]), (name, n))
+            self.assertEqual(SPACE.canonical(up), json.dumps(old, sort_keys=True, separators=(",", ":")), name)
+            self.assertEqual(dor.effective(up), dor.effective(full), name)
+            self.assertNotEqual(SPACE.canonical(dict(up, PL_RESIZER_SETUP_REPAIR_TNS_PCT=25)),
+                                SPACE.canonical(up))
+            # partial seeds are not upgraded: {} is the committed configuration
+            self.assertEqual(SPACE.upgrade({}), {})
+            self.assertEqual(dor.complete(SPACE.upgrade({}))["PL_RESIZER_SETUP_REPAIR_TNS_PCT"],
+                             dor.repo_cfg.get("PL_RESIZER_SETUP_REPAIR_TNS_PCT"))
+            ids[name] = (dor.id, six.id)
+        self.assertEqual(ids["committed"], ids["adopted"])
+
+    def test_sampling(self):
+        dor, six = self.trees["committed"]
+        rng = random.Random(5)
+        seen = set()
+        for _ in range(300):
+            tr = FakeTrial(rng)
+            kn = SPACE.fix(dor.complete(SPACE.suggest(tr, dor.D)))
+            seen.add(kn["PL_RESIZER_SETUP_REPAIR_TNS_PCT"])
+            tr6 = FakeTrial(rng)
+            SPACE.suggest(tr6, six.D)
+            self.assertFalse(set(SPACE.LATE) & set(tr6.asked))
+        self.assertEqual(seen, set(SPACE.KNOBS["PL_RESIZER_SETUP_REPAIR_TNS_PCT"]["choices"]))
+
+    def test_adopted_overlay(self):
+        """After the adoption the overlay test's rule holds and switch.py reproduces the 6x4 build."""
+        dor, six = self.trees["adopted"]
+        sys.path.insert(0, os.path.join(self.adopted, "variants6x4"))
+        try:
+            ov = TR.load_overlay(os.path.join(self.adopted, TR.SIXBY4["overlay"]))
+            eight_only = set(SPACE.KNOB_KEYS) - set(SPACE.knob_keys("6x4"))
+            for k in eight_only:
+                self.assertTrue(k in ov or k not in dor.repo_cfg, k)
+            self.assertEqual(six.diff_vs_base({}), {})
+            self.assertEqual(TR.changes(six.base_cfg, six.effective({}), skip=("OPENROAD_THREADS",)), {})
+        finally:
+            sys.path.remove(os.path.join(self.adopted, "variants6x4"))
+
+
+# Calibration of runtime.py (docs/optimization.md, "Runtime and the 6-hour limit"): per configuration,
+# the fastest synthesis time of its key over the optimizer's runs as the driver computes it
+# (runtime.Context; p010 and p018 share the DELAY 4 key), the paired trial (synthesis,
+# post-CTS repair, flow seconds) and full run (synthesis, flow), and the official gds jobs of the same
+# configuration: (commit, job seconds, flow start - job start, job end - flow end, flow seconds,
+# post-CTS repair seconds, synthesis seconds), from the GitHub Actions logs.
+CALIB = {
+    "p001": dict(ref=30.401, trial=(36.545, 79.535, 2277.515), full=(30.889, 5499.668), jobs=[
+        ("39d21e8", 11160, 149.056, 1042.244, 9968.699, 104.029, 43.883),
+        ("be7dbda", 10637, 134.913, 957.366, 9544.721, 97.992, 44.957),
+        ("8ba08e5", 10501, 130.183, 1192.824, 9177.994, 95.297, 42.604),
+        ("aa07868", 10455, 125.202, 1192.522, 9137.276, 97.954, 43.012),
+        ("ea98c08", 10625, 132.841, 1199.432, 9292.726, 97.153, 43.908),
+        ("c118027", 10450, 136.752, 949.295, 9363.954, 94.736, 43.213),
+        ("c118027", 6798, 119.066, 616.74, 6062.194, 68.525, 27.74)]),
+    "p010": dict(ref=56.638, trial=(57.329, 88.521, 1239.889), full=(57.099, 2785.274), jobs=[
+        ("1e5b1d8", 6566, 137.084, 1172.962, 5255.954, 130.574, 82.448),
+        ("4bd30c8", 4117, 115.622, 625.583, 3375.795, 87.469, 55.145),
+        ("131e793", 6687, 166.608, 1192.497, 5327.895, 134.115, 83.138)]),
+    "p018": dict(ref=56.638, trial=(77.994, 4793.91, 7098.932), full=(57.402, 7833.339), jobs=[
+        ("fff6746", 15967, 136.094, 1205.415, 14625.491, 7686.747, 80.385),
+        ("4c30622", 9966, 139.352, 642.204, 9184.445, 4751.917, 51.413),
+        ("d76f1cc", 15856, 150.039, 1216.805, 14489.156, 7556.339, 81.557)]),
+    "p014": dict(ref=43.229, trial=(68.313, 79.718, 1256.31), full=(75.217, 3494.511), jobs=[
+        ("fff6746", 3926, 136.48, 142.332, 3647.188, 71.835, 61.056),
+        ("4c30622", 4074, 159.967, 150.213, 3763.819, 76.153, 65.412),
+        ("d76f1cc", 3989, 147.909, 141.158, 3699.933, 68.616, 65.127),
+        ("1e5b1d8", 4106, 146.358, 151.01, 3808.632, 71.548, 65.595),
+        ("4bd30c8", 3983, 127.055, 150.409, 3705.536, 70.961, 62.863)]),
+}
+
+
+class RuntimeModel(unittest.TestCase):
+    def test_constants_cover_calibration(self):
+        n = 0
+        for name, c in CALIB.items():
+            ts, trsz, tflow = c["trial"]
+            fs, fflow = c["full"]
+            st, sf = ts / c["ref"], fs / c["ref"]
+            for sha, job, pre, post, flow, rsz, syn in c["jobs"]:
+                n += 1
+                s_ci = syn / c["ref"]
+                self.assertLessEqual(s_ci, RT.S_CI, (name, sha))
+                self.assertLessEqual(pre + post, RT.OVERHEAD_S, (name, sha))
+                self.assertLessEqual((flow / s_ci) / (fflow / sf), RT.C_FULL, (name, sha))
+                self.assertLessEqual(((flow - rsz) / s_ci) / ((tflow - trsz) / st), RT.K_REST, (name, sha))
+                if name == "p018":   # the only configuration with a long repair
+                    self.assertLessEqual((rsz / s_ci) / (trsz / st), RT.K_RSZ, (name, sha))
+                    # K_RSZ also covers p018's official/full ratio times p021's full/trial ratio
+                    c_rsz = (rsz / syn) / (4133.427 / fs)
+                    self.assertLessEqual(c_rsz * (10553.371 / 88.636) / (6170.17 / 62.019), RT.K_RSZ, sha)
+                # both projections exceed the official job
+                self.assertGreater(RT.project_full({"flow_s": fflow, "complete": True}, sf), job, (name, sha))
+                self.assertGreater(RT.project_trial({"rsz_s": trsz, "flow_s": tflow, "complete": True}, st), job,
+                                   (name, sha))
+        self.assertEqual(n, 18)
+
+    def test_bound_and_rule(self):
+        self.assertEqual((RT.LIMIT_S, RT.BOUND_S), (6 * 3600, 5.5 * 3600))
+        # p018 (official 15,856-15,967 s) is eligible; p024 (13.33 ns) is not
+        p018 = CALIB["p018"]
+        self.assertTrue(RT.eligible(RT.project_trial({"rsz_s": 4793.91, "flow_s": 7098.932, "complete": True},
+                                                     77.994 / p018["ref"])))
+        self.assertFalse(RT.eligible(RT.project_trial({"rsz_s": 12082.0, "flow_s": 13484.0, "complete": True},
+                                                      1.104)))
+        # a flow that did not run to its end (a timeout) has no projection
+        self.assertIsNone(RT.project_trial({"rsz_s": 240.0, "flow_s": 529.0, "complete": False}, 1.0))
+        self.assertIsNone(RT.project_full({"flow_s": 5000.0}, 1.0))
+        self.assertIn("6x4", RT.RULE_KINDS)
+        self.assertFalse(RT.eligible(None))
+        self.assertEqual(RT.penalized_value(0.7, RT.BOUND_S), 0.7)
+        self.assertAlmostEqual(RT.penalized_value(0.7, RT.BOUND_S + 7200), 0.7 - RT.PENALTY_NS - 2.0)
+        self.assertAlmostEqual(RT.penalized_value(0.7, None), 0.7 - RT.PENALTY_NS)
+        # the rule tracks' trial time limit covers the longest eligible trial on the slowest node
+        import re
+        with open(os.path.join(HERE, "driver.py")) as f:
+            m = re.search(r'TRIAL_RULE_TIME = "(\d+):(\d+):(\d+)"', f.read())
+        limit = int(m.group(1)) * 3600 + int(m.group(2)) * 60 + int(m.group(3)) - 900
+        self.assertLess(RT.trial_time_limit_s(), limit)
+
+    def test_extract_and_speed(self):
+        res = {"time_s": {"synthesis": 60.0, "resizer_post_cts": 100.0, "detailed_routing": 500.0},
+               "steps": [{"step": "38-openroad-resizertimingpostgrt", "runtime_s": 20.0}],
+               "flow_runtime_s": 1000.0, "wall_s": 1100.0, "node": "n1", "threads": 32, "mode": "fast",
+               "flow_complete": True}
+        rt = RT.extract(res)
+        self.assertEqual((rt["synth_s"], rt["rsz_s"], rt["rsz_grt_s"], rt["flow_s"]), (60.0, 100.0, 20.0, 1000.0))
+        m = OBJ.flatten(res, {}, period=13.33)
+        self.assertEqual(RT.from_metrics(m), rt)
+        sp = RT.Speed([("k", 60.0), ("k", 30.0), ("j", None)])
+        self.assertEqual((sp.factor("k", 60.0), sp.factor("k", 30.0), sp.factor("x", 50.0)), (2.0, 1.0, 1.0))
+        p = RT.project_trial(rt, 2.0)
+        self.assertAlmostEqual(p, RT.OVERHEAD_S + RT.S_CI * (RT.K_RSZ * 60.0 + RT.K_REST * 440.0))
+        self.assertIsNone(RT.project_trial({"rsz_s": None, "flow_s": 1.0}, 1.0))
+        self.assertEqual((rt["complete"], rt["synth_cfg"]), (True, None))
+        resolved = {"SYNTH_STRATEGY": "DELAY 4", "SYNTH_ABC_BUFFERING": False, "SYNTH_SIZING": False,
+                    "MAX_FANOUT_CONSTRAINT": 8, "CLOCK_PERIOD": 13.33, "OTHER": 1}
+        self.assertEqual(RT.extract(res, resolved)["synth_cfg"],
+                         {k: resolved[k] for k in RT.SYNTH_CFG_KEYS})
+        # the key from the resolved configuration equals the key from the knob set it came from
+        self.assertEqual(RT.synth_key({}, 20.0, "c", resolved),
+                         RT.synth_key({"SYNTH_STRATEGY": "DELAY 4", "abc_fine_tune": "none",
+                                       "MAX_FANOUT_CONSTRAINT": 8}, 20.0, "c"))
+        a = RT.synth_key({"SYNTH_STRATEGY": "DELAY 4", "abc_fine_tune": "none", "MAX_FANOUT_CONSTRAINT": 8}, 13.33, "c")
+        b = RT.synth_key({"SYNTH_STRATEGY": "DELAY 4", "abc_fine_tune": "none", "MAX_FANOUT_CONSTRAINT": 8}, 15.0, "c")
+        c = RT.synth_key({"SYNTH_STRATEGY": "AREA 0", "abc_fine_tune": "none", "MAX_FANOUT_CONSTRAINT": 8}, 15.0, "c")
+        d = RT.synth_key({"SYNTH_STRATEGY": "AREA 0", "abc_fine_tune": "none", "MAX_FANOUT_CONSTRAINT": 8}, 20.0, "c")
+        self.assertEqual(a, b)          # DELAY 4 does not read CLOCK_PERIOD
+        self.assertNotEqual(c, d)       # AREA 0 does
+
+    def test_driver_rule(self):
+        """Driver.ranked / maybe_promote on a rule track: min WS then projection; only eligible
+        trials are promoted; an ineligible promotion does not set the bar."""
+        import contextlib
+        import io
+        import shutil
+        import tempfile
+        d = tempfile.mkdtemp()
+        env = {k: os.environ.get(k) for k in ("PE_WORK", "PE_OPT_ROOT")}
+        try:
+            os.environ["PE_WORK"], os.environ["PE_OPT_ROOT"] = d, os.path.join(d, "opt")
+            sys.modules.pop("driver", None)
+            import driver as D
+            drv = D.Driver(dry_run=False)
+            drv.emit("track_new", track="t13", name="dor13", kind="freq", period=13.33, core_sha256="c" * 64)
+            kn = {"SYNTH_STRATEGY": "DELAY 4", "abc_fine_tune": "none", "MAX_FANOUT_CONSTRAINT": 8}
+
+            def trial(i, ws, rsz, flow=1500.0, synth=57.0):
+                uid = "t13#%d" % i
+                drv.emit("trial_new", uid=uid, track="t13", number=i, knobs=dict(kn, n=i), key="k%d" % i,
+                         run_dir=os.path.join(d, "r%d" % i))
+                m = {"min_ws": ws, "sta_source": "post-route", "utilization": 0.6, "drv_vio_sum": 1,
+                     "rt_synth_s": synth, "rt_rsz_s": rsz, "rt_rsz_grt_s": 0.0, "rt_flow_s": flow + rsz,
+                     "rt_complete": True}
+                drv.emit("trial_done", uid=uid, job_id=str(i), metrics=m, legal=True, value=ws)
+                return uid
+            a = trial(1, 0.90, 12000.0)       # best WS, projection far over the bound
+            b = trial(2, 0.70, 2000.0)        # eligible
+            c = trial(3, 0.70, 1000.0)        # same WS (10 ps), shorter projection
+            for i in range(4, 12):
+                trial(i, 0.1, 500.0)
+            ctx = drv.ctx()
+            self.assertFalse(ctx.trial(drv.state.trials[a])["eligible"])
+            self.assertTrue(ctx.trial(drv.state.trials[b])["eligible"])
+            self.assertEqual([t["uid"] for t in drv.ranked("t13")][:3], [a, c, b])
+            drv.active_tracks = ["t13"]
+
+            class T(object):
+                kind = "freq"
+                D = SPACE.defs("8x4")
+
+                @staticmethod
+                def complete(kn):
+                    return dict(kn)
+            drv.T = {"t13": T()}
+            # seed revision 3: only the trials over the runtime bound, with the runtime knob
+            seeds = drv.late_seeds("t13", 3)
+            self.assertEqual([(k["n"], k["PL_RESIZER_SETUP_REPAIR_TNS_PCT"]) for _, k in seeds],
+                             [(1, v) for v in D.RUNTIME_SEED_TNS])
+            calls = []
+            drv.promote = lambda t, reason: calls.append(t["uid"])
+            with contextlib.redirect_stdout(io.StringIO()):
+                drv.maybe_promote(100)
+            self.assertEqual(calls, [c])
+            # an earlier promotion of the ineligible trial (as p024) does not set the bar
+            drv.emit("promo_new", pid="p001-dor13", uid=a, track="t13", run_dir=os.path.join(d, "pa"))
+            drv.emit("promo_submit", pid="p001-dor13", stage="full", job_id="90", attempt=1)
+            drv.emit("promo_done", pid="p001-dor13", stage="full",
+                     result={"legal": True, "metrics": {"min_ws": 0.9, "rt_synth_s": 120.0, "rt_flow_s": 26549.0,
+                                                        "rt_complete": True}})
+            self.assertIs(drv.ctx().promo_ok(drv.state.promos["p001-dor13"]), False)
+            calls[:] = []
+            with contextlib.redirect_stdout(io.StringIO()):
+                drv.maybe_promote(100)
+            self.assertEqual(calls, [c])
+            # rule tracks' trial jobs get TRIAL_RULE_TIME, other tracks TRIAL's
+            drv.emit("track_new", track="t20", name="dor", kind="dor", period=20.0)
+            got = []
+            drv.submit = lambda name, res, script, args, **kw: got.append(res["time"]) or None
+            drv.submit_trial({"track": "t13", "number": 1, "run_dir": "/x", "uid": "t13#1"}, 1)
+            drv.submit_trial({"track": "t20", "number": 1, "run_dir": "/x", "uid": "t20#1"}, 1)
+            self.assertEqual(got, [D.TRIAL_RULE_TIME, D.TRIAL["time"]])
+            # weight shares count from the first driver start with the current weights
+            self.assertIsNone(drv.weights_epoch())
+            drv.emit("driver_start", settings={"weights": dict(D.WEIGHTS, dor13=0.15)})
+            self.assertIsNone(drv.weights_epoch())
+            rec = drv.emit("driver_start", settings={"weights": dict(D.WEIGHTS)})
+            drv.emit("driver_start", settings={"weights": dict(D.WEIGHTS)})
+            self.assertEqual(drv.weights_epoch(), rec["t"])
+            # a duplicate of a trial told before v3 (no value_objective) gets the penalty; a
+            # duplicate of a v3 trial copies its (already penalized) value
+            told = []
+            drv.tell = lambda t, v: told.append(v)
+            for i, orig in ((20, a), (21, c)):
+                drv.emit("trial_new", uid="t13#%d" % i, track="t13", number=i, knobs={}, key="k")
+                drv.emit("trial_dup", uid="t13#%d" % i, of=orig)
+                drv.finish_dup(drv.state.trials["t13#%d" % i], drv.state.trials[orig])
+            proj_a = drv.ctx().trial(drv.state.trials[a])["proj_s"]
+            self.assertAlmostEqual(told[0], RT.penalized_value(0.90, proj_a))
+            self.assertEqual(told[1], 0.70)
+            self.assertEqual(drv.state.trials["t13#20"]["value_objective"], 0.90)
+            drv.emit("trial_new", uid="t13#22", track="t13", number=22, knobs={}, key="k")
+            drv.emit("trial_dup", uid="t13#22", of="t13#20")
+            drv.finish_dup(drv.state.trials["t13#22"], drv.state.trials["t13#20"])
+            self.assertAlmostEqual(told[2], told[0])      # not penalized twice
+            # a run whose recorded knobs do not describe it is keyed by its resolved configuration
+            drv.emit("trial_new", uid="t13#30", track="t13", number=30, run_dir="/x",
+                     knobs={"SYNTH_STRATEGY": "AREA 0", "abc_fine_tune": "none", "MAX_FANOUT_CONSTRAINT": 10})
+            drv.emit("trial_done", uid="t13#30", job_id="30", legal=True, value=0.1,
+                     metrics={"min_ws": 0.1, "rt_synth_s": 60.0, "rt_complete": True,
+                              "rt_synth_cfg": {"SYNTH_STRATEGY": "DELAY 4", "MAX_FANOUT_CONSTRAINT": 8,
+                                               "CLOCK_PERIOD": 13.33}})
+            ctx = drv.ctx()
+            self.assertEqual(ctx.key(drv.state.trials["t13#30"]), ctx.key(drv.state.trials[a]))
+        finally:
+            for k, v in env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+            shutil.rmtree(d)
+
+    def test_backfill(self):
+        import contextlib
+        import io
+        import shutil
+        import tempfile
+        d = tempfile.mkdtemp()
+        env = {k: os.environ.get(k) for k in ("PE_WORK", "PE_OPT_ROOT")}
+        try:
+            os.environ["PE_WORK"], os.environ["PE_OPT_ROOT"] = d, os.path.join(d, "opt")
+            sys.modules.pop("driver", None)
+            import driver as D
+            drv = D.Driver(dry_run=False)
+            rd = os.path.join(d, "run")
+            os.makedirs(rd)
+            with open(os.path.join(rd, "result.json"), "w") as f:
+                json.dump({"time_s": {"synthesis": 57.0, "resizer_post_cts": 21806.914}, "flow_runtime_s": 26549.1,
+                           "node": "node1384", "flow_complete": True}, f)
+            os.makedirs(os.path.join(rd, "out"))
+            with open(os.path.join(rd, "out", "resolved.json"), "w") as f:
+                json.dump({"SYNTH_STRATEGY": "DELAY 4", "MAX_FANOUT_CONSTRAINT": 8, "CLOCK_PERIOD": 13.33}, f)
+            drv.emit("track_new", track="t13", name="dor13", kind="freq", period=13.33)
+            drv.emit("trial_new", uid="t13#1", track="t13", number=1, knobs={}, run_dir=rd)
+            drv.emit("trial_done", uid="t13#1", job_id="1", metrics={"min_ws": 0.7}, legal=True, value=0.7)
+            with contextlib.redirect_stdout(io.StringIO()):
+                drv.backfill_runtime()
+                drv.backfill_runtime()     # once only
+            evs = [e for e in drv.store.events() if e["ev"] == "trial_runtime"]
+            self.assertEqual(len(evs), 1)
+            rt = drv.state.trials["t13#1"]["runtime"]
+            self.assertEqual((rt["rsz_s"], rt["complete"], rt["synth_cfg"]["SYNTH_STRATEGY"]),
+                             (21806.914, True, "DELAY 4"))
+        finally:
+            for k, v in env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+            shutil.rmtree(d)
 
 
 NETLIST = """module top (clk, d, q);

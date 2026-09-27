@@ -12,6 +12,10 @@ Lexicographic, in this order:
   3. the sum of the max slew, max cap and max fan-out violation counts (lower);
   4. the typ-corner fmax estimate 1000 / (period - typ WS) (higher);
   5. the utilization (lower).
+In the tracks with the runtime rule (runtime.py: dor15, dor13, diet4_6x4) the driver and the
+leaderboard insert the projected official gds job time (lower) after the min WS
+(runtime.rank_key), and the driver lowers the TPE value of a trial whose
+projection exceeds the bound (runtime.penalized_value).
 
 The period is the track's CLOCK_PERIOD (20, 15 or 13.33 ns): STA ran at that
 period, so the setup slacks, the legality (typ setup) and the ranking are all
@@ -23,6 +27,11 @@ value() folds this into the single number TPE maximizes. Standard library only.
 """
 
 import math
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import runtime as RT  # noqa: E402
 
 CORNERS = ("typ", "fast", "slow")
 FAIL_VALUE = -60.0          # no post-route STA (flow failed, timed out or never ran)
@@ -36,8 +45,9 @@ def _f(x):
         return None
 
 
-def flatten(res, post=None, period=20.0):
-    """result.json (+ opt_post.json) -> flat metric dict."""
+def flatten(res, post=None, period=20.0, resolved=None):
+    """result.json (+ opt_post.json, + out/resolved.json for the synthesis key of the step
+    runtimes) -> flat metric dict."""
     res = res or {}
     post = post or {}
     sta = res.get("sta") or {}
@@ -89,6 +99,10 @@ def flatten(res, post=None, period=20.0):
     for k in ("ff_min", "ff_max", "sram_min", "sram_max", "sram_excess"):
         m["clk_" + k] = cd.get(k)
     m["clk_warn"] = cd.get("warn")
+    # step runtimes (runtime.py: speed factor and the projection of the official gds job)
+    rt = RT.extract(res, resolved)
+    for k in RT.FIELDS:
+        m["rt_" + k] = rt[k]
     return m
 
 

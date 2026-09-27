@@ -8,7 +8,10 @@ cocotb subset and the RTL-vs-netlist equivalence check. promotion_verdict() is
 the one place that turns the stage results into the verdict: PASS only if all
 four pass. Anything else is FAIL (a stage failed), in progress, or INCOMPLETE
 (the gate-level tests could not run for a variant without a reference-model
-configuration).
+configuration). In the tracks with the runtime rule (runtime.RULE_KINDS) the
+caller passes the full run's projected official job length, and all four gates
+passing gives "PASS" only within runtime.BOUND_S; above it the verdict is
+"PASS (over CI time bound: ...)", which is not eligible for adoption.
 
 The equivalence stage runs formal_eq/eq_check.py (formal_eq/README.md,
 docs/equivalence.md) through eq_job.sh and is fail-closed. Its result passes
@@ -258,10 +261,16 @@ def stage_failure(stage, r):
     return "failed"
 
 
-def promotion_verdict(stages):
+def promotion_verdict(stages, ci=None):
     """-> (text, passed): passed is True only when the full run is legal and the precheck, the
     gate-level tests and the equivalence check all passed; False when any stage failed; None
-    while a stage is missing or in progress, or when the gate-level tests could not run."""
+    while a stage is missing or in progress, or when the gate-level tests could not run.
+
+    ci: for a track with the runtime rule (runtime.RULE_KINDS), {"proj_s": the official job
+    length projected from the full run, "bound_s": runtime.BOUND_S}. Then all four gates passing
+    gives "PASS" only if the projection is at most the bound; above it the verdict is
+    "PASS (over CI time bound: ...)" with passed False (not eligible for adoption), and without a
+    projection "PASS (CI time not projected)" with passed None."""
     full = stages.get("full") or {}
     fr = full.get("result") or {}
     if full.get("state") != "done":
@@ -287,6 +296,13 @@ def promotion_verdict(stages):
         return "sign-off in progress (%s)" % ", ".join(pending), None
     if notrun:
         return "INCOMPLETE (gate-level tests not run: no reference-model configuration)", None
+    if ci is not None:
+        proj = ci.get("proj_s")
+        if proj is None:
+            return "PASS (CI time not projected: no step times of a complete full run)", None
+        if proj > ci["bound_s"]:
+            return ("PASS (over CI time bound: projected official job %.2f h > %.1f h)"
+                    % (proj / 3600.0, ci["bound_s"] / 3600.0)), False
     return "PASS", True
 
 
