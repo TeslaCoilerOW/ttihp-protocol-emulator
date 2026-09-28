@@ -1,0 +1,995 @@
+{
+ "job": "24125844",
+ "pass": true,
+ "cases": [
+  {
+   "tag": "scope-idle-base-1",
+   "mode": "idle",
+   "core": "base",
+   "seed": 1,
+   "expect": "same",
+   "captures": [
+    {
+     "records": 2048,
+     "kinds": {
+      "change": 2046,
+      "start": 1,
+      "marker": 0,
+      "end": 1
+     },
+     "window": [
+      64107,
+      80853
+     ],
+     "window_cycles": 16747,
+     "complete": true,
+     "full": true,
+     "halted": true,
+     "lost": 2029,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 1656,
+      "uio7": 976
+     },
+     "activity": {
+      "uio6": 1656,
+      "uio7": 976
+     }
+    },
+    {
+     "records": 2048,
+     "kinds": {
+      "change": 2046,
+      "start": 1,
+      "marker": 0,
+      "end": 1
+     },
+     "window": [
+      2350668,
+      2367421
+     ],
+     "window_cycles": 16754,
+     "complete": true,
+     "full": true,
+     "halted": true,
+     "lost": 1353,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 1656,
+      "uio7": 976
+     },
+     "activity": {
+      "uio6": 1656,
+      "uio7": 976
+     }
+    }
+   ],
+   "exact": {
+    "pass": true,
+    "clock_edges": 4641547,
+    "edges_compared": 5264,
+    "origin_ok": true
+   },
+   "verdict": "same",
+   "frames_complete": 94,
+   "frames_identical": 94,
+   "jitter_pp_cycles": 0,
+   "load_evidence": {
+    "window_cycles": 33501,
+    "edges": {
+     "uio0": 0,
+     "uio1": 0,
+     "uio2": 0,
+     "uio3": 0,
+     "uio4": 0,
+     "ui4": 0,
+     "ui5": 0
+    }
+   },
+   "probe_running": true,
+   "probe_fault": 0,
+   "host_operations": 0,
+   "burst_operations": 0,
+   "pass": true,
+   "wall_seconds": 328,
+   "sim_status": 0
+  },
+  {
+   "tag": "scope-idle-host-fetch-1",
+   "mode": "idle",
+   "core": "host-fetch",
+   "seed": 1,
+   "expect": "different",
+   "captures": [
+    {
+     "records": 4,
+     "kinds": {
+      "change": 0,
+      "start": 1,
+      "marker": 2,
+      "end": 1
+     },
+     "window": [
+      64107,
+      6073097
+     ],
+     "window_cycles": 6008991,
+     "complete": true,
+     "full": false,
+     "halted": true,
+     "lost": 0,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 0,
+      "uio7": 0
+     },
+     "activity": {}
+    }
+   ],
+   "exact": {
+    "pass": true,
+    "clock_edges": 6106602,
+    "edges_compared": 0,
+    "origin_ok": true
+   },
+   "verdict": "different",
+   "frames_complete": 0,
+   "frames_identical": 0,
+   "jitter_pp_cycles": null,
+   "load_evidence": {
+    "window_cycles": 6008991,
+    "edges": {
+     "uio0": 0,
+     "uio1": 0,
+     "uio2": 0,
+     "uio3": 0,
+     "uio4": 0,
+     "ui4": 0,
+     "ui5": 0
+    }
+   },
+   "probe_running": false,
+   "probe_fault": 2,
+   "host_operations": 0,
+   "burst_operations": 0,
+   "pass": true,
+   "wall_seconds": 377,
+   "sim_status": 0
+  },
+  {
+   "tag": "scope-idle-timer-host-1",
+   "mode": "idle",
+   "core": "timer-host",
+   "seed": 1,
+   "expect": "same",
+   "captures": [
+    {
+     "records": 2048,
+     "kinds": {
+      "change": 2046,
+      "start": 1,
+      "marker": 0,
+      "end": 1
+     },
+     "window": [
+      64107,
+      80853
+     ],
+     "window_cycles": 16747,
+     "complete": true,
+     "full": true,
+     "halted": true,
+     "lost": 2029,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 1656,
+      "uio7": 976
+     },
+     "activity": {
+      "uio6": 1656,
+      "uio7": 976
+     }
+    },
+    {
+     "records": 2048,
+     "kinds": {
+      "change": 2046,
+      "start": 1,
+      "marker": 0,
+      "end": 1
+     },
+     "window": [
+      2350668,
+      2367421
+     ],
+     "window_cycles": 16754,
+     "complete": true,
+     "full": true,
+     "halted": true,
+     "lost": 1353,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 1656,
+      "uio7": 976
+     },
+     "activity": {
+      "uio6": 1656,
+      "uio7": 976
+     }
+    }
+   ],
+   "exact": {
+    "pass": true,
+    "clock_edges": 4641547,
+    "edges_compared": 5264,
+    "origin_ok": true
+   },
+   "verdict": "same",
+   "frames_complete": 94,
+   "frames_identical": 94,
+   "jitter_pp_cycles": 0,
+   "load_evidence": {
+    "window_cycles": 33501,
+    "edges": {
+     "uio0": 0,
+     "uio1": 0,
+     "uio2": 0,
+     "uio3": 0,
+     "uio4": 0,
+     "ui4": 0,
+     "ui5": 0
+    }
+   },
+   "probe_running": true,
+   "probe_fault": 0,
+   "host_operations": 0,
+   "burst_operations": 0,
+   "pass": true,
+   "wall_seconds": 339,
+   "sim_status": 0
+  },
+  {
+   "tag": "scope-loaded-base-1",
+   "mode": "loaded",
+   "core": "base",
+   "seed": 1,
+   "expect": "same",
+   "captures": [
+    {
+     "records": 2048,
+     "kinds": {
+      "change": 2046,
+      "start": 1,
+      "marker": 0,
+      "end": 1
+     },
+     "window": [
+      72027,
+      88772
+     ],
+     "window_cycles": 16746,
+     "complete": true,
+     "full": true,
+     "halted": true,
+     "lost": 5932,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 1656,
+      "uio7": 976
+     },
+     "activity": {
+      "uio0": 144,
+      "uio1": 144,
+      "uio2": 416,
+      "uio3": 120,
+      "uio4": 120,
+      "uio5": 52,
+      "uio6": 1656,
+      "uio7": 976,
+      "uo0": 13,
+      "uo1": 10,
+      "uo2": 6,
+      "uo3": 6,
+      "uo4": 10,
+      "uo5": 20,
+      "uo6": 15,
+      "ui0": 16,
+      "ui1": 6,
+      "ui2": 10,
+      "ui3": 18,
+      "ui4": 208,
+      "ui5": 90,
+      "ui6": 10
+     }
+    },
+    {
+     "records": 2048,
+     "kinds": {
+      "change": 2046,
+      "start": 1,
+      "marker": 0,
+      "end": 1
+     },
+     "window": [
+      2390521,
+      2407297
+     ],
+     "window_cycles": 16777,
+     "complete": true,
+     "full": true,
+     "halted": true,
+     "lost": 4821,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 1655,
+      "uio7": 976
+     },
+     "activity": {
+      "uio0": 145,
+      "uio1": 145,
+      "uio2": 417,
+      "uio3": 119,
+      "uio4": 119,
+      "uio5": 52,
+      "uio6": 1655,
+      "uio7": 976,
+      "uo0": 10,
+      "uo1": 14,
+      "uo2": 12,
+      "uo3": 10,
+      "uo4": 12,
+      "uo5": 21,
+      "ui0": 22,
+      "ui1": 4,
+      "ui2": 4,
+      "ui3": 22,
+      "ui4": 226,
+      "ui5": 90,
+      "ui6": 10,
+      "ui7": 1
+     }
+    }
+   ],
+   "exact": {
+    "pass": true,
+    "clock_edges": 4794379,
+    "edges_compared": 5263,
+    "origin_ok": true
+   },
+   "verdict": "same",
+   "frames_complete": 95,
+   "frames_identical": 95,
+   "jitter_pp_cycles": 0,
+   "load_evidence": {
+    "window_cycles": 33523,
+    "edges": {
+     "uio0": 289,
+     "uio1": 289,
+     "uio2": 833,
+     "uio3": 239,
+     "uio4": 239,
+     "ui4": 434,
+     "ui5": 180
+    }
+   },
+   "probe_running": true,
+   "probe_fault": 0,
+   "host_operations": 32,
+   "burst_operations": 24,
+   "pass": true,
+   "wall_seconds": 347,
+   "sim_status": 0
+  },
+  {
+   "tag": "scope-loaded-base-2",
+   "mode": "loaded",
+   "core": "base",
+   "seed": 2,
+   "expect": "same",
+   "captures": [
+    {
+     "records": 2048,
+     "kinds": {
+      "change": 2046,
+      "start": 1,
+      "marker": 0,
+      "end": 1
+     },
+     "window": [
+      72027,
+      88772
+     ],
+     "window_cycles": 16746,
+     "complete": true,
+     "full": true,
+     "halted": true,
+     "lost": 5401,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 1656,
+      "uio7": 976
+     },
+     "activity": {
+      "uio0": 144,
+      "uio1": 144,
+      "uio2": 416,
+      "uio3": 120,
+      "uio4": 120,
+      "uio5": 52,
+      "uio6": 1656,
+      "uio7": 976,
+      "uo0": 5,
+      "uo1": 4,
+      "uo2": 3,
+      "uo3": 3,
+      "uo4": 14,
+      "uo5": 16,
+      "uo6": 15,
+      "ui0": 32,
+      "ui1": 22,
+      "ui2": 18,
+      "ui3": 26,
+      "ui4": 230,
+      "ui5": 128,
+      "ui6": 8,
+      "ui7": 4
+     }
+    },
+    {
+     "records": 2048,
+     "kinds": {
+      "change": 2046,
+      "start": 1,
+      "marker": 0,
+      "end": 1
+     },
+     "window": [
+      2386201,
+      2402924
+     ],
+     "window_cycles": 16724,
+     "complete": true,
+     "full": true,
+     "halted": true,
+     "lost": 5563,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 1663,
+      "uio7": 973
+     },
+     "activity": {
+      "uio0": 146,
+      "uio1": 146,
+      "uio2": 416,
+      "uio3": 122,
+      "uio4": 122,
+      "uio5": 52,
+      "uio6": 1663,
+      "uio7": 973,
+      "uo0": 7,
+      "uo1": 15,
+      "uo2": 9,
+      "uo3": 6,
+      "uo4": 10,
+      "uo5": 20,
+      "ui0": 24,
+      "ui1": 18,
+      "ui2": 10,
+      "ui3": 18,
+      "ui4": 224,
+      "ui5": 90,
+      "ui6": 10
+     }
+    }
+   ],
+   "exact": {
+    "pass": true,
+    "clock_edges": 4796107,
+    "edges_compared": 5268,
+    "origin_ok": true
+   },
+   "verdict": "same",
+   "frames_complete": 94,
+   "frames_identical": 94,
+   "jitter_pp_cycles": 0,
+   "load_evidence": {
+    "window_cycles": 33470,
+    "edges": {
+     "uio0": 290,
+     "uio1": 290,
+     "uio2": 832,
+     "uio3": 242,
+     "uio4": 242,
+     "ui4": 454,
+     "ui5": 218
+    }
+   },
+   "probe_running": true,
+   "probe_fault": 0,
+   "host_operations": 32,
+   "burst_operations": 24,
+   "pass": true,
+   "wall_seconds": 349,
+   "sim_status": 0
+  },
+  {
+   "tag": "scope-loaded-engine-fetch-1",
+   "mode": "loaded",
+   "core": "engine-fetch",
+   "seed": 1,
+   "expect": "different",
+   "captures": [
+    {
+     "records": 4,
+     "kinds": {
+      "change": 0,
+      "start": 1,
+      "marker": 2,
+      "end": 1
+     },
+     "window": [
+      72027,
+      6070175
+     ],
+     "window_cycles": 5998149,
+     "complete": true,
+     "full": false,
+     "halted": true,
+     "lost": 0,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 0,
+      "uio7": 0
+     },
+     "activity": {
+      "uio0": 52775,
+      "uio1": 52775,
+      "uio2": 149023,
+      "uio3": 43463,
+      "uio4": 43463,
+      "uio5": 18627,
+      "uo0": 1818,
+      "uo1": 2051,
+      "uo2": 1376,
+      "uo3": 2023,
+      "uo4": 2730,
+      "uo5": 4624,
+      "uo6": 15,
+      "ui0": 4928,
+      "ui1": 5724,
+      "ui2": 2126,
+      "ui3": 3934,
+      "ui4": 66952,
+      "ui5": 32448,
+      "ui6": 2680,
+      "ui7": 768
+     }
+    }
+   ],
+   "exact": {
+    "pass": true,
+    "clock_edges": 6188209,
+    "edges_compared": 0,
+    "origin_ok": true
+   },
+   "verdict": "different",
+   "frames_complete": 0,
+   "frames_identical": 0,
+   "jitter_pp_cycles": null,
+   "load_evidence": {
+    "window_cycles": 5998149,
+    "edges": {
+     "uio0": 52775,
+     "uio1": 52775,
+     "uio2": 149023,
+     "uio3": 43463,
+     "uio4": 43463,
+     "ui4": 66952,
+     "ui5": 32448
+    }
+   },
+   "probe_running": false,
+   "probe_fault": 2,
+   "host_operations": 1918,
+   "burst_operations": 12,
+   "pass": true,
+   "wall_seconds": 440,
+   "sim_status": 0
+  },
+  {
+   "tag": "scope-loaded-host-fetch-1",
+   "mode": "loaded",
+   "core": "host-fetch",
+   "seed": 1,
+   "expect": "different",
+   "captures": [
+    {
+     "records": 4,
+     "kinds": {
+      "change": 0,
+      "start": 1,
+      "marker": 2,
+      "end": 1
+     },
+     "window": [
+      72027,
+      6070175
+     ],
+     "window_cycles": 5998149,
+     "complete": true,
+     "full": false,
+     "halted": true,
+     "lost": 0,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 0,
+      "uio7": 0
+     },
+     "activity": {
+      "uio0": 52775,
+      "uio1": 52775,
+      "uio2": 149023,
+      "uio3": 43463,
+      "uio4": 43463,
+      "uio5": 18627,
+      "uo0": 1824,
+      "uo1": 2051,
+      "uo2": 1376,
+      "uo3": 2017,
+      "uo4": 2730,
+      "uo5": 4624,
+      "uo6": 15,
+      "ui0": 4928,
+      "ui1": 5724,
+      "ui2": 2126,
+      "ui3": 3934,
+      "ui4": 66952,
+      "ui5": 32448,
+      "ui6": 2680,
+      "ui7": 768
+     }
+    }
+   ],
+   "exact": {
+    "pass": true,
+    "clock_edges": 6188209,
+    "edges_compared": 0,
+    "origin_ok": true
+   },
+   "verdict": "different",
+   "frames_complete": 0,
+   "frames_identical": 0,
+   "jitter_pp_cycles": null,
+   "load_evidence": {
+    "window_cycles": 5998149,
+    "edges": {
+     "uio0": 52775,
+     "uio1": 52775,
+     "uio2": 149023,
+     "uio3": 43463,
+     "uio4": 43463,
+     "ui4": 66952,
+     "ui5": 32448
+    }
+   },
+   "probe_running": false,
+   "probe_fault": 2,
+   "host_operations": 1918,
+   "burst_operations": 12,
+   "pass": true,
+   "wall_seconds": 493,
+   "sim_status": 0
+  },
+  {
+   "tag": "scope-loaded-timer-engine-1",
+   "mode": "loaded",
+   "core": "timer-engine",
+   "seed": 1,
+   "expect": "different",
+   "captures": [
+    {
+     "records": 2048,
+     "kinds": {
+      "change": 2046,
+      "start": 1,
+      "marker": 0,
+      "end": 1
+     },
+     "window": [
+      72027,
+      95592
+     ],
+     "window_cycles": 23566,
+     "complete": true,
+     "full": true,
+     "halted": true,
+     "lost": 3623,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 1656,
+      "uio7": 976
+     },
+     "activity": {
+      "uio0": 206,
+      "uio1": 206,
+      "uio2": 588,
+      "uio3": 172,
+      "uio4": 172,
+      "uio5": 72,
+      "uio6": 1656,
+      "uio7": 976,
+      "uo0": 15,
+      "uo1": 12,
+      "uo2": 6,
+      "uo3": 6,
+      "uo4": 16,
+      "uo5": 26,
+      "uo6": 15,
+      "ui0": 24,
+      "ui1": 16,
+      "ui2": 16,
+      "ui3": 24,
+      "ui4": 290,
+      "ui5": 182,
+      "ui6": 14,
+      "ui7": 2
+     }
+    },
+    {
+     "records": 2048,
+     "kinds": {
+      "change": 2046,
+      "start": 1,
+      "marker": 0,
+      "end": 1
+     },
+     "window": [
+      2390521,
+      2413971
+     ],
+     "window_cycles": 23451,
+     "complete": true,
+     "full": true,
+     "halted": true,
+     "lost": 2836,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 1655,
+      "uio7": 975
+     },
+     "activity": {
+      "uio0": 205,
+      "uio1": 205,
+      "uio2": 585,
+      "uio3": 170,
+      "uio4": 170,
+      "uio5": 72,
+      "uio6": 1655,
+      "uio7": 975,
+      "uo0": 12,
+      "uo1": 16,
+      "uo2": 12,
+      "uo3": 10,
+      "uo4": 14,
+      "uo5": 25,
+      "uo7": 2,
+      "ui0": 30,
+      "ui1": 14,
+      "ui2": 8,
+      "ui3": 28,
+      "ui4": 306,
+      "ui5": 108,
+      "ui6": 12,
+      "ui7": 1
+     }
+    }
+   ],
+   "exact": {
+    "pass": true,
+    "clock_edges": 4794379,
+    "edges_compared": 5262,
+    "origin_ok": true
+   },
+   "verdict": "different",
+   "frames_complete": 95,
+   "frames_identical": 12,
+   "jitter_pp_cycles": 319,
+   "load_evidence": {
+    "window_cycles": 47017,
+    "edges": {
+     "uio0": 411,
+     "uio1": 411,
+     "uio2": 1173,
+     "uio3": 342,
+     "uio4": 342,
+     "ui4": 596,
+     "ui5": 290
+    }
+   },
+   "probe_running": true,
+   "probe_fault": 0,
+   "host_operations": 32,
+   "burst_operations": 24,
+   "pass": true,
+   "wall_seconds": 308,
+   "sim_status": 0
+  },
+  {
+   "tag": "scope-loaded-timer-host-1",
+   "mode": "loaded",
+   "core": "timer-host",
+   "seed": 1,
+   "expect": "different",
+   "captures": [
+    {
+     "records": 2048,
+     "kinds": {
+      "change": 2046,
+      "start": 1,
+      "marker": 0,
+      "end": 1
+     },
+     "window": [
+      72027,
+      88832
+     ],
+     "window_cycles": 16806,
+     "complete": true,
+     "full": true,
+     "halted": true,
+     "lost": 5916,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 1656,
+      "uio7": 976
+     },
+     "activity": {
+      "uio0": 145,
+      "uio1": 145,
+      "uio2": 418,
+      "uio3": 120,
+      "uio4": 120,
+      "uio5": 52,
+      "uio6": 1656,
+      "uio7": 976,
+      "uo0": 13,
+      "uo1": 10,
+      "uo2": 6,
+      "uo3": 6,
+      "uo4": 10,
+      "uo5": 20,
+      "uo6": 15,
+      "ui0": 18,
+      "ui1": 8,
+      "ui2": 10,
+      "ui3": 18,
+      "ui4": 224,
+      "ui5": 90,
+      "ui6": 10
+     }
+    },
+    {
+     "records": 2048,
+     "kinds": {
+      "change": 2046,
+      "start": 1,
+      "marker": 0,
+      "end": 1
+     },
+     "window": [
+      2390521,
+      2407322
+     ],
+     "window_cycles": 16802,
+     "complete": true,
+     "full": true,
+     "halted": true,
+     "lost": 4817,
+     "enabled": [
+      "uio6",
+      "uio7"
+     ],
+     "edges": {
+      "uio6": 1657,
+      "uio7": 975
+     },
+     "activity": {
+      "uio0": 145,
+      "uio1": 145,
+      "uio2": 418,
+      "uio3": 119,
+      "uio4": 119,
+      "uio5": 52,
+      "uio6": 1657,
+      "uio7": 975,
+      "uo0": 10,
+      "uo1": 14,
+      "uo2": 12,
+      "uo3": 10,
+      "uo4": 12,
+      "uo5": 21,
+      "ui0": 22,
+      "ui1": 4,
+      "ui2": 4,
+      "ui3": 22,
+      "ui4": 226,
+      "ui5": 90,
+      "ui6": 10,
+      "ui7": 1
+     }
+    }
+   ],
+   "exact": {
+    "pass": true,
+    "clock_edges": 4794379,
+    "edges_compared": 5264,
+    "origin_ok": true
+   },
+   "verdict": "different",
+   "frames_complete": 95,
+   "frames_identical": 85,
+   "jitter_pp_cycles": 8,
+   "load_evidence": {
+    "window_cycles": 33608,
+    "edges": {
+     "uio0": 290,
+     "uio1": 290,
+     "uio2": 836,
+     "uio3": 239,
+     "uio4": 239,
+     "ui4": 450,
+     "ui5": 180
+    }
+   },
+   "probe_running": true,
+   "probe_fault": 0,
+   "host_operations": 32,
+   "burst_operations": 24,
+   "pass": true,
+   "wall_seconds": 379,
+   "sim_status": 0
+  }
+ ]
+}

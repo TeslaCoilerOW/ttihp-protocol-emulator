@@ -92,6 +92,27 @@ module pe_top_urbana (
   endgenerate
   assign uio_in = pmoda;
 
+  // ---- capture unit: record buffer depth 2^SCOPE_AW (block RAM) ------------
+  // PE_NO_SCOPE builds without it; PE_SCOPE_AW overrides the depth.
+`ifdef PE_NO_SCOPE
+  localparam integer SCOPE = 0;
+`else
+  localparam integer SCOPE = 1;
+`endif
+`ifdef PE_SCOPE_AW
+  localparam integer SCOPE_AW = `PE_SCOPE_AW;
+`else
+  localparam integer SCOPE_AW = 15;
+`endif
+
+  // Single-port buffer: the Spartan-7 prjxray database of the openXC7 release
+  // has no RAMB36 port-B width bits (pe_fpga_scope.v). PE_SCOPE_2PORT overrides.
+`ifdef PE_SCOPE_2PORT
+  localparam integer SCOPE_1P = 0;
+`else
+  localparam integer SCOPE_1P = 1;
+`endif
+
   // ---- shell -------------------------------------------------------------
   wire [7:0] uo;
   wire [7:0] status;
@@ -100,7 +121,10 @@ module pe_top_urbana (
       .CLK_HZ  (CLK_HZ),
       .BAUD    (1_000_000),
       .BOARD_ID(8'd2),
-      .CLOCK_ID(CLOCK_ID)
+      .CLOCK_ID(CLOCK_ID),
+      .SCOPE   (SCOPE),
+      .SCOPE_AW(SCOPE_AW),
+      .SCOPE_1P(SCOPE_1P)
   ) shell (
       .clk         (clk),
       .arst        (btn[0] | !locked),

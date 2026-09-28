@@ -1,0 +1,3 @@
+# PC-side tools in fpga/host and demo/ (bridge, capture unit, bring-up).
+# Recorded version; the code uses only pyserial.Serial.
+pyserial==3.5

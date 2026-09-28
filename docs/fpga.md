@@ -5,34 +5,52 @@ peripherals on real pins before silicon exists. Two boards are supported: the
 Digilent Cmod A7-35T and the Real Digital Urbana (the MIT 6.205 board).
 
 The FPGA image contains the Tiny Tapeout top `tt_um_teslacoilerow_protocol_emulator`
-and the Hardcaml-generated core, both unchanged. Around them are three
+and the Hardcaml-generated core, both unchanged. Around them are four
 FPGA-only additions:
 
 - a board wrapper (pads, clocking, reset, LEDs);
 - a replacement for the IHP SRAM macro, proved cycle-equivalent to the IHP model;
-- a USB-UART bridge, so a PC can act as the host with no extra hardware.
+- a USB-UART bridge, so a PC can act as the host with no extra hardware;
+- an on-board capture unit (bridge builds from 2026-09-27), which timestamps
+  every pin change in core clock cycles, so the pin timing can be measured
+  without a logic analyser.
 
-**Status (2026-09-26).** Bitstreams exist for both boards (open-source openXC7
-flow). They have been checked in simulation and formal verification only. No
-board has been programmed yet, so nothing on this page is a hardware
-observation. The "Verification" section lists what was run and where.
+**Status (2026-09-27).** Bitstreams exist for both boards. The 2026-09-27
+release adds the on-board capture unit to the UART-bridge builds and exists
+twice, from the same RTL and constraints: built with the open-source openXC7
+flow, and built and timing-signed-off with AMD Vivado 2025.2 ("Vivado
+sign-off flow": all seven builds meet timing, worst setup slack 4.98 ns at
+20 ns). The 2026-09-26 and 2026-09-25 openXC7 bitstreams are kept. Nothing
+has been checked on hardware: no board has been programmed yet, so nothing on
+this page is a hardware observation. The "Verification" section lists the
+simulations and formal checks that were run, and where.
 
-Start with these bitstreams:
+Start with one command per board ("First hour with a board"), which programs
+a capture-unit bitstream and runs the bring-up tests and the self-measured
+timing-isolation experiment. Use the Vivado set first
+(`vivado-2025.2-2026-09-27/`), the openXC7 set (`v3-2026-09-27-scope/`) as
+the fully open-source alternative:
 
-- **Cmod A7**: `pe_cmod_a7_pll50_bridgeonly.bit` or `pe_cmod_a7_pll50.bit`
-  (PC over USB, 50 MHz), or `pe_cmod_a7_host.bit` (Pico clocks the design).
-- **Urbana**: `pe_urbana_pll50.bit` or `pe_urbana_host.bit`.
+- **Cmod A7**: `pe_cmod_a7_pll50.bit` (PC over USB, 50 MHz);
+  `pe_cmod_a7_osc12.bit` if the MMCM does not come up.
+- **Urbana**: `pe_urbana_pll50.bit`.
+- **Pico or another host-clocked pin host**: `pe_cmod_a7_host.bit`,
+  `pe_urbana_host.bit` (no capture unit).
 
-All seven bitstreams meet their clock target in nextpnr's timing model; the
-50 MHz builds reach 76–87 MHz there. See "Build results".
+In Vivado, the 50 MHz builds imply 66.6–70.5 MHz; in nextpnr-xilinx's
+timing model the openXC7 builds of the 2026-09-27 release reach 69–76 MHz,
+and all fourteen openXC7 bitstreams of the 2026-09-26 and 2026-09-27 releases
+meet their targets. See "Build results" and "Vivado sign-off flow".
 
 ## Contents of the FPGA image
 
 ```mermaid
 flowchart LR
-    PC["PC: fpga/host/pe_host.py"] -- "USB-UART 1 Mbaud" --> BR["pe_uart_host_bridge"]
+    PC["PC: fpga/host/pe_host.py, pe_scope.py"] -- "USB-UART 1 Mbaud" --> BR["pe_uart_host_bridge"]
     PICO["Pin host (Pico, ...)"] -- "ui/uo/rst_n/ena pins" --> MUX
     BR --> MUX{"host select"}
+    BR -- "A F H Q P U" --> SC["pe_fpga_scope (block RAM records)"]
+    TT -. "uio pads, uio_out/oe, uo_out, ui_in (read only)" .-> SC
     MUX --> TT["tt_um_teslacoilerow_protocol_emulator (unchanged)"]
     TT --> CORE["protocol_emulator_core (generated, unchanged)"]
     CORE --> SRAM["8 x RM_IHPSG13_1P_64x16_c2 = FPGA stand-in (LUT RAM)"]
@@ -44,7 +62,8 @@ flowchart LR
 |---|---|---|
 | Board top | `fpga/rtl/pe_top_cmod_a7.v`, `fpga/rtl/pe_top_urbana.v` | Pads, clock source, straps/switches, LEDs |
 | Shell | `fpga/rtl/pe_fpga_shell.v` | TT top instance; reset synchroniser; host-select mux; UART bridge; status |
-| UART bridge | `fpga/rtl/pe_uart_host_bridge.v` | PC ↔ nibble host port, in the core clock domain |
+| UART bridge | `fpga/rtl/pe_uart_host_bridge.v` | PC ↔ nibble host port, in the core clock domain; forwards the capture commands |
+| Capture unit | `fpga/rtl/pe_fpga_scope.v` | pin-change records in block RAM, cycle timestamps; bridge builds only |
 | Clocking | `fpga/rtl/pe_fpga_clkgen.v`, `fpga/rtl/pe_fpga_clkfwd.v` | MMCME2_ADV or BUFG; ODDR clock forwarding |
 | SRAM stand-in | `fpga/rtl/pe_fpga_sram_64x16.v`, `fpga/rtl/RM_IHPSG13_1P_64x16_c2_fpga.v` | Same module name and ports as the IHP macro |
 
@@ -104,6 +123,164 @@ is.
 
 The equivalence is proved formally (`fpga/formal/`, see "Verification").
 
+## On-board capture unit
+
+The bridge bitstreams of the 2026-09-27 release (bridge protocol 2) contain a
+capture unit, `fpga/rtl/pe_fpga_scope.v`. It records every change of the
+chip's pins in core clock cycles, so the timing of an engine can be measured
+without an external logic analyser. The self-measured isolation experiment
+([demo.md](demo.md), "Experiment C") and the bring-up checks ("First hour
+with a board") use it. The host-clocked `host` builds have no UART and no
+capture unit.
+
+The unit sits in the shell, next to the UART bridge. It only reads signals;
+its outputs go to the bridge's transmit path and nowhere else. The Tiny
+Tapeout top and the generated core are unchanged.
+
+**Channels.** 24 channels, sampled at every rising edge of the core clock:
+
+| Channel bits | Signals | Notes |
+|---|---|---|
+| 0–7 | `uio[0..7]`, the protocol pins | Pad view (default): the pad input, as a probe on the pin sees it. Core view (ARM mode bit 1): `uio_out` where `uio_oe` is set, the pad elsewhere |
+| 8–15 | `uo_out[0..7]` | the core's host-port outputs |
+| 16–23 | `ui_in[0..7]` | as applied to the core (UART bridge or pin host) |
+
+**Timestamps.** A 48-bit counter counts clock edges since configuration. A
+record's stamp is the index of the clock edge that launched the change: the
+p-th rising edge since configuration, the value the bridge's `C` command
+returns at that edge. Every channel passes the same two registers (sampled
+at edge p + 1, compared at edge p + 2, written at edge p + 3), so all channels
+have the same latency and the stamp needs no correction. For the pad view
+this holds when the pad settles within one clock period of the launching
+edge. That path (output buffer, pad, input buffer, first register) is not
+timed by the openXC7 flow; the bring-up checks compare the pad view with the
+core view of the running timing probe to confirm it on each board.
+
+- **Inputs driven from outside the FPGA** (a UART adapter, a sensor, a
+  jumper to another board) are asynchronous to the core clock. The unit
+  samples them in its own register (`pad_s1`, `ASYNC_REG`), separately from
+  the core's own two-flop synchroniser. A change close to a clock edge can
+  land one cycle apart in the two, so the recorded stamp of an external edge
+  can differ by ±1 cycle from the cycle in which the core sees it. The
+  unit's second stage is not a dedicated synchroniser flop: in the released
+  RTL it sits behind the pad/core-view multiplexer, which shortens the time
+  a metastable first stage has to settle. The failure is contained: a late
+  settling can only move that one edge by a cycle or record it at the value
+  it settles to, and the records stay a consistent sequence (every enabled
+  channel changes only in a record that says so, which `pe_scope.py`
+  checks). The timing-isolation experiment records only pins the FPGA drives
+  itself. A dedicated second stage is on the "Next rebuild" list.
+- **Open-drain pins** (I²C): the release edge of an open-drain pin is the
+  pull-up charging the line, so its timing depends on the pull-up and the
+  line capacitance, and it can take longer than a clock period; that breaks
+  the one-period assumption above. The core view does not help here: for a
+  pin the core releases it also reads the pad. Only the falling edges of an
+  open-drain pin mark the launching cycle; judge open-drain timing by them,
+  or use push-pull pins for timing measurements.
+
+**Records.** 72 bits, read back as 9 bytes, little endian:
+
+| Bits | Field |
+|---|---|
+| 71:48 | values of all 24 channels after the change |
+| 47:24 | mask: enabled channels that changed in this cycle |
+| 23:22 | kind: 0 change, 1 start, 2 marker, 3 end |
+| 21:0 | low 22 bits of the stamp |
+
+- Only changes on enabled channels are recorded, one record per cycle with a
+  change.
+- Record 0 is the start record, written at the trigger cycle. Its mask holds
+  the enabled channels that changed in that cycle; an enabled channel's level
+  before the record is `values ^ mask`.
+- A marker record (mask 0) is written whenever the stamp is a multiple of
+  2^21 and nothing else is written. Consecutive records are therefore less
+  than 2^22 cycles apart, and the full stamp of every record follows from the
+  start stamp and the 22-bit differences.
+- The last record is the end record, written at the halt cycle, or by the
+  write that fills the buffer or reaches the ARM record limit. It carries
+  that cycle's changes too.
+
+**Overflow.** When the end record fills the buffer, the unit enters state
+FULL: nothing more is stored, and every later cycle with an enabled change is
+counted in `lost` until the next halt or ARM. The records are therefore
+always a complete, gap-free account of the enabled channels from the start
+stamp to the end stamp. `pe_scope.py` reports the window and the lost count
+and never reads anything beyond the end record.
+
+**Activity counters.** One 32-bit saturating counter per channel counts the
+changes from the start record's cycle to the end record's cycle, enabled or
+not. The self-measured experiment uses them as evidence of load inside each
+capture window (host strobes on `ui_in[4]`, UART and SPI edges on the
+protocol pins). For an enabled channel the counter must equal the number of
+recorded edges; `pe_scope.py` checks this for every capture.
+
+**Commands.** The bridge forwards six commands to the unit, whichever host
+owns the TT host port. Payloads and replies are little endian:
+
+| Command | Payload | Reply |
+|---|---|---|
+| `A` arm | enable mask[3], trigger mask[3], mode, record limit[2] | `A`. Clears the buffer and the counters. Mode bit 0 = 1: start at the first change of a trigger channel (or `F`); 0: start immediately. Mode bit 1 = 1: core view. Limit 2..depth, 0 = the whole buffer. Recording starts a few clock cycles after the command (settling time) |
+| `F` force | – | `F`: start now (when waiting for the trigger) |
+| `H` halt | – | `H`, once the halt has taken effect |
+| `Q` status | – | `Q` + 38 bytes: version, state, flags, log2 depth, channels, records, lost, start / end / current stamp, masks, mode, limit |
+| `P` activity | – | `P` + 24 counters of 4 bytes |
+| `U` read back | first record[2], count[2] | `U`, n[2], n records of 9 bytes, CRC-16/CCITT-FALSE of the record bytes |
+
+`pe_scope.py` reads the buffer in blocks of 512 records. The CRC covers the
+record bytes only, not the `U` header's count or the `Q` and `P` replies, so
+the client also checks those: the count must equal min(count, records stored
+− first), and every `Q` field must lie in its range. A block or reply that
+fails a check, or arrives short (a transport timeout), is requested again
+after the input has been drained, at most 3 times; the capture's
+cross-checks (start and end stamps against the records, activity counters
+against the recorded edges) repeat the whole read once more if they fail.
+Commands that change state (`A`, `F`, `H`) are not repeated. At 1 Mbaud, one
+record takes 90 µs, so a full buffer takes 1.47 s (Cmod A7) or 2.95 s
+(Urbana).
+
+The bridge has no timeout while it forwards a capture-unit reply (state
+`S_SCOPE`): the unit always ends its replies in the released RTL, but a
+hardware fault that stopped it would leave the bridge waiting until the
+board is reset (btn[0]). A watchdog is on the "Next rebuild" list.
+
+**Depth.** The buffer is block RAM:
+
+| Board | Records | Block RAM | Timing-probe frames in a full buffer | Window at 50 MHz |
+|---|---|---|---|---|
+| Cmod A7-35T | 16,384 | 32 RAMB36 of 50 | about 390 | about 2.7 ms |
+| Urbana | 32,768 | 64 RAMB36 of 75 | about 780 | about 5.4 ms |
+
+The timing probe changes its pins in 42 distinct cycles of its 344-cycle
+frame, which is one record each. `PE_SCOPE_AW` (a Verilog define) sets another
+depth, from 2 to 15 (at most 32,768 records: the status reply carries record
+counts in 16 bits, and larger depths would be truncated silently, so
+`build.sh` and `build.tcl` reject them), and `PE_NO_SCOPE` builds without the
+unit (bridge protocol 1).
+
+On the Urbana the buffer has a single address port: writes take it, and a
+read-back read that falls on a write cycle is repeated (read-back normally
+runs after the halt, when nothing is written). The reason is the toolchain.
+Yosys maps the dual-port buffer to RAMB36 blocks with the write on port A
+and the read on port B, and the Spartan-7 part of the prjxray database in
+the openXC7 release used here has no configuration bits for the RAMB36
+port-B widths (`BRAM36_READ_WIDTH_B_1`; the Artix-7 part has them).
+`fasm2frames` rejected that Urbana build (job 24123603). The single-port
+buffer uses port A only. `PE_SCOPE_1PORT` / `PE_SCOPE_2PORT` select either
+buffer on either board.
+
+**PC side.** `fpga/host/pe_scope.py` arms the unit, reads it back, rebuilds
+per-channel waveforms in cycles and writes them as a VCD whose tick is one
+core clock cycle. `demo/pe_capture.py` recognises these VCDs and uses the
+ticks as cycle numbers directly, with no `--clock` or `--fclk`.
+
+```sh
+python3 fpga/host/pe_scope.py --port /dev/ttyUSB1 status
+python3 fpga/host/pe_scope.py --port /dev/ttyUSB1 capture --channels uio6,uio7 \
+    --trigger uio6,uio7 --limit 4096 --json cap.json --vcd cap.vcd
+python3 fpga/host/pe_scope.py show cap.json
+python3 demo/pe_capture.py analyze cap.vcd --channels probe6=uio6,probe7=uio7 --reference predicted.json
+```
+
 ## Builds
 
 | Build | Core clock | Host | Bitstream |
@@ -130,7 +307,133 @@ not come up on real hardware: openXC7's MMCM support is recent (see
 `pe_host.py info` reports the build and measures the core clock against the
 PC clock.
 
+From 2026-09-27 every UART-bridge build (`pll50`, `pll50` + `BRIDGE_ONLY=1`,
+`pll40`, `osc12`) contains the on-board capture unit (bridge protocol 2);
+`VERILOG_DEFINES=-DPE_NO_SCOPE` builds without it. The `host` builds are
+unchanged. The 2026-09-27 release is described first below; the 2026-09-26
+release (no capture unit) follows.
+
+### Build results, capture-unit release (2026-09-27)
+
+These bitstreams were built on MIT Engaging through Slurm on 2026-09-27 with
+the openXC7 2026-09-24 toolchain and Yosys 0.67+111, from this tree (`src/`
+unchanged; `protocol_emulator_core.v` SHA-256 `26a873db…`). Job ids and
+results are in `$PE_WORK/fpga-scope/manifest.json`.
+
+- **fmax** is nextpnr-xilinx's post-route estimate for the core clock `clk`
+  (`--report`, prjxray's -1 timing data). It is not a vendor sign-off; the
+  Vivado sign-off of the same design is under "Vivado sign-off flow".
+- **Options.** The synthesis options of the 2026-09-26 builds (ABC9 script
+  `flow3mfs`, wire delay 1000 ps, with or without `-nowidelut` per build),
+  and placer seeds 1–40 at timing weights 80 and 160 with the default
+  router2 (job 24125836, 560 runs, one CPU each). The fastest run of each
+  build became the bitstream: `fpga/scripts/release.sh` rebuilt each one from
+  scratch (job 24126323), every rebuild gave the fmax of its sweep run, and
+  every bitstream passed the readback check (0 missing, 0 extra
+  configuration bits). `fpga/scripts/release.tsv` records seed and options.
+- **All seven builds were rebuilt**, the `host` builds too, although they have
+  no capture unit and their logic is unchanged: Yosys' LUT mapping depends on
+  the text of the input files, and the shared shell and board tops changed.
+  Rebuilt with the 2026-09-26 seeds and options, the `host` netlists differ
+  from the 2026-09-26 ones and reach 62.84 MHz (Cmod A7) and 72.60 MHz
+  (Urbana) instead of 80.43 and 76.44 MHz (job 24123603), so they took part in
+  the seed sweep as well.
+- **LUT cells, FFs, CARRY4** are nextpnr's placed bels, as in the tables of
+  the 2026-09-26 release; RAMB36 counts 36 Kb block RAMs. Percentages are of
+  the part's datasheet capacity (xc7a35t: 20,800 LUTs, 41,600 FFs, 50 RAMB36;
+  xc7s50: 32,600, 65,200, 75).
+
+| Build | Options | Placer seed | **fmax** | Target | LUT cells | FFs | CARRY4 | RAMB36 | Capture buffer |
+|---|---|---|---|---|---|---|---|---|---|
+| `cmod_a7 pll50` | `-nowidelut`; timing weight 160 | 18 | **71.36 MHz** | 50 MHz | 12,734 (61.2%) | 4,203 (10.1%) | 561 | 32 (64%) | 16,384 records |
+| `cmod_a7 pll50` + `BRIDGE_ONLY=1` | `-nowidelut`; timing weight 80 | 40 | **73.19 MHz** | 50 MHz | 12,713 (61.1%) | 4,201 (10.1%) | 561 | 32 (64%) | 16,384 records |
+| `cmod_a7 pll40` | `-nowidelut`; timing weight 160 | 30 | **66.66 MHz** | 40 MHz | 12,828 (61.7%) | 4,203 (10.1%) | 562 | 32 (64%) | 16,384 records |
+| `cmod_a7 osc12` | `-nowidelut`; timing weight 160 | 26 | **73.83 MHz** | 12 MHz | 12,902 (62.0%) | 4,203 (10.1%) | 561 | 32 (64%) | 16,384 records |
+| `urbana pll50` | timing weight 160 | 5 | **76.04 MHz** | 50 MHz | 13,423 (41.2%) | 4,212 (6.5%) | 562 | 64 (85%) | 32,768 records, single port |
+| `cmod_a7 host` | timing weight 160 | 23 | **69.31 MHz** | 50 MHz | 8,865 (42.6%) | 2,030 (4.9%) | 258 | 0 | – |
+| `urbana host` | `-nowidelut`; timing weight 160 | 40 | **74.32 MHz** | 50 MHz | 8,777 (26.9%) | 2,030 (3.1%) | 258 | 0 | – |
+
+All builds use `flow3mfs` with W 1000. The capture unit adds about 3,000 LUT
+cells, 1,730 FFs and 240 CARRY4 to a bridge build (Cmod A7 `pll50`: 9,777
+LUT cells, 2,471 FFs and 318 CARRY4 in the 2026-09-26 release), mostly for
+the 24 activity counters, the 48-bit stamps and the status snapshot. The
+MMCM counter settings in the FASM are those of the 2026-09-26 table below.
+
+Seed distributions (job 24125836). "Completed" excludes the 5 of 560 runs that
+ended in a nextpnr error:
+
+| Build | `-nowidelut` | `TIMING_WEIGHT` | Runs | Completed | fmax min / median / max (MHz) | Completed runs ≥ target |
+|---|---|---|---|---|---|---|
+| `cmod_a7 pll50` | yes | 80 | 40 | 40 | 53.48 / 57.49 / 63.49 | 40 |
+| `cmod_a7 pll50` | yes | 160 | 40 | 40 | 55.41 / 61.47 / 71.36 | 40 |
+| `cmod_a7 pll50` + `BRIDGE_ONLY=1` | yes | 80 | 40 | 40 | 52.76 / 62.42 / 73.19 | 40 |
+| `cmod_a7 pll50` + `BRIDGE_ONLY=1` | yes | 160 | 40 | 40 | 48.90 / 61.00 / 66.30 | 39 |
+| `cmod_a7 pll40` | yes | 80 | 40 | 39 | 54.80 / 60.79 / 65.88 | 39 |
+| `cmod_a7 pll40` | yes | 160 | 40 | 39 | 52.10 / 58.28 / 66.66 | 39 |
+| `cmod_a7 osc12` | yes | 80 | 40 | 38 | 53.67 / 60.82 / 66.67 | 38 |
+| `cmod_a7 osc12` | yes | 160 | 40 | 40 | 54.95 / 66.14 / 73.83 | 40 |
+| `urbana pll50` | no | 80 | 40 | 40 | 57.67 / 69.92 / 75.67 | 40 |
+| `urbana pll50` | no | 160 | 40 | 39 | 59.85 / 66.95 / 76.04 | 39 |
+| `cmod_a7 host` | no | 80 | 40 | 40 | 47.87 / 58.20 / 66.14 | 38 |
+| `cmod_a7 host` | no | 160 | 40 | 40 | 48.91 / 60.09 / 69.31 | 38 |
+| `urbana host` | yes | 80 | 40 | 40 | 50.43 / 60.80 / 69.31 | 40 |
+| `urbana host` | yes | 160 | 40 | 40 | 58.38 / 66.44 / 74.32 | 40 |
+
+**Timing findings.**
+
+- Every published build meets its clock target in nextpnr's model, and 550
+  of the 555 completed sweep runs do; the exceptions are one
+  `BRIDGE_ONLY=1` run (48.90 MHz) and four `cmod_a7 host` runs (47.87–49.78
+  MHz).
+- Critical paths of the published runs. In six of the seven, the path starts
+  at a core register (for example `shell.tt.core._1623` or
+  `host_selected_engine`) and ends in the core or its host-port logic, as in
+  the 2026-09-26 builds. In the published Cmod A7 `pll50` run it does not:
+  it starts at the UART bridge's transmit-FIFO read pointer
+  (`shell.g_bridge.bridge.u_txf.rp[1]`), runs through the "FIFO not full"
+  term of the bridge's `sc_rsp_ready` into the capture unit's reply
+  handshake, and ends at the clock enable of the unit's 312-bit reply shift
+  register `sh` (`pe_fpga_scope.v`, responder): 14.0 ns, 1.2 ns of logic
+  and 12.8 ns of routing, of which 4.1 ns is the last net, the enable's
+  fan-out. It meets 50 MHz (71.36 MHz). Across the sweep, paths start at core
+  registers, at the host-select synchroniser (`status[3]`) or, as here, in
+  the bridge; routing dominates in all of them.
+- The capture unit takes area and 32 or 64 block RAMs across the die: the
+  Cmod A7 `pll50` median fell from about 70 MHz (2026-09-26 sweep) to
+  57–61 MHz, and the fastest run from 79.69 to 71.36 MHz. Registering
+  `sc_rsp_ready` and splitting the `sh` enable are on the "Next rebuild"
+  list.
+- An earlier sweep of the same design (job 24120781, 768 runs, a slightly
+  different text of `pe_fpga_scope.v`, dual-port buffer) measured the
+  buffer depth on the Urbana: with 16,384 records the router2 medians were
+  70.9–71.1 MHz, with 32,768 records 66.2–66.9 MHz. Of its 162 router1
+  runs, 21 finished within the 25-minute limit; router1 was not used for the
+  final sweep.
+
+**Bitstreams.** `$PE_WORK/fpga/bitstreams/v3-2026-09-27-scope/`, with their
+summaries, options, readback reports and `SHA256SUMS`; the 2026-09-26 set
+stays in `$PE_WORK/fpga/bitstreams/` and the 2026-09-25 set in `v1-2026-09-25/`.
+
+| File | Bytes | SHA-256 | Readback: configuration bits, frames |
+|---|---|---|---|
+| `pe_cmod_a7_pll50.bit` | 2,192,126 | `a505222368852c9b73cad20d5dd3457bdb049b99d74c10581eb1d99defcae250` | 605,277 bits, 2,711 frames: 0 missing, 0 extra |
+| `pe_cmod_a7_pll50_bridgeonly.bit` | 2,192,137 | `166435cac44356d6e3ed129c390fca8e3602607becb95434e40b8a68198c989d` | 605,360 bits, 3,432 frames: 0 missing, 0 extra |
+| `pe_cmod_a7_pll40.bit` | 2,192,126 | `6f264f95d5a29268f7f0ea7c2b006db4e38857b91268a3f0cc5a4944ab77e2b8` | 614,475 bits, 2,945 frames: 0 missing, 0 extra |
+| `pe_cmod_a7_osc12.bit` | 2,192,126 | `558969cfd213401dbdd5f64f365ff0d1e9c6fc27688cdea0cafb4c843fea074b` | 610,954 bits, 2,569 frames: 0 missing, 0 extra |
+| `pe_urbana_pll50.bit` | 2,192,125 | `63fad9234ab8d709f556f76629aaaf1624b7cd89ed15b3c353e1bafceaa1efb4` | 662,402 bits, 2,680 frames: 0 missing, 0 extra |
+| `pe_cmod_a7_host.bit` | 2,192,125 | `4644f1d207e12d366108086486c6ec346ccdf172a075c5a654874ba3d5655f60` | 418,436 bits, 1,762 frames: 0 missing, 0 extra |
+| `pe_urbana_host.bit` | 2,192,124 | `4edc7febb28eeee7ee717c02680869fd903485be138b7ee7701bf371468d2846` | 400,355 bits, 1,976 frames: 0 missing, 0 extra |
+
+**Recommended bitstreams (2026-09-27).** PC over USB: `pe_cmod_a7_pll50.bit`
+(Cmod A7, with the DIP pin host available too) or
+`pe_cmod_a7_pll50_bridgeonly.bit`, and `pe_urbana_pll50.bit`; all three
+contain the capture unit. `pe_cmod_a7_osc12.bit` if the MMCM does not come up.
+Pin hosts: `pe_cmod_a7_host.bit`, `pe_urbana_host.bit`.
+
 ### Build results
+
+This subsection is the 2026-09-26 release, without the capture unit (bridge
+protocol 1). Its bitstreams stay in `$PE_WORK/fpga/bitstreams/`.
 
 The bitstreams below were built on MIT Engaging through Slurm on 2026-09-26
 with the openXC7 2026-09-24 toolchain, from the design sources of commit
@@ -580,6 +883,9 @@ header has the full table. In summary:
   fresh status snapshot.
 - `X`: hold `rst_n` low for n clocks.
 - `N`: drive `ena`.
+- `A`, `F`, `H`, `Q`, `P`, `U` (bridge protocol 2, the 2026-09-27 bridge
+  builds): the on-board capture unit ("On-board capture unit"). They work
+  whichever host owns the TT host port; a protocol-1 bitstream answers `?`.
 
 A stalled transfer times out, 20 ms by default. The bridge then abandons it by
 changing window and replies `T`.
@@ -750,6 +1056,167 @@ while jobs were executing it ended those runs with "Stale file handle"
 errors (the nextpnr results were intact and were recovered from the run
 directories).
 
+## Vivado sign-off flow
+
+The vendor timing sign-off for these parts is AMD Vivado's static timing
+analysis. `fpga/vivado/build.tcl` ran with Vivado 2025.2 (ML Standard
+edition, no license needed for the xc7a35t and the xc7s50) on MIT Engaging
+through Slurm on 2026-09-27, for all seven builds of the 2026-09-27 release:
+the same RTL, pin constraints and clock constraints as the openXC7 builds
+(jobs 24149331 and 24149924; results in `$PE_WORK/fpga-scope/manifest.json`).
+**All seven meet timing in Vivado.** Nothing has run on hardware.
+
+```sh
+vivado -mode batch -nojournal -source fpga/vivado/build.tcl -tclargs cmod_a7 pll50 build/vivado_cmod_a7_pll50
+vivado -mode batch -nojournal -source fpga/vivado/build.tcl -tclargs urbana pll50 build/vivado_urbana_pll50
+python3 fpga/vivado/timing_check.py build/vivado_cmod_a7_pll50/timing_summary.rpt \
+    --utilization build/vivado_cmod_a7_pll50/utilization.rpt \
+    --methodology build/vivado_cmod_a7_pll50/methodology.rpt --drc build/vivado_cmod_a7_pll50/drc.rpt
+```
+
+`build.tcl` is a non-project batch flow:
+
+- **Sources and constraints.** The RTL list of `fpga/scripts/build.sh`, the
+  same pin XDC, the port clocks of the same clock XDC (below), and the same
+  Verilog defines per build (`CLOCK` argument, `BRIDGE_ONLY=1`,
+  `DEFINES=PE_SCOPE_AW=14,...`). Part `xc7a35tcpg236-1` (Cmod A7-35T) or
+  `xc7s50csga324-1` (Urbana).
+- **Steps.** `synth_design`, `opt_design`, `place_design`,
+  `phys_opt_design`, `route_design` with Vivado's default directives;
+  `report_timing_summary`, `report_utilization`, `report_clocks`,
+  `report_drc`, `report_methodology`; `write_bitstream` on PASS.
+- **Verdict.** PASS needs WNS ≥ 0, TNS = 0, WHS ≥ 0, THS = 0; no unclocked
+  register (`no_clock`) and no unconstrained internal endpoint in
+  `check_timing`; no "Critical Warning" in the methodology report and no
+  "Error" in the DRC report. The script writes `vivado_timing.txt`, prints
+  `VIVADO TIMING PASS` or `FAIL`, exits 1 on FAIL, and writes the bitstream
+  only on PASS (`BITSTREAM=always` writes it anyway, `BITSTREAM=0` never).
+  `timing_check.py` gives the same verdict from the reports, adds the
+  pulse-width columns (WPWS ≥ 0, TPWS = 0), and summarises the worst setup
+  path with the fmax it implies, 1 / (period − WNS).
+
+**Results** (job 24149924). Implied fmax is 1 / (period − WNS) of the worst
+setup path. Vivado optimises only until the constraint is met, so this is a
+lower bound on what Vivado could reach, and it is far below the other builds
+for `osc12`, whose constraint is 83.333 ns.
+
+| Build | WNS | TNS | WHS | THS | WPWS | `check_timing` | Implied fmax | nextpnr fmax | Slice LUTs | Registers | Block RAM tiles |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `cmod_a7 pll50` | 5.467 ns | 0 | 0.047 ns | 0 | 8.750 ns | clean | 68.81 MHz | 71.36 MHz | 7,482 (35.97%) | 4,194 (10.08%) | 36 of 50 |
+| `cmod_a7 pll50` + `BRIDGE_ONLY=1` | 5.089 ns | 0 | 0.038 ns | 0 | 8.750 ns | clean | 67.06 MHz | 73.19 MHz | 7,497 (36.04%) | 4,194 (10.08%) | 36 of 50 |
+| `cmod_a7 pll40` | 9.871 ns | 0 | 0.030 ns | 0 | 11.250 ns | clean | 66.10 MHz | 66.66 MHz | 7,483 (35.98%) | 4,194 (10.08%) | 36 of 50 |
+| `cmod_a7 osc12` | 64.445 ns | 0 | 0.014 ns | 0 | 40.416 ns | clean | 52.94 MHz | 73.83 MHz | 7,486 (35.99%) | 4,194 (10.08%) | 36 of 50 |
+| `urbana pll50` | 5.821 ns | 0 | 0.028 ns | 0 | 3.000 ns | clean | 70.53 MHz | 76.04 MHz | 7,477 (22.94%) | 4,147 (6.36%) | 72 of 75 |
+| `cmod_a7 host` | 5.808 ns | 0 | 0.077 ns | 0 | 8.750 ns | clean | 70.46 MHz | 69.31 MHz | 5,810 (27.93%) | 2,008 (4.83%) | 0 |
+| `urbana host` | 4.979 ns | 0 | 0.046 ns | 0 | 8.750 ns | clean | 66.57 MHz | 74.32 MHz | 5,819 (17.85%) | 2,008 (3.08%) | 0 |
+
+"clean": `no_clock` 0 and `unconstrained_internal_endpoints` 0. The only
+non-zero `check_timing` counts are `no_input_delay` and `no_output_delay`
+(10–21 and 15–24 ports): the board's asynchronous inputs and the pin-host
+port, which neither flow constrains. All pins are placed by the pin XDC,
+with the XDC's I/O standards and pull-ups (`report_io` on the routed
+designs, job 24150720).
+
+**Worst setup paths.**
+
+| Build | From → to | Data path | Logic levels |
+|---|---|---|---|
+| `cmod_a7 pll50` | bridge `ui_reg[6]` (host-port window) → core LUT-RAM write enable | 13.38 ns (2.01 logic, 11.37 route) | 10 |
+| `cmod_a7 pll50` + `BRIDGE_ONLY=1` | bridge `core_rst_n_reg` → instruction SRAM stand-in output register (engine 3) | 14.38 ns (2.48 logic, 11.90 route) | 11 |
+| `cmod_a7 pll40` | SRAM stand-in (engine 1, low half) → SRAM stand-in output register (high half) | 14.73 ns (2.18 logic, 12.55 route) | 11 |
+| `cmod_a7 osc12` | board reset synchroniser `rst_sync_reg[2]` → core `tx_1_reg` clock enable | 18.28 ns (2.36 logic, 15.92 route) | 9 |
+| `urbana pll50` | core `host_selected_engine_reg[0]` → core `wait_limit_0_reg` reset | 13.34 ns (3.26 logic, 10.08 route) | 12 |
+| `cmod_a7 host` | SRAM stand-in (engine 0, low half) → SRAM stand-in output register (high half) | 14.05 ns (2.55 logic, 11.50 route) | 11 |
+| `urbana host` | board reset synchroniser → core LUT-RAM write enable | 14.34 ns (2.69 logic, 11.65 route) | 10 |
+
+All of them are paths into or through the core, with routing 75–87 % of the
+delay. None ends in the capture unit; the reply-handshake path that is the
+critical path of the openXC7 Cmod A7 `pll50` build ("Build results,
+capture-unit release") is not critical in Vivado.
+
+**Comparison with nextpnr-xilinx.**
+
+- Timing agrees in kind: both tools meet every target with a large margin.
+  Vivado's implied fmax is 0.56–6.13 MHz below nextpnr's for the four
+  bridge builds at 40 and 50 MHz, 7.75 MHz below for the Urbana `host` build
+  and 1.15 MHz above for the Cmod A7 `host` build. The nextpnr figures are the fastest
+  of 80 placer seeds per build; Vivado ran once per build with its default
+  directives.
+- The LUT counts are not comparable: nextpnr's "LUT cells" count placed LUT
+  bels including route-through LUTs (12,713–13,423 for the bridge builds),
+  Vivado's "Slice LUTs" count LUTs used for logic and memory (7,477–7,497).
+  Register counts agree within 1.6 % (Vivado 4,147–4,194 against nextpnr's
+  4,201–4,212 for the bridge builds, 2,008 against 2,030 for the host
+  builds).
+- Block RAM: Vivado builds the 16,384 × 72 capture buffer from 36 RAMB36
+  (16K × 2 each) instead of Yosys' 32 (4K × 9), and the Urbana's 32,768 × 72
+  buffer from 72 (32K × 1) instead of 64, which uses 72 of the xc7s50's 75
+  block RAM tiles. The Vivado placement stays within the xc7a35t's 50 block
+  RAMs.
+
+**Where Vivado differs from the open-source flow.**
+
+- **The core clock constraint.** The shared clock XDCs define the core clock
+  twice: on the board oscillator (or `host_clk`) port, and on the net `clk`
+  after the MMCM and BUFG, because nextpnr-xilinx needs the latter. Vivado
+  accepts both, but its methodology check reports a critical warning for
+  the net clock in every build (job 24149331): TIMING-2 (a primary clock
+  created on the BUFG output) and TIMING-4 (a primary clock defined
+  downstream of the MMCM's generated clock, which overrides its insertion
+  delay). `build.tcl` therefore reads only the port clocks by default
+  (`CLOCKS=derived`): Vivado derives the core clock through the MMCM or BUFG
+  from the port clock, including the MMCM's jitter. `CLOCKS=shared` reads
+  the XDC as is. For the builds run both ways, WNS differed by at most
+  0.18 ns between the modes, and every run met timing in both.
+- **Warnings that remain** (no critical warnings, no DRC errors):
+  - DRC REQP-1839 on the Cmod A7 bridge builds: Vivado's block-RAM power
+    optimisation gates the read-port enable of the capture buffer with the
+    board reset synchroniser, which has an asynchronous reset; an
+    asynchronous reset may then corrupt a read in progress. It affects only
+    read-back while the board is being reset (button or MMCM lock). On the
+    "Next rebuild" list.
+  - Methodology LUTAR-1: the board reset `btn[0] | !locked` is a LUT that
+    drives the asynchronous reset of the reset synchroniser; a glitch of that
+    LUT could reset the board logic. On the "Next rebuild" list.
+  - Methodology TIMING-18 (host builds): missing input/output delays on the
+    pin-host port, which is not constrained in either flow ("Limitations").
+- **Configuration voltage.** `build.tcl` writes a Vivado-only XDC with
+  `CFGBVS VCCO` and `CONFIG_VOLTAGE 3.3` for Vivado's DRC.
+- **Memory inference, synthesis options.** Vivado infers its own
+  distributed RAM for the SRAM stand-in and its own block-RAM arrangement
+  for the capture buffer (above); the SRAM stand-in's equivalence proof
+  (`fpga/formal/`) covers the RTL and Yosys' netlist, not Vivado's. The
+  Yosys options and nextpnr seeds of the open-source builds have no Vivado
+  counterpart.
+- **Primitives.** The MMCM (`MMCME2_ADV`), `BUFG`, `ODDR` and the tri-state
+  pads (`IOBUF` from `T = ~uio_oe`) are the same primitives in both flows;
+  the MMCM counter settings come from the same RTL parameters.
+
+**Bitstreams.** `$PE_WORK/fpga/bitstreams/vivado-2025.2-2026-09-27/`, with
+each build's `vivado_timing.txt`, reports and `SHA256SUMS`. They have the
+same file names as the openXC7 sets. They are Vivado's output from the same
+RTL and constraints; Vivado's netlists have not been simulated (the
+post-synthesis simulations under "Verification" are of Yosys' netlists).
+
+| File | Bytes | SHA-256 |
+|---|---|---|
+| `pe_cmod_a7_pll50.bit` | 2,192,138 | `44caece537a8d9f13e1aebb40f61382dc1620c122b4e5d107dbbcdf35597768e` |
+| `pe_cmod_a7_pll50_bridgeonly.bit` | 2,192,138 | `25c5ebf4124a18ffc28611ee144c5abb6c6b91377362901cc6818cd7e733504d` |
+| `pe_cmod_a7_pll40.bit` | 2,192,138 | `9e71d49d06910bab10e9a0122fda61d9bbca36cc87e04fe92315751a0a29315f` |
+| `pe_cmod_a7_osc12.bit` | 2,192,138 | `2919824b9331b17007ea6486a31d0052f8f168251b73552e9b2d9c7a030f365a` |
+| `pe_urbana_pll50.bit` | 2,192,137 | `b5c91cce6b7d51169826cfdddd37df19bc200cbf3a2367b679d3170c4d88af13` |
+| `pe_cmod_a7_host.bit` | 2,192,138 | `170ad2da4a02a27c019f3ca313130ffe2c9fec0bf0014eb27a85dd7353433070` |
+| `pe_urbana_host.bit` | 2,192,137 | `388ac54a7a9baec2a41caaebf8827fe71796ed0d745b3d4698e48702fd638be7` |
+
+**Which set to program first.** The Vivado set, for the first bring-up: its
+timing is signed off by the vendor's analysis, and its bitstreams are
+generated by the vendor's tool, so neither prjxray's block-RAM
+configuration bits nor the question of block RAMs outside the xc7a35t's 50
+applies ("Limitations"). The openXC7 set (`v3-2026-09-27-scope/`) is the
+fully open-source alternative, with post-synthesis simulations of its
+netlists. Both are built from the same RTL; if a step fails with one set,
+repeating it with the other separates a tool problem from a design problem.
+
 ## Programming
 
 [openFPGALoader](https://github.com/trabucayre/openFPGALoader) writes to the
@@ -760,6 +1227,11 @@ openFPGALoader -b cmoda7_35t pe_cmod_a7_pll50_bridgeonly.bit
 openFPGALoader -b arty_s7_50 pe_urbana_pll50.bit
 ```
 
+The capture-unit bitstreams have the same file names in their own
+directories (`vivado-2025.2-2026-09-27/`, `v3-2026-09-27-scope/`);
+`fpga/scripts/bringup.sh` programs the right one and runs the bring-up
+("First hour with a board").
+
 The Urbana's USB-JTAG is an FT2232H channel A, like Digilent boards. 6.205
 documents `-b arty_s7_50` for Urbana bitstreams
 ([6.205 openFPGA page](https://fpga.mit.edu/6205/F24/documentation/openFPGA)).
@@ -769,8 +1241,174 @@ openFPGALoader loads its own SPI bridge for that.
 On Linux, install the udev rules from the openFPGALoader repository, or run
 it as root, before first use.
 
+## First hour with a board
+
+This is the bring-up kit for the capture-unit bitstreams: one command per
+board programs the FPGA, tests the board, the pins and the capture unit, and
+then runs the self-measured timing-isolation experiment. Nothing here has run
+on hardware yet. The whole sequence has run against the simulated board top
+(`fpga/sim/test_fpga_bringup.py`, see "Verification"), which is where the
+expected output below comes from.
+
+**What you need.**
+
+- The board and its USB cable. On the Urbana, all switches down.
+- Two jumper wires (female-female for the Cmod A7's Pmod header). They go on
+  only when the script asks for them.
+- A PC with Python 3.8 or later, `pip install -r fpga/host/requirements.txt`
+  (pyserial 3.5), and openFPGALoader. The recorded tool is openFPGALoader
+  v1.1.1 from OSS CAD Suite 20260729.
+- The capture-unit bitstreams, copied to the PC with their `SHA256SUMS`:
+  the Vivado set `$PE_WORK/fpga/bitstreams/vivado-2025.2-2026-09-27/`
+  (first choice, see "Vivado sign-off flow") and the openXC7 set
+  `$PE_WORK/fpga/bitstreams/v3-2026-09-27-scope/` (the fully open-source
+  alternative). The file names are the same in both.
+- On Linux: openFPGALoader's udev rules (or root), and permission to open
+  the serial port (for example the `dialout` group). Each board enumerates
+  two serial ports; the UART is the second one, `/dev/ttyUSB1` if no other
+  USB serial device is present.
+
+**One command per board.**
+
+```sh
+PE_BITSTREAMS=/path/to/vivado-2025.2-2026-09-27 fpga/scripts/bringup.sh cmod_a7 /dev/ttyUSB1
+PE_BITSTREAMS=/path/to/vivado-2025.2-2026-09-27 fpga/scripts/bringup.sh urbana  /dev/ttyUSB1
+# the same with the openXC7 set:
+PE_BITSTREAMS=/path/to/v3-2026-09-27-scope fpga/scripts/bringup.sh cmod_a7 /dev/ttyUSB1
+```
+
+`bringup.sh` prints the tool versions, checks the bitstream against
+`SHA256SUMS`, runs `openFPGALoader -b cmoda7_35t --detect` (or
+`-b arty_s7_50`, the board name 6.205 documents for the Urbana), programs
+`pe_cmod_a7_pll50.bit` (or `pe_urbana_pll50.bit`) into configuration SRAM,
+and starts `fpga/host/bringup.py`. The steps and what each one needs:
+
+| Step | Needs | Checks | Passes with |
+|---|---|---|---|
+| 1 link | USB only | `V` names the board, the clock and the capture unit; the core clock measured against the PC clock over 1 s is within 2 % of nominal; capture unit idle | `[link] PASS` |
+| 2 selftest | nothing on the protocol Pmod | `pe_host.py selftest`: ISA version, idle engines, timestamp against the bridge counter, pads drive `a5`/`5a`, pull-ups, open drain | `SELFTEST PASS` |
+| (prompt) | – | fit the two jumpers: Cmod A7 Pmod JA pin 1 to pin 2 and pin 4 to pin 7; Urbana PMOD A pin 1 to pin 2 and pin 4 to pin 7; then press Enter | – |
+| 3 loopback | the jumpers | UART TX → jumper → UART RX → route → SPI → jumper → SPI RX | `LOOPBACK PASS` |
+| 4 capture | the jumpers (unused here) | stamps against the bridge counter and two markers; the timing probe in pad view and in core view, 4,096 records each, every frame equal to the static prediction; pad and core view at the same frame phase; one capture that fills the whole buffer (16,384 or 32,768 records, every RAMB36 of it), read back and checked the same way; the overflow path | `[capture] PASS` |
+| 5 isolation | the jumpers | the self-measured experiment ([demo.md](demo.md), "Experiment C"): 4 captures of a full buffer per phase, idle and loaded; verdict | `NON-INTERFERENCE PASS` |
+
+The run ends with a table of the five steps and `BRING-UP PASS` or
+`BRING-UP FAIL`, and it stops at the first failing step. Everything goes to
+`bringup-<board>-<date>/`: `bringup.json` (each step's result), the capture
+files (`*.json`, and `*.vcd` for GTKWave or `pe_capture.py`), the analyses and
+`isolation/verdict.json`. After a failure, fix the cause and resume, for
+example with `PE_SKIP_PROGRAM=1 fpga/scripts/bringup.sh cmod_a7 /dev/ttyUSB1
+--skip selftest --yes` once the jumpers are on.
+
+**Expected output.** This is the transcript of the simulated Cmod A7 `osc12`
+board (job 24140400). Three things differ on a board: the capture sizes
+were reduced to keep the simulated UART read-back short (256 records per
+check capture, one marker, 512 records for the whole-buffer capture, one
+capture of 1,024 records per phase), so on a board the capture lines show
+4,096 records, two markers, the whole buffer (16,384 or 32,768 records) and
+four full buffers per phase, with frame counts to match; the clock line shows a value
+measured over 1 s of PC time, near 50 MHz for the `pll50` bitstreams; and
+the numbers of host operations depend on the USB latency. The side-by-side
+histograms that `pe_capture.py compare` prints before the load-evidence
+table are omitted here (they are in `isolation/compare.txt`). The PASS lines
+are the same.
+
+```text
+[link]
+bridge: bridge protocol 2, board Cmod A7-35T, clock osc12 (12 MHz oscillator), 12 MHz, 1 Mbaud, capture unit
+core clock: 12.000 MHz measured over 0.00206 s (nominal 12 MHz)
+capture unit v1: state idle, 0/16384 records (depth 16384), lost 0, enable -, trigger -, pad view of uio
+[link] PASS
+[selftest]
+ISA version 2
+4 engines idle after reset
+timestamp advances with the core clock (3192 cycles, bounds [732, 5652])
+pads drive a5 and read back ff when released
+pads drive 5a and read back ff when released
+open-drain pin pulls low and releases
+SELFTEST PASS
+[selftest] PASS
+>>> Fit the two jumper wires: Pmod JA pin 1 to pin 2 (uio0-uio1) and pin 4 to pin 7 (uio3-uio4). Nothing else on the Pmod.
+>>> (simulation: the testbench closes both jumpers)
+[loopback]
+loaded uart-tx on engine 0
+loaded uart-rx on engine 1
+loaded spi-controller-mode0 on engine 2
+engine 2 received b'FPGA OK!' over SPI
+LOOPBACK PASS
+[loopback] PASS
+[capture]
+stamps: start 205385 between bridge counter readings 203569..205621 (mod 2^32); markers: 1, every 2097152 cycles
+check-pad: 256 records, 2102 cycles, frames 5/5 identical to the prediction, jitter 0 cycles
+check-core: 256 records, 2095 cycles, frames 5/5 identical to the prediction, jitter 0 cycles
+pad and core views: same frame phase (the pad path settles within one clock period)
+check-full: 512 records, 4177 cycles, frames 11/11 identical to the prediction, jitter 0 cycles
+whole buffer: 512 of 16384 records written and read back (limit 512 in this run)
+overflow: state full, 64 records, end record last, 45107 changes counted as lost after it
+[capture] PASS
+[isolation]
+--- idle phase
+ISA version 2
+loaded timing-probe, uart-tx, uart-rx, spi-controller-mode0
+probe started on engine 3 (idle mode)
+capture 0: 1024 records, 8379 cycles, buffer/limit full, 2423 changes after the end
+--- loaded phase
+ISA version 2
+loaded timing-probe, uart-tx, uart-rx, spi-controller-mode0
+probe started on engine 3 (loaded mode)
+capture 0: 1024 records, 8378 cycles, buffer/limit full, 6956 changes after the end
+loaded: 16 host operations, 0 engine restarts, UART engine completed 58288 instructions
+
+load evidence (activity counters inside the capture windows, edges):
+  phase        cycles    uio0    uio1    uio2    uio3    uio4     ui4     ui5
+  idle           8379       0       0       0       0       0       0       0
+  loaded         8378      72      72     209      61      61     144      54
+
+NON-INTERFERENCE PASS: engine 3's pin edges are cycle-identical to the prediction in every phase (idle 23, loaded 23 complete frames; jitter idle 0, loaded 0 cycles peak-to-peak)
+[isolation] PASS
+
+  link       PASS
+  selftest   PASS
+  loopback   PASS
+  capture    PASS
+  isolation  PASS
+BRING-UP PASS
+```
+
+**If a step fails.**
+
+| Symptom | Likely cause | What to do |
+|---|---|---|
+| openFPGALoader finds no cable | udev rules, charge-only cable, hub | `openFPGALoader --scan-usb`; install the udev rules; another cable or port |
+| `--detect` shows another part | wrong `-b` board | `cmoda7_35t` for the Cmod A7-35T, `arty_s7_50` for the Urbana |
+| `no reply to 'V'` | wrong serial port, or the board is not configured | use the board's second port (`ls /dev/ttyUSB*` before and after plugging in); the heartbeat LED must blink (Cmod A7 `led[0]`, Urbana LED0) |
+| `bitstream is for board id ...` | the other board's bitstream | program the matching file |
+| `bridge protocol 1` | a bitstream without the capture unit | use the `vivado-2025.2-2026-09-27` or `v3-2026-09-27-scope` set |
+| core clock not within 2 % | MMCM not locked or misconfigured | Cmod A7: `PE_BITSTREAM=.../pe_cmod_a7_osc12.bit` (no MMCM); the rest of the sequence works at 12 MHz |
+| selftest: released pads not `ff` | something on the protocol Pmod | remove the jumpers for step 2 |
+| loopback fails | jumpers on the wrong pins | pins 1–2 and 4–7 of the protocol Pmod (uio0–uio1, uio3–uio4) |
+| capture: pad and core view differ in phase | the pad input takes more than one clock period | report it with the files of `bringup-*/`; the core view and the `pll40` or `osc12` bitstream are unaffected |
+| capture: frames differ from the prediction | unexpected; the probe's timing is static | keep the output directory and report it |
+| capture: the whole-buffer capture fails (CRC or decode errors, wrong records) while the 4,096-record captures pass | a block RAM beyond the first 4,096 records misconfigured or not usable (see "Limitations") | keep the output directory and report it; a rebuild with a smaller buffer (`VERILOG_DEFINES=-DPE_SCOPE_AW=12`, 4,096 records) uses fewer block RAMs |
+| isolation: `loaded windows show no load` | jumpers missing, or no host operation fell into a window | check the jumpers; see "Host traffic density" below |
+| isolation: `NON-INTERFERENCE FAIL` with differing frames | the property the experiment tests does not hold on this board | keep the output directory: `compare.txt` and the capture files show which edges moved |
+| `CRC mismatch` messages | USB errors during read-back | the client repeats the block; many retries point at the cable or hub |
+| a step fails with one bitstream set and passes with the other | a toolchain problem (synthesis, placement, bitstream generation) rather than the design | keep both output directories and report it |
+
+**Host traffic density.** In the loaded phase the host's operations reach the
+core through USB round trips. Each capture's ARM command is sent in the same
+USB write as 12 host-port frames, so those always execute inside the
+window; the sequential operations that follow are as frequent as the USB
+latency allows. On Linux the FTDI driver's latency timer (16 ms by default)
+dominates; `bringup.sh` prints it, and
+`echo 1 | sudo tee /sys/bus/usb-serial/devices/ttyUSB1/latency_timer` sets
+1 ms. The load-evidence table of step 5 shows how many host strobes
+(`ui4`) each phase's windows actually contained.
+
 ## Hardware test procedure
 
+The steps below are the individual tests behind the bring-up kit, for the
+2026-09-26 bitstreams (no capture unit) or for running one test on its own.
 Each step lists what to connect, the command to run and what a pass looks
 like. The messages quoted below are the ones `pe_host.py` prints.
 `fpga/sim/test_fpga_bridge.py` runs the same `selftest` and `loopback` code
@@ -876,6 +1514,101 @@ pico_host.loopback(host, imgs)                             # jumpers as in step 
 divided by 64.
 
 ## Verification
+
+### Checks of the capture-unit tree (2026-09-27)
+
+These ran on MIT Engaging through Slurm on 2026-09-27, from a snapshot of
+this tree (`src/` unchanged: `protocol_emulator_core.v` SHA-256
+`26a873db…`; the RTL, constraints and bitstreams of the release come from
+the same snapshot). Job ids and results are in `$PE_WORK/fpga-scope/manifest.json`.
+Tools: cocotb 2.0.1, Icarus Verilog 14.0 (devel), Yosys 0.67+111,
+openXC7 2026-09-24.
+
+**Capture unit in the full board top, RTL** (`fpga/sim/test_fpga_scope.py`,
+UART-bridge testbench driven only through its USB-UART by `pe_host.py` and
+`pe_scope.py`). An independent monitor in the testbench samples the channel
+sources after every rising clock edge; each test compares the host tool's
+reconstructed edges with the monitor's, edge for edge and cycle for cycle.
+
+| Test | What it checks | Cmod A7 `pll50` | Urbana `pll50` (single-port buffer) | Cmod A7 `osc12` | Job |
+|---|---|---|---|---|---|
+| `test_scope_basics` | `V` = protocol 2; idle status, depth (16,384 / 32,768); empty read-back; forced trigger (start and end records only); capture commands while the pin host owns the port; stamp origin: the stamp register after the n-th clock edge since t = 0 is n − 2 | PASS | PASS | PASS | 24125728 |
+| `test_scope_probe_pad_and_core` | timing probe, pad view (trigger on the probe pins) and core view, 256 records each: all edges equal the monitor's; start record holds the trigger edge; both views at the same frame phase | PASS | PASS | PASS | 24125728 |
+| `test_scope_overflow_and_halt` | 24-record limit: FULL, end record last, lost count growing until the halt and frozen after it, records still equal the monitor's | PASS | PASS | PASS | 24125728 |
+| `test_scope_readback_while_recording` | 64 records read back while the probe keeps writing, then again after the halt: identical; on the single-port buffer the responder repeated 6 reads that fell on write cycles, on the dual-port buffer none | PASS | PASS | PASS | 24125728 |
+| `test_scope_host_port_channels` | `ui_in` / `uo_out` channels during a status read, triggered on write-valid: equal to the monitor's; activity counter = recorded edges | PASS | PASS | PASS | 24125728 |
+| `test_scope_markers_and_wrap` | no channel enabled, cycles 1,959 to 6,362,900: start record, markers at 2,097,152, 4,194,304 and 6,291,456 (the multiples of 2^21), end record; the capture crosses the 22-bit stamp field's wrap at 2^22 = 4,194,304; start stamp between two `C` readings (143 and 2,195) | – | – | PASS | 24125728 |
+
+**Regressions with the capture unit in the tree** (job 24125728): UART bridge
+tests (`test_fpga_bridge.py`, now expecting protocol 2) 5/5 on Cmod A7
+`pll50`, Urbana `pll50` and Cmod A7 `BRIDGE_ONLY=1`; `test_smoke` and
+`test_flagship` of `test/` on the pin-host tops (Cmod A7 `host` build, Urbana
+`pll50` build in pin-host mode) 4/4 each. The same tests had passed on earlier
+texts of the tree (jobs 24120568, 24120869, 24121750).
+
+**Bring-up end to end** (`fpga/sim/test_fpga_bringup.py`): `bringup.py` runs
+all five steps against the simulated board, with the jumper prompt answered
+by closing the testbench's jumpers and time taken from the simulator
+(job 24125728): Cmod A7 `osc12` top, `BRING-UP PASS` in 493 s of wall time;
+Urbana `pll50` top, `BRING-UP PASS` in 1,420 s. The transcript under "First
+hour with a board" is the Cmod A7 run of the re-run after review (job
+24140400, below), which adds the whole-buffer check.
+
+**Post-synthesis simulation of the release netlists.** Each
+`synth_netlist.v` below is the netlist of a published 2026-09-27 bitstream,
+simulated with Yosys' `cells_sim.v` and `fpga/sim/netlist_prims.v` (MMCM,
+ODDR). Yosys' `RAMB36E1` model has timing only and drives no data (the first
+run, job 24126758, read back `x`), so `fpga/sim/Makefile` replaces it with
+`fpga/sim/netlist_bram.v`: a behavioural model of exactly the configuration
+Yosys emits for the capture buffer (true dual-port mode used as write on A,
+read on B, or port A only; 4,096 × 9; READ_FIRST; no output register), which
+stops the simulation on any other configuration. It checks Yosys' mapping
+(address slices, data and parity bits, bank multiplexing); it is not AMD's
+unisim model. In netlist mode the monitor sees the pads and the kept
+`uio_out`/`uio_oe` wires only, so `test_scope_host_port_channels` is skipped,
+and the captures of `test_scope_probe_pad_and_core` hold 128 or 64 records.
+
+| Netlist | Tests | Result | Job |
+|---|---|---|---|
+| Cmod A7 `osc12` | `test_fpga_scope` (128-record captures) | 4/4 PASS | 24127217 |
+| Cmod A7 `pll50` | `test_fpga_scope` (64-record captures); `test_fpga_bridge` | 4/4 PASS; 5/5 PASS | 24130995; 24127217 |
+| Cmod A7 `pll50` + `BRIDGE_ONLY=1` | `test_fpga_scope` (64); `test_fpga_bridge` | 4/4 PASS; 5/5 PASS | 24130995; 24127217 |
+| Cmod A7 `pll40` | `test_fpga_scope` (64) | 4/4 PASS | 24130995 |
+| Urbana `pll50` (single-port buffer) | `test_fpga_scope` (64); `test_fpga_bridge` | 4/4 PASS; 5/5 PASS | 24130995; 24127217 |
+| Cmod A7 `host`, Urbana `host` | `test_smoke`, `test_flagship` of `test/` | 4/4 PASS each | 24126758 |
+
+A netlist simulation of the 40 and 50 MHz builds took 1.1–1.7 hours per
+configuration on one CPU.
+
+**Without a simulator** (job 24140487): `fpga/host/test_pe_scope.py` 11/11
+(record format and decoder invariants, 22-bit wraps, CRC-16 check value
+0x29B1, CRC retry and failure, a corrupted read-back count one too high or
+too low and an out-of-range status reply each detected, drained and
+repeated, VCD read back by `pe_capture.py` as a cycle-domain capture, frames
+same and one-cycle shift different); `demo/tests` 27 tests, OK (3 optional
+tests skipped: `MICROPYTHON`, `ASSEMBLER`, `SIGROK_CLI` not set), including
+`test_scope_adapter.py` (the self-measured flow against a capture-unit
+stand-in on the reference model: PASS; a run without load evidence must not
+pass; a CRC error is retried); `fpga/vivado/test_vivado_flow.py` 10/10 (Tcl
+flow under `tclsh` with stubbed Vivado commands: sources, defines, clock
+XDC modes, the verdict with `check_timing`, no bitstream on FAIL, the
+`PE_SCOPE_AW` limit in `build.tcl` and `build.sh`; report parser), and
+13/13 after the changes made with the Vivado runs (derived clocks by default,
+methodology and DRC severities in the verdict; login node);
+`fpga/host/test_pico_host.py` PASS.
+
+**After review.** An independent review of this work led to host-side and
+documentation changes only (read-back validation and retries in
+`pe_scope.py`, the whole-buffer check in `bringup.py`, the Vivado verdict,
+the `PE_SCOPE_AW` check); the RTL, and so the released bitstreams, are
+unchanged. The RTL-level tests were run again on the changed host code
+(job 24140400): `test_fpga_scope` 5/5 on Cmod A7 `pll50`, Urbana `pll50`
+and Cmod A7 `osc12`, `test_fpga_bridge` 5/5 on Cmod A7 `pll50`, and the
+bring-up end to end with the whole-buffer check (Cmod A7 `osc12` 1,055 s, Urbana `pll50` 3,314 s of wall time, both `BRING-UP PASS`); the self-measured matrix
+(job 24140401) gave the same 9 verdicts and numbers as job 24125844.
+
+**Self-measured isolation experiment** (demo/sim, 9 cases, job 24125844):
+see [demo.md](demo.md), "Self-measured isolation in simulation".
 
 ### Checks of the 2026-09-26 bitstreams
 
@@ -1046,11 +1779,13 @@ Summary of what is and is not covered:
 ## Limitations and open items
 
 - **No hardware observations yet.** MMCM lock, pad behaviour, the UART bridge
-  at 1 Mbaud, openFPGALoader on the Urbana and the Pico host speed are all to
-  be confirmed on the boards.
-- **Timing figures come from nextpnr-xilinx's model** (prjxray timing data),
-  not Vivado's.
-  - The published fmax is the fastest of many placer seeds; the seed
+  at 1 Mbaud, openFPGALoader on the Urbana, the Pico host speed, the capture
+  unit and the bring-up kit are all to be confirmed on the boards.
+- **Timing.** The openXC7 figures come from nextpnr-xilinx's model
+  (prjxray timing data) and are not a vendor sign-off. The 2026-09-27 release
+  is also signed off in Vivado 2025.2 ("Vivado sign-off flow"), which covers
+  the Vivado bitstreams; Vivado's netlists have not been simulated.
+  - The published nextpnr fmax is the fastest of many placer seeds; the seed
     distributions under "Build results" show what the same options give
     typically.
   - No I/O timing is constrained. For a pin host, the margin that matters is
@@ -1069,9 +1804,84 @@ Summary of what is and is not covered:
   - The Urbana Pmod+ pin order (J1 counter-clockwise, JB2 = K14/J15) was
     derived from the schematic netlist and the 6.205 constraints file. It
     should be confirmed with a continuity check on the first board.
+- **Capture unit.**
+  - The pad view assumes that a pad driven by the FPGA settles within one
+    clock period of the launching edge; that path is not timed. The bring-up
+    checks compare the pad and core views on the board.
+  - A capture window is at most the buffer depth (16,384 records on the Cmod
+    A7, 32,768 on the Urbana: about 2.7 ms and 5.4 ms of the timing probe at
+    50 MHz). Longer measurements are sequences of captures, with read-back
+    gaps between them.
+  - The host-clocked `host` builds have no UART and no capture unit.
+  - The activity counters and the 48-bit stamps saturate or wrap after 2^32
+    changes and 2^48 cycles (65 days at 50 MHz).
+  - Externally driven inputs can be stamped ±1 cycle from the core's own
+    view of them, and open-drain release edges depend on the pull-up (see
+    "On-board capture unit").
+- **Block RAM configuration of the openXC7 bitstreams is unverified on
+  hardware.** (The Vivado bitstreams are generated by the vendor's tool for
+  the actual part, and Vivado places the buffer within the xc7a35t's 50
+  block RAMs; this item does not apply to them.) The capture buffer is the
+  first block RAM use in these builds. The readback check only shows
+  that each bitstream carries the frames of its FASM; it does not show that
+  prjxray's block-RAM configuration bits are complete and correct. The
+  Spartan-7 part of the prjxray database in this openXC7 release is known to
+  lack some of them (the RAMB36 port-B widths, which is why the Urbana buffer
+  is single-port), and the others have not been checked against hardware.
+  On the Cmod A7, the chipdb is the xc7a50t die: the buffer's 32 RAMB36 are
+  placed in columns X6, X30 and X37 of that die's grid, at rows up to Y145.
+  prjxray's part description of the xc7a35t lists the same block-RAM
+  configuration columns as the xc7a50t, but whether every one of these
+  block RAMs works on a 35T part (datasheet: 50 RAMB36) is not documented by
+  AMD and has not been tested. Step 4 of the bring-up writes the whole
+  buffer once and checks every record read back ("First hour with a board"),
+  so a faulty block RAM shows up there, before the isolation experiment; the
+  same step with the Vivado bitstream then tells a toolchain problem from a
+  design problem.
 - **Post-synthesis simulation uses Yosys' Xilinx cell models**
-  (`cells_sim.v`), not Xilinx's unisims.
+  (`cells_sim.v`), not Xilinx's unisims, and for the capture buffer's block
+  RAM a behavioural model written for this project
+  (`fpga/sim/netlist_bram.v`), because Yosys' `RAMB36E1` model has no data
+  behaviour.
 - **The MMCM is not simulated.** Its settings stay within the datasheet
   limits noted in `pe_fpga_clkgen.v`, and the counter values in the final
   FASM match them (see "Build results"). Post-synthesis simulation replaces
   it with a pass-through model (`fpga/sim/netlist_prims.v`).
+
+## Next rebuild
+
+RTL changes found necessary or useful after the 2026-09-27 release. They are
+not in its bitstreams, which stay as published; each needs a new build,
+sweep, simulation and readback before it replaces them.
+
+1. **Capture unit reply timing.** Register the bridge's `sc_rsp_ready` (or
+   the transmit FIFO's "not full" term it uses) and split or duplicate the
+   clock enable of the 312-bit reply shift register `sh`. That path is the
+   critical path of the published Cmod A7 `pll50` run ("Build results,
+   capture-unit release").
+2. **Dedicated synchroniser stage.** Give the pad inputs a second
+   `ASYNC_REG` flop directly after `pad_s1`, ahead of the pad/core-view
+   multiplexer, so an asynchronous external input has a full clock period
+   to settle.
+3. **Bridge watchdog.** Leave state `S_SCOPE` with an error reply if the
+   capture unit sends no byte for a bounded number of cycles.
+4. **Depth check at elaboration.** Stop elaboration of `pe_fpga_scope.v`
+   for `AW` outside 2..15 (today only the build scripts reject it), or widen
+   the status fields for deeper buffers.
+5. **CRC on every reply.** Cover the `U` header count and the `Q` and `P`
+   replies with the CRC (a bridge protocol change).
+6. **Enable view.** A channel mode that records `uio_oe`, so the release
+   edges of open-drain pins are stamped at their launching cycle.
+7. **Reset of the capture buffer's read port.** Vivado's block-RAM power
+   optimisation gates the Cmod A7 buffer's read-port enable with the board
+   reset synchroniser, which has an asynchronous reset (DRC REQP-1839). Drive
+   the capture unit from a reset without an asynchronous path, or keep the
+   buffer's enables out of the reset logic.
+8. **Board reset LUT.** `btn[0] | !locked` is a LUT driving the asynchronous
+   reset of the reset synchroniser (methodology LUTAR-1); register or
+   synchronise the button and the lock signal before they reach it.
+9. **Comment.** The header of `pe_fpga_scope.v` says recording starts after
+   a 3-cycle settling time. In the RTL the unit is in its settling state for
+   4 cycles, and with an immediate start it writes the start record at the
+   fifth clock edge after the edge that accepts the `A` command.
+

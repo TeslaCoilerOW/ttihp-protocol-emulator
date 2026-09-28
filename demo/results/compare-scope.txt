@@ -1,0 +1,48 @@
+reference frame pattern: predicted (54 events per 344 cycles)
+     predicted: SAME      frames 1/1 identical, events 54, jitter p-p 0 cycles, cycles from static
+          idle: SAME      frames 94/94 identical, events 5264, jitter p-p 0 cycles, cycles from counter
+        loaded: SAME      frames 95/95 identical, events 5263, jitter p-p 0 cycles, cycles from counter
+timer-host loaded: DIFFERENT frames 85/95 identical, events 5264, jitter p-p 8 cycles, cycles from counter; departs from the periodic schedule; 10 frames differ
+
+interval histograms, counts per frame (cycles)
+  probe6 high:  predicted |       idle |     loaded | timer-host loaded
+         7                16 |         16 |         16 |         16
+        12                 1 |          1 |          1 |      0.979
+        18                 0 |          0 |          0 |      0.011
+        19                 0 |          0 |          0 |      0.011
+  probe6 low:  predicted |       idle |     loaded | timer-host loaded
+         7                15 |         15 |         15 |         15
+        44                 1 |          1 |          1 |      0.958
+        49                 0 |          0 |          0 |      0.011
+        51                 0 |          0 |          0 |      0.011
+        52                 0 |          0 |          0 |      0.021
+        71                 1 |          1 |          1 |      0.947
+        72                 0 |          0 |          0 |      0.011
+        76                 0 |          0 |          0 |      0.011
+        77                 0 |          0 |          0 |      0.011
+        78                 0 |          0 |          0 |      0.011
+        79                 0 |          0 |          0 |      0.011
+  probe7 high:  predicted |       idle |     loaded | timer-host loaded
+         5                 3 |          3 |          3 |      2.968
+         7                 0 |          0 |          0 |      0.011
+         8                 0 |          0 |          0 |      0.021
+        14                 5 |          5 |          5 |          5
+        15                 1 |          1 |          1 |          1
+        28                 1 |          1 |          1 |          1
+  probe7 low:  predicted |       idle |     loaded | timer-host loaded
+         8                 2 |          2 |          2 |      1.990
+        10                 1 |          1 |          1 |      0.990
+        11                 0 |          0 |          0 |      0.011
+        14                 4 |          4 |          4 |      4.011
+        28                 2 |          2 |          2 |          2
+        78                 1 |          1 |          1 |      0.916
+        81                 0 |          0 |          0 |      0.011
+        83                 0 |          0 |          0 |      0.011
+        85                 0 |          0 |          0 |      0.032
+        86                 0 |          0 |          0 |      0.032
+
+     predicted: expected same, got same: OK
+          idle: expected same, got same: OK
+        loaded: expected same, got same: OK
+timer-host loaded: expected different, got different: OK
+COMPARE PASS

@@ -32,7 +32,7 @@ export DEMO_TB
 RTL := $(REPO)/fpga/rtl
 VERILOG_SOURCES += $(PE_SRC_DIR)/project.v $(PE_CORE) \
                    $(RTL)/RM_IHPSG13_1P_64x16_c2_fpga.v $(RTL)/pe_fpga_sram_64x16.v \
-                   $(RTL)/pe_uart_host_bridge.v $(RTL)/pe_fpga_shell.v \
+                   $(RTL)/pe_uart_host_bridge.v $(RTL)/pe_fpga_scope.v $(RTL)/pe_fpga_shell.v \
                    $(RTL)/pe_fpga_clkgen.v $(RTL)/pe_fpga_clkfwd.v \
                    $(RTL)/pe_top_cmod_a7.v $(CURDIR)/demo_dump.v
 COMPILE_ARGS += -DPE_FPGA_SIM -DNO_WAVES -s demo_dump

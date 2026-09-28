@@ -17,6 +17,13 @@ tb's two switchable jumpers are closed.
 
 The logic-analyser view is the VCD written by demo_dump.v (DEMO_VCD);
 demo/pe_capture.py analyses it exactly as it analyses a hardware capture.
+
+test_scope_isolation (DEMO_TB=bridge) is the self-measured variant: the same
+phase, with the probe pins recorded by the bitstream's on-board capture unit
+(pc_demo.ScopeSession: DEMO_CAPTURES captures of DEMO_LIMIT records) and read
+back over the simulated USB-UART. The captures are written to DEMO_OUT
+(scope-K.json, scope-K.vcd); demo/sim/scope_case.py then compares them with
+the simulation VCD and analyses them.
 """
 
 from __future__ import annotations
@@ -194,6 +201,52 @@ async def test_isolation(dut):
 def _now_ns() -> float:
     from cocotb.utils import get_sim_time
     return get_sim_time("ns")
+
+
+@cocotb.test()
+async def test_scope_isolation(dut):
+    """One phase of the self-measured isolation experiment (bridge tb only)."""
+    if TB != "bridge":
+        return
+    # start_high=False: the first rising edge is half a period after t = 0, so
+    # the n-th rising edge in the VCD is the n-th edge the design saw.
+    cocotb.start_soon(Clock(dut.clk, OSC_PS, unit="ps", period_high=OSC_PS // 2).start(start_high=False))
+    dut.btn0.value = 0
+    dut.host_ext.value = 0
+    dut.jumpers.value = 0b11
+    uart = SimUart(dut)
+    await Timer(2 * UART_BIT_NS, "ns")
+    import pc_demo
+    bridge_mod = pc_demo.load_bridge_module()
+    # A 512-record read-back ('U') takes 46 ms at 1 Mbaud.
+    chip = bridge_mod.Chip(bridge_mod.Bridge(SimTransport(uart, timeout_ns=200_000_000), timeout=1e9))
+    adapter = pc_demo.BridgeChip(chip, bridge_mod.BridgeError, 12e6, sleep=lambda s: sim_sleep_ns(s * 1e9))
+    images = pc_demo.bridge_images(bridge_mod, pe_demo.ISOLATION_IMAGES)
+    captures = int(os.environ.get("DEMO_CAPTURES", "2"))
+    limit = int(os.environ.get("DEMO_LIMIT", "2048"))
+    log: list[str] = []
+
+    def host():
+        return pc_demo.scope_measure(adapter, chip.b, images, MODE, fclk_hz=12e6, captures=captures,
+                                     limit=limit, seed=SEED, max_cycles=CYCLES, log=log.append,
+                                     poll_cycles=2000)
+
+    result, caps = await bridge(host)()
+    for line in log:
+        dut._log.info("%s", line)
+    OUT.mkdir(parents=True, exist_ok=True)
+    for k, cap in enumerate(caps):
+        cap.save(OUT / f"scope-{k}.json")
+        if cap.records:
+            cap.write_vcd(OUT / f"scope-{k}.vcd")
+    result.update({"tb": TB, "clock": "osc12", "core": os.environ.get("CORE_TAG", "base"),
+                   "sim_time_ns": _now_ns(), "captures": [c.summary() for c in caps],
+                   "scope_limit": limit, "scope_captures": captures})
+    write_result(TAG, result)
+    dut._log.info("result: %s", {k: v for k, v in result.items() if not k.startswith("engines_")})
+    if os.environ.get("CORE_TAG", "base") == "base":
+        assert result["probe_running"], "probe engine stopped"
+        assert len(caps) == captures and all(c.complete for c in caps), [c.summary() for c in caps]
 
 
 # ------------------------------------------------------- four protocols (sim)

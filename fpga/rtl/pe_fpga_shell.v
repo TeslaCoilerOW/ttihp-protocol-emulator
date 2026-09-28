@@ -15,6 +15,11 @@
  * host_ext_req is a strap/switch and is synchronized here. With BRIDGE = 0
  * (host-clocked builds) the external host always owns the port.
  *
+ * Capture unit (SCOPE = 1, bridge builds only): pe_fpga_scope watches the
+ * protocol pads, uio_out/uio_oe, uo_out and the applied ui_in in the core
+ * clock domain and answers the bridge's capture commands ('A' 'F' 'H' 'Q'
+ * 'P' 'U'). It only reads these signals; the TT top and core are unchanged.
+ *
  * Reset: arst (button, clock not locked) is asserted asynchronously and
  * released synchronously; it resets the bridge and holds the core's rst_n
  * low. The protocol pins go straight from the core to the pad buffers
@@ -29,7 +34,10 @@ module pe_fpga_shell #(
     parameter integer CLK_HZ   = 50_000_000,
     parameter integer BAUD     = 1_000_000,
     parameter [7:0]   BOARD_ID = 8'h00,
-    parameter [7:0]   CLOCK_ID = 8'h00
+    parameter [7:0]   CLOCK_ID = 8'h00,
+    parameter integer SCOPE    = 1,       // capture unit (bridge builds only)
+    parameter integer SCOPE_AW = 14,      // log2 of its record buffer depth
+    parameter integer SCOPE_1P = 0        // 1: single-port record buffer
 ) (
     input  wire       clk,
     input  wire       arst,
@@ -89,13 +97,20 @@ module pe_fpga_shell #(
   wire       br_rst_n;
   wire       br_ena;
   wire       br_activity;
+  localparam integer HAS_SCOPE = (BRIDGE != 0) && (SCOPE != 0);
   generate
     if (BRIDGE != 0) begin : g_bridge
+      wire        sc_cmd_valid;
+      wire [7:0]  sc_cmd;
+      wire [71:0] sc_args;
+      wire [7:0]  sc_rsp_data;
+      wire        sc_rsp_valid, sc_rsp_last, sc_rsp_ready;
       pe_uart_host_bridge #(
           .CLK_HZ  (CLK_HZ),
           .BAUD    (BAUD),
           .BOARD_ID(BOARD_ID),
-          .CLOCK_ID(CLOCK_ID)
+          .CLOCK_ID(CLOCK_ID),
+          .SCOPE   (HAS_SCOPE)
       ) bridge (
           .clk       (clk),
           .rst       (!board_rst_n),
@@ -109,8 +124,38 @@ module pe_fpga_shell #(
           .uio_pad   (uio_pad_in),
           .uio_out   (uio_pad_out),
           .uio_oe    (uio_pad_oe),
-          .activity  (br_activity)
+          .activity  (br_activity),
+          .sc_cmd_valid(sc_cmd_valid),
+          .sc_cmd      (sc_cmd),
+          .sc_args     (sc_args),
+          .sc_rsp_data (sc_rsp_data),
+          .sc_rsp_valid(sc_rsp_valid),
+          .sc_rsp_last (sc_rsp_last),
+          .sc_rsp_ready(sc_rsp_ready)
       );
+      if (HAS_SCOPE) begin : g_scope
+        pe_fpga_scope #(.AW(SCOPE_AW), .SINGLE_PORT(SCOPE_1P)) scope (
+            .clk      (clk),
+            .rst      (!board_rst_n),
+            .uio_pad  (uio_pad_in),
+            .uio_out  (uio_pad_out),
+            .uio_oe   (uio_pad_oe),
+            .uo       (uo),
+            .ui       (ui),
+            .cmd_valid(sc_cmd_valid),
+            .cmd      (sc_cmd),
+            .args     (sc_args),
+            .rsp_data (sc_rsp_data),
+            .rsp_valid(sc_rsp_valid),
+            .rsp_last (sc_rsp_last),
+            .rsp_ready(sc_rsp_ready),
+            .busy     ()
+        );
+      end else begin : g_noscope
+        assign sc_rsp_data  = 8'd0;
+        assign sc_rsp_valid = 1'b0;
+        assign sc_rsp_last  = 1'b0;
+      end
     end else begin : g_nobridge
       assign br_ui       = 8'd0;
       assign br_rst_n    = 1'b1;
