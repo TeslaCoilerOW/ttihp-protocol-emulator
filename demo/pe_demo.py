@@ -292,11 +292,20 @@ class Hammer:
         self.restarts += 1
 
 
-def isolation(chip, images, mode, cycles, seed=1, log=print, marker=None):
+def isolation(chip, images, mode, cycles, seed=1, log=print, marker=None, monitor=None,
+              poll_every=16, poll_cycles=None):
     """Run one measurement phase. Returns a result dict (JSON-serialisable).
 
     ``marker(level)``, when given, is called with 1 right after the probe's
-    START and with 0 when the measured phase ends (a GPIO for the analyser)."""
+    START and with 0 when the measured phase ends (a GPIO for the analyser).
+
+    ``monitor``, when given, is an on-board capture session (pc_demo.py,
+    UART-bridge builds): ``monitor.start(chip)`` is called when the measured
+    condition is established (idle: after the probe's START; loaded: after
+    the traffic loop's START), ``monitor.poll(chip)`` every ``poll_every``
+    host operations (loaded) or every ``poll_cycles`` cycles (idle) and ends
+    the phase early when it returns True, and ``monitor.stop(chip)`` when the
+    measured phase ends. ``cycles`` then bounds the phase."""
     if mode not in ("idle", "loaded"):
         raise DemoError("mode must be idle or loaded")
     isolation_setup(chip, images, log)
@@ -308,7 +317,16 @@ def isolation(chip, images, mode, cycles, seed=1, log=print, marker=None):
     result = {"scenario": "isolation", "mode": mode, "seed": seed, "cycles_requested": cycles,
               "version": VERSION, "probe_start_cycle": t0}
     if mode == "idle":
-        chip.wait(cycles)
+        if monitor is None:
+            chip.wait(cycles)
+        else:
+            monitor.start(chip)
+            step = poll_cycles or max(1, cycles // 64)
+            while chip.now() - t0 < cycles:
+                if monitor.poll(chip):
+                    break
+                chip.wait(step)
+            monitor.stop(chip)
         if marker is not None:
             marker(0)
     else:
@@ -318,9 +336,15 @@ def isolation(chip, images, mode, cycles, seed=1, log=print, marker=None):
         chip.command(START, LOOP_MASK)
         hammer = Hammer(chip, seed, log)
         operations = 0
+        if monitor is not None:
+            monitor.start(chip)
         while chip.now() - t0 < cycles:
             hammer.step()
             operations += 1
+            if monitor is not None and operations % poll_every == 0 and monitor.poll(chip):
+                break
+        if monitor is not None:
+            monitor.stop(chip)
         if marker is not None:
             marker(0)
         before = [engine_summary(chip, e) for e in range(4)]

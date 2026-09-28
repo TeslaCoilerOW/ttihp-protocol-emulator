@@ -39,6 +39,11 @@ Converting edge times to engine cycles (--clock / --fclk):
                (osc12, pll40 and pll50 builds).
   (neither)    Intervals in samples only (statistical comparison).
 
+  On-board captures (fpga/host/pe_scope.py VCDs, marked by a "pe_scope
+  tick=cycle" comment) already carry core clock cycles from the FPGA's own
+  counter: their ticks are used as cycle numbers directly, with no
+  --clock or --fclk.
+
 Examples:
 
   pe_capture.py analyze idle.sr --channels probe6=D1,probe7=D2 --clock D0 --json idle.json
@@ -129,6 +134,8 @@ class Capture:
         self.signals = {}
         self.aliases = {}
         self.end_tick = 0
+        self.cycle_domain = False      # ticks are core clock cycles (pe_scope VCD)
+        self.fclk_hz = None
 
     def names(self):
         return sorted(self.signals)
@@ -190,6 +197,8 @@ def read_vcd(path, samplerate=None):
     scopes = []
     by_id = {}
     comment_rate = None
+    cycle_domain = False
+    fclk_hz = None
     cap_signals = {}
     while i < n:
         tok = tokens[i]
@@ -234,6 +243,10 @@ def read_vcd(path, samplerate=None):
             m = re.search(r"at ([0-9.]+ ?[kMG]?Hz)", body)
             if m:
                 comment_rate = parse_rate(m.group(1))
+            if re.search(r"\bpe_scope tick=cycle\b", body):
+                cycle_domain = True
+                m = re.search(r"fclk_hz=([0-9.eE+]+)", body)
+                fclk_hz = float(m.group(1)) if m and float(m.group(1)) > 0 else None
             i = j + 1
         elif tok == "$enddefinitions":
             i = tokens.index("$end", i) + 1
@@ -285,6 +298,12 @@ def read_vcd(path, samplerate=None):
         for sig in cap_signals.values():
             sig.changes = [(round(tk * scale), v) for tk, v in sig.changes]
         cap.end_tick = round(t * scale)
+    elif cycle_domain:
+        # On-board capture: one tick is one core clock cycle.
+        cap = Capture(path, "vcd", Fraction(1) / Fraction(fclk_hz) if fclk_hz else timescale, None)
+        cap.end_tick = t
+        cap.cycle_domain = True
+        cap.fclk_hz = fclk_hz
     else:
         cap = Capture(path, "vcd", timescale, None)
         cap.end_tick = t
@@ -859,7 +878,13 @@ def analyze(args):
             per_ch.append((name, ev))
             initials[name] = init
         ticks = sorted({t for _, ev in per_ch for t, _ in ev})
-        if args.clock:
+        if cap.cycle_domain:
+            if args.clock or args.fclk:
+                raise CaptureError(f"{cap.path.name}: an on-board capture already counts core clock cycles; "
+                                   "drop --clock/--fclk")
+            m = {t: t for t in ticks}
+            conv = {"mode": "counter", "fclk_hz": cap.fclk_hz}
+        elif args.clock:
             clock_changes = cap.resolve(args.clock)
             cycles, active = clock_cycles(clock_changes, ticks, args.clock_edge)
             m = dict(zip(ticks, cycles))
@@ -939,7 +964,7 @@ def analyze(args):
                     for seg in segments]
     all_events = [e for seg in segments for e in seg]
     report["events_analysed"] = len(all_events)
-    unit = "cycles" if (args.clock or args.fclk) else "samples"
+    unit = "cycles" if (args.clock or args.fclk or all(c.cycle_domain for c in caps)) else "samples"
     report["unit"] = unit
     report["span_cycles"] = sum(seg[-1].cycle - seg[0].cycle for seg in segments if seg)
     hist = {name: {"high": Counter(), "low": Counter()} for name in names}
@@ -1076,6 +1101,8 @@ def text_report(rep):
                          + (f"; shortest clock phase {short} samples" if short is not None else "") + ")")
             if short is not None and short < 2:
                 lines.append("   WARNING: a clock phase shorter than 2 samples; raise the sample rate")
+        elif c["mode"] == "counter":
+            lines.append(f"   {c['capture']}: cycles from the FPGA's own counter (on-board capture)")
         elif c["mode"] == "realtime":
             arc = c['max_arc_samples']
             lines.append(f"   {c['capture']}: cycles recovered, fs/fclk {c['estimated_ratio']:.6f} "

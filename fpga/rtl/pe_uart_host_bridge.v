@@ -29,6 +29,10 @@
  *                               READ_SELECT, like test/harness.py status())
  *   'X' cycles               -> 'K' | 'D'   hold rst_n low for max(cycles,1) clocks, window 0
  *   'N' ena                  -> 'K' | 'D'   drive ena = bit 0
+ *   'A' 'F' 'H' 'Q' 'P' 'U'  -> on-board capture unit (pe_fpga_scope.v, which
+ *                               defines their payloads and replies); only
+ *                               with SCOPE = 1, else '?'. They work whichever
+ *                               host owns the TT host port.
  *   anything else            -> '?'
  *
  *   'W': windows 0..2 (3 is never write-ready -> 'E'); 'R': windows 0 and 3.
@@ -36,6 +40,7 @@
  *        window (isa.md: a window change abandons the partial word), and the
  *        reply carries the number of nibbles accepted before the timeout.
  *   'D': the external pin host owns the TT host port (enable = 0).
+ *   'V' ver: 1 without the capture unit, 2 with it (SCOPE = 1).
  *   flags: bit0 receive FIFO overflow seen, bit1 UART framing error seen,
  *          bit2 enable (bridge owns the host port), bit3 core rst_n,
  *          bit4 core ena.
@@ -173,7 +178,8 @@ module pe_uart_host_bridge #(
     parameter integer CLK_HZ   = 50_000_000,
     parameter integer BAUD     = 1_000_000,
     parameter [7:0]   BOARD_ID = 8'h00,
-    parameter [7:0]   CLOCK_ID = 8'h00
+    parameter [7:0]   CLOCK_ID = 8'h00,
+    parameter integer SCOPE    = 0          // 1: forward the capture-unit commands
 ) (
     input  wire       clk,
     input  wire       rst,        // synchronous, active high
@@ -187,12 +193,20 @@ module pe_uart_host_bridge #(
     input  wire [7:0] uio_pad,
     input  wire [7:0] uio_out,
     input  wire [7:0] uio_oe,
-    output wire       activity
+    output wire       activity,
+    // capture unit (pe_fpga_scope.v): command pulse and reply byte stream
+    output reg         sc_cmd_valid = 1'b0,
+    output reg  [7:0]  sc_cmd = 8'd0,
+    output wire [71:0] sc_args,
+    input  wire [7:0]  sc_rsp_data,
+    input  wire        sc_rsp_valid,
+    input  wire        sc_rsp_last,
+    output wire        sc_rsp_ready
 );
   localparam integer DIV           = (CLK_HZ + BAUD / 2) / BAUD;
   localparam integer FRAME_TIMEOUT = CLK_HZ / 100;          // 10 ms
   localparam [31:0]  DEF_LIMIT     = CLK_HZ / 50;           // 20 ms per word
-  localparam [7:0]   VERSION       = 8'd1;
+  localparam [7:0]   VERSION       = (SCOPE != 0) ? 8'd2 : 8'd1;
   localparam [31:0]  CLK_HZ_W      = CLK_HZ;
   localparam [15:0]  DIV_W         = DIV;
   localparam [23:0]  FRAME_TO_W    = FRAME_TIMEOUT;
@@ -246,13 +260,14 @@ module pe_uart_host_bridge #(
 
   // ---- command engine ----------------------------------------------------
   localparam [3:0] S_IDLE = 4'd0, S_ARGS = 4'd1, S_EXEC = 4'd2, S_WRITE = 4'd3,
-                   S_READ = 4'd4, S_RESET = 4'd5, S_REPLY = 4'd6, S_BOUNCE = 4'd7;
+                   S_READ = 4'd4, S_RESET = 4'd5, S_REPLY = 4'd6, S_BOUNCE = 4'd7,
+                   S_SCOPE = 4'd8;
 
   reg [3:0]  state = S_IDLE;
   reg [7:0]  cmd = 8'd0;
-  reg [2:0]  nargs = 3'd0;
-  reg [2:0]  argi = 3'd0;
-  reg [7:0]  arg [0:4];
+  reg [3:0]  nargs = 4'd0;
+  reg [3:0]  argi = 4'd0;
+  reg [7:0]  arg [0:8];
   reg [23:0] gap = 24'd0;
   reg [1:0]  win = 2'd0;
   reg [31:0] word = 32'd0;
@@ -267,23 +282,36 @@ module pe_uart_host_bridge #(
 
   integer k;
   initial for (k = 0; k < 10; k = k + 1) rbuf[k] = 8'd0;
-  initial for (k = 0; k < 5; k = k + 1) arg[k] = 8'd0;
+  initial for (k = 0; k < 9; k = k + 1) arg[k] = 8'd0;
 
-  function [2:0] payload_len(input [7:0] c);
+  function [3:0] payload_len(input [7:0] c);
     case (c)
-      "W": payload_len = 3'd5;
-      "L": payload_len = 3'd4;
-      "R", "X", "N": payload_len = 3'd1;
-      default: payload_len = 3'd0;
+      "W": payload_len = 4'd5;
+      "L": payload_len = 4'd4;
+      "R", "X", "N": payload_len = 4'd1;
+      "A": payload_len = (SCOPE != 0) ? 4'd9 : 4'd0;
+      "U": payload_len = (SCOPE != 0) ? 4'd4 : 4'd0;
+      default: payload_len = 4'd0;
     endcase
   endfunction
+
+  function is_scope_cmd(input [7:0] c);
+    case (c)
+      "A", "F", "H", "Q", "P", "U": is_scope_cmd = (SCOPE != 0);
+      default: is_scope_cmd = 1'b0;
+    endcase
+  endfunction
+
+  assign sc_args = {arg[8], arg[7], arg[6], arg[5], arg[4], arg[3], arg[2], arg[1], arg[0]};
+  assign sc_rsp_ready = (state == S_SCOPE) && !txf_full && !txf_push;
 
   wire [31:0] arg32 = {arg[3], arg[2], arg[1], arg[0]};
   wire [31:0] warg  = {arg[4], arg[3], arg[2], arg[1]};
 
   always @(posedge clk) begin
-    rxf_pop  <= 1'b0;
-    txf_push <= 1'b0;
+    rxf_pop      <= 1'b0;
+    txf_push     <= 1'b0;
+    sc_cmd_valid <= 1'b0;
     if (rst) begin
       state      <= S_IDLE;
       ui         <= 8'd0;
@@ -300,9 +328,9 @@ module pe_uart_host_bridge #(
             rxf_pop <= 1'b1;
             cmd     <= rxf_data;
             nargs   <= payload_len(rxf_data);
-            argi    <= 3'd0;
+            argi    <= 4'd0;
             gap     <= 24'd0;
-            state   <= (payload_len(rxf_data) == 3'd0) ? S_EXEC : S_ARGS;
+            state   <= (payload_len(rxf_data) == 4'd0) ? S_EXEC : S_ARGS;
           end
         end
 
@@ -310,9 +338,9 @@ module pe_uart_host_bridge #(
           if (!rxf_empty && !rxf_pop) begin
             rxf_pop   <= 1'b1;
             arg[argi] <= rxf_data;
-            argi      <= argi + 3'd1;
+            argi      <= argi + 4'd1;
             gap       <= 24'd0;
-            if (argi + 3'd1 == nargs) state <= S_EXEC;
+            if (argi + 4'd1 == nargs) state <= S_EXEC;
           end else if (gap == FRAME_TO_W) begin
             state <= S_IDLE;                  // drop the partial frame
           end else begin
@@ -323,6 +351,11 @@ module pe_uart_host_bridge #(
         S_EXEC: begin
           ridx  <= 4'd0;
           state <= S_REPLY;
+          if (is_scope_cmd(cmd)) begin
+            sc_cmd_valid <= 1'b1;             // the capture unit replies (S_SCOPE)
+            sc_cmd       <= cmd;
+            state        <= S_SCOPE;
+          end else
           case (cmd)
             "V": begin
               rbuf[0] <= "V";          rbuf[1] <= VERSION;
@@ -496,6 +529,15 @@ module pe_uart_host_bridge #(
             state      <= S_REPLY;
           end else begin
             rcnt <= rcnt - 8'd1;
+          end
+        end
+
+        // Capture-unit reply: forward its bytes until the last one.
+        S_SCOPE: begin
+          if (sc_rsp_valid && sc_rsp_ready) begin
+            txf_wdata <= sc_rsp_data;
+            txf_push  <= 1'b1;
+            if (sc_rsp_last) state <= S_IDLE;
           end
         end
 

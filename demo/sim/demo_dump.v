@@ -11,7 +11,8 @@
  *   bridge testbench (UART bridge):     clk (board oscillator), pads,
  *                                       uart_rx/uart_tx (USB-UART), and the
  *                                       core's ui_in/uo_out (inside the FPGA,
- *                                       for the load evidence only)
+ *                                       for the load evidence only), and the
+ *                                       capture unit's start_stamp register
  */
 
 `timescale 1ns / 1ps
@@ -24,6 +25,12 @@ module demo_dump ();
 `ifdef DEMO_BRIDGE
       $dumpvars(0, tb_bridge.clk, tb_bridge.pads, tb_bridge.uart_rx, tb_bridge.uart_tx,
                 tb_bridge.dut.shell.tt.ui_in, tb_bridge.dut.shell.tt.uo_out);
+`ifndef PE_NO_SCOPE
+      // On-board capture unit: its start stamp register changes once per
+      // capture, 3 edges after the start record's cycle (scope_vs_vcd.py
+      // checks the stamp origin with it).
+      $dumpvars(0, tb_bridge.dut.shell.g_bridge.g_scope.scope.start_stamp);
+`endif
 `else
       $dumpvars(0, tb.clk, tb.rst_n, tb.pads, tb.ui_in, tb.uo_out);
 `endif

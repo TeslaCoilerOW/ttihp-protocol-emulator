@@ -97,6 +97,25 @@ module pe_top_cmod_a7 (
   endgenerate
   assign uio_in = ja;
 
+  // ---- capture unit: record buffer depth 2^SCOPE_AW (block RAM) ------------
+  // PE_NO_SCOPE builds without it; PE_SCOPE_AW overrides the depth.
+`ifdef PE_NO_SCOPE
+  localparam integer SCOPE = 0;
+`else
+  localparam integer SCOPE = 1;
+`endif
+`ifdef PE_SCOPE_AW
+  localparam integer SCOPE_AW = `PE_SCOPE_AW;
+`else
+  localparam integer SCOPE_AW = 14;
+`endif
+
+`ifdef PE_SCOPE_1PORT
+  localparam integer SCOPE_1P = 1;
+`else
+  localparam integer SCOPE_1P = 0;
+`endif
+
   // ---- shell -------------------------------------------------------------
   wire [7:0] status;
   pe_fpga_shell #(
@@ -104,7 +123,10 @@ module pe_top_cmod_a7 (
       .CLK_HZ  (CLK_HZ),
       .BAUD    (1_000_000),
       .BOARD_ID(8'd1),
-      .CLOCK_ID(CLOCK_ID)
+      .CLOCK_ID(CLOCK_ID),
+      .SCOPE   (SCOPE),
+      .SCOPE_AW(SCOPE_AW),
+      .SCOPE_1P(SCOPE_1P)
   ) shell (
       .clk         (clk),
       .arst        (btn[0] | !locked),

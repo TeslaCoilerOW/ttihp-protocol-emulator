@@ -13,6 +13,10 @@ access. Also runs the hardware bring-up tests of docs/fpga.md.
     python3 fpga/host/pe_host.py --port /dev/ttyUSB1 loopback
     python3 fpga/host/pe_host.py --port /dev/ttyUSB1 load uart-tx
 
+The on-board capture unit of bridge protocol 2 (fpga/rtl/pe_fpga_scope.v)
+has its own client, fpga/host/pe_scope.py; this module only frames its
+replies.
+
 Standard library only, plus pyserial for a real port (pip install pyserial).
 The same code runs against the simulated FPGA top in fpga/sim
 (test_fpga_bridge.py) through a simulator transport.
@@ -84,6 +88,15 @@ class SerialTransport:
             out += self.port.read(count - len(out))
         return bytes(out)
 
+    def flush_input(self, quiet: float = 0.15) -> None:
+        """Discard input until nothing has arrived for ``quiet`` seconds (the
+        rest of a reply that was framed wrongly), then clear the buffer."""
+        last = time.monotonic()
+        while time.monotonic() - last < quiet:
+            if self.port.read(4096):
+                last = time.monotonic()
+        self.port.reset_input_buffer()
+
 
 @dataclass(frozen=True)
 class Version:
@@ -93,10 +106,16 @@ class Version:
     clk_hz: int
     baud_div: int
 
+    @property
+    def has_scope(self) -> bool:
+        """Bridge protocol 2 = the build includes the on-board capture unit."""
+        return self.protocol >= 2
+
     def describe(self) -> str:
         return (f"bridge protocol {self.protocol}, board {BOARDS.get(self.board, self.board)}, "
                 f"clock {CLOCKS.get(self.clock, self.clock)}, {self.clk_hz / 1e6:g} MHz, "
-                f"{self.clk_hz / self.baud_div / 1e6:g} Mbaud")
+                f"{self.clk_hz / self.baud_div / 1e6:g} Mbaud"
+                + (", capture unit" if self.has_scope else ""))
 
 
 @dataclass(frozen=True)
@@ -134,6 +153,15 @@ class Bridge:
             return head + self._more(4)
         if code == ord("T"):
             return head + self._more(1)
+        # Capture-unit replies (pe_fpga_scope.v): 'Q' status, 'P' counters,
+        # 'U' n[2] + n records of 9 bytes + CRC-16.
+        if cmd == ord("Q") and code == ord("Q"):
+            return head + self._more(38)
+        if cmd == ord("P") and code == ord("P"):
+            return head + self._more(96)
+        if cmd == ord("U") and code == ord("U"):
+            n = self._more(2)
+            return head + n + self._more(9 * int.from_bytes(n, "little") + 2)
         return head
 
     def _more(self, count: int) -> bytes:

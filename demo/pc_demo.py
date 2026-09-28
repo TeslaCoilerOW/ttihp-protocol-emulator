@@ -12,6 +12,14 @@ demo/pe_demo.py.
     python3 demo/pc_demo.py --port /dev/ttyUSB1 isolation --mode loaded --seconds 5 --json loaded.json
     python3 demo/pc_demo.py --port /dev/ttyUSB1 four   --uart /dev/ttyUSB2 --rounds 20
     python3 demo/pc_demo.py --port /dev/ttyUSB1 bridge --uart /dev/ttyUSB2 --seconds 10
+    python3 demo/pc_demo.py --port /dev/ttyUSB1 scope --out results/ --captures 4
+
+``scope`` is the self-measured timing-isolation experiment (docs/demo.md,
+"Self-measured isolation"): the idle and loaded phases of ``isolation``, with
+the probe pins recorded by the bitstream's on-board capture unit
+(fpga/host/pe_scope.py; bridge protocol 2) instead of an external logic
+analyser, then the frame analysis and comparison of pe_capture.py and a
+verdict. It needs the two loopback jumpers and nothing else.
 
 --port is the FPGA board's bridge serial port (Cmod A7 and Urbana: the second
 of the two ports). --uart is a separate USB-UART adapter wired to the chip's
@@ -34,6 +42,17 @@ sys.path.insert(0, str(HERE))
 import pe_demo  # noqa: E402
 
 FIRMWARE_DIRS = (HERE / "firmware", REPO / "firmware")
+
+
+def load_scope_module(path: Path = REPO / "fpga" / "host" / "pe_scope.py"):
+    """fpga/host/pe_scope.py (the on-board capture unit client)."""
+    if "pe_scope" in sys.modules:
+        return sys.modules["pe_scope"]
+    spec = importlib.util.spec_from_file_location("pe_scope", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["pe_scope"] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def load_bridge_module(path: Path = REPO / "fpga" / "host" / "pe_host.py"):
@@ -148,6 +167,201 @@ class BridgeChip:
         self.sleep(cycles / self.clk_hz)
 
 
+# ------------------------------------------------------ on-board capture
+PROBE_CHANNELS = "probe6=uio6,probe7=uio7"
+# Load evidence: activity counters of these channels inside the capture
+# windows (engine 0 UART TX -> jumper -> engine 1 RX; engine 2 SPI SCK and
+# MOSI -> jumper -> MISO; host write-valid / read-ready strobes).
+LOAD_CHANNELS = ("uio0", "uio1", "uio2", "uio3", "uio4", "ui4", "ui5")
+LOAD_REQUIRED = ("uio0", "uio2", "ui4")
+
+
+def burst_frames(bridge_mod, rng: "pe_demo.Rng", rounds: int = 3) -> list:
+    """Pipelined host-port operations that never fail and never touch the
+    probe's program or run state: status reads with a fresh snapshot of a
+    random engine, and EVENTs to random engine masks (pe_demo.Hammer's
+    'readsel' and 'event'). Sent in the same USB write as the ARM frame, so
+    the bridge executes them back to back inside the capture window."""
+    frames = []
+    for _ in range(rounds):
+        engine = rng.below(4)
+        frames += [bridge_mod.Bridge.write_frame(0, pe_demo.SELECT << 24 | engine),
+                   bridge_mod.Bridge.write_frame(0, pe_demo.READ_SELECT << 24 | rng.below(8)),
+                   bytes([ord("R"), 0x80]),
+                   bridge_mod.Bridge.write_frame(0, pe_demo.EVENT << 24 | rng.below(15) + 1)]
+    return frames
+
+
+class ScopeSession:
+    """pe_demo.isolation monitor that records the probe pins with the
+    on-board capture unit: ``captures`` captures of up to ``limit`` records
+    each (0 = the whole buffer), re-armed as soon as one is read back. In
+    the loaded phase each ARM is pipelined with ``burst`` rounds of
+    host-port operations (burst_frames)."""
+
+    def __init__(self, bridge, fclk_hz: float, *, captures: int = 4, limit: int = 0,
+                 channels: str = "uio6,uio7", core_view: bool = False, burst: int = 0, seed: int = 1,
+                 log=print, meta: dict | None = None):
+        self.scope_mod = load_scope_module()
+        self.bridge_mod = load_bridge_module()
+        self.b = bridge
+        self.scope = self.scope_mod.Scope(bridge, log)
+        self.fclk_hz = fclk_hz
+        self.target = captures
+        self.limit = limit
+        self.enable = self.scope_mod.channel_mask(channels)
+        self.core_view = core_view
+        self.burst = burst
+        self.rng = pe_demo.Rng(seed ^ 0xB5)
+        self.log = log
+        self.meta = dict(meta or {})
+        self.captures = []
+        self.active = False
+        self.burst_ops = 0
+
+    def _arm(self) -> None:
+        mode = int(self.core_view) << 1
+        arm = (b"A" + self.enable.to_bytes(3, "little") + (0).to_bytes(3, "little") + bytes([mode])
+               + self.limit.to_bytes(2, "little"))
+        frames = [arm] + (burst_frames(self.bridge_mod, self.rng, self.burst) if self.burst else [])
+        self.b.transact(frames)
+        self.burst_ops += len(frames) - 1
+        self.active = True
+
+    def _collect(self) -> None:
+        cap = self.scope.collect(self.fclk_hz, meta=dict(self.meta, index=len(self.captures)))
+        self.captures.append(cap)
+        self.active = False
+        s = cap.summary()
+        self.log("capture %d: %d records, %d cycles, %s%s" % (
+            len(self.captures) - 1, s["records"], s["window_cycles"],
+            "buffer/limit full" if s["full"] else "halted", ", %d changes after the end" % s["lost"]
+            if s["lost"] else ""))
+
+    def start(self, chip) -> None:
+        self._arm()
+
+    def poll(self, chip) -> bool:
+        if not self.active:
+            return len(self.captures) >= self.target
+        if not self.scope.status().finished:
+            return False
+        self._collect()
+        if len(self.captures) >= self.target:
+            return True
+        self._arm()
+        return False
+
+    def stop(self, chip) -> None:
+        if self.active:
+            self._collect()
+
+
+def load_evidence(captures) -> dict:
+    """Activity-counter sums over the capture windows."""
+    out = {name: 0 for name in LOAD_CHANNELS}
+    cycles = 0
+    for cap in captures:
+        w = cap.window()
+        if w:
+            cycles += w[1] - w[0] + 1
+        for name in LOAD_CHANNELS:
+            out[name] += cap.activity[cap_channel(name)] if cap.activity else 0
+    return {"window_cycles": cycles, "edges": out}
+
+
+def cap_channel(name: str) -> int:
+    return load_scope_module().channel_index(name)
+
+
+def scope_measure(adapter, bridge, images, mode, *, fclk_hz, captures, limit, seed, max_cycles,
+                  burst=3, core_view=False, log=print, poll_cycles=None):
+    """One phase of the self-measured experiment: pe_demo.isolation with a ScopeSession."""
+    session = ScopeSession(bridge, fclk_hz, captures=captures, limit=limit, core_view=core_view,
+                           burst=burst if mode == "loaded" else 0, seed=seed, log=log,
+                           meta={"mode": mode, "seed": seed})
+    result = pe_demo.isolation(adapter, images, mode, max_cycles, seed=seed, log=log, monitor=session,
+                               poll_cycles=poll_cycles or max(1, int(fclk_hz // 1000)))
+    result["burst_operations"] = session.burst_ops
+    result["capture_retries"] = session.scope.crc_retries
+    return result, session.captures
+
+
+def scope_report(phases: dict, out: Path, expect=("same", "same"), log=print, plot=True) -> dict:
+    """Write captures (JSON + VCD), analyse them with pe_capture.py against
+    the static prediction, compare the phases and decide.
+
+    PASS requires: the comparison verdicts equal ``expect`` (predicted, then
+    one per phase); at least one complete frame per phase; and, when every
+    expectation is 'same', load evidence in the loaded windows (engine 0
+    UART, engine 2 SCK and host write-valid all toggled) and none in the idle
+    windows."""
+    import pe_capture
+    out.mkdir(parents=True, exist_ok=True)
+    pred = out / "predicted.json"
+    if pe_capture.main(["predict", "--image", str(HERE / "firmware" / "timing-probe.image.json"),
+                        "--channels", "probe6=6,probe7=7", "--json", str(pred)]) != 0:
+        raise pe_demo.DemoError("static prediction of the timing probe failed")
+    analyses, evidence = [], {}
+    for phase, caps in phases.items():
+        vcds = []
+        for k, cap in enumerate(caps):
+            cap.save(out / f"{phase}-{k}.json")
+            if cap.records:
+                cap.write_vcd(out / f"{phase}-{k}.vcd")
+                vcds.append(str(out / f"{phase}-{k}.vcd"))
+        if not vcds:
+            raise pe_demo.DemoError(f"{phase}: no capture holds any record")
+        if pe_capture.main(["analyze", *vcds, "--channels", PROBE_CHANNELS, "--reference", str(pred),
+                            "--label", phase, "--json", str(out / f"{phase}.json"), "--quiet"]) != 0:
+            raise pe_demo.DemoError(f"{phase}: capture analysis failed")
+        analyses.append(str(out / f"{phase}.json"))
+        evidence[phase] = load_evidence(caps)
+    args = ["compare", str(pred), *analyses, "--labels", ",".join(["predicted", *phases]),
+            "--expect", ",".join(["same", *expect]), "--text", str(out / "compare.txt"),
+            "--json", str(out / "compare.json")]
+    if plot:
+        try:
+            import matplotlib  # noqa: F401
+            args += ["--plot", str(out / "isolation.png")]
+        except ImportError:
+            pass
+    compare_ok = pe_capture.main(args) == 0
+    reps = {phase: json.loads(Path(a).read_text()) for phase, a in zip(phases, analyses)}
+    frames = {phase: (r.get("frames") or {}).get("frames_complete", 0) for phase, r in reps.items()}
+    log("")
+    log("load evidence (activity counters inside the capture windows, edges):")
+    log("  %-8s %10s " % ("phase", "cycles") + " ".join("%7s" % n for n in LOAD_CHANNELS))
+    for phase, ev in evidence.items():
+        log("  %-8s %10d " % (phase, ev["window_cycles"]) + " ".join("%7d" % ev["edges"][n] for n in LOAD_CHANNELS))
+    reasons = []
+    if not compare_ok:
+        reasons.append("verdicts differ from the expectation")
+    reasons += [f"{p}: no complete frame" for p, n in frames.items() if n == 0 and expect[list(phases).index(p)] == "same"]
+    if all(e == "same" for e in expect):
+        if "loaded" in evidence and not all(evidence["loaded"]["edges"][n] for n in LOAD_REQUIRED):
+            reasons.append("loaded windows show no load on " + ", ".join(
+                n for n in LOAD_REQUIRED if not evidence["loaded"]["edges"][n]))
+        if "idle" in evidence and any(evidence["idle"]["edges"][n] for n in LOAD_REQUIRED):
+            reasons.append("idle windows show activity on " + ", ".join(
+                n for n in LOAD_REQUIRED if evidence["idle"]["edges"][n]))
+    ok = not reasons
+    summary = {"pass": ok, "reasons": reasons, "expect": list(expect), "frames": frames, "load_evidence": evidence,
+               "jitter_pp_cycles": {p: (r.get("jitter") or {}).get("max_peak_to_peak_cycles") for p, r in reps.items()}}
+    (out / "verdict.json").write_text(json.dumps(summary, indent=1) + "\n")
+    log("")
+    if ok and all(e == "same" for e in expect):
+        log("NON-INTERFERENCE PASS: engine 3's pin edges are cycle-identical to the prediction in every "
+            "phase (%s complete frames; jitter %s cycles peak-to-peak)" % (
+                ", ".join(f"{p} {n}" for p, n in frames.items()),
+                ", ".join(f"{p} {v}" for p, v in summary["jitter_pp_cycles"].items())))
+    elif ok:
+        log("SELF-MEASURE PASS: verdicts as expected (%s)" % ", ".join(expect))
+    else:
+        log("NON-INTERFERENCE FAIL: " + "; ".join(reasons))
+    return summary
+
+
 def connect(port: str, baud: int = 1_000_000):
     bridge_mod = load_bridge_module()
     bridge = bridge_mod.Bridge(bridge_mod.SerialTransport(port, baud))
@@ -183,6 +397,34 @@ def _read_for(port, seconds: float) -> bytes:
     while time.monotonic() < end:
         out += port.read(4096)
     return bytes(out)
+
+
+def cmd_scope(a, bridge_mod, chip, version) -> int:
+    if not version.has_scope:
+        print("FAIL: this bitstream has no capture unit (bridge protocol < 2)", file=sys.stderr)
+        return 1
+    images = bridge_images(bridge_mod, pe_demo.ISOLATION_IMAGES)
+    adapter = BridgeChip(chip, bridge_mod.BridgeError, version.clk_hz)
+    phases = {}
+    results = {}
+    for mode in ("idle", "loaded"):
+        print(f"--- {mode} phase")
+        t = time.monotonic()
+        result, caps = scope_measure(adapter, chip.b, images, mode, fclk_hz=version.clk_hz,
+                                     captures=a.captures, limit=a.limit, seed=a.seed,
+                                     max_cycles=int(a.seconds * version.clk_hz), core_view=a.core_view)
+        result["wall_seconds"] = time.monotonic() - t
+        results[mode] = {k: v for k, v in result.items() if not k.startswith("engines_")}
+        phases[mode] = caps
+        if not result["probe_running"]:
+            print(f"FAIL: probe engine not running after the {mode} phase", file=sys.stderr)
+            return 1
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "runs.json").write_text(json.dumps({"board": version.describe(), "phases": results}, indent=1) + "\n")
+    print("--- analysis (pe_capture.py)")
+    summary = scope_report(phases, out, expect=tuple(a.expect.split(",")))
+    return 0 if summary["pass"] else 1
 
 
 def cmd_four(a, bridge_mod, chip, version) -> int:
@@ -246,6 +488,14 @@ def main(argv=None) -> int:
     p.add_argument("--uart-baud", type=int, default=115200)
     p.add_argument("--rounds", type=int, default=10)
     p.add_argument("--i2c-address", type=lambda s: int(s, 0), default=pe_demo.TMP_ADDRESS)
+    p = sub.add_parser("scope", help="self-measured timing isolation (on-board capture unit)")
+    p.add_argument("--out", required=True, help="directory for captures, analyses and the verdict")
+    p.add_argument("--captures", type=int, default=4, help="captures per phase")
+    p.add_argument("--limit", type=int, default=0, help="records per capture (0 = whole buffer)")
+    p.add_argument("--seconds", type=float, default=60.0, help="upper bound per phase")
+    p.add_argument("--seed", type=int, default=1)
+    p.add_argument("--core-view", action="store_true", help="record uio from the core outputs, not the pads")
+    p.add_argument("--expect", default="same,same", help="expected verdicts of idle,loaded")
     p = sub.add_parser("bridge", help="host-free I2C sensor -> UART chain")
     p.add_argument("--uart", required=True)
     p.add_argument("--uart-baud", type=int, default=115200)
@@ -253,10 +503,10 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     bridge_mod, chip, version = connect(a.port, a.bridge_baud)
     print("bridge:", version.describe())
-    handler = {"isolation": cmd_isolation, "four": cmd_four, "bridge": cmd_bridge}[a.cmd]
+    handler = {"isolation": cmd_isolation, "four": cmd_four, "bridge": cmd_bridge, "scope": cmd_scope}[a.cmd]
     try:
         return handler(a, bridge_mod, chip, version)
-    except (bridge_mod.BridgeError, pe_demo.DemoError) as err:
+    except (bridge_mod.BridgeError, pe_demo.DemoError, load_scope_module().ScopeError) as err:
         print(f"FAIL: {err}", file=sys.stderr)
         return 1
 

@@ -3,10 +3,12 @@
 This page describes three demonstrations of the protocol emulator on the FPGA
 prototype ([fpga.md](fpga.md)) and how their results are measured:
 
-1. **Timing isolation, measured.** A logic analyser records one engine's pin
-   edges while everything else is idle, and again while the other three
-   engines carry traffic and the host issues a stream of host-port
-   operations. The formal timing-isolation proof ([formal/README.md](../formal/README.md),
+1. **Timing isolation, measured.** One engine's pin edges are recorded while
+   everything else is idle, and again while the other three engines carry
+   traffic and the host issues a stream of host-port operations. The
+   recording is made by the bitstream's on-board capture unit (Experiment
+   C, no instrument besides the board) or by a logic analyser (Experiments A
+   and B). The formal timing-isolation proof ([formal/README.md](../formal/README.md),
    "Timing-isolation proof") predicts that the two recordings are identical,
    cycle for cycle.
 2. **Four protocols at once against real parts:** UART to a USB-UART adapter,
@@ -18,11 +20,13 @@ prototype ([fpga.md](fpga.md)) and how their results are measured:
 
 The tools are in [`demo/`](../demo/README.md).
 
-**Status (2026-09-25).** No FPGA board or logic analyser has been connected;
+**Status (2026-09-27).** No FPGA board or logic analyser has been connected;
 nothing on this page is a hardware observation. Every step was run in
 simulation on the FPGA top (board top, shell, Tiny Tapeout top, generated
-core, FPGA SRAM stand-in), with emulated logic-analyser captures fed through
-the same analysis tools a hardware capture goes through. The section
+core, FPGA SRAM stand-in; for Experiment C also the capture unit), with
+emulated logic-analyser captures (A, B) or the capture unit's own records
+read back over the simulated USB-UART (C) fed through the same analysis
+tools a hardware capture goes through. The section
 [Validation in simulation](#validation-in-simulation) lists what ran, with
 Slurm job ids.
 
@@ -33,11 +37,12 @@ Slurm job ids.
 3. [Bill of materials](#bill-of-materials)
 4. [Experiment A: host-clocked build, cycles from the clock pin](#experiment-a-host-clocked-build-cycles-from-the-clock-pin)
 5. [Experiment B: free-running 12 MHz build, cycles recovered from time](#experiment-b-free-running-12-mhz-build-cycles-recovered-from-time)
-6. [Four protocols against real parts](#four-protocols-against-real-parts)
-7. [Host-free chain: I2C sensor to UART](#host-free-chain-i2c-sensor-to-uart)
-8. [Analysis tool reference](#analysis-tool-reference)
-9. [Validation in simulation](#validation-in-simulation)
-10. [What the measurement does and does not show](#what-the-measurement-does-and-does-not-show)
+6. [Experiment C: self-measured, on-board capture unit](#experiment-c-self-measured-on-board-capture-unit)
+7. [Four protocols against real parts](#four-protocols-against-real-parts)
+8. [Host-free chain: I2C sensor to UART](#host-free-chain-i2c-sensor-to-uart)
+9. [Analysis tool reference](#analysis-tool-reference)
+10. [Validation in simulation](#validation-in-simulation)
+11. [What the measurement does and does not show](#what-the-measurement-does-and-does-not-show)
 
 ## What the timing-isolation measurement tests
 
@@ -154,6 +159,12 @@ therefore refuses fs/fclk < 2.2 unless `--force` is given.
 | Cmod A7 `pll40` (UART bridge) | 40 MHz | B impossible | B, exact: fs/fclk = 3.0 |
 | Cmod A7 `pll50` / Urbana `pll50` | 50 MHz | B impossible | B, exact: fs/fclk = 2.4 |
 
+**C. Count cycles on the FPGA (capture-unit builds).** The 2026-09-27
+UART-bridge bitstreams timestamp every pin change with the FPGA's own
+core-clock counter ([fpga.md](fpga.md), "On-board capture unit"). The cycle
+number is exact at any core clock, including 50 MHz, and no analyser is
+needed; the records come back over the USB-UART. See Experiment C.
+
 Without `--clock` or `--fclk`, the tool reports intervals in samples, and
 `compare` then only measures a statistical distance between histograms (total
 variation). That mode cannot see a single-cycle difference at 50 MHz and is
@@ -177,7 +188,8 @@ capture. At 12 MHz, one capture holds about 116 probe frames.
 
 | Item | Used in | Notes |
 |---|---|---|
-| Digilent Cmod A7-35T | all | Bitstreams `pe_cmod_a7_host.bit`, `pe_cmod_a7_osc12.bit` and `pe_cmod_a7_pll50_bridgeonly.bit` ([fpga.md](fpga.md), "Build results"; stored under `$PE_WORK/fpga/bitstreams/`, not in git). The Urbana `host` and `pll50` builds work for A and for B at 50 MHz; the Urbana has no 12 MHz build. |
+| Digilent Cmod A7-35T or Real Digital Urbana, USB cable, 2 jumper wires | C | Capture-unit bitstreams `pe_cmod_a7_pll50.bit` / `pe_urbana_pll50.bit` in `$PE_WORK/fpga/bitstreams/v3-2026-09-27-scope/`. Nothing else is needed |
+| Digilent Cmod A7-35T | A, B, four protocols, chain | Bitstreams `pe_cmod_a7_host.bit`, `pe_cmod_a7_osc12.bit` and `pe_cmod_a7_pll50_bridgeonly.bit` ([fpga.md](fpga.md), "Build results"; stored under `$PE_WORK/fpga/bitstreams/`, not in git). The Urbana `host` and `pll50` builds work for A and for B at 50 MHz; the Urbana has no 12 MHz build. |
 | Raspberry Pi Pico or Pico 2, MicroPython | A | Host: runs `demo/pico_demo.py` with `host/pe_host` |
 | FX2-based 8-channel logic analyser (sigrok `fx2lafw`) | A, four protocols | 24 MHz, 3.3 V inputs |
 | Second Raspberry Pi Pico with the sigrok-pico firmware | B | 120 Msps at up to 4 channels. Alternatively any sigrok-supported analyser with fs ≥ 26.4 MHz for `osc12`, or ≥ 110 MHz for `pll50` |
@@ -360,6 +372,78 @@ If `analyze` stops with "cycle recovery inconsistent", do not trust that
 capture. Common causes are a loose ground, crosstalk between the analyser
 leads, or a sample rate that the analyser did not actually run at. The rate
 comes from the capture's metadata.
+
+## Experiment C: self-measured, on-board capture unit
+
+The capture-unit bitstreams ([fpga.md](fpga.md), "On-board capture unit")
+record the probe pins themselves, in core clock cycles counted by the FPGA.
+This removes the analyser and the cycle-recovery step: the experiment needs
+the board, its USB cable and the two loopback jumpers, and it runs at the
+design's full clock (50 MHz with the `pll50` bitstreams).
+
+**Wiring.** The two jumpers of Experiment A on the protocol Pmod: pin 1 to
+pin 2 (uio0 to uio1) and pin 4 to pin 7 (uio3 to uio4). Nothing else.
+
+**Procedure.** One command, after programming a capture-unit bitstream (or
+as step 5 of `fpga/scripts/bringup.sh`):
+
+```sh
+python3 demo/pc_demo.py --port /dev/ttyUSB1 scope --out results --captures 4
+```
+
+For each phase, `pc_demo.py` runs `pe_demo.isolation` with a capture session
+attached (`ScopeSession`):
+
+1. **Idle.** Load the four images, START the probe (engine 3), arm the capture
+   unit on uio6 and uio7 (start immediately, whole buffer), poll its status
+   until the buffer is full, read it back, arm again; `--captures` times.
+2. **Loaded.** The same, after the traffic loop of engines 0–2 has started.
+   Each ARM goes to the bridge in the same USB write as 12 host-port frames
+   (status reads with a fresh snapshot of a random engine and EVENTs to random
+   engine masks), so host strobes fall inside every capture window; between
+   status polls the host runs the operations of `pe_demo.Hammer`.
+3. **Analysis.** Each capture becomes a VCD whose tick is one core cycle.
+   `pe_capture.py analyze` checks every complete frame against the static
+   prediction and the periodic schedule, with the cycle numbers taken
+   directly from the FPGA's counter; `pe_capture.py compare` puts
+   prediction, idle and loaded side by side (histograms per frame, jitter,
+   verdicts).
+4. **Verdict.** `NON-INTERFERENCE PASS` needs all three of:
+   - both phases **same** as the prediction: every complete frame identical,
+     no departure from the schedule, jitter 0 cycles;
+   - load evidence in the loaded windows: the activity counters show
+     changes on uio0 (engine 0's UART), uio2 (engine 2's SPI clock) and ui4
+     (the host's write-valid) inside the windows;
+   - no such activity in the idle windows.
+
+   Frames that agree while the loaded windows show no load do not pass.
+
+The output directory holds every capture (`idle-0.json`, `idle-0.vcd`, ...),
+the analyses, `compare.txt`, `verdict.json`, `runs.json` (host operations
+per phase) and, when matplotlib is installed, `isolation.png`.
+
+**Expected result.**
+
+- Both phases **same**: every complete frame equals the 344-cycle predicted
+  frame, jitter 0 cycles, and the per-frame histograms are those of the table
+  under Experiment A. With `--captures 4` and full buffers, each phase covers
+  about 1,560 frames on the Cmod A7 and about 3,120 on the Urbana.
+- The load-evidence table shows edges on uio0–uio4, ui4 and ui5 in the
+  loaded windows and none in the idle windows.
+- What varies between runs is the number of host operations inside the
+  windows. It depends on the USB latency ([fpga.md](fpga.md), "Host traffic
+  density"), and the load-evidence table reports it.
+
+**How this differs from Experiments A and B.**
+
+- The time base is the design's own clock, counted by the FPGA. A cycle
+  number cannot slip, and no sampling-rate rule applies; the price is that
+  the observation point is inside the same FPGA: the pad input's first
+  register (pad view), or the core's output registers (core view).
+- A capture window is short: about 2.7 ms at 50 MHz on the Cmod A7 and
+  5.4 ms on the Urbana (the buffer depth), against seconds for an analyser.
+  Several captures per phase make up for it.
+- The host is a PC on the UART bridge in both phases, as in Experiment B.
 
 ## Four protocols against real parts
 
@@ -707,6 +791,77 @@ python3 demo/sim/recovery_sweep.py $PE_WORK/demo-harness/run/runs/bridge-loaded-
 simulation VCD gzipped, and `demo/sim/analyze_case.sh DIR` re-runs the
 capture analysis of a finished case.
 
+### Self-measured isolation in simulation (Experiment C)
+
+Every case runs the Cmod A7 `osc12` board top with the capture unit
+(bridge testbench, 12 MHz, `tb_fpga_bridge.v`; the same capture unit as the
+`pll50` bitstreams, dual-port buffer) and drives it only through its
+simulated USB-UART with `demo/pc_demo.py`'s `ScopeSession`: the same code as
+on a board, with 2 captures of 2,048 records per phase to keep the simulated
+read-back short (2,048 records take 184 ms at 1 Mbaud). Each case then runs
+`demo/sim/scope_case.py`:
+
+1. **Exact comparison** (`scope_vs_vcd.py`). The simulation VCD of the same
+   run (`demo_dump.v`) is the ground truth, read by a separate streaming
+   parser. A value change belongs to the clock edge that launched it (rising
+   edges of the board clock counted from t = 0); a channel's level in a cycle
+   is its last value before the next edge. For every capture and enabled
+   channel, the edges inside the capture window must equal the VCD's edges,
+   and the level before the window the capture's initial level. The stamp
+   origin is checked separately: the capture unit's start-stamp register
+   must change to the start record's stamp S at edge S + 3.
+2. **Frame analysis and verdict.** `pe_capture.py analyze` on the captures
+   (cycles from the FPGA's counter) against the static prediction, then
+   `compare predicted CASE --expect same,EXPECTED`.
+3. **Load evidence** from the activity counters.
+
+The mutants are those of Experiments A and B (`demo/sim/mutate.py`), with the
+same expectations.
+
+Results (Slurm job 24125844, array of 9 one-CPU tasks, 5–9 minutes each; `demo/results/scope-summary.json`). Every case passed (`collect_scope.py`: ALL PASS):
+
+| Case | Expected | Verdict | Captures (records) | Frames identical | Jitter p-p (cycles) | Scope edges = VCD edges | Host operations (sequential + pipelined) | Load in the windows: uio0 / uio2 / ui4 edges |
+|---|---|---|---|---|---|---|---|---|
+| idle-base-1 | same | same | 2 (2,048 + 2,048) | 94/94 | 0 | yes (5,264 edges) | 0 + 0 | 0 / 0 / 0 |
+| loaded-base-1 | same | same | 2 (2,048 + 2,048) | 95/95 | 0 | yes (5,263 edges) | 32 + 24 | 289 / 833 / 434 |
+| loaded-base-2 | same | same | 2 (2,048 + 2,048) | 94/94 | 0 | yes (5,268 edges) | 32 + 24 | 290 / 832 / 454 |
+| idle-timer-host-1 | same | same | 2 (2,048 + 2,048) | 94/94 | 0 | yes (5,264 edges) | 0 + 0 | 0 / 0 / 0 |
+| loaded-timer-host-1 | different | different | 2 (2,048 + 2,048) | 85/95 | 8 | yes (5,264 edges) | 32 + 24 | 290 / 836 / 450 |
+| loaded-timer-engine-1 | different | different | 2 (2,048 + 2,048) | 12/95 | 319 | yes (5,262 edges) | 32 + 24 | 411 / 1,173 / 596 |
+| loaded-engine-fetch-1 | different | different | 1 (4) | 0/0 (probe faults, code 2) | – | yes (0 edges) | 1,918 + 12 | 52,775 / 149,023 / 66,952 |
+| idle-host-fetch-1 | different | different | 1 (4) | 0/0 (probe faults, code 2) | – | yes (0 edges) | 0 + 0 | 0 / 0 / 0 |
+| loaded-host-fetch-1 | different | different | 1 (4) | 0/0 (probe faults, code 2) | – | yes (0 edges) | 1,918 + 12 | 52,775 / 149,023 / 66,952 |
+
+- **Exactness.** In every case the host tool's edges equal the simulation
+  VCD's edges, cycle for cycle, for every capture, and every start stamp
+  matched its register change (`scope-vs-vcd.json` per case).
+- **Base design.** Idle and loaded (two seeds): 94–95 complete frames per
+  case, all identical to the prediction, jitter 0 cycles, no departure from
+  the schedule. The loaded windows held 217–227 write-valid pulses of the
+  host (ui4 edges / 2) and continuous UART and SPI traffic; the idle windows
+  none. The per-frame histograms equal those of Experiment A.
+- **Mutants.** `timer-host` is **same** when idle and **different** when
+  loaded (85 of 95 frames identical, per-position jitter 8 cycles): the host
+  strobes inside the windows stretch the probe's waits. `timer-engine`
+  loaded: 12 of 95 frames identical, jitter 319 cycles. `engine-fetch` and
+  `host-fetch`: the probe faults (code 2) as in Experiments A and B, so its
+  pins never change; the capture then holds only its start, marker and end
+  records until the phase's cycle bound, and the verdict is **different**
+  (no frame).
+
+Figure `demo/results/isolation-scope.png` and the side-by-side histograms
+`demo/results/compare-scope.txt` show the base idle and loaded runs and the
+loaded `timer-host` mutant; `demo/results/scope-summary.json` holds every
+number of the table.
+
+**Reproduce.**
+
+```sh
+DEMO_WORK=$PE_WORK/demo-scope DEMO_ENV=env.sh DEMO_SBATCH_ARGS="-p PARTITION" demo/sim/submit_scope.sh
+python3 demo/sim/collect_scope.py $PE_WORK/demo-scope --publish demo/results
+demo/sim/run_scope_case.sh TAG MODE CORE SEED EXPECT        # one case (DEMO_WORK set)
+```
+
 ## What the measurement does and does not show
 
 **Shows.** On the FPGA prototype, engine 3's pin edges fall on the same clock
@@ -719,20 +874,37 @@ replaced by a stand-in proved equivalent to their behavioural model
 this shows that the measurement chain (capture, cycle conversion, frame
 comparison) detects a coupling of one cycle.
 
+**Experiment C in particular.** The capture unit is part of the same FPGA
+image: it counts the same clock the design runs on, and it observes the pins
+at the input register of the pad (pad view) or at the core's output
+registers (core view). "Cycle-identical" is therefore measured in design
+cycles, the unit of the formal property. A disturbance that stretches the
+clock itself would stretch the counter too and not show up as a cycle
+difference; that is an analogue question, like those under "Silicon" below.
+The capture unit only reads the signals it records; its outputs go to the
+UART bridge's transmit path. Its windows are milliseconds long, so the
+experiment samples many short stretches of each phase rather than one long
+one.
+
 **Does not show.**
 
 - **Silicon.** The FPGA is not the IHP chip. Analogue effects that could
   couple engines on silicon are outside a cycle-level digital claim, and
   sub-sample timing is invisible at these sample rates. Examples: supply
   noise, ground bounce, crosstalk, pad delay that depends on switching
-  activity. One sample is 41.7 ns at 24 MHz and 8.3 ns at 120 MHz; edges
-  that move by less than that are not detected.
+  activity. One sample is 41.7 ns at 24 MHz and 8.3 ns at 120 MHz, and one
+  cycle of the capture unit is 20 ns at 50 MHz; edges that move by less than
+  that are not detected.
 - **Speed.**
   - Experiment A runs the design at the Pico's clock rate, not at 50 MHz.
   - Experiment B runs it at 12 MHz. In a synchronous design that meets
     timing, cycle behaviour does not depend on the clock rate. Timing closure
     at 50 MHz is a separate question ([hardening.md](hardening.md),
     [fpga.md](fpga.md) "Build results").
+  - Experiment C runs at the bitstream's clock, 50 MHz with the `pll50`
+    builds. Its simulation ran the 12 MHz `osc12` top; the FPGA timing at
+    50 MHz is nextpnr's estimate, not a vendor sign-off ([fpga.md](fpga.md),
+    "Vivado sign-off flow").
 - **Generality.**
   - It is one probe program, on one engine, for finite captures: a sample of
     behaviour, not a proof. The proof is the formal property; the measurement
@@ -742,4 +914,6 @@ comparison) detects a coupling of one cycle.
     that PULLs from its FIFO depends on when the host or the mover filled
     it, by design.
 - **Host rate.** The Pico host's clock rate and the UART bridge's operation
-  rate on real hardware have not been measured.
+  rate on real hardware have not been measured. In Experiment C the number
+  of host strobes inside the capture windows is counted by the capture unit
+  and reported per run.

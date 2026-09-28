@@ -214,7 +214,10 @@ uio, reset and ena) as the model backend. The Urbana map runs a program load,
 TX and RX traffic and rejected commands, all with the active-high reset.
 
 The FPGA workstream also ships its own Pico host, `fpga/host/pico_host.py`,
-and a PC-side UART-bridge host, `fpga/host/pe_host.py`. They are separate
+and a PC-side UART-bridge host, `fpga/host/pe_host.py`, with the client of
+the bitstreams' on-board capture unit (`fpga/host/pe_scope.py`) and the
+bring-up driver (`fpga/host/bringup.py`) next to it ([fpga.md](fpga.md),
+"On-board capture unit" and "First hour with a board"). They are separate
 tools: `pico_host.PicoPort` has a different constructor (`ui=`, `uo=`, `rst=`,
 `rst_active_high=`, `ena=`) and a `step()` interface. The module name
 `fpga/host/pe_host.py` is the same as this library's package `pe_host`, so do

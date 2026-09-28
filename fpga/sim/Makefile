@@ -34,7 +34,7 @@ RTL := $(REPO)/fpga/rtl
 ifeq ($(FPGA_NETLIST),)
 VERILOG_SOURCES += $(PE_SRC_DIR)/project.v $(PE_SRC_DIR)/protocol_emulator_core.v \
                    $(RTL)/RM_IHPSG13_1P_64x16_c2_fpga.v $(RTL)/pe_fpga_sram_64x16.v \
-                   $(RTL)/pe_uart_host_bridge.v $(RTL)/pe_fpga_shell.v \
+                   $(RTL)/pe_uart_host_bridge.v $(RTL)/pe_fpga_scope.v $(RTL)/pe_fpga_shell.v \
                    $(RTL)/pe_fpga_clkgen.v $(RTL)/pe_fpga_clkfwd.v \
                    $(RTL)/pe_top_$(FPGA_BOARD).v
 COMPILE_ARGS += -DPE_FPGA_SIM
@@ -42,8 +42,15 @@ else
 # Post-synthesis: the synth_xilinx netlist (build.sh writes synth_netlist.v)
 # with Yosys' Xilinx simulation models, plus netlist_prims.v for the MMCM and
 # ODDR of the pll50/pll40/osc12 builds (black boxes in cells_sim.v).
-VERILOG_SOURCES += $(FPGA_NETLIST) $(shell yosys-config --datdir)/xilinx/cells_sim.v \
-                   $(CURDIR)/netlist_prims.v
+# Yosys' RAMB36E1 in cells_sim.v models timing only (no data), so its module
+# is dropped from a copy of cells_sim.v and netlist_bram.v (a behavioural
+# model of the configurations Yosys emits for the capture unit) replaces it.
+NETLIST_DIR   := $(abspath $(or $(SIM_BUILD),sim_build/netlist_cells))
+NETLIST_CELLS := $(NETLIST_DIR)/cells_sim_nobram.v
+$(shell mkdir -p $(NETLIST_DIR) && awk '/^module RAMB36E1 /{skip=1} !skip{print} skip&&/^endmodule/{skip=0}' \
+    $(shell yosys-config --datdir)/xilinx/cells_sim.v > $(NETLIST_CELLS))
+VERILOG_SOURCES += $(FPGA_NETLIST) $(NETLIST_CELLS) \
+                   $(CURDIR)/netlist_prims.v $(CURDIR)/netlist_bram.v
 COMPILE_ARGS += -DPE_TB_NETLIST
 endif
 ifeq ($(FPGA_BOARD),urbana)

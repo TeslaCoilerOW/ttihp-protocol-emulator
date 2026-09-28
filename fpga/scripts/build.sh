@@ -43,6 +43,10 @@
 #   NEXTPNR_PLACER_BETA, NEXTPNR_PLACER_ALPHA, NEXTPNR_SPREAD_SCALE_X/_Y:
 #                       openXC7 nextpnr-xilinx HeAP knobs, passed through.
 #   SYNTH_ONLY=1        stop after synthesis (for fpga/scripts/sweep/).
+#   VERILOG_DEFINES="-DNAME[=VALUE] ..."  extra Verilog defines, e.g.
+#                       -DPE_SCOPE_AW=14 (capture-unit depth 2^14 records)
+#                       or -DPE_NO_SCOPE (bridge builds without the on-board
+#                       capture unit, fpga/rtl/pe_fpga_scope.v).
 # Place and route of each run is fpga/scripts/pnr_run.sh.
 #
 # Tools: yosys on PATH (OSS CAD Suite; 0.67 for the recorded builds) and
@@ -91,6 +95,13 @@ if [ "${BRIDGE_ONLY:-0}" = 1 ]; then
   [ "$board" = cmod_a7 ] && [ "$clock" != host ] || { echo "BRIDGE_ONLY=1 is a cmod_a7 bridge-build option" >&2; exit 2; }
   defines="$defines -DPE_NO_PIN_HOST"
 fi
+defines="$defines ${VERILOG_DEFINES:-}"
+# The capture unit's status fields hold record counts in 16 bits: depths
+# above 2^15 records would be truncated silently (pe_fpga_scope.v).
+aw=$(printf '%s\n' ${VERILOG_DEFINES:-} | sed -n 's/^-DPE_SCOPE_AW=//p' | tail -n 1)
+if [ -n "$aw" ] && { ! [ "$aw" -eq "$aw" ] 2>/dev/null || [ "$aw" -lt 2 ] || [ "$aw" -gt 15 ]; }; then
+  echo "PE_SCOPE_AW=$aw: the capture unit supports 2..15 (at most 32,768 records)" >&2; exit 2
+fi
 chipdb="$OPENXC7/chipdb/${part%-*}.bin"
 db="$OPENXC7/share/nextpnr/external/prjxray-db/$family"
 name="pe_${board}_${clock}"
@@ -107,6 +118,7 @@ sources=(
   "$fpga/rtl/RM_IHPSG13_1P_64x16_c2_fpga.v"
   "$fpga/rtl/pe_fpga_sram_64x16.v"
   "$fpga/rtl/pe_uart_host_bridge.v"
+  "$fpga/rtl/pe_fpga_scope.v"
   "$fpga/rtl/pe_fpga_shell.v"
   "$fpga/rtl/pe_fpga_clkgen.v"
   "$fpga/rtl/pe_fpga_clkfwd.v"
@@ -124,7 +136,7 @@ sha256sum "$out/board.xdc" "$chipdb" >> "$out/inputs.sha256"
 # The implementation options of this build, as recorded in summary.json.
 python3 - "$out/recipe.json" <<'PY'
 import json, os, sys
-keys = ["BRIDGE_ONLY", "SYNTH_OPTS", "ABC9_W", "ABC9_SCRIPT", "TIMING_WEIGHT", "PNR_SETTINGS", "ROUTER", "REGION", "PNR_PERIOD",
+keys = ["BRIDGE_ONLY", "VERILOG_DEFINES", "SYNTH_OPTS", "ABC9_W", "ABC9_SCRIPT", "TIMING_WEIGHT", "PNR_SETTINGS", "ROUTER", "REGION", "PNR_PERIOD",
         "NEXTPNR_PLACER_BETA", "NEXTPNR_PLACER_ALPHA", "NEXTPNR_SPREAD_SCALE_X", "NEXTPNR_SPREAD_SCALE_Y"]
 json.dump({k: os.environ[k] for k in keys if os.environ.get(k)}, open(sys.argv[1], "w"), indent=1, sort_keys=True)
 PY

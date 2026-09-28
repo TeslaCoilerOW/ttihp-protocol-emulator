@@ -127,7 +127,8 @@ async def test_info_and_clock(dut):
     v, dc, dt, s, isa = await run(host)
     dut._log.info("%s; %d cycles in %.1f us; pins %s; ISA %d", v.describe(), dc, dt / 1e3, s, isa)
     board = 2 if os.environ.get("FPGA_BOARD") == "urbana" else 1
-    assert (v.protocol, v.board, v.clock, v.clk_hz, v.baud_div) == (1, board, 0, 50_000_000, 50), v
+    protocol = 1 if os.environ.get("FPGA_NO_SCOPE") == "1" else 2     # 2: capture unit present
+    assert (v.protocol, v.board, v.clock, v.clk_hz, v.baud_div) == (protocol, board, 0, 50_000_000, 50), v
     assert dc == round(dt / CLOCK_NS), (dc, dt)
     assert isa == pe_host.ISA_VERSION
     assert s.uio_oe == 0 and s.flags & 0b00100 and s.flags & 0b01000 and not s.flags & 0b11, s
