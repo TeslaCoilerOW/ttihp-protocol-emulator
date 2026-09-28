@@ -23,7 +23,7 @@ in section 10. "PASS" means a check that was run and passed.
 | Independent references | Nine catalogued CRC check values (CRC-16/IBM-3740 0x29B1, ARC 0xBB3D, USB 0xB4C8, CAN-15 0x059E, ...), bit-level line encoders and decoders, the ticker formula, and the study's three demos (10BASE-T UDP frame, CAN node, USB low-speed IN responder) decoded at the pads (sections 6.2, 6.3). |
 | Formal | The 16 existing jobs on `diet8_rec16`, including the timing-isolation proofs with the line-unit state and LSTAT in the miter, meet their expectations. New line-unit properties (CRC reference, coder/decoder inverse, pin locality, reset/START, decode) with a negative control each (section 6.4). |
 | Area | TT-replica synthesis (Yosys 0.66, AREA 0): 432,203.4 µm² and 3,903 flops for the core, +56,980.1 µm² and +272 flops over `diet8` (section 7). |
-| Hardening at 8x4 | One full LibreLane run with the committed 15 ns configuration: flow complete, utilization 63.2% (design of record 65.3%), setup met at all three corners (WS typ +6.03, fast +7.38, slow +2.07 ns), hold met (WS min +0.166 ns), route DRC 0, LVS 0, one antenna violation. On that layout the Tiny Tapeout precheck passes 9/9, the gate-level suite has 0 failures, and the netlist is sequentially equivalent to the RTL (`formal_eq`) (sections 7.2, 7.3). The official GitHub actions were not run on the variant. |
+| Hardening at 8x4 | One full LibreLane run with the committed 15 ns configuration: flow complete, utilization 63.2% (design of record 65.3%), setup met at all three corners (WS typ +6.03, fast +7.38, slow +2.07 ns), hold met (WS min +0.166 ns), route DRC 0, LVS 0, one antenna violation. On that layout the Tiny Tapeout precheck passes 9/9, the gate-level suite has 0 failures, and the netlist is sequentially equivalent to the RTL (`formal_eq`) (sections 7.2, 7.3). The official Tiny Tapeout actions then passed on branch `eval/diet8-rec16` (run 36360490711: gds, precheck, gl_test) with a `metrics.csv` byte-identical to the local run's, and the official netlist is equivalent to the RTL (section 12.1). |
 
 ## 2. What the extension does
 
@@ -411,12 +411,14 @@ results on this layout are in section 7.3.
   `split_instruction_decode`; the other timing knobs were not combined with it.
 - **One variant.** Only `diet8_rec16` was generated and verified; the study's
   6x4 fallback (`diet2` + `REC16`) and other combinations were not.
-- **Local sign-off only.** The layout, precheck and gate-level results are from
-  the local mirror of the Tiny Tapeout flow (same LibreLane image, PDK revision
-  and tt-support-tools; the precheck's KLayout is 0.30.9 instead of 0.30.4).
-  The `gds`, `precheck` and `gl_test` GitHub actions have not run on the
-  variant (section 12). The one antenna violation of section 7.2 was not
-  repaired; the design of record's official build has none.
+- **Official build on a branch, not on main.** The layout, precheck and
+  gate-level results were first obtained with the local mirror of the Tiny
+  Tapeout flow, then confirmed by the official actions on branch
+  `eval/diet8-rec16` (section 12.1). The variant is not the design of record,
+  so no official build of it exists on `main`. The one antenna violation of
+  section 7.2 was not repaired; it is present in the official build as well
+  (`antenna__violating__nets` 1), and the design of record's official build
+  has none.
 
 ## 9. Open decision
 
@@ -535,3 +537,28 @@ the variant, a branch needs (relative to `main`):
 long; if the runner scales the same way, the `gds` job would take about
 5.6 h, close to GitHub's 6 h job limit. This is an estimate from one run on
 each side.
+
+### 12.1 Official run (2026-09-28)
+
+Branch `eval/diet8-rec16` (commit `ac436f7`) carries the published
+`diet8_rec16` core (sha256 `d517e277…`) in `src/` and sets `test/Makefile`'s
+default variant; `src/config.json` and `info.yaml` are those of `main`.
+
+| Workflow | Run | Result |
+|---|---|---|
+| `gds` | 36360490711 | job `gds` success (23:59 to 03:58 UTC, 3 h 59 min); `precheck` success ("Precheck passed", finished 07:12 UTC); `gl_test` success, `TESTS=127 PASS=66 FAIL=0 SKIP=61`; `viewer` failed (GitHub Pages is not enabled), as on `main` |
+| `test` | 36360490678 | success: the RTL suite with the variant, 127 tests |
+| `formal` | 36360490685 | success |
+| `regen` | 36360490692 | failure, as expected: it regenerates `src/` from the design of record's configuration, which the branch replaces on purpose |
+| `docs` | 36360490710 | success |
+
+The `tt_submission` artifact's `stats/metrics.csv` is byte-identical to the
+local run's (job 24121613): setup WS typ/fast/slow +6.03/+7.38/+2.07 ns and
+hold WS min +0.166 ns at 15 ns with 0 violations, utilization 63.21%, route
+DRC 0, LVS 0, one antenna net. The official gate-level netlist is
+sequentially equivalent to the RTL, with the self-test passed
+(`formal_eq/eq_check.py check --run-dir <artifact> --variant diet8_rec16
+--core <artifact src core> --top <artifact src/project.v> --selftest`, Slurm
+job 24163332, 168 s). The `gds` job took 3 h 59 min, less than the 5.6 h
+estimated above.
+
