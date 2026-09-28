@@ -21,10 +21,9 @@
 
   "//": "CLOCK_PERIOD - Increase this in case you are getting setup time violations.",
   "//": "The value is in nanoseconds, so 20ns == 50MHz.",
-  "//": "protocol-emulator: 15 ns (66.7 MHz) is the flow's timing constraint (promotion p018, below): setup is",
+  "//": "EVALUATION BRANCH cand/13p33-p033 (not main): 13.33 ns (75 MHz) constraint of promotion p033 (below): setup is",
   "//": "gated at typ and hold at every corner. The operating clock is info.yaml clock_hz, 50 MHz (all firmware).",
-  "CLOCK_PERIOD": 15,
-
+  "CLOCK_PERIOD": 13.33,
   "//": "Hold slack margin - Increase them in case you are getting hold violations.",
   "PL_RESIZER_HOLD_SLACK_MARGIN": 0.15,
   "GRT_RESIZER_HOLD_SLACK_MARGIN": 0.05,
@@ -58,7 +57,7 @@
       "instances": {
         "core.instruction_sram_e0_lo": {
           "location": [
-            11.04,
+            145.92,
             3.87
           ],
           "orientation": "FS"
@@ -72,35 +71,35 @@
         },
         "core.instruction_sram_e1_lo": {
           "location": [
-            955.2,
+            887.76,
             3.87
           ],
           "orientation": "FS"
         },
         "core.instruction_sram_e1_hi": {
           "location": [
-            1427.28,
+            1224.96,
             3.87
           ],
           "orientation": "FS"
         },
         "core.instruction_sram_e2_lo": {
           "location": [
-            213.36,
+            415.68,
             638.82
           ],
           "orientation": "N"
         },
         "core.instruction_sram_e2_hi": {
           "location": [
-            618.0,
+            752.88,
             638.82
           ],
           "orientation": "N"
         },
         "core.instruction_sram_e3_lo": {
           "location": [
-            1022.64,
+            1090.08,
             638.82
           ],
           "orientation": "N"
@@ -164,8 +163,7 @@
 
   "//": "Macro halo 20 um (optimizer choice for fp8_spread_trk). No short VPWR/VGND Metal4 straps, which",
   "//": "would fail the precheck Pin check, are generated (checked by tools/opt checks.py and the precheck).",
-  "FP_MACRO_HORIZONTAL_HALO": 20,
-
+  "FP_MACRO_HORIZONTAL_HALO": 25,
   "//": "Waived for ONE known case: POWER stripes cross the LEF Metal4 OBS at each macro's VDD!/VDDARRAY!",
   "//": "split (local y 39.085..45.205). The flattened GDS has no Metal4/Via3/TopMetal1 within 1 um of the",
   "//": "stripes inside that band (docs/hardening.md). Expect about 32 overlap boxes (8 macros x 4 stripes,",
@@ -193,13 +191,12 @@
   "//": "GRT_LAYER_ADJUSTMENTS [0, 0.2, 0.2, 0.1, 0], PL_RESIZER_SETUP_SLACK_MARGIN 5.8; the rest is p010's.",
   "CTS_MAX_CAP": 0.2,
   "CTS_OBSTRUCTION_AWARE": true,
-  "CTS_SINK_CLUSTERING_SIZE": 16,
-  "DESIGN_REPAIR_MAX_CAP_PCT": 45,
-  "DESIGN_REPAIR_MAX_SLEW_PCT": 35,
+  "DESIGN_REPAIR_MAX_CAP_PCT": 30,
+  "DESIGN_REPAIR_MAX_SLEW_PCT": 30,
   "DESIGN_REPAIR_MAX_WIRE_LENGTH": 300,
-  "GRT_LAYER_ADJUSTMENTS": [0, 0.2, 0.2, 0.1, 0],
+  "GRT_LAYER_ADJUSTMENTS": [0, 0.2, 0.1, 0.1, 0],
   "MAX_FANOUT_CONSTRAINT": 8,
-  "PL_RESIZER_SETUP_SLACK_MARGIN": 5.8,
+  "PL_RESIZER_SETUP_SLACK_MARGIN": 5.05,
   "PL_TIMING_DRIVEN": true,
   "SYNTH_STRATEGY": "DELAY 4",
 
