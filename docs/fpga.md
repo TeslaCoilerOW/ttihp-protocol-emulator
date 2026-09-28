@@ -15,30 +15,32 @@ FPGA-only additions:
   every pin change in core clock cycles, so the pin timing can be measured
   without a logic analyser.
 
-**Status (2026-09-27).** Bitstreams exist for both boards (open-source openXC7
-flow). The 2026-09-27 release adds the on-board capture unit to the
-UART-bridge builds; the 2026-09-26 and 2026-09-25 bitstreams are kept. All of
-them have been checked in simulation and formal verification only. No board
-has been programmed yet, so nothing on this page is a hardware observation.
-All timing figures are nextpnr-xilinx's estimates, not a vendor sign-off; the
-Vivado flow in `fpga/vivado/` has not been run ("Vivado sign-off flow"). The
-"Verification" section lists what was run and where.
+**Status (2026-09-27).** Bitstreams exist for both boards. The 2026-09-27
+release adds the on-board capture unit to the UART-bridge builds and exists
+twice, from the same RTL and constraints: built with the open-source openXC7
+flow, and built and timing-signed-off with AMD Vivado 2025.2 ("Vivado
+sign-off flow": all seven builds meet timing, worst setup slack 4.98 ns at
+20 ns). The 2026-09-26 and 2026-09-25 openXC7 bitstreams are kept. Nothing
+has been checked on hardware: no board has been programmed yet, so nothing on
+this page is a hardware observation. The "Verification" section lists the
+simulations and formal checks that were run, and where.
 
 Start with one command per board ("First hour with a board"), which programs
-the capture-unit bitstream and runs the bring-up tests and the self-measured
-timing-isolation experiment:
+a capture-unit bitstream and runs the bring-up tests and the self-measured
+timing-isolation experiment. Use the Vivado set first
+(`vivado-2025.2-2026-09-27/`), the openXC7 set (`v3-2026-09-27-scope/`) as
+the fully open-source alternative:
 
-- **Cmod A7**: `pe_cmod_a7_pll50.bit` of the capture-unit release (PC over
-  USB, 50 MHz); `pe_cmod_a7_osc12.bit` of the same release if the MMCM does
-  not come up.
-- **Urbana**: `pe_urbana_pll50.bit` of the capture-unit release.
+- **Cmod A7**: `pe_cmod_a7_pll50.bit` (PC over USB, 50 MHz);
+  `pe_cmod_a7_osc12.bit` if the MMCM does not come up.
+- **Urbana**: `pe_urbana_pll50.bit`.
 - **Pico or another host-clocked pin host**: `pe_cmod_a7_host.bit`,
-  `pe_urbana_host.bit` of either release (no capture unit; the 2026-09-27
-  files are built from this tree).
+  `pe_urbana_host.bit` (no capture unit).
 
-All fourteen bitstreams of the 2026-09-26 and 2026-09-27 releases meet their
-clock target in nextpnr's timing model; the 50 MHz builds of the 2026-09-27
-release reach 69–76 MHz there. See "Build results".
+In Vivado, the 50 MHz builds imply 66.6–70.5 MHz; in nextpnr-xilinx's
+timing model the openXC7 builds of the 2026-09-27 release reach 69–76 MHz,
+and all fourteen openXC7 bitstreams of the 2026-09-26 and 2026-09-27 releases
+meet their targets. See "Build results" and "Vivado sign-off flow".
 
 ## Contents of the FPGA image
 
@@ -319,8 +321,8 @@ unchanged; `protocol_emulator_core.v` SHA-256 `26a873db…`). Job ids and
 results are in `$PE_WORK/fpga-scope/manifest.json`.
 
 - **fmax** is nextpnr-xilinx's post-route estimate for the core clock `clk`
-  (`--report`, prjxray's -1 timing data). It is not a vendor sign-off: the
-  Vivado flow ("Vivado sign-off flow") has not been run.
+  (`--report`, prjxray's -1 timing data). It is not a vendor sign-off; the
+  Vivado sign-off of the same design is under "Vivado sign-off flow".
 - **Options.** The synthesis options of the 2026-09-26 builds (ABC9 script
   `flow3mfs`, wire delay 1000 ps, with or without `-nowidelut` per build),
   and placer seeds 1–40 at timing weights 80 and 160 with the default
@@ -1054,78 +1056,166 @@ while jobs were executing it ended those runs with "Stale file handle"
 errors (the nextpnr results were intact and were recovered from the run
 directories).
 
-## Vivado sign-off flow (not yet run)
+## Vivado sign-off flow
 
-All timing figures on this page come from nextpnr-xilinx's timing model with
-prjxray's timing data. They are not a vendor sign-off. The vendor sign-off
-for these parts is AMD Vivado's static timing analysis. Vivado is not
-installed on the cluster used for this work and needs an AMD account to
-install, so the scripts below have been written and checked without Vivado
-(`fpga/vivado/test_vivado_flow.py`) but **have not been run**. No Vivado
-timing, utilisation or bitstream exists yet.
+The vendor timing sign-off for these parts is AMD Vivado's static timing
+analysis. `fpga/vivado/build.tcl` ran with Vivado 2025.2 (ML Standard
+edition, no license needed for the xc7a35t and the xc7s50) on MIT Engaging
+through Slurm on 2026-09-27, for all seven builds of the 2026-09-27 release:
+the same RTL, pin constraints and clock constraints as the openXC7 builds
+(jobs 24149331 and 24149924; results in `$PE_WORK/fpga-scope/manifest.json`).
+**All seven meet timing in Vivado.** Nothing has run on hardware.
 
 ```sh
-vivado -mode batch -source fpga/vivado/build.tcl -tclargs cmod_a7 pll50 build/vivado_cmod_a7_pll50
-vivado -mode batch -source fpga/vivado/build.tcl -tclargs urbana pll50 build/vivado_urbana_pll50
+vivado -mode batch -nojournal -source fpga/vivado/build.tcl -tclargs cmod_a7 pll50 build/vivado_cmod_a7_pll50
+vivado -mode batch -nojournal -source fpga/vivado/build.tcl -tclargs urbana pll50 build/vivado_urbana_pll50
 python3 fpga/vivado/timing_check.py build/vivado_cmod_a7_pll50/timing_summary.rpt \
-    --utilization build/vivado_cmod_a7_pll50/utilization.rpt --json vivado_cmod_a7_pll50.json
+    --utilization build/vivado_cmod_a7_pll50/utilization.rpt \
+    --methodology build/vivado_cmod_a7_pll50/methodology.rpt --drc build/vivado_cmod_a7_pll50/drc.rpt
 ```
 
 `build.tcl` is a non-project batch flow:
 
-- **Sources and constraints.** The same RTL list as `fpga/scripts/build.sh`
-  (board top, shell, UART bridge, capture unit, SRAM stand-in, Tiny Tapeout
-  top, generated core), the same pin XDC and the same clock XDC, with the
-  same Verilog defines per build (`CLOCK` argument, `BRIDGE_ONLY=1`,
+- **Sources and constraints.** The RTL list of `fpga/scripts/build.sh`, the
+  same pin XDC, the port clocks of the same clock XDC (below), and the same
+  Verilog defines per build (`CLOCK` argument, `BRIDGE_ONLY=1`,
   `DEFINES=PE_SCOPE_AW=14,...`). Part `xc7a35tcpg236-1` (Cmod A7-35T) or
   `xc7s50csga324-1` (Urbana).
 - **Steps.** `synth_design`, `opt_design`, `place_design`,
-  `phys_opt_design`, `route_design`; `report_timing_summary`,
-  `report_utilization`, `report_clocks`, `report_drc`, `report_methodology`;
-  `write_bitstream`.
-- **Verdict.** The script writes the worst setup and hold slack, the total
-  negative slack and the `check_timing` counts to `vivado_timing.txt`, prints
-  `VIVADO TIMING PASS` or `FAIL`, and exits 1 on FAIL. PASS needs WNS ≥ 0,
-  TNS = 0, WHS ≥ 0, THS = 0, and no unclocked register (`no_clock`) and no
-  unconstrained internal endpoint in the `check_timing` section of
-  `timing_summary.rpt`. The bitstream is written only on PASS
-  (`BITSTREAM=always` writes it anyway, `BITSTREAM=0` never).
-  `timing_check.py` gives the verdict from the report alone, with the same
-  rules plus the pulse-width columns (WPWS ≥ 0, TPWS = 0) and at least one
-  constrained endpoint. `-verilog_define` is passed only when a build has
-  defines; `PE_SCOPE_AW` outside 2..15 is rejected before synthesis, as in
-  `build.sh`.
+  `phys_opt_design`, `route_design` with Vivado's default directives;
+  `report_timing_summary`, `report_utilization`, `report_clocks`,
+  `report_drc`, `report_methodology`; `write_bitstream` on PASS.
+- **Verdict.** PASS needs WNS ≥ 0, TNS = 0, WHS ≥ 0, THS = 0; no unclocked
+  register (`no_clock`) and no unconstrained internal endpoint in
+  `check_timing`; no "Critical Warning" in the methodology report and no
+  "Error" in the DRC report. The script writes `vivado_timing.txt`, prints
+  `VIVADO TIMING PASS` or `FAIL`, exits 1 on FAIL, and writes the bitstream
+  only on PASS (`BITSTREAM=always` writes it anyway, `BITSTREAM=0` never).
+  `timing_check.py` gives the same verdict from the reports, adds the
+  pulse-width columns (WPWS ≥ 0, TPWS = 0), and summarises the worst setup
+  path with the fmax it implies, 1 / (period − WNS).
+
+**Results** (job 24149924). Implied fmax is 1 / (period − WNS) of the worst
+setup path. Vivado optimises only until the constraint is met, so this is a
+lower bound on what Vivado could reach, and it is far below the other builds
+for `osc12`, whose constraint is 83.333 ns.
+
+| Build | WNS | TNS | WHS | THS | WPWS | `check_timing` | Implied fmax | nextpnr fmax | Slice LUTs | Registers | Block RAM tiles |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `cmod_a7 pll50` | 5.467 ns | 0 | 0.047 ns | 0 | 8.750 ns | clean | 68.81 MHz | 71.36 MHz | 7,482 (35.97%) | 4,194 (10.08%) | 36 of 50 |
+| `cmod_a7 pll50` + `BRIDGE_ONLY=1` | 5.089 ns | 0 | 0.038 ns | 0 | 8.750 ns | clean | 67.06 MHz | 73.19 MHz | 7,497 (36.04%) | 4,194 (10.08%) | 36 of 50 |
+| `cmod_a7 pll40` | 9.871 ns | 0 | 0.030 ns | 0 | 11.250 ns | clean | 66.10 MHz | 66.66 MHz | 7,483 (35.98%) | 4,194 (10.08%) | 36 of 50 |
+| `cmod_a7 osc12` | 64.445 ns | 0 | 0.014 ns | 0 | 40.416 ns | clean | 52.94 MHz | 73.83 MHz | 7,486 (35.99%) | 4,194 (10.08%) | 36 of 50 |
+| `urbana pll50` | 5.821 ns | 0 | 0.028 ns | 0 | 3.000 ns | clean | 70.53 MHz | 76.04 MHz | 7,477 (22.94%) | 4,147 (6.36%) | 72 of 75 |
+| `cmod_a7 host` | 5.808 ns | 0 | 0.077 ns | 0 | 8.750 ns | clean | 70.46 MHz | 69.31 MHz | 5,810 (27.93%) | 2,008 (4.83%) | 0 |
+| `urbana host` | 4.979 ns | 0 | 0.046 ns | 0 | 8.750 ns | clean | 66.57 MHz | 74.32 MHz | 5,819 (17.85%) | 2,008 (3.08%) | 0 |
+
+"clean": `no_clock` 0 and `unconstrained_internal_endpoints` 0. The only
+non-zero `check_timing` counts are `no_input_delay` and `no_output_delay`
+(10–21 and 15–24 ports): the board's asynchronous inputs and the pin-host
+port, which neither flow constrains. All pins are placed by the pin XDC,
+with the XDC's I/O standards and pull-ups (`report_io` on the routed
+designs, job 24150720).
+
+**Worst setup paths.**
+
+| Build | From → to | Data path | Logic levels |
+|---|---|---|---|
+| `cmod_a7 pll50` | bridge `ui_reg[6]` (host-port window) → core LUT-RAM write enable | 13.38 ns (2.01 logic, 11.37 route) | 10 |
+| `cmod_a7 pll50` + `BRIDGE_ONLY=1` | bridge `core_rst_n_reg` → instruction SRAM stand-in output register (engine 3) | 14.38 ns (2.48 logic, 11.90 route) | 11 |
+| `cmod_a7 pll40` | SRAM stand-in (engine 1, low half) → SRAM stand-in output register (high half) | 14.73 ns (2.18 logic, 12.55 route) | 11 |
+| `cmod_a7 osc12` | board reset synchroniser `rst_sync_reg[2]` → core `tx_1_reg` clock enable | 18.28 ns (2.36 logic, 15.92 route) | 9 |
+| `urbana pll50` | core `host_selected_engine_reg[0]` → core `wait_limit_0_reg` reset | 13.34 ns (3.26 logic, 10.08 route) | 12 |
+| `cmod_a7 host` | SRAM stand-in (engine 0, low half) → SRAM stand-in output register (high half) | 14.05 ns (2.55 logic, 11.50 route) | 11 |
+| `urbana host` | board reset synchroniser → core LUT-RAM write enable | 14.34 ns (2.69 logic, 11.65 route) | 10 |
+
+All of them are paths into or through the core, with routing 75–87 % of the
+delay. None ends in the capture unit; the reply-handshake path that is the
+critical path of the openXC7 Cmod A7 `pll50` build ("Build results,
+capture-unit release") is not critical in Vivado.
+
+**Comparison with nextpnr-xilinx.**
+
+- Timing agrees in kind: both tools meet every target with a large margin.
+  Vivado's implied fmax is 0.56–6.13 MHz below nextpnr's for the four
+  bridge builds at 40 and 50 MHz, 7.75 MHz below for the Urbana `host` build
+  and 1.15 MHz above for the Cmod A7 `host` build. The nextpnr figures are the fastest
+  of 80 placer seeds per build; Vivado ran once per build with its default
+  directives.
+- The LUT counts are not comparable: nextpnr's "LUT cells" count placed LUT
+  bels including route-through LUTs (12,713–13,423 for the bridge builds),
+  Vivado's "Slice LUTs" count LUTs used for logic and memory (7,477–7,497).
+  Register counts agree within 1.6 % (Vivado 4,147–4,194 against nextpnr's
+  4,201–4,212 for the bridge builds, 2,008 against 2,030 for the host
+  builds).
+- Block RAM: Vivado builds the 16,384 × 72 capture buffer from 36 RAMB36
+  (16K × 2 each) instead of Yosys' 32 (4K × 9), and the Urbana's 32,768 × 72
+  buffer from 72 (32K × 1) instead of 64, which uses 72 of the xc7s50's 75
+  block RAM tiles. The Vivado placement stays within the xc7a35t's 50 block
+  RAMs.
 
 **Where Vivado differs from the open-source flow.**
 
 - **The core clock constraint.** The shared clock XDCs define the core clock
   twice: on the board oscillator (or `host_clk`) port, and on the net `clk`
   after the MMCM and BUFG, because nextpnr-xilinx needs the latter. Vivado
-  accepts a clock on a net (it defines it at the net's driver, the BUFG
-  output) and it then replaces the clock Vivado would derive from the MMCM,
-  with a warning. `CLOCKS=shared` (the default) reads the XDC as it is, so
-  both tools time the same constraint. `CLOCKS=derived` drops the net
-  clock, so that Vivado derives the core clock from the MMCM parameters,
-  including the MMCM's jitter and phase error. A sign-off should run both.
-- **Configuration voltage.** Vivado's DRC wants `CFGBVS` and
-  `CONFIG_VOLTAGE`. They are set in a Vivado-only XDC that `build.tcl`
-  writes (`VCCO`, 3.3 V). They do not change the design.
-- **Memory inference.** Vivado infers its own implementation of the SRAM
-  stand-in (distributed RAM) and of the capture unit's 72-bit record buffer
-  (block RAM with the output register; single-port on the Urbana, see "On-board
-  capture unit"). The mapping and the utilisation will differ from Yosys'. The SRAM stand-in's equivalence proof
-  (`fpga/formal/`) covers the RTL and Yosys' netlist, not Vivado's.
-- **Synthesis options.** The Yosys options of the open-source builds (ABC9
-  script and wire delay, `-nowidelut`) and the nextpnr placer seeds and
-  timing weights have no Vivado counterpart; `build.tcl` uses Vivado's
-  defaults (`DIRECTIVE=` selects a placement and routing directive).
-- **Unconstrained I/O.** The board's asynchronous inputs (UART RX, host
-  select, buttons, switches) and the pin-host port have no input or output
-  delays in either flow. Vivado lists them under `check_timing`
-  (`no_input_delay`, `no_output_delay`); `timing_check.py` reports them as
-  warnings.
+  accepts both, but its methodology check reports a critical warning for
+  the net clock in every build (job 24149331): TIMING-2 (a primary clock
+  created on the BUFG output) and TIMING-4 (a primary clock defined
+  downstream of the MMCM's generated clock, which overrides its insertion
+  delay). `build.tcl` therefore reads only the port clocks by default
+  (`CLOCKS=derived`): Vivado derives the core clock through the MMCM or BUFG
+  from the port clock, including the MMCM's jitter. `CLOCKS=shared` reads
+  the XDC as is. For the builds run both ways, WNS differed by at most
+  0.18 ns between the modes, and every run met timing in both.
+- **Warnings that remain** (no critical warnings, no DRC errors):
+  - DRC REQP-1839 on the Cmod A7 bridge builds: Vivado's block-RAM power
+    optimisation gates the read-port enable of the capture buffer with the
+    board reset synchroniser, which has an asynchronous reset; an
+    asynchronous reset may then corrupt a read in progress. It affects only
+    read-back while the board is being reset (button or MMCM lock). On the
+    "Next rebuild" list.
+  - Methodology LUTAR-1: the board reset `btn[0] | !locked` is a LUT that
+    drives the asynchronous reset of the reset synchroniser; a glitch of that
+    LUT could reset the board logic. On the "Next rebuild" list.
+  - Methodology TIMING-18 (host builds): missing input/output delays on the
+    pin-host port, which is not constrained in either flow ("Limitations").
+- **Configuration voltage.** `build.tcl` writes a Vivado-only XDC with
+  `CFGBVS VCCO` and `CONFIG_VOLTAGE 3.3` for Vivado's DRC.
+- **Memory inference, synthesis options.** Vivado infers its own
+  distributed RAM for the SRAM stand-in and its own block-RAM arrangement
+  for the capture buffer (above); the SRAM stand-in's equivalence proof
+  (`fpga/formal/`) covers the RTL and Yosys' netlist, not Vivado's. The
+  Yosys options and nextpnr seeds of the open-source builds have no Vivado
+  counterpart.
 - **Primitives.** The MMCM (`MMCME2_ADV`), `BUFG`, `ODDR` and the tri-state
-  pads (`IOBUF` from `T = ~uio_oe`) are the same primitives in both flows.
+  pads (`IOBUF` from `T = ~uio_oe`) are the same primitives in both flows;
+  the MMCM counter settings come from the same RTL parameters.
+
+**Bitstreams.** `$PE_WORK/fpga/bitstreams/vivado-2025.2-2026-09-27/`, with
+each build's `vivado_timing.txt`, reports and `SHA256SUMS`. They have the
+same file names as the openXC7 sets. They are Vivado's output from the same
+RTL and constraints; Vivado's netlists have not been simulated (the
+post-synthesis simulations under "Verification" are of Yosys' netlists).
+
+| File | Bytes | SHA-256 |
+|---|---|---|
+| `pe_cmod_a7_pll50.bit` | 2,192,138 | `44caece537a8d9f13e1aebb40f61382dc1620c122b4e5d107dbbcdf35597768e` |
+| `pe_cmod_a7_pll50_bridgeonly.bit` | 2,192,138 | `25c5ebf4124a18ffc28611ee144c5abb6c6b91377362901cc6818cd7e733504d` |
+| `pe_cmod_a7_pll40.bit` | 2,192,138 | `9e71d49d06910bab10e9a0122fda61d9bbca36cc87e04fe92315751a0a29315f` |
+| `pe_cmod_a7_osc12.bit` | 2,192,138 | `2919824b9331b17007ea6486a31d0052f8f168251b73552e9b2d9c7a030f365a` |
+| `pe_urbana_pll50.bit` | 2,192,137 | `b5c91cce6b7d51169826cfdddd37df19bc200cbf3a2367b679d3170c4d88af13` |
+| `pe_cmod_a7_host.bit` | 2,192,138 | `170ad2da4a02a27c019f3ca313130ffe2c9fec0bf0014eb27a85dd7353433070` |
+| `pe_urbana_host.bit` | 2,192,137 | `388ac54a7a9baec2a41caaebf8827fe71796ed0d745b3d4698e48702fd638be7` |
+
+**Which set to program first.** The Vivado set, for the first bring-up: its
+timing is signed off by the vendor's analysis, and its bitstreams are
+generated by the vendor's tool, so neither prjxray's block-RAM
+configuration bits nor the question of block RAMs outside the xc7a35t's 50
+applies ("Limitations"). The openXC7 set (`v3-2026-09-27-scope/`) is the
+fully open-source alternative, with post-synthesis simulations of its
+netlists. Both are built from the same RTL; if a step fails with one set,
+repeating it with the other separates a tool problem from a design problem.
 
 ## Programming
 
@@ -1137,9 +1227,10 @@ openFPGALoader -b cmoda7_35t pe_cmod_a7_pll50_bridgeonly.bit
 openFPGALoader -b arty_s7_50 pe_urbana_pll50.bit
 ```
 
-The capture-unit bitstreams have the same file names in their own directory
-(`v3-2026-09-27-scope/`); `fpga/scripts/bringup.sh` programs the right one
-and runs the bring-up ("First hour with a board").
+The capture-unit bitstreams have the same file names in their own
+directories (`vivado-2025.2-2026-09-27/`, `v3-2026-09-27-scope/`);
+`fpga/scripts/bringup.sh` programs the right one and runs the bring-up
+("First hour with a board").
 
 The Urbana's USB-JTAG is an FT2232H channel A, like Digilent boards. 6.205
 documents `-b arty_s7_50` for Urbana bitstreams
@@ -1167,8 +1258,11 @@ expected output below comes from.
 - A PC with Python 3.8 or later, `pip install -r fpga/host/requirements.txt`
   (pyserial 3.5), and openFPGALoader. The recorded tool is openFPGALoader
   v1.1.1 from OSS CAD Suite 20260729.
-- The capture-unit bitstreams: `$PE_WORK/fpga/bitstreams/v3-2026-09-27-scope/`
-  with its `SHA256SUMS`, copied to the PC.
+- The capture-unit bitstreams, copied to the PC with their `SHA256SUMS`:
+  the Vivado set `$PE_WORK/fpga/bitstreams/vivado-2025.2-2026-09-27/`
+  (first choice, see "Vivado sign-off flow") and the openXC7 set
+  `$PE_WORK/fpga/bitstreams/v3-2026-09-27-scope/` (the fully open-source
+  alternative). The file names are the same in both.
 - On Linux: openFPGALoader's udev rules (or root), and permission to open
   the serial port (for example the `dialout` group). Each board enumerates
   two serial ports; the UART is the second one, `/dev/ttyUSB1` if no other
@@ -1177,8 +1271,10 @@ expected output below comes from.
 **One command per board.**
 
 ```sh
+PE_BITSTREAMS=/path/to/vivado-2025.2-2026-09-27 fpga/scripts/bringup.sh cmod_a7 /dev/ttyUSB1
+PE_BITSTREAMS=/path/to/vivado-2025.2-2026-09-27 fpga/scripts/bringup.sh urbana  /dev/ttyUSB1
+# the same with the openXC7 set:
 PE_BITSTREAMS=/path/to/v3-2026-09-27-scope fpga/scripts/bringup.sh cmod_a7 /dev/ttyUSB1
-PE_BITSTREAMS=/path/to/v3-2026-09-27-scope fpga/scripts/bringup.sh urbana  /dev/ttyUSB1
 ```
 
 `bringup.sh` prints the tool versions, checks the bitstream against
@@ -1287,7 +1383,7 @@ BRING-UP PASS
 | `--detect` shows another part | wrong `-b` board | `cmoda7_35t` for the Cmod A7-35T, `arty_s7_50` for the Urbana |
 | `no reply to 'V'` | wrong serial port, or the board is not configured | use the board's second port (`ls /dev/ttyUSB*` before and after plugging in); the heartbeat LED must blink (Cmod A7 `led[0]`, Urbana LED0) |
 | `bitstream is for board id ...` | the other board's bitstream | program the matching file |
-| `bridge protocol 1` | a bitstream without the capture unit | use the `v3-2026-09-27-scope` set |
+| `bridge protocol 1` | a bitstream without the capture unit | use the `vivado-2025.2-2026-09-27` or `v3-2026-09-27-scope` set |
 | core clock not within 2 % | MMCM not locked or misconfigured | Cmod A7: `PE_BITSTREAM=.../pe_cmod_a7_osc12.bit` (no MMCM); the rest of the sequence works at 12 MHz |
 | selftest: released pads not `ff` | something on the protocol Pmod | remove the jumpers for step 2 |
 | loopback fails | jumpers on the wrong pins | pins 1–2 and 4–7 of the protocol Pmod (uio0–uio1, uio3–uio4) |
@@ -1297,6 +1393,7 @@ BRING-UP PASS
 | isolation: `loaded windows show no load` | jumpers missing, or no host operation fell into a window | check the jumpers; see "Host traffic density" below |
 | isolation: `NON-INTERFERENCE FAIL` with differing frames | the property the experiment tests does not hold on this board | keep the output directory: `compare.txt` and the capture files show which edges moved |
 | `CRC mismatch` messages | USB errors during read-back | the client repeats the block; many retries point at the cable or hub |
+| a step fails with one bitstream set and passes with the other | a toolchain problem (synthesis, placement, bitstream generation) rather than the design | keep both output directories and report it |
 
 **Host traffic density.** In the loaded phase the host's operations reach the
 core through USB round trips. Each capture's ARM command is sent in the same
@@ -1495,7 +1592,9 @@ stand-in on the reference model: PASS; a run without load evidence must not
 pass; a CRC error is retried); `fpga/vivado/test_vivado_flow.py` 10/10 (Tcl
 flow under `tclsh` with stubbed Vivado commands: sources, defines, clock
 XDC modes, the verdict with `check_timing`, no bitstream on FAIL, the
-`PE_SCOPE_AW` limit in `build.tcl` and `build.sh`; report parser);
+`PE_SCOPE_AW` limit in `build.tcl` and `build.sh`; report parser), and
+13/13 after the changes made with the Vivado runs (derived clocks by default,
+methodology and DRC severities in the verdict; login node);
 `fpga/host/test_pico_host.py` PASS.
 
 **After review.** An independent review of this work led to host-side and
@@ -1682,11 +1781,11 @@ Summary of what is and is not covered:
 - **No hardware observations yet.** MMCM lock, pad behaviour, the UART bridge
   at 1 Mbaud, openFPGALoader on the Urbana, the Pico host speed, the capture
   unit and the bring-up kit are all to be confirmed on the boards.
-- **Timing figures come from nextpnr-xilinx's model** (prjxray timing data),
-  not Vivado's. They are not a vendor sign-off. The Vivado batch flow
-  (`fpga/vivado/`) is written but has not been run: there is no Vivado
-  timing, utilisation or bitstream yet ("Vivado sign-off flow").
-  - The published fmax is the fastest of many placer seeds; the seed
+- **Timing.** The openXC7 figures come from nextpnr-xilinx's model
+  (prjxray timing data) and are not a vendor sign-off. The 2026-09-27 release
+  is also signed off in Vivado 2025.2 ("Vivado sign-off flow"), which covers
+  the Vivado bitstreams; Vivado's netlists have not been simulated.
+  - The published nextpnr fmax is the fastest of many placer seeds; the seed
     distributions under "Build results" show what the same options give
     typically.
   - No I/O timing is constrained. For a pin host, the margin that matters is
@@ -1719,8 +1818,11 @@ Summary of what is and is not covered:
   - Externally driven inputs can be stamped ±1 cycle from the core's own
     view of them, and open-drain release edges depend on the pull-up (see
     "On-board capture unit").
-- **Block RAM configuration on hardware is unverified.** The capture buffer
-  is the first block RAM use in these builds. The readback check only shows
+- **Block RAM configuration of the openXC7 bitstreams is unverified on
+  hardware.** (The Vivado bitstreams are generated by the vendor's tool for
+  the actual part, and Vivado places the buffer within the xc7a35t's 50
+  block RAMs; this item does not apply to them.) The capture buffer is the
+  first block RAM use in these builds. The readback check only shows
   that each bitstream carries the frames of its FASM; it does not show that
   prjxray's block-RAM configuration bits are complete and correct. The
   Spartan-7 part of the prjxray database in this openXC7 release is known to
@@ -1733,7 +1835,9 @@ Summary of what is and is not covered:
   block RAMs works on a 35T part (datasheet: 50 RAMB36) is not documented by
   AMD and has not been tested. Step 4 of the bring-up writes the whole
   buffer once and checks every record read back ("First hour with a board"),
-  so a faulty block RAM shows up there, before the isolation experiment.
+  so a faulty block RAM shows up there, before the isolation experiment; the
+  same step with the Vivado bitstream then tells a toolchain problem from a
+  design problem.
 - **Post-synthesis simulation uses Yosys' Xilinx cell models**
   (`cells_sim.v`), not Xilinx's unisims, and for the capture buffer's block
   RAM a behavioural model written for this project
@@ -1768,7 +1872,15 @@ sweep, simulation and readback before it replaces them.
    replies with the CRC (a bridge protocol change).
 6. **Enable view.** A channel mode that records `uio_oe`, so the release
    edges of open-drain pins are stamped at their launching cycle.
-7. **Comment.** The header of `pe_fpga_scope.v` says recording starts after
+7. **Reset of the capture buffer's read port.** Vivado's block-RAM power
+   optimisation gates the Cmod A7 buffer's read-port enable with the board
+   reset synchroniser, which has an asynchronous reset (DRC REQP-1839). Drive
+   the capture unit from a reset without an asynchronous path, or keep the
+   buffer's enables out of the reset logic.
+8. **Board reset LUT.** `btn[0] | !locked` is a LUT driving the asynchronous
+   reset of the reset synchroniser (methodology LUTAR-1); register or
+   synchronise the button and the lock signal before they reach it.
+9. **Comment.** The header of `pe_fpga_scope.v` says recording starts after
    a 3-cycle settling time. In the RTL the unit is in its settling state for
    4 cycles, and with an immediate start it writes the start record at the
    fifth clock edge after the edge that accepts the `A` command.

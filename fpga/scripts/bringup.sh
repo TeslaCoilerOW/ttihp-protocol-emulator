@@ -16,7 +16,9 @@
 #
 # Environment:
 #   PE_BITSTREAMS   directory holding pe_cmod_a7_pll50.bit / pe_urbana_pll50.bit
-#                   of the capture-unit release, with its SHA256SUMS (required
+#                   of the capture-unit release (the Vivado set
+#                   vivado-2025.2-2026-09-27 first, or the openXC7 set
+#                   v3-2026-09-27-scope), with its SHA256SUMS (required
 #                   unless PE_BITSTREAM is set)
 #   PE_BITSTREAM    program this .bit instead
 #   PE_SKIP_PROGRAM=1  the board is already programmed

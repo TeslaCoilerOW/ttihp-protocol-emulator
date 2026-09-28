@@ -16,8 +16,8 @@ unchanged) for two boards:
 
 ```sh
 pip install -r fpga/host/requirements.txt
-PE_BITSTREAMS=/path/to/v3-2026-09-27-scope fpga/scripts/bringup.sh cmod_a7 /dev/ttyUSB1
-PE_BITSTREAMS=/path/to/v3-2026-09-27-scope fpga/scripts/bringup.sh urbana  /dev/ttyUSB1
+PE_BITSTREAMS=/path/to/vivado-2025.2-2026-09-27 fpga/scripts/bringup.sh cmod_a7 /dev/ttyUSB1
+PE_BITSTREAMS=/path/to/vivado-2025.2-2026-09-27 fpga/scripts/bringup.sh urbana  /dev/ttyUSB1
 ```
 
 One command per board: it programs the capture-unit bitstream with
@@ -41,11 +41,15 @@ python3 fpga/host/pe_host.py --port /dev/ttyUSB1 loopback   # two jumper wires
 python3 fpga/host/pe_scope.py --port /dev/ttyUSB1 status    # capture unit
 ```
 
-The bitstreams, with SHA-256 sums, are in `$PE_WORK/fpga/bitstreams/`
-(capture-unit release in `v3-2026-09-27-scope/`), or you can build them
-yourself (below). docs/fpga.md lists the fmax of each build in nextpnr's
-timing model, which is not a vendor sign-off; the Vivado scripts in
-`vivado/` have not been run yet.
+The bitstreams, with SHA-256 sums, are in `$PE_WORK/fpga/bitstreams/`, or
+you can build them yourself (below). The 2026-09-27 release exists twice,
+from the same RTL and constraints, with the same file names:
+
+- `vivado-2025.2-2026-09-27/`: built with AMD Vivado 2025.2 by
+  `vivado/build.tcl`; all seven builds meet timing in Vivado's sign-off
+  analysis (docs/fpga.md, "Vivado sign-off flow"). Program these first.
+- `v3-2026-09-27-scope/`: built with the open-source openXC7 flow; timing
+  from nextpnr-xilinx's model, post-synthesis netlists simulated.
 
 ## Layout
 
@@ -72,7 +76,7 @@ timing model, which is not a vendor sign-off; the Vivado scripts in
 | `host/bringup.py`, `scripts/bringup.sh` | first-hour bring-up: program, self-test, capture checks, self-measured isolation experiment |
 | `host/requirements.txt` | PC-side Python dependency (pyserial) |
 | `host/test_pe_scope.py` | capture-unit client unit tests (record format, CRC retry, VCD hand-off to `pe_capture.py`) |
-| `vivado/build.tcl`, `vivado/timing_check.py` | AMD Vivado non-project batch build and timing PASS/FAIL (vendor sign-off; not yet run) |
+| `vivado/build.tcl`, `vivado/timing_check.py` | AMD Vivado non-project batch build and timing PASS/FAIL (vendor sign-off; run with Vivado 2025.2 on all seven builds) |
 | `vivado/test_vivado_flow.py` | checks of the Vivado scripts without Vivado (Tcl stubs, report parser) |
 | `host/pico_host.py` | MicroPython (Pico) host that clocks the design itself (CLOCK=host builds) |
 | `host/test_pico_host.py` | the Pico driver against the Python reference model |
@@ -113,6 +117,7 @@ make -C fpga/sim FPGA_TB=bridge COCOTB_TEST_MODULES=test_fpga_scope    # capture
 make -C fpga/sim FPGA_TB=bridge COCOTB_TEST_MODULES=test_fpga_bringup  # host/bringup.py end to end
 python3 fpga/host/test_pe_scope.py                  # capture-unit client
 python3 fpga/vivado/test_vivado_flow.py             # Vivado scripts (stubs; no Vivado needed)
+vivado -mode batch -nojournal -source fpga/vivado/build.tcl -tclargs cmod_a7 pll50 build/vivado_cmod_a7_pll50
 make -C fpga/sim COCOTB_TEST_MODULES=test_fpga_pico # Pico driver, host-clocked
 python3 fpga/host/test_pico_host.py                 # Pico driver vs reference model
 make -C fpga/sim FPGA_CLOCK=pll50 FPGA_NETLIST=$PWD/build/pe_cmod_a7_pll50/synth_netlist.v  # after synthesis

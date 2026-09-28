@@ -15,11 +15,15 @@
 #   KEY=VALUE options:
 #     BRIDGE_ONLY=1    Cmod A7 bridge builds: DIP pin-host pins unused (PE_NO_PIN_HOST)
 #     DEFINES=A,B=1    extra Verilog defines, e.g. PE_SCOPE_AW=14 or PE_NO_SCOPE
-#     CLOCKS=shared    (default) the open-source flow's clock XDC as is, including
-#                      create_clock on the core clock net `clk`
-#     CLOCKS=derived   only the port clock of that XDC (oscillator or host_clk);
-#                      Vivado derives the MMCM output clock from the MMCM
-#                      parameters (includes MMCM jitter and phase error)
+#     CLOCKS=derived   (default) only the port clock of the open-source flow's
+#                      clock XDC (oscillator or host_clk); Vivado derives the
+#                      core clock through the MMCM (or BUFG) from it, with the
+#                      MMCM's jitter and phase error
+#     CLOCKS=shared    that XDC as is, including create_clock on the core
+#                      clock net `clk` (what nextpnr-xilinx needs); Vivado 2025.2
+#                      accepts it but its methodology check reports TIMING-2
+#                      and TIMING-4 (a primary clock defined on a BUFG output,
+#                      downstream of the MMCM clock), which fails the verdict
 #     DIRECTIVE=NAME   place_design / route_design directive (default Default)
 #     BITSTREAM=1      (default) write the bitstream only when the timing
 #                      verdict is PASS; BITSTREAM=always writes it anyway;
@@ -30,13 +34,14 @@
 # methodology.rpt, sources.txt, clock.xdc (the clock constraints read),
 # vivado_timing.txt, and <name>.bit. The verdict, printed as "VIVADO TIMING
 # PASS" or "VIVADO TIMING FAIL" (exit status 1 on FAIL), needs WNS >= 0,
-# TNS = 0, WHS >= 0, THS = 0, at least one timed path, and no unclocked
+# TNS = 0, WHS >= 0, THS = 0, at least one timed path, no unclocked
 # register and no unconstrained internal endpoint in the check_timing
-# section of timing_summary.rpt: the rules of fpga/vivado/timing_check.py,
-# which gives the same verdict from the report alone.
+# section of timing_summary.rpt, no "Critical Warning" in methodology.rpt
+# and no "Error" in drc.rpt: the rules of fpga/vivado/timing_check.py, which
+# gives the same verdict from the reports alone.
 #
-# Status: written for Vivado 2023.2 or later; not yet run (no Vivado
-# installation was available). docs/fpga.md, "Vivado sign-off flow".
+# Run with Vivado 2025.2 (ML Standard) on all seven released builds;
+# docs/fpga.md, "Vivado sign-off flow".
 
 proc usage {} {
   puts "usage: vivado -mode batch -source build.tcl -tclargs BOARD \[CLOCK\] \[OUT_DIR\] \[KEY=VALUE ...\]"
@@ -52,7 +57,7 @@ if {[llength $argv] < 1} { usage }
 set board [lindex $argv 0]
 set clock pll50
 set out ""
-array set opt {BRIDGE_ONLY 0 DEFINES "" CLOCKS shared DIRECTIVE Default BITSTREAM 1}
+array set opt {BRIDGE_ONLY 0 DEFINES "" CLOCKS derived DIRECTIVE Default BITSTREAM 1}
 set pos 0
 foreach a [lrange $argv 1 end] {
   if {[regexp {^([A-Z_]+)=(.*)$} $a -> k v]} {
@@ -100,6 +105,7 @@ foreach d [split $opt(DEFINES) ,] {
   }
 }
 if {[lsearch -exact {0 1 always} $opt(BITSTREAM)] < 0} { puts "BITSTREAM must be 0, 1 or always"; usage }
+if {[lsearch -exact {derived shared} $opt(CLOCKS)] < 0} { puts "CLOCKS must be derived or shared"; usage }
 if {$out eq ""} { set out [file join build vivado_[string range $name 3 end]] }
 file mkdir $out
 set out [file normalize $out]
@@ -203,6 +209,19 @@ foreach k {no_clock unconstrained_internal_endpoints} {
     lappend reasons "check_timing $k not found in the report"
   } elseif {$chk($k) != 0} {
     lappend reasons "check_timing $k $chk($k)"
+  }
+}
+# Rule-table rows "| ID | Severity | Description | Violations |" of the
+# methodology and DRC reports: critical methodology warnings and DRC errors fail.
+foreach {rpt sev} {methodology.rpt {Critical Warning} drc.rpt Error} {
+  set fh [open $out/$rpt r]
+  set txt [read $fh]
+  close $fh
+  foreach line [split $txt "\n"] {
+    set f [split $line |]
+    if {[llength $f] >= 5 && [string trim [lindex $f 2]] eq $sev} {
+      lappend reasons "[file rootname $rpt] [string trim [lindex $f 1]] ($sev: [string trim [lindex $f 3]], [string trim [lindex $f 4]])"
+    }
   }
 }
 set pass [expr {[llength $reasons] == 0}]

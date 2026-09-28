@@ -188,7 +188,7 @@ capture. At 12 MHz, one capture holds about 116 probe frames.
 
 | Item | Used in | Notes |
 |---|---|---|
-| Digilent Cmod A7-35T or Real Digital Urbana, USB cable, 2 jumper wires | C | Capture-unit bitstreams `pe_cmod_a7_pll50.bit` / `pe_urbana_pll50.bit` in `$PE_WORK/fpga/bitstreams/v3-2026-09-27-scope/`. Nothing else is needed |
+| Digilent Cmod A7-35T or Real Digital Urbana, USB cable, 2 jumper wires | C | Capture-unit bitstreams `pe_cmod_a7_pll50.bit` / `pe_urbana_pll50.bit` in `$PE_WORK/fpga/bitstreams/vivado-2025.2-2026-09-27/` (Vivado, first choice) or `v3-2026-09-27-scope/` (openXC7). Nothing else is needed |
 | Digilent Cmod A7-35T | A, B, four protocols, chain | Bitstreams `pe_cmod_a7_host.bit`, `pe_cmod_a7_osc12.bit` and `pe_cmod_a7_pll50_bridgeonly.bit` ([fpga.md](fpga.md), "Build results"; stored under `$PE_WORK/fpga/bitstreams/`, not in git). The Urbana `host` and `pll50` builds work for A and for B at 50 MHz; the Urbana has no 12 MHz build. |
 | Raspberry Pi Pico or Pico 2, MicroPython | A | Host: runs `demo/pico_demo.py` with `host/pe_host` |
 | FX2-based 8-channel logic analyser (sigrok `fx2lafw`) | A, four protocols | 24 MHz, 3.3 V inputs |
@@ -902,9 +902,10 @@ one.
     at 50 MHz is a separate question ([hardening.md](hardening.md),
     [fpga.md](fpga.md) "Build results").
   - Experiment C runs at the bitstream's clock, 50 MHz with the `pll50`
-    builds. Its simulation ran the 12 MHz `osc12` top; the FPGA timing at
-    50 MHz is nextpnr's estimate, not a vendor sign-off ([fpga.md](fpga.md),
-    "Vivado sign-off flow").
+    builds. Its simulation ran the 12 MHz `osc12` top. The 50 MHz timing is
+    signed off in Vivado 2025.2 for the Vivado bitstreams and estimated by
+    nextpnr-xilinx for the openXC7 ones ([fpga.md](fpga.md), "Vivado
+    sign-off flow").
 - **Generality.**
   - It is one probe program, on one engine, for finite captures: a sample of
     behaviour, not a proof. The proof is the formal property; the measurement

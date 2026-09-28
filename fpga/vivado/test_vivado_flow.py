@@ -11,8 +11,9 @@
   CLOCKS=shared and CLOCKS=derived mode, and the verdict logic. Skipped when
   tclsh is not installed.
 * timing_check.py on report excerpts written in the layout of Vivado's
-  report_timing_summary / report_utilization (constructed for this test, not
-  output of a Vivado run).
+  report_timing_summary / report_utilization / report_methodology
+  (constructed for this test after the reports of the Vivado 2025.2 runs of
+  docs/fpga.md; not copies of them).
 """
 
 from __future__ import annotations
@@ -35,9 +36,19 @@ STUBS = r"""
 set ::log [open $::env(STUB_LOG) w]
 proc stub {name args} { puts $::log "$name $args"; flush $::log }
 foreach c {read_verilog read_xdc write_checkpoint report_utilization opt_design place_design
-           phys_opt_design route_design report_clocks report_drc report_methodology write_bitstream} {
+           phys_opt_design route_design report_clocks write_bitstream} {
   proc $c {args} "stub $c \$args"
 }
+proc stub_rules {name args sev} {
+  stub $name $args
+  set fh [open [lindex $args [expr {[lsearch $args -file] + 1}]] w]
+  puts $fh "| Rule      | Severity         | Description                      | Violations |"
+  puts $fh "| LUTAR-1   | Warning          | LUT drives async reset alert     | 1          |"
+  if {$sev ne ""} { puts $fh "| TIMING-4  | $sev | Invalid primary clock redefinition on a clock tree | 1      |" }
+  close $fh
+}
+proc report_methodology {args} { stub_rules report_methodology $args $::env(STUB_METHOD) }
+proc report_drc {args} { stub_rules report_drc $args $::env(STUB_DRC) }
 proc report_timing_summary {args} {
   stub report_timing_summary $args
   set f [lindex $args [expr {[lsearch $args -file] + 1}]]
@@ -75,14 +86,14 @@ def build_sources(board="cmod_a7"):
 
 @unittest.skipUnless(shutil.which("tclsh"), "tclsh not installed")
 class BuildTcl(unittest.TestCase):
-    def run_tcl(self, args, slack="1.5", no_clock="0"):
+    def run_tcl(self, args, slack="1.5", no_clock="0", method="", drc=""):
         with tempfile.TemporaryDirectory() as tmp:
             stub = Path(tmp) / "stub.tcl"
             stub.write_text(STUBS)
             log = Path(tmp) / "log.txt"
             out = Path(tmp) / "out"
             env = {"STUB_LOG": str(log), "STUB_SCRIPT": str(HERE / "build.tcl"), "STUB_SLACK": slack,
-                   "STUB_NOCLOCK": no_clock,
+                   "STUB_NOCLOCK": no_clock, "STUB_METHOD": method, "STUB_DRC": drc,
                    "STUB_ARGS": " ".join(a.replace("OUT", str(out)) for a in args), "PATH": "/usr/bin:/bin"}
             env["PATH"] = str(Path(shutil.which("tclsh")).parent) + ":" + env["PATH"]
             p = subprocess.run(["tclsh", str(stub)], env=env, capture_output=True, text=True, timeout=60)
@@ -91,7 +102,7 @@ class BuildTcl(unittest.TestCase):
             return p, calls, files
 
     def test_cmod_pll50_shared(self):
-        p, calls, files = self.run_tcl(["cmod_a7", "pll50", "OUT"])
+        p, calls, files = self.run_tcl(["cmod_a7", "pll50", "OUT", "CLOCKS=shared"])
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertIn("synth_design {-top pe_top_cmod_a7 -part xc7a35tcpg236-1}", calls)   # no empty define list
         srcs = [Path(l).name for l in files["sources.txt"].splitlines() if l.startswith("/")]
@@ -102,6 +113,23 @@ class BuildTcl(unittest.TestCase):
         self.assertIn("VIVADO TIMING PASS", files["vivado_timing.txt"])
         self.assertIn("write_bitstream {-force", calls)
         self.assertTrue(calls.index("read_xdc") < calls.index("synth_design"))
+
+    def test_default_is_derived(self):
+        p, calls, files = self.run_tcl(["urbana", "pll50", "OUT"])
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("# (CLOCKS=derived) create_clock -period 20.000 [get_nets { clk }]", files["clock.xdc"])
+        self.assertEqual(self.run_tcl(["urbana", "pll50", "OUT", "CLOCKS=netonly"])[0].returncode, 2)
+
+    def test_methodology_and_drc_fail(self):
+        p, calls, files = self.run_tcl(["cmod_a7", "pll50", "OUT"], method="Critical Warning")
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("methodology TIMING-4 (Critical Warning", files["vivado_timing.txt"])
+        self.assertNotIn("write_bitstream", calls)
+        p, calls, files = self.run_tcl(["cmod_a7", "pll50", "OUT"], drc="Error")
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("drc TIMING-4 (Error", files["vivado_timing.txt"])
+        p, calls, files = self.run_tcl(["cmod_a7", "pll50", "OUT"], method="Warning")
+        self.assertEqual(p.returncode, 0, files.get("vivado_timing.txt"))
 
     def test_derived_clocks_and_defines(self):
         p, calls, files = self.run_tcl(["cmod_a7", "osc12", "OUT", "CLOCKS=derived", "BRIDGE_ONLY=1",
@@ -195,6 +223,17 @@ UTIL = """
 """
 
 
+UTIL_METHOD = """
++-----------+------------------+----------------------------------+------------+
+| Rule      | Severity         | Description                      | Violations |
++-----------+------------------+----------------------------------+------------+
+| TIMING-2  | Critical Warning | Invalid primary clock source pin | 1          |
+| LUTAR-1   | Warning          | LUT drives async reset alert     | 1          |
+| TIMING-18 | Warning          | Missing input or output delay    | 45         |
++-----------+------------------+----------------------------------+------------+
+"""
+
+
 def summary(wns, tns, whs, ths, total=4000, no_clock=0, met="All user specified timing constraints are met."):
     row = (f"{wns:>11} {tns:>12} {0 if float(tns) == 0 else 7:>22} {total:>20} {whs:>12} {ths:>12} "
            f"{0 if float(ths) == 0 else 3:>22} {total:>20} {'8.750':>12} {'0.000':>12} {0:>23} {1200:>21}")
@@ -232,6 +271,17 @@ class TimingCheck(unittest.TestCase):
         rc, r = self.check(summary("inf", "0.000", "inf", "0.000", total=0))
         self.assertEqual(rc, 1)
         self.assertIn("no constrained setup endpoints", r["reasons"])
+
+    def test_rule_tables(self):
+        rows = timing_check.parse_rules(UTIL_METHOD)
+        self.assertEqual([(r["id"], r["severity"], r["violations"]) for r in rows],
+                         [("TIMING-2", "Critical Warning", 1), ("LUTAR-1", "Warning", 1), ("TIMING-18", "Warning", 45)])
+        with tempfile.TemporaryDirectory() as tmp:
+            rpt, meth = Path(tmp) / "t.rpt", Path(tmp) / "m.rpt"
+            rpt.write_text(summary("1.000", "0.000", "0.041", "0.000"))
+            meth.write_text(UTIL_METHOD)
+            self.assertEqual(timing_check.main([str(rpt), "--methodology", str(meth)]), 1)
+            self.assertEqual(timing_check.main([str(rpt)]), 0)
 
     def test_no_table(self):
         with tempfile.TemporaryDirectory() as tmp:
