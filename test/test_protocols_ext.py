@@ -283,7 +283,7 @@ async def swd_error(h: Harness, case: str) -> tuple[int, list[int]]:
         pushed.append(await h.read(3))
     if case == "write":
         assert target.edges == 0, "a rejected write header must not clock SWCLK"
-    assert not any("contention" in v for v in target.violations), target.violations
+    assert target.violations == [], target.violations
     await h.command(CLEAR, 1)
     return code, pushed
 
