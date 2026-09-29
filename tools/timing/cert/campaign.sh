@@ -51,6 +51,8 @@
 #                   defaults that keep the campaign at 128 CPUs or fewer)
 #   CERT_MAX_<list> concurrency of one list (short chunks cover neg lemma whole_long
 #                   retry)
+#   CERT_MAX_ARRAY  at most this many array tasks per list (default 60); a longer
+#                   list gets larger bundles (per-user submit limit)
 #   CERT_JOB_PREFIX job-name prefix (default pe-cert)
 #   CERT_CHUNK      split segments longer than this many steps (default 96)
 #   CERT_SHORT      whole-segment certificates of at most this many steps run in
@@ -224,6 +226,14 @@ submit)
     n=$(grep -c . "$list" 2>/dev/null || true)
     [ -f "$list" ] && [ "$n" -gt 0 ] || continue
     jobs=$(( (n + bundle - 1) / bundle ))
+    # Every array task counts against the per-user submit limit (448 on
+    # mit_preemptable), so a long list gets larger bundles instead of more
+    # tasks: at most CERT_MAX_ARRAY tasks per list.
+    cap=${CERT_MAX_ARRAY:-60}
+    if [ "$jobs" -gt "$cap" ]; then
+      bundle=$(( (n + cap - 1) / cap ))
+      jobs=$(( (n + bundle - 1) / bundle ))
+    fi
     lmax_var=CERT_MAX_$name
     lmax=${!lmax_var:-$max}
     sbatch --parsable -p "$parts" --requeue --array=0-$((jobs - 1))%"$lmax" -c "$cpus" --mem="$mem" -t "$time" \
