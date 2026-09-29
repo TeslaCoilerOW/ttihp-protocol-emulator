@@ -16,7 +16,11 @@ CERTDIR/results/NAME.TASK*.json (run_one.sh). Printed, one per line:
   needs far less memory (four chunk covers at once, yices alone, peaked at
   about 9 GB).
 - with --missing, a run without any result file (its Slurm task was killed or
-  lost before run_one.sh wrote the result): the same line again.
+  lost before run_one.sh wrote the result): the same line again, except that a
+  solver portfolio (an engine naming several solvers, e.g. boolector+yices)
+  becomes yices alone. A task is usually lost because the kernel killed it
+  for running out of memory (a bundle of chunk covers on the portfolio did
+  so at 32 GB), and the same portfolio would run out of memory again.
 
 Runs on ABC or rIC3 (engine bmc3 or ric3) are never repeated: they are the
 deep runs, which SMT BMC with yices does not reach, and a second attempt of
@@ -57,7 +61,10 @@ def retries(lists: list[Path], missing: bool = False) -> list[str]:
             if st and all(s == "ERROR" for s in st):
                 out.append(f"{certdir} {name} {task} yices")
             elif not st and missing:
-                out.append(line.strip())
+                if "+" in engine:                         # portfolio: yices alone
+                    out.append(f"{certdir} {name} {task} yices")
+                else:
+                    out.append(line.strip())
     return out
 
 

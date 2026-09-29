@@ -67,6 +67,14 @@ class RetryListTest(unittest.TestCase):
         self.assertEqual(R.retries(lists), [])
         self.assertEqual(R.retries(lists, missing=True), [f"{self.long} cert_a_n2_c3 bmc"])
 
+    def test_missing_portfolio_run_is_repeated_with_yices_alone(self):
+        # its Slurm task was killed (out of memory) before a result was written
+        lists = self.lists(cover=[f"{self.long} cert_a_n2_c0 cover boolector+yices",
+                                  f"{self.certs} cert_a_n3 cover yices"])
+        self.assertEqual(R.retries(lists), [])
+        self.assertEqual(R.retries(lists, missing=True),
+                         [f"{self.long} cert_a_n2_c0 cover yices", f"{self.certs} cert_a_n3 cover yices"])
+
     def test_abc_runs_are_not_repeated(self):
         result(self.certs, "cert_a_n4", "bmc", "bmc3", "ERROR")
         lists = self.lists(whole=[f"{self.certs} cert_a_n4 bmc bmc3", f"{self.certs} cert_a_n5 bmc bmc3"],
