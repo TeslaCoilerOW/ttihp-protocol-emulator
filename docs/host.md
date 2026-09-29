@@ -536,18 +536,22 @@ same pad against each other. A test in
    under manual clocking. It then PWM-clocks the chip
    (`tt.clock_project_PWM`), stops, and drains engine 2's RX. The example
    firmware counts time in system clocks, so the peripheral rates scale with
-   `F`. The unchanged `uart-tx`/`uart-rx` images use 64 clocks per bit, so
-   F = 7.3728 MHz gives 115200 baud (7372800 / 64 = 115200). Or reassemble
-   the firmware with `--half-period` ([firmware.md](firmware.md)).
-   Engine 1 ends in its expected fault 3 (see [Scenarios](#scenarios)), which
-   `run_flagship` clears after STOP so it can read the host fault. Because of
-   that bounded wait, engine 1 only receives characters whose start bit
-   comes within twelve bit periods of START or of the previous character's
-   stop bit. The UART-to-SPI route therefore carries data only if the sender
-   is already transmitting back to back when START is issued; characters
-   typed by hand are not received. This has not been tried on hardware. For
-   longer gaps, reassemble `uart-rx` with a larger LIMIT
-   ([firmware.md](firmware.md)).
+   `F`. The `uart-tx` and `uart-rx-idle` images use 64 clocks per bit, so
+   F = 7.3728 MHz gives 115200 baud (7372800 / 64 = 115200), and F = 64 times
+   the baud rate gives any other rate. `uart-tx` can also be reassembled with
+   `--half-period` ([firmware.md](firmware.md)); `uart-rx-idle` is written
+   for 64 clocks per bit and is not a built-in, so that option does not apply
+   to it. Engine 1 runs `uart-rx-idle`, which waits for each start bit in a
+   polling loop with no bound, so it does not fault while the line is idle and
+   receives characters whenever they arrive after START, including characters
+   typed by hand. The route forwards the first 8 to the SPI engine; later ones
+   wait in engine 1's RX queue, and when that queue is full the next one halts
+   engine 1 with fault 4. `flagship_demo.main` free-runs for the default
+   200,000 cycles (about 27 ms at 7.3728 MHz). To type by hand, call
+   `run_flagship` with a larger `free_run_cycles`, for example 73,728,000
+   (10 s at 7.3728 MHz). This has not been tried on hardware. The bounded
+   `uart-rx` image, which faults with code 3 after twelve idle bit periods,
+   is still in `firmware/` for runs that must detect a stuck line.
 6. **Capture the pads.** Attach a logic analyzer to uio[7:0], or record from
    the RP2 with `peers.PadCapture` during a software-peer run.
 

@@ -8,6 +8,7 @@ the guarantees and the results are in
 |---|---|
 | `pe_timing.py` | Decoder, abstract execution, boundary graph, event-distance queries, summaries and the CLI. |
 | `pe_contracts.py` | Timing declarations parsed from image notes and `docs/firmware.md`, and the per-protocol checks: UART, SPI controller/target, I2C controller/target (UM10204 limits), JTAG, waveform, event transmitter. Also the flagship scenario checks and the report writer. |
+| `pe_contracts_ext.py` | The checks of the SWD (ADIv5), WS2812B (both datasheet tables), PS/2 device and host (Chapweske) and 1-Wire (AN126, DS18B20 limits) images, registered by `pe_contracts.py`; `test_pe_contracts_ext.py` holds their negative controls. |
 | `pe_validate.py` | Ground truth. Traces the Python reference model (`test/model/`) and checks every observed edge against the static schedule. Contains the workload suites, the mutant negative controls and the merge step. |
 | `pe_margins.py` | Margin experiments: the static protocol limits compared with sweeps of external timing in the model. |
 | `test_pe_timing.py` | `unittest` tests. Set `PE_TIMING_REPO` to point at another checkout. |

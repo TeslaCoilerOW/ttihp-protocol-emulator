@@ -14,4 +14,16 @@ in separate retained execution records tied to exact source and RTL hashes.
 In this repository, `test/test_flagship.py` runs the scenario against the
 generated RTL in lockstep with the reference model (`test/README.md`).
 
+Six images are explicit source files rather than OCaml built-ins:
+`swd-read` (Arm SWD reads, 60 of 64 words), `ws2812` and `ws2812b-v5`
+(WS2812B LED data, 22 words each), `ps2-device` and `ps2-host` (PS/2 in both
+directions, 45 and 49 words) and `onewire-master` (1-Wire reset, presence and
+byte slots, 28 words). Their images are assembled from these files with
+`assemble.exe --source`, which reproduces the committed bytes. The protocol
+subset, timing, cited specification and limits of each are in
+[docs/firmware.md](../docs/firmware.md#swd-ws2812b-ps2-and-1-wire-images); the
+timing contracts are in `tools/timing/pe_contracts_ext.py` and the pin-level
+tests in `test/test_protocols_ext.py` (run explicitly, not part of `make` or
+the gate-level test).
+
 Protocol examples are project-authored code, not third-party device firmware.
