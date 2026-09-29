@@ -20,6 +20,7 @@
 #                                    boolector killed for running out of
 #                                    memory) again with yices alone, and every
 #                                    run without a result again as it was
+#                                    (a solver portfolio as yices alone)
 #                                    (retry_list.py), as one more array (list
 #                                    retry); with 'record', then a record job
 #                                    that waits for it
@@ -291,7 +292,7 @@ retry)
   elif [ ${#lists[@]} -gt 0 ]; then
     python3 "$HERE/retry_list.py" --missing "${lists[@]}" > "$WORK/tasks_retry.txt"
     n=$(grep -c . "$WORK/tasks_retry.txt" || true)
-    echo "campaign.sh retry: $n run(s) to repeat (ERROR: again with yices alone; no result: again as they were)"
+    echo "campaign.sh retry: $n run(s) to repeat (ERROR: again with yices alone; no result: again as they were, a portfolio as yices alone)"
     sed 's/^/  /' "$WORK/tasks_retry.txt"
     if [ "$n" -gt 0 ]; then
       retry_id=$(CERT_MAX_retry=${CERT_MAX_retry:-8} "$HERE/campaign.sh" submit "$WORK" retry \
