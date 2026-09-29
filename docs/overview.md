@@ -1,6 +1,6 @@
 # Overview
 
-State as of 2026-09-28. This page summarizes what the chip does, how it is
+State as of 2026-09-29. This page summarizes what the chip does, how it is
 built, and how it compares with RP2040 PIO and with three other public
 entries. The verification argument is in [verification.md](verification.md),
 the evidence for every number in [results.md](results.md), and the limits in
@@ -15,8 +15,9 @@ waveform on pins that engine owns, out of eight shared bidirectional pins. The
 engines run concurrently and signal each other through events. An on-chip mover
 forwards received words from one engine to another, so a bridge such as UART
 receive into SPI transmit runs without the host. The design of record is the
-8x4-tile build, signed off at 15 ns and operated at 50 MHz. There is no silicon
-and no hardware result yet.
+8x4-tile build, signed off at 15 ns and operated at 50 MHz; 8x4 confirmed by
+the organizers (2026-09-28), and a 6x4 build is kept green in CI as a
+fallback. There is no silicon and no hardware result yet.
 
 ## Architecture in brief
 
@@ -81,7 +82,7 @@ change quickly; check again before quoting.
 
 | | This entry | [loom] | [MarcosAsh] | [kaikino] |
 |---|---|---|---|---|
-| HDL, tiles, clock | Hardcaml; 8x4; 50 MHz, signed off at 15 ns | Verilog [L-hdl]; 6x4; 50 MHz [L-tiles], about 42 MHz at the slow corner [L-clk] | Hardcaml [M-hdl]; 6x4; 50 MHz [M-die] | SystemVerilog; 8x4; 40 MHz [K-info] |
+| HDL, tiles, clock | Hardcaml; 8x4 (confirmed by the organizers, 2026-09-28); 50 MHz, signed off at 15 ns | Verilog [L-hdl]; 6x4; 50 MHz [L-tiles], about 42 MHz at the slow corner [L-clk] | Hardcaml [M-hdl]; 6x4; 50 MHz [M-die] | SystemVerilog; 8x4; 40 MHz [K-info] |
 | Execution | 4 engines, private fetch | 4 threads on one pipeline, strict round robin [L-exec] | 2 cores [M-exec] | 2 PIO engines [K-exec] |
 | Program store | 64 × 32 bits per engine, SRAM | 512 × 16 bits, shared SRAM [L-mem] | 512 words per core, SRAM, plus a shared 512-word data SRAM [M-mem] | 128 × 16 bits per engine, flops [K-tab], [K-flops] |
 | Timing in the ISA | `WAIT`, `XFER`; no delay or side-set field | per-thread deadline (`WAITD`) checked by the assembler [L-time] | delay field, side-set of up to 2 pins, deadline register [M-isa], [M-fifo] | one clock per instruction, 12-bit `DELAY` [K-tab], [K-time] |
@@ -90,21 +91,24 @@ change quickly; check again before quoting.
 | Timing proof | per image on the RTL ([timing-certificates.md](timing-certificates.md)), extended by an unbounded isolation proof per engine in which host traffic is free except the commands that control that engine | per-thread isolation on a two-copy miter, with the host debug port quiet [L-iso], [L-quiet] | any program its kernel accepts meets its deadlines, per engine; composing two engines not yet proved; host traffic never reaches the pins [M-kernel], [M-one], [M-host] | nine safety properties proved, including pin sharing [K-formal], [K-pins] |
 | Host link | synchronous nibble port; no queue service while the clock free-runs | SPI, SCK sampled by the core clock, at least 8 clocks per period [L-spi] | SPI, oversampled by the core clock, SCK at most clk/8 [M-spi], [M-spi2] | SPI mode 0, oversampled by the core clock [K-spi] |
 | Netlist vs RTL | formal sequential equivalence in CI ([equivalence.md](equivalence.md)), gate-level tests | gate-level cocotb suite in CI [L-gl] | gate-level tests; "No proof says it equals the RTL" [M-net] | the same suite on RTL, FPGA and gate-level netlists [K-net] |
-| Firmware | UART, SPI and I2C (controller and target), JTAG, a timed waveform, an event transmitter ([firmware/](../firmware/README.md)) | 13 programs, including WS2812, PS/2, SWD, CAN and a USB-LS HID mouse [L-fw] | 18, including USB-LS keyboard and mouse (the board answers control requests), 10BASE-T UDP transmit, 1-Wire, PS/2, WS2812 [M-fw], [M-usb] | 20 microprograms, including SWD, PS/2, CAN transmit, USB-LS packets and Manchester Ethernet frames [K-ex], [K-lim] |
+| Firmware | UART (including a receiver that tolerates an idle line), SPI and I2C (controller and target), JTAG, SWD reads, WS2812B, PS/2 (device and host), a 1-Wire master, a timed waveform, an event transmitter ([firmware/](../firmware/README.md)); simulation only | 13 programs, including WS2812, PS/2, SWD, CAN and a USB-LS HID mouse [L-fw] | 18, including USB-LS keyboard and mouse (the board answers control requests), 10BASE-T UDP transmit, 1-Wire, PS/2, WS2812 [M-fw], [M-usb] | 20 microprograms, including SWD, PS/2, CAN transmit, USB-LS packets and Manchester Ethernet frames [K-ex], [K-lim] |
 | Other | | | | delay lines timing edges to about 0.22 ns; a trace buffer [K-tdc] |
 | Hardware runs | none | none [L-hw] | none [M-hw] | not stated in the [README][K-readme] or [submission.md][K-sub] |
 
 **Where this entry is behind.**
 
-- Protocol breadth: the design of record has no SWD, PS/2, WS2812, 1-Wire,
-  CAN or USB firmware; each of the other three ships several of these.
+- Protocol breadth: the design of record has no CAN or USB firmware (the
+  extension variant below adds the line unit they need), and its SWD image
+  only reads. The SWD, WS2812B, PS/2 and 1-Wire images, added in `e64cd6b`,
+  are checked against peers written in this repository, not third-party
+  ones, and have no timing certificate yet.
 - Host link: serving queues needs the host to clock the chip, while the other
   three have SPI host ports oversampled by the core clock [L-spi], [M-spi2],
   [K-spi].
-- Generality of the timing proof: certificates are per image, and the three
-  I2C controller images revised after the certificate run await
-  re-certification. MarcosAsh's kernel covers every accepted program on one
-  engine.
+- Generality of the timing proof: certificates are per image. The 19
+  images committed at `24f31f0` are certified; the 7 added in `e64cd6b` are
+  not yet, and a cluster campaign on `6a3ea08` is to certify them.
+  MarcosAsh's kernel covers every accepted program on one engine.
 - Code density: 32-bit instructions without delay or side-set fields, 64 per
   engine; the others use 16-bit instructions [L-isa], [M-isa], [K-exec] and
   128 or 512 words.
@@ -128,8 +132,9 @@ firmware in `firmware/ext/` sends a 10BASE-T UDP frame, runs a subset of a CAN
 chip. The variant passed the official `gds`, `precheck` and `gl_test` actions
 on branch `eval/diet8-rec16`, and its official netlist is equivalent to its
 RTL. It is not the design of record. Adopting it changes `src/` and the ISA
-version, and it depends on the tile size: at 6x4 the study keeps only a
-degraded form with 2-word queues. The decision is open
+version. It was built at 8x4, the tile size the organizers confirmed
+(2026-09-28); on the 6x4 fallback the study keeps only a degraded form with
+2-word queues. The decision is open
 ([extension.md](extension.md) section 9, [extension-study.md](extension-study.md) section 9).
 
 [rp2040]: https://datasheets.raspberrypi.com/rp2040/rp2040-datasheet.pdf

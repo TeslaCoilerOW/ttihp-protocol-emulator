@@ -8,7 +8,9 @@ world. The tool then checks the protocol timing the image declares. This page
 explains the method and states what is and is not guaranteed. It also covers
 how the results combine with the formal timing-isolation proof
 (`formal/README.md`) into an end-to-end claim. Finally it gives the results for
-the 19 committed images and the flagship scenario. The numbers come from
+the 19 images committed at `24f31f0` and the flagship scenario (the committed
+report in `tools/timing/report/` covers all 26 images; results.md R40c). The
+numbers come from
 commit 73536f0, except those for the three I2C controller images regenerated
 after it (Results, Findings 1 to 3 and 8).
 
@@ -152,13 +154,26 @@ The images were first analyzed at commit 73536f0: 182 PASS, 1 FAIL, 3 WARN,
 
 The three I2C controller images were then regenerated from
 `hardcaml/lib/firmware.ml` with Findings 1 to 3 addressed; the other 16 images
-are byte-identical. For the regenerated set the report gives 183 PASS, 0 FAIL,
-0 WARN, 55 INFO (Slurm jobs 23975273 and 23986537). Apart from the I2C
-controller rows, every check has the same status and text as before. The
-flagship engine-3 WCET between boundaries changes from 107 to 106 cycles.
-`tools/timing/report/` holds the report for the regenerated set (every check,
+are byte-identical. For the regenerated set the report gave, at the time,
+183 PASS, 0 FAIL, 0 WARN, 55 INFO (Slurm jobs 23975273 and 23986537). Apart
+from the I2C controller rows, every check has the same status and text as
+before. The flagship engine-3 WCET between boundaries changes from 107 to 106
+cycles.
+
+`e64cd6b` added seven images, each with its contract in
+`tools/timing/pe_contracts.py` or `tools/timing/pe_contracts_ext.py`:
+`uart-rx-idle`, which became the flagship's engine 1, and the SWD, WS2812B,
+PS/2 and 1-Wire images of [firmware.md](firmware.md). The report over all 26
+images and the flagship gives 252 PASS, 0 FAIL, 0 WARN, 65 INFO (regenerated
+after that commit, Slurm job 24301869). The checks of the 19 earlier images
+are unchanged (175 PASS, 55 INFO), the seven new images add 69 PASS and 10
+INFO, and the flagship's checks keep their statuses; their text now names
+`uart-rx-idle` on engine 1, whose WCET between boundaries is 606 cycles
+(`uart-rx`: 618). `tools/timing/report/` holds this report (every check,
 boundary table and edge schedule), with the validation summary of run r8
-below. The table describes the regenerated set.
+below, which covers the 19 earlier images; the new images were validated
+separately ([firmware.md](firmware.md), "SWD, WS2812B, PS/2 and 1-Wire
+images"; results.md R40c). The table describes the 19 earlier images.
 
 | image(s) | key static results |
 |---|---|

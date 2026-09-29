@@ -53,7 +53,8 @@ ownership is set by the host.
    own stall points; apart from `START`, `STOP` and `BEGIN`, the host port and
    the mover never delay its instructions. The mover forwards words from one
    engine's RX queue to another's TX queue without the host
-   ([docs/architecture.md](docs/architecture.md)).
+   ([docs/architecture.md](docs/architecture.md)). The pad-level form of this
+   isolation is proved on the RTL, unbounded, for each engine (item 2).
 2. **Per-image timing certificates, extended by an isolation proof.** For each
    firmware image, a static analyzer predicts the clock edge of every pad
    change, and generated SymbiYosys proofs check that schedule on the RTL; an
@@ -65,17 +66,26 @@ ownership is set by the host.
    flow sequentially equivalent to the RTL, for the 8x4 build and the 6x4
    fallback; an undecided result fails ([docs/equivalence.md](docs/equivalence.md)).
 
-How these fit with the other checks, and what they do not establish, is in
+Each piece is checked by a tool on its own: the per-segment certificates of
+each image and the lemmas that chain its segments, the per-engine isolation
+proof, the netlist equivalence, and the static timing analysis of the layout
+in the Tiny Tapeout flow. That they compose into one guarantee (the pads of
+a loaded image change on the predicted clock edges in the hardened netlist,
+whatever the other engines do and whatever the host does short of commands
+to that engine) is a written argument over these separate results, not a
+single machine-checked proof
+([docs/timing-certificates.md](docs/timing-certificates.md) section 3). How
+these fit with the other checks, and what they do not establish, is in
 [docs/verification.md](docs/verification.md).
 
-## Status (2026-09-28)
+## Status (2026-09-29)
 
 | | |
 |---|---|
-| Official build, 8x4 | The Tiny Tapeout `gds`, `precheck` and `gl_test` jobs pass. The `viewer` job fails because GitHub Pages is not enabled; it only publishes a preview, but it turns the gds badge red. |
+| Official build, 8x4 | The Tiny Tapeout `gds`, `precheck` and `gl_test` jobs pass. The `viewer` job, which only publishes a preview, failed in every run so far because GitHub Pages was not enabled, and that turns the gds badge red. Pages was enabled after the last run (on `24f31f0`). |
 | Clock | Signed off at 15 ns (66.7 MHz), with setup and hold met at all three corners; operated at 50 MHz. Operation above 50 MHz is not claimed. |
-| 6x4 fallback | The `diet4` variant (4-word queues, 7-bit PC, byte-lane shifts) passes `gds`, `precheck` and `gl_test` in the `gds_6x4` workflow at 20 ns (50 MHz). Whether 8x4 is allowed is still to be confirmed by the organizers. |
-| Timing certificates | Proved for the 19 images committed at `c118027`, sixteen of which are unchanged. The three I2C controller images revised since then, and any image added later, await certification. |
+| Tile size | 8x4 confirmed by the organizers (2026-09-28). The 6x4 build is a fallback kept green in CI: the `diet4` variant (4-word queues, 7-bit PC, byte-lane shifts) passes `gds`, `precheck` and `gl_test` in the `gds_6x4` workflow at 20 ns (50 MHz). |
+| Timing certificates | All 19 images committed at `24f31f0` are certified: 350 of 350 segments proved, the 22 long segments also as 127 chunks, 455 covers reached; 132 of 132 negative controls and 52 of 52 chunk-level ones fail as required; 3 of 5 RTL timing mutants caught. The 7 images added since (`uart-rx-idle` and the SWD, WS2812B, PS/2 and 1-Wire images) have no certificate yet; a cluster campaign on `6a3ea08` is to certify them. |
 | Silicon and hardware | No silicon: nothing has been measured on a chip. FPGA bitstreams exist, but no board has been programmed yet, and the host library has not run on hardware. |
 | Details | [docs/signoff-history.md](docs/signoff-history.md): official runs, superseded configurations and the 50 MHz re-analysis. [docs/results.md](docs/results.md): every number with its evidence. |
 
@@ -104,6 +114,7 @@ make generate            # scripts/generate.sh configs/instruction-sram-32.json
 make check-generated     # regenerate and fail if the committed core differs (the regen action)
 make lint                # iverilog, yosys hierarchy and verilator -Wall
 (cd test && pip install -r requirements.txt && make clean && make)   # cocotb suite on the RTL
+(cd test && make COCOTB_TEST_MODULES=test_protocols_ext)             # SWD, WS2812B, PS/2 and 1-Wire images (RTL)
 formal/run.sh --list     # SymbiYosys job names; formal/run.sh runs them all (the formal action)
 make reproduce           # the local checks behind docs/results.md; reproduce-full adds the longer ones
 ```

@@ -642,6 +642,12 @@ The differentiators in the plan's Differentiation section (four concurrent engin
 
 ## 9. Go/no-go recommendation
 
+**Note added 2026-09-29.** This section is revision 3 as written on
+2026-09-25. Since then 8x4 was confirmed by the organizers (2026-09-28), so
+the 6x4 line below describes a fallback only, and `diet8` + `REC16` was
+built as a variant on branch `eval/diet8-rec16` ([extension.md](extension.md)).
+The adoption decision is still open.
+
 **Minimal feature set (`REC16`).** It adds +69.0K µm² of TT synthesis and 68 flops per engine:
 1. line XFER mode with a ticker that shares the XFER registers;
 2. the 8-bit fraction;

@@ -539,14 +539,16 @@ gives 434 clocks per bit, which is 115,207 baud at 50 MHz.
 - The host port is synchronous and its inputs are not synchronized, so the host
   must share the chip clock.
 - UART has no flow-control wire. When engine 1's RX queue is full, the strict
-  `PUSH` halts `uart-rx` with fault code 4. It keeps that byte in `rx`, where
-  READ_SELECT 6 reads it. Read it before `CLEAR` and `START`, because `START`
+  `PUSH` halts `uart-rx-idle` (or `uart-rx`) with fault code 4. It keeps that
+  byte in `rx`, where READ_SELECT 6 reads it. Read it before `CLEAR` and `START`, because `START`
   resets the datapath registers. Bytes that arrive after the fault are lost, so the
   sender must not send faster than the host or the mover drains the queue.
 - `WAITPIN` and `WAITEVENT` are bounded. They fault with code 3 after `LIMIT`
   blocked cycles. `LIMIT` defaults to 65535 cycles (about 1.3 ms at 50 MHz),
   and the maximum is 16,777,215. `uart-rx` waits at most 12 bit periods for an
-  idle line or a start bit. `PULL` and a blocking `PUSH` wait with no limit.
+  idle line or a start bit. `uart-rx-idle`, the flagship's receiver, polls
+  for them with `IN`, `XOR` and `JZ` instead, so its waits have no limit.
+  `PULL` and a blocking `PUSH` wait with no limit.
 - Mailboxes are single pending bits, so repeated events coalesce.
 - Inputs are sampled through a two-flip-flop synchronizer. Pulses must satisfy
   that sampled-input contract; asynchronous pulse capture is not supported. SPI

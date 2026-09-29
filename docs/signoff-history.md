@@ -4,7 +4,9 @@ This page keeps the detailed sign-off record that `README.md` carried until
 2026-09-28: the status text, the table of official runs with the superseded
 configurations, the 50 MHz re-analysis, the 6x4 notes, the provenance notes
 and the milestone plan. The README now keeps a short status summary and links
-here.
+here. The sections after the moved text record what changed since the move:
+[Updates since the move](#updates-since-the-move-2026-09-29) and
+[A 13.33 ns build on a branch](#a-1333-ns-build-on-a-branch-not-adopted).
 
 The two sections below are moved verbatim from `README.md` at commit
 `24f31f0`: its "Status" section, and the paragraph of its "Hardening"
@@ -138,3 +140,46 @@ flow of record. Local LibreLane runs use the same configuration and are for
 iteration; until an official run finishes, the Status section quotes the
 local sign-off of the committed configuration and labels it local. [docs/hardening.md](hardening.md) covers the recipe, the
 SRAM macro integration and what remains open.
+
+## Updates since the move (2026-09-29)
+
+The moved text above is kept as written on 2026-09-27. These points
+supersede parts of it:
+
+- **Tile size.** 8x4 confirmed by the organizers (2026-09-28). The 8x4
+  build is the submission; the 6x4 build (`diet4`, `gds_6x4`) is a fallback
+  kept green in CI. Its latest run, 36391218297 on `24f31f0`, passed all
+  five jobs ([results.md](results.md) section 2d). This supersedes the
+  "Tile size" item above ("8×4 still has to be confirmed").
+- **Milestones.** The 2026-09-30 item "organizer questions sent (8×4, SRAM
+  macros, submission format)" is done: 8x4 confirmed by the organizers
+  (2026-09-28).
+- **Later official runs of `main`.** `65cb65c` and `24f31f0` passed `gds`,
+  `precheck` and `gl_test` with the design of `d76f1cc`, and their netlists
+  were checked equivalent to the RTL ([results.md](results.md) section 2d,
+  R93 and R93b).
+- **Pages.** GitHub Pages was enabled after the last `gds` run (36391218317,
+  on `24f31f0`), whose `viewer` job still failed for that reason; the next
+  run shows whether the `viewer` job passes.
+
+## A 13.33 ns build on a branch (not adopted)
+
+The optimizer's 13.33 ns (75.0 MHz) promotion p033 was built by the official
+Tiny Tapeout actions on branch `cand/13p33-p033` (commit `3a1ef99`, run
+[36373555394](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36373555394)).
+The branch changes only `src/config.json` (`CLOCK_PERIOD` 13.33 and p033's
+flow keys and macro placement) and `variants6x4/PROVENANCE.json`; the RTL
+and `info.yaml` (`clock_hz` 50000000) are those of `main`.
+
+| Check | `3a1ef99`, 13.33 ns, run 36373555394 (branch; not the design of record) |
+|---|---|
+| gds | PASS (3 h 52 min): utilization 65.30%; route DRC 0; LVS 0; antenna 0 |
+| Setup at the flow's period | 13.33 ns: typical +4.78 ns, fast +6.08 ns, slow +0.47 ns; 0 violating endpoints |
+| Hold | met at every corner (worst +0.151 ns, fast corner); 0 violations |
+| precheck | PASS ("Precheck passed") |
+| gl_test | PASS: 102 tests, 46 pass, 56 skipped by design at gate level, 0 fail |
+
+It is not the design of record. The design of record keeps the 15 ns
+sign-off of `d76f1cc` (the table above) and the 50 MHz operating clock, and
+operation above 50 MHz is not claimed. The branch and its run are kept as
+evidence only ([results.md](results.md) section 2e, R96).

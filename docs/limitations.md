@@ -7,7 +7,8 @@ RTL with the LibreLane settings of optimizer promotion p010 in
 `src/config.json`, and on 2026-09-27 for `d76f1cc`, which constrains the
 flow at 15 ns (66.7 MHz; optimizer promotion p018) while the operating
 clock stays 50 MHz. On 2026-09-28 every item was checked again against
-`24f31f0`. Items that no longer hold are kept and marked
+`24f31f0`, and on 2026-09-29 the items on tile size, certificates, CI and
+the firmware added in `e64cd6b` were updated. Items that no longer hold are kept and marked
 **Resolved**, **Obsolete** or **Superseded**, with their evidence. Each item names the
 evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
 
@@ -254,11 +255,14 @@ them.
   example a synchronous START of all four engines, at 0.36 per 1,000 default
   cases. Behaviour outside the defined bins is not measured.
 - **Gate-level simulation is partial.** In the official gl_test of `131e793`
-  it runs 46 of the 102 tests; 56 skip (R15). For `c118027` it ran 36 of
-  66 (R3). The 56 skipped tests (from the run's `results.xml`) are the 7
+  it runs 46 of the 102 tests; 56 skip (R15). At the time of `c118027` it
+  ran 36 of 66 (R3). The 56 skipped tests (from the run's `results.xml`) are the 7
   time-warp tests, 17 of the 25 legacy replays, 26 of the 36 `test_kill_*`
   tests, 3 of the 5 counter tests and 3 of the 14 directed tests: long
-  tests, and tests that use the time warp, which works only on RTL. It is
+  tests, and tests that use the time warp, which works only on RTL. Since
+  `e64cd6b` the suite has 107 tests: the 5 `uart-rx-idle` tests of
+  `test_flagship.py` also skip at gate level, so 46 run and 61 skip (R28;
+  no official gl_test has run on that suite yet). It is
   zero-delay, without SDF, and uses the FUNCTIONAL SRAM models. It checks the netlist's logic, not its timing.
 - **The time-warp tests are white-box.** They deposit reachable counter
   values into RTL registers, and they run only on RTL. Gap closure killed
@@ -283,6 +287,16 @@ them.
   defects of their own (BL-19). The skew corners model the order of
   same-edge changes, not pad delays, slew, set-up or hold. The JTAG peer is
   a RISC-V debug transport module, not a conformant IEEE 1149.1 TAP.
+- **The SWD, WS2812B, PS/2 and 1-Wire images have no third-party peer.**
+  `test/test_protocols_ext.py` checks them against peers written in this
+  repository from the cited documents, not vendored from elsewhere, and
+  their protocol subsets are limited: SWD reads only (no writes, no WAIT
+  retry, no dormant wake-up or multi-drop); the PS/2 host sends no inhibit
+  between commands and does not read unsolicited device frames; 1-Wire has
+  no overdrive, strong pull-up or Search ROM ([firmware.md](firmware.md)).
+  The idle-tolerant `uart-rx-idle`'s sample points are recorded from the
+  reference model, with the DUT checked in lockstep on its outputs, at RTL
+  only.
 - **The timing analyzer is validated against the model.** It works at ISA
   level and was checked against the reference model, not against the RTL
   directly. The end-to-end timing argument ([timing-analysis.md](timing-analysis.md),
@@ -317,11 +331,12 @@ them.
   The Magic illegal overlaps, power stripes over the macros' Metal4
   obstruction band, are waived by configuration: 86 in the build of
   `131e793`, 84 in that of `c118027`.
-- **Tile size.** The official build is 8x4 tiles. That the competition
-  accepts 8x4 is not confirmed in this repository. The 6x4 fallback
-  (`diet4`, [6x4.md](6x4.md)) is built by the `gds_6x4` workflow at
-  `CLOCK_PERIOD` 20, so it is signed off at 50 MHz only, not at the 15 ns
-  of the 8x4 build (section 2):
+- **Tile size.** The official build is 8x4 tiles; 8x4 confirmed by the
+  organizers (2026-09-28). (Until 2026-09-28 this item read: "That the
+  competition accepts 8x4 is not confirmed in this repository.") The 6x4
+  build is a fallback kept green in CI: `diet4` ([6x4.md](6x4.md)), built by
+  the `gds_6x4` workflow at `CLOCK_PERIOD` 20, so it is signed off at
+  50 MHz only, not at the 15 ns of the 8x4 build (section 2):
   - Its configuration before `25e331e` passed gds, precheck and gl_test in
     runs 36225500529 and 36238342669, with slow-corner setup −2.80 ns
     (results.md, R80).
@@ -361,29 +376,49 @@ them.
   the design of record does not run. Otherwise these commits change the
   tests, the hardening configuration, the tools and the documentation.
   Their official CI results are in results.md, sections 2, 2b and 2d.
-- **The timing certificates cover 16 of the 19 images at `24f31f0`.** They
-  were proved for the images committed at `c118027`; the three I²C
-  controller images changed in `fb79f31` and await re-certification
-  (results.md R42).
+- **Resolved at `24f31f0`: the certificates of the three revised I²C
+  images.** Until the `24f31f0` campaign this item read: "The timing
+  certificates cover 16 of the 19 images at `24f31f0`", because the I²C
+  controller images changed in `fb79f31` had not been certified again. The
+  campaign on `24f31f0` certified all 19 images: 350 of 350 segments, the
+  22 long segments also as 127 chunks, 455 covers reached, 132 of 132
+  negative controls and 52 of 52 chunk-level ones failing as required, and
+  3 of 5 RTL timing mutants caught (results.md R42b).
+- **The 7 images added in `e64cd6b` have no timing certificate yet.**
+  `uart-rx-idle` (the flagship's engine 1 since that commit) and the SWD,
+  WS2812B, PS/2 and 1-Wire images are to be certified by a cluster campaign
+  on `6a3ea08` ([timing-certificates.md](timing-certificates.md) section 8).
+  Until it is recorded, the `certs` workflow's staleness check fails for
+  them. The six SWD, WS2812B, PS/2 and 1-Wire images need more proof runs
+  than the CI budget allows, so only the cluster campaign certifies them.
 - **Not all raw data is public.** Per-seed results, raw per-test logs and
   the job logs stay on the cluster. The repository keeps summaries. The
   89.4% gap-closure summary is not committed (results.md, section 9, item
   4). The per-mutant status of the 96.82% push and of the `diet4` rerun is
   in `campaigns/mutation/results/push-4bd30c8/` and `diet4-102/`
   (`summary.json`, `mutant_status.tsv`; item 11).
-- **CI runs only part of the suite.** On every push it runs `regen`, lint,
-  the cocotb RTL suite, the 16 `formal/` jobs, `docs`, `gds`, `precheck`
-  and `gl_test`; on each push of `main` also the 6x4 build (`gds_6x4`);
-  and after each `gds` and `gds_6x4` build of `main` the RTL-vs-netlist
-  equivalence check (`formal_eq/`). The
-  `consistency` workflow checks the documentation against the repository
-  (`tools/evidence/`). CI does not run `formal_depth/`, `test_ext/`, the
-  host tests, `pe_timing`, the timing certificates, the variants, the FPGA
-  flow or the campaigns; `scripts/reproduce.sh --full` runs the local
+- **CI runs only part of the suite.** On every push it runs `regen` (with
+  the Hardcaml unit and waveform expect tests in a separate job), lint, the
+  cocotb RTL suite, `test/test_protocols_ext.py` on RTL (a separate job),
+  the 16 `formal/` jobs, `docs`, `gds`, `precheck` and `gl_test`; on each
+  push of `main` also the 6x4 build (`gds_6x4`); and after each `gds` and
+  `gds_6x4` build of `main` the RTL-vs-netlist equivalence check
+  (`formal_eq/`). The `consistency` workflow checks the documentation
+  against the repository (`tools/evidence/`). The `certs` workflow checks on
+  every push that each committed image has a certificate for its current
+  hash; when firmware, the RTL inputs or the tools change, it proves the
+  affected images whose proofs fit its budget of 200 runs, and when the
+  lemma files, the generator or the RTL inputs change, it re-runs the
+  lemmas. Outside CI, on the cluster or locally, run `formal_depth/`,
+  `test_ext/`, the host tests, the `pe_timing` report and its validation,
+  the certificate campaigns of images over that budget, the variants, the
+  FPGA flow and the campaigns; `scripts/reproduce.sh --full` runs the local
   ones.
-- **The Pages viewer fails.** The `viewer` job fails because GitHub Pages is
+- **The Pages viewer failed.** In every `gds` run so far, up to the one on
+  `24f31f0` (36391218317), the `viewer` job failed because GitHub Pages was
   not enabled, so the `gds` workflow badge shows a failure although gds,
-  precheck and gl_test passed.
+  precheck and gl_test passed. Pages was enabled after that run; the next
+  `gds` run shows whether the `viewer` job passes.
 - **Resolved in `fb79f31`, in part: the firmware timing findings.** At
   `c118027`, BL-2 (a 7-cycle SCL low phase before the repeated START) and
   BL-3 of the bug ledger were open. `fb79f31` fixed BL-2 and the NACK path

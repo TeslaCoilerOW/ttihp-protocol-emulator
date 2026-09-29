@@ -84,7 +84,7 @@
   "certificates": {
     "summary": "tools/timing/cert/results/summary.json",
     "firmware_dir": "firmware",
-    "certified_commit": "c118027",
+    "certified_commit": "24f31f0",
     "enforce": false,
     "hash_keys": ["bytecode_sha256", "image_bytecode_sha256", "image_sha256"],
     "headline_pattern": "(?i)\\b{segments} of (?:the )?{segments}\\b|\\ball {segments} segments\\b",

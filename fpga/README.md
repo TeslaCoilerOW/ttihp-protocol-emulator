@@ -122,3 +122,9 @@ make -C fpga/sim COCOTB_TEST_MODULES=test_fpga_pico # Pico driver, host-clocked
 python3 fpga/host/test_pico_host.py                 # Pico driver vs reference model
 make -C fpga/sim FPGA_CLOCK=pll50 FPGA_NETLIST=$PWD/build/pe_cmod_a7_pll50/synth_netlist.v  # after synthesis
 ```
+
+`fpga/sim` runs `test/test_flagship.py` without the gate-level skips, so the
+five `uart-rx-idle` tests added in `e64cd6b` run there too (6 of 6 on the FPGA
+top in job 24167292, about 100 s). On a slow post-synthesis netlist
+(`FPGA_NETLIST=...`), `PE_UART_IDLE_CYCLES` (default 100000) shortens their
+idle stretches.

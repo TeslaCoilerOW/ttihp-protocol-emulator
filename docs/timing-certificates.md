@@ -675,7 +675,8 @@ ones have BMC depth 99, one more than CI runs (section 8), so only the
 cluster campaign runs them.
 
 **Trial: soft branch nodes** (not a certification). The idle-tolerant UART
-receiver `uart-rx-idle` (in the working tree, not committed at `24f31f0`;
+receiver `uart-rx-idle` (in the working tree at the time, not committed at
+`24f31f0`, committed since in `e64cd6b` with the same image;
 image sha256 `edf05fc9…`) has no blocking instruction, so its three
 data-dependent `JZ`s are soft boundaries: four soft branch nodes (one `JZ`
 in two contexts) of its five. Its certificates were run with generator 1.1
@@ -956,10 +957,13 @@ budget, `i2c-repeated-start`, needs 116 runs. When a change alters
 `processor_fv.v`, all 19 images run, four at a time: five rounds, about
 2.5 hours at half an hour each.
 
-**The images being added in parallel** (in the working tree, not committed at
-`24f31f0`). `gen_cert.py preflight` accepts all seven. The longest segments
-of the other six are 4,000 to 80,004 steps long, so they exceed the CI
-budget and only the cluster campaign certifies them:
+**The images added in `e64cd6b`** (in the working tree when this was
+written, not committed at `24f31f0`). A `certify` campaign on commit
+`6a3ea08`, which contains them, is to certify them; until it is recorded
+they have no certificate, and the `certs` staleness check fails for them.
+`gen_cert.py preflight` accepts all seven. The longest segments of the
+other six are 4,000 to 80,004 steps long, so they exceed the CI budget and
+only the cluster campaign certifies them:
 
 | image | segments | chunk certificates | negative controls (run / generated) | CI runs |
 |---|---:|---:|---:|---:|

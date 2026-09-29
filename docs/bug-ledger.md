@@ -32,7 +32,7 @@ repository's history** by these methods:
 - the independent-peer tests;
 - the variant lockstep checks;
 - the per-segment timing certificates of the images committed at
-  `c118027` (368 of 368 pass);
+  `c118027` (368 of 368 pass) and at `24f31f0` (350 of 350 pass);
 - the RTL-to-netlist equivalence check of the official netlists.
 
 The sources say so explicitly:
@@ -49,7 +49,7 @@ The sources say so explicitly:
 | ID | Class | Defect | Found by | Fix | Status (checked 2026-09-28, `24f31f0`) |
 |---|---|---|---|---|---|
 | BL-1 | Design (ISA1) | A UART byte was lost silently while the receiver's blocking PUSH waited at a full queue | Counterexample run in the monorepo's verification (job 22624426) | ISA2 strict PUSH with fault 4; imported at `180f98d` | Fixed; regression tests in `test/` |
-| BL-2 | Firmware | `i2c-repeated-start` held SCL low for only 7 cycles before the repeated START | Static timing analysis (`pe_timing`) | `fb79f31` | Fixed: `pe_timing` reports no FAIL and no WARN on the images of `fb79f31` ([results.md](results.md) R40b). Open at `c118027` |
+| BL-2 | Firmware | `i2c-repeated-start` held SCL low for only 7 cycles before the repeated START | Static timing analysis (`pe_timing`) | `fb79f31` | Fixed: `pe_timing` reports no FAIL and no WARN on the images of `fb79f31` ([results.md](results.md) R40b at the time; R40c for the 26 images of `e64cd6b`). Open at `c118027` |
 | BL-3 | Firmware | I2C controllers on NACK: 2-cycle SCL runt pulse and no STOP; the SPI target's undeclared 9-cycle CS-high minimum; a wrong image name | Static timing analysis (`pe_timing`) | `fb79f31` (the NACK path only) | Partly fixed: the NACK path ends with a STOP since `fb79f31`; the CS-high minimum is still undeclared and the image name still wrong (both INFO). Open (WARN/INFO) at `c118027` |
 | BL-4 | Flow / Tool | LibreLane 3.1.0.dev3 passes `-threads None` to OpenROAD when `OPENROAD_THREADS` is unset, so detailed routing runs on one thread | Log inspection of a local mirror run (job 23715924) | `d16a327` | Fixed |
 | BL-5 | Flow | Official `gl_test` failed to elaborate: `Unknown module type: ihp_mux2/ihp_mux4` | Official `gl_test`, run 36096045527 | `88f89a1` (`test/`), `fb79f31` (`test_ext/`) | Fixed. At `c118027` it was fixed for `test/` only |
@@ -127,10 +127,11 @@ The sources say so explicitly:
 - **Verified.**
   - `pe_timing report` on the regenerated images reports no FAIL and no
     WARN: 183 checks pass and 55 are INFO (jobs 23975273 and 23986537;
-    [timing-analysis.md](timing-analysis.md), finding 1). This is the
-    committed `tools/timing/report/checks.json`, which
+    [timing-analysis.md](timing-analysis.md), finding 1). At the time this
+    was the committed `tools/timing/report/checks.json`, which
     `scripts/reproduce.sh --only timing` regenerates byte for byte
-    ([results.md](results.md) R40b).
+    ([results.md](results.md) R40b). Since `e64cd6b` the committed report
+    covers 26 images, with the same checks for these 19 (R40c).
   - The validation against the reference model was repeated on the new
     images (run r8, [results.md](results.md) R41b).
   - The cocotb suite of the time (66/66) and the third-party I2C peers at
@@ -392,6 +393,10 @@ before `host/` was committed in `0ec5138`:
   - clears engine 1's expected fault 3 after STOP;
   - reads the host fault from `uo[7]`;
   - reports it as not checked on 6-bit `uo` ports.
+
+  Since `e64cd6b` engine 1 of the flagship runs `uart-rx-idle`, which does
+  not fault on an idle line, so that CLEAR now happens only for a scenario
+  that puts the bounded `uart-rx` on engine 1.
 
 ### BL-17: independent-peer UART test stimulus (test)
 

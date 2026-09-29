@@ -47,7 +47,7 @@ prints workflow annotations, `--format json` a list of findings, and
 | `ledger` | a row of the summary table of `docs/bug-ledger.md` whose status begins with "Open" names, in its Fix column, a commit that exists in this repository's history; a Fix commit does not resolve; a details heading `### BL-n: … (…, open)` or `(…, fixed …)` contradicts the table; the checkout is shallow | |
 | `phrases` | a banned stale phrase (`banned_phrases`, each with the evidence that made it stale) appears outside a history unit | |
 | `timing` | a strict document states `pe_timing` counts ("N PASS, M FAIL, K WARN, L INFO") that differ from `tools/timing/report/checks.json`, outside a history unit; any document claims 0 FAIL while the report has a FAIL | another document states different counts |
-| `certs` | the certificate results record an image hash that differs from the committed `firmware/<image>.image.json`; with enforcement on, a certified image changed since the certified commit, or a committed image has no certificate; a strict document gives the certificate headline ("N of N" segments, with N the total of the results, today 368) without its scope while images are stale, or says images "await re-certification" when none is stale | the same image and headline findings while enforcement is off |
+| `certs` | the certificate results record an image hash that differs from the committed `firmware/<image>.image.json`; with enforcement on, a certified image changed since the certified commit, or a committed image has no certificate; a strict document gives the certificate headline ("N of N" segments, with N the total of the results, today 350) without its scope while images are stale, or says images "await re-certification" when none is stale | the same image and headline findings while enforcement is off |
 | `links` | a relative Markdown link, or a link to this repository's `blob`/`tree` URLs, names a file or directory that git would not commit (missing, or ignored) | an anchor (`#…`) matches no heading of the target |
 | `paths` | in a strict document, a backticked repository path (a path under a top-level directory of the repository) does not exist, a `.github/workflows/*.yaml` mentioned does not exist, or "the `x` workflow / action" names no workflow or job | |
 | `ci-claims` | a unit says something is "not in CI", "not run on GitHub" or "cluster-only" (or "CI does not run …") about a path that a workflow triggered by push, pull request, schedule or `workflow_run` references in its steps; workflows that run only on `workflow_dispatch` do not count | |
@@ -58,7 +58,7 @@ prints workflow annotations, `--format json` a list of findings, and
 lists the certified images. When its image entries carry a hash
 (`bytecode_sha256`, or a key in `hash_keys`), each is compared with the
 committed image and enforcement is on. Until then the check compares each
-image at `certified_commit` (`c118027`) with the checkout and only warns; set
+image at `certified_commit` (`24f31f0`) with the checkout and only warns; set
 `"enforce": true` in `consistency.json` to make those findings errors.
 
 **Run ids.** Official run ids are not required to be the latest run of

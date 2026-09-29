@@ -54,7 +54,8 @@ input-only firmware can own zero pins while observing other engines' pins.
 | Firmware | Pins | Framing and behavior |
 |---|---|---|
 | `uart-tx` | TX0 | 8N1, LSB first, exact bit period `2*half_period`, low-byte TX words |
-| `uart-rx` | RX1 | 8N1, centered sampling, low-byte RX words, framing fault64 |
+| `uart-rx` | RX1 | 8N1, centered sampling, low-byte RX words, framing fault64; idle and start-bit waits bounded at twelve bit periods (fault 3) |
+| `uart-rx-idle` | RX1 | 8N1 at 64 clocks per bit, low-byte RX words, framing fault64; idle and start-bit waits polled with no bound (no fault 3); engine 1 of the flagship scenario; a source file, not a built-in |
 | `spi-controller` | SCK2/MOSI3/MISO4/CSn5 | modes0–3, MSB first, eight bits per CS assertion, queued full duplex |
 | `spi-target` | same mapping | modes0–3, one byte per CS assertion, MISO released between frames |
 | `i2c-write` | SCL6/SDA7 | address+W and one byte from TX; ACK checks; STOP; an address or data NACK ends with STOP and fault65 |
@@ -95,8 +96,16 @@ includes a few instruction cycles of center offset; continuous traffic requires
 `half_period >= 8` and RX queue service. The receiver uses strict PUSH: FIFO
 saturation preserves the received word in the inspectable receive register and
 halts with sticky fault4. Later physical UART characters cannot be recovered
-without peer flow control. RX idle/start waits are bounded
-at twelve bit periods; use a custom LIMIT for longer idle intervals.
+without peer flow control. The idle and start-bit waits of `uart-rx` are
+bounded at twelve bit periods (fault 3); use a custom LIMIT for longer idle
+intervals, or `uart-rx-idle`, whose waits have no bound. `uart-rx-idle`
+waits for the idle line and each start bit in a three-cycle `IN`/`XOR`/`JZ`
+polling loop (0 to 2 cycles of detection latency). It samples frame bit n
+(start bit 0, stop bit 9) 64n + 31 to 64n + 33 cycles after the first clock
+edge that registers the start bit's falling edge (the middle of a 64-cycle
+bit is 32), and declares a baud tolerance of ±2%
+([info.md](info.md), "Example: UART TX, SPI and I2C at the same time"). It
+is written for 64 clocks per bit and a 32-bit datapath.
 
 The JTAG fixture demonstrates TAP navigation and scanning; device-specific IR
 programming, scan-length discovery, and update/exit sequences require a program
@@ -325,7 +334,8 @@ issue mode differs from the design of record.
 The four families use disjoint pins and engines, so one image of each can run
 at the same time. The TT pads are 3.3 V: the 5 V buses (PS/2, and a WS2812B at
 VDD = 5 V) need level shifting, and every open-drain line needs an external
-pull-up. Authoring record (time and tools): *[entrant to complete]*.
+pull-up.
+<!-- ENTRANT: authoring record (time and tools) for the SWD, WS2812B, PS/2 and 1-Wire images, in your own words. -->
 
 ### SWD (`swd-read`)
 
@@ -510,7 +520,9 @@ presence pulse of the DS2404/DS1994.
   SWD, WS2812B, PS/2 device and 1-Wire images at the same time on the four
   engines and checks that the WS2812B and PS/2 clock counts equal those of the
   single-engine runs. The module is not in `COCOTB_TEST_MODULES`, so neither
-  `make` nor the gate-level test runs it; run it on RTL with
+  `make` nor the gate-level test runs it. CI runs it on RTL in its own job,
+  `protocols-ext`, of [`test.yaml`](../.github/workflows/test.yaml); to run it
+  locally:
 
   ```sh
   cd test
@@ -524,11 +536,14 @@ presence pulse of the DS2404/DS1994.
   through its random-traffic stress suite on the six images (8 seeds of
   60000 clocks each): all 747 engine runs matched, including all 16552 pad
   changes, every issue attempt and the one LIMIT timeout.
-- **Not yet done.** Timing certificates (`tools/timing/cert/`) have not been
-  run for these images. Their longest segments between boundaries are much
-  longer than those of the certified images: 80005 clocks (`onewire-master`),
-  16514 (`ws2812`, `ws2812b-v5`), 6290 (`ps2-host`), 6220 (`swd-read`) and
-  4000 (`ps2-device`), most of it spent in `WAIT` and `XFER` countdowns. No
+- **Not yet done.** These images have no timing certificate yet
+  (`tools/timing/cert/`): a cluster campaign on commit `6a3ea08` is to
+  certify them, together with `uart-rx-idle`
+  ([timing-certificates.md](timing-certificates.md) section 8). Their
+  longest segments between boundaries are much longer than those of the
+  certified images: 80005 clocks (`onewire-master`), 16514 (`ws2812`,
+  `ws2812b-v5`), 6290 (`ps2-host`), 6220 (`swd-read`) and 4000
+  (`ps2-device`), most of it spent in `WAIT` and `XFER` countdowns. No
   third-party peer was added for these protocols. Nothing here has run on
   hardware.
 
