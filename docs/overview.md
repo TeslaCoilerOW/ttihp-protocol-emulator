@@ -101,13 +101,13 @@ change quickly; check again before quoting.
   extension variant below adds the line unit they need), and its SWD image
   only reads. The SWD, WS2812B, PS/2 and 1-Wire images, added in `e64cd6b`,
   are checked against peers written in this repository, not third-party
-  ones, and have no timing certificate yet.
+  ones. Their timing certificates are in R42c.
 - Host link: serving queues needs the host to clock the chip, while the other
   three have SPI host ports oversampled by the core clock [L-spi], [M-spi2],
   [K-spi].
-- Generality of the timing proof: certificates are per image. The 19
-  images committed at `24f31f0` are certified; the 7 added in `e64cd6b` are
-  not yet, and a cluster campaign on `6a3ea08` is to certify them.
+- Generality of the timing proof: certificates are per image. All 26
+  committed images are certified (the 19 of `24f31f0` in that campaign, the 7
+  added in `e64cd6b` in the campaign on `6a3ea08`).
   MarcosAsh's kernel covers every accepted program on one engine.
 - Code density: 32-bit instructions without delay or side-set fields, 64 per
   engine; the others use 16-bit instructions [L-isa], [M-isa], [K-exec] and

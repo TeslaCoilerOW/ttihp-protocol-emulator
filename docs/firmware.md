@@ -536,12 +536,11 @@ presence pulse of the DS2404/DS1994.
   through its random-traffic stress suite on the six images (8 seeds of
   60000 clocks each): all 747 engine runs matched, including all 16552 pad
   changes, every issue attempt and the one LIMIT timeout.
-- **Not yet done.** These images have no timing certificate yet
-  (`tools/timing/cert/`): a cluster campaign on commit `6a3ea08` is to
-  certify them, together with `uart-rx-idle`
-  ([timing-certificates.md](timing-certificates.md) section 8). Their
+- **Timing certificates.** The campaign on `6a3ea08` certified these six
+  images and `uart-rx-idle` (results.md R42c;
+  [timing-certificates.md](timing-certificates.md) section 8). Their
   longest segments between boundaries are much longer than those of the
-  certified images: 80005 clocks (`onewire-master`), 16514 (`ws2812`,
+  earlier images, so they are proved as chains of 96-step chunks: 80005 clocks (`onewire-master`), 16514 (`ws2812`,
   `ws2812b-v5`), 6290 (`ps2-host`), 6220 (`swd-read`) and 4000
   (`ps2-device`), most of it spent in `WAIT` and `XFER` countdowns. No
   third-party peer was added for these protocols. Nothing here has run on

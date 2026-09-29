@@ -384,13 +384,14 @@ them.
   22 long segments also as 127 chunks, 455 covers reached, 132 of 132
   negative controls and 52 of 52 chunk-level ones failing as required, and
   3 of 5 RTL timing mutants caught (results.md R42b).
-- **The 7 images added in `e64cd6b` have no timing certificate yet.**
-  `uart-rx-idle` (the flagship's engine 1 since that commit) and the SWD,
-  WS2812B, PS/2 and 1-Wire images are to be certified by a cluster campaign
-  on `6a3ea08` ([timing-certificates.md](timing-certificates.md) section 8).
-  Until it is recorded, the `certs` workflow's staleness check fails for
-  them. The six SWD, WS2812B, PS/2 and 1-Wire images need more proof runs
-  than the CI budget allows, so only the cluster campaign certifies them.
+- **Resolved at `6a3ea08`: the 7 images added in `e64cd6b`.** Until
+  2026-09-29 this item read: "The 7 images added in `e64cd6b` have no timing
+  certificate yet." The campaign on `6a3ea08` certified `uart-rx-idle` and
+  the SWD, WS2812B, PS/2 and 1-Wire images: 91 of 91 segments, 91 covers,
+  53 of 53 negative controls that were run (results.md R42c). The six SWD,
+  WS2812B, PS/2 and 1-Wire images need more proof runs than the CI budget
+  allows, so only a cluster campaign can re-certify them after a change;
+  CI's staleness check still detects the change.
 - **Not all raw data is public.** Per-seed results, raw per-test logs and
   the job logs stay on the cluster. The repository keeps summaries. The
   89.4% gap-closure summary is not committed (results.md, section 9, item

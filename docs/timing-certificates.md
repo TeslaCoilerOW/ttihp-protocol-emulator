@@ -501,8 +501,10 @@ keeps the pads, and it must fail.
 
 ## 6. Results
 
-The current campaign ran on commit `24f31f0`. The earlier campaign on
-`c118027` is kept at the end of this section; the ledger lists both.
+The current campaign for the 19 images of `24f31f0` ran on that commit. The
+seven images added in `e64cd6b` were certified by a later campaign on
+`6a3ea08` (section 8). The earlier campaign on `c118027` is kept at the end
+of this section; the ledger lists all three.
 
 **Setup.**
 
@@ -871,7 +873,9 @@ campaign in `tools/timing/cert/results/`. After the record job,
   recorded as not certified. `campaign.sh retry` (`retry_list.py`) lists
   every run of the short, chunks, cover and negative-control lists whose
   results are all ERROR and reruns it with yices alone; a run with no result
-  at all (its Slurm task was lost) is rerun as it was. Runs on ABC `bmc3`
+  at all (its Slurm task was lost, usually killed for running out of
+  memory) is rerun as it was, except that a solver portfolio becomes yices
+  alone. Runs on ABC `bmc3`
   are not repeated. `summarize` takes the best result of each run.
   `ci_prove.sh` uses the same list.
 - **By hand**, if the record job still reports a run that did not finish:
@@ -958,9 +962,11 @@ budget, `i2c-repeated-start`, needs 116 runs. When a change alters
 2.5 hours at half an hour each.
 
 **The images added in `e64cd6b`** (in the working tree when this was
-written, not committed at `24f31f0`). A `certify` campaign on commit
-`6a3ea08`, which contains them, is to certify them; until it is recorded
-they have no certificate, and the `certs` staleness check fails for them.
+written, not committed at `24f31f0`). The `certify` campaign on commit
+`6a3ea08`, which contains them, certified all seven (results.md R42c;
+[`campaigns/6a3ea08.md`](../tools/timing/cert/results/campaigns/6a3ea08.md)):
+91 of 91 segments, 91 covers, 53 of 53 negative controls that were run,
+36 deeper ones not run. The table below is the plan it was run from.
 `gen_cert.py preflight` accepts all seven. The longest segments of the
 other six are 4,000 to 80,004 steps long, so they exceed the CI budget and
 only the cluster campaign certifies them:
