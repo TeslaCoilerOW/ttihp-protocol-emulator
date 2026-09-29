@@ -896,7 +896,7 @@ campaign in `tools/timing/cert/results/`. After the record job,
   changed, every image that `ledger.py check --rtl` flags against the
   regenerated netlist (a new image, changed obligations, or a different
   `processor_fv.v`, which flags every image). An image whose proofs need
-  more than 200 runs (counted by `gen_cert.py preflight`) gets no proof job:
+  more than 150 runs (counted by `gen_cert.py preflight`) gets no proof job:
   `plan` names it in a warning annotation and in its summary, and it is
   certified by the cluster campaign only. Each other image is proved on its
   own runner (at most four at a time) by `ci_prove.sh`: whole-segment
@@ -963,14 +963,28 @@ segments (the first one's said 5 of 5, because `ci_prove.sh` then kept the
 whole-segment entries in its chunk manifest; it now drops them, as
 `campaign.sh prepare` does). With the RTL generation (about a minute with
 the opam cache, as in the `formal` workflow) and the OSS CAD Suite setup,
-one image takes half an hour or more on these nodes; GitHub's runners may
-be slower. The slowest rate measured is the second `uart-rx-idle` run's,
-1,887 s for 38 runs (about 50 s per run, including the two yices reruns).
-At that rate the budget of 200 runs takes about 9,900 s, 2 h 45 min, and the
-proof job's limit is 300 minutes; the largest image at `24f31f0` within the
-budget, `i2c-repeated-start`, needs 116 runs. When a change alters
-`processor_fv.v`, all 19 images run, four at a time: five rounds, about
-2.5 hours at half an hour each.
+one image takes half an hour or more on these nodes. The slowest rate
+measured there is the second `uart-rx-idle` run's, 1,887 s for 38 runs.
+
+**Measured on GitHub** (dispatched `certs` runs on the branch
+`ci/certs-yices-covers`, which carried this `ci_prove.sh`; the covers with
+yices alone):
+
+| image | runs | proof time | run | covers in parallel |
+|---|---:|---:|---|---:|
+| `uart-rx-idle` | 38 | 5,949 s | 36625986442 | 2 |
+| `uart-rx-idle` | 38 | 3,189 s | 36637581754 | 4 |
+| `jtag` | 47 | 3,953 s | 36637581754 | 4 |
+| `i2c-repeated-start` | 116 | 4,500 s | 36637581754 | 4 |
+
+Every one passed (all segments proved, all covers reached, every negative
+control that ran failed as required). GitHub's runners took about 84 s per
+run on `uart-rx-idle` and `jtag`, against about 50 s on the cluster nodes, so
+the budget is 150 runs: at 85 s per run that is about 12,750 s, 3 h 33 min,
+under the proof job's limit of 300 minutes. The largest image at `24f31f0`
+within the budget, `i2c-repeated-start`, needs 116 runs. When a change alters
+`processor_fv.v`, all 19 images run, four at a time: five rounds (the slowest of the
+three images measured took 4,500 s, 75 min, of proofs).
 
 **The images added in `e64cd6b`** (in the working tree when this was
 written, not committed at `24f31f0`). The `certify` campaign on commit

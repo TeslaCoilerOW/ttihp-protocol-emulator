@@ -202,7 +202,7 @@ most likely to raise are these.
   `test/test_protocols_ext.py` on RTL (`test.yaml`, job `protocols-ext`). For the certificates, the `certs`
   workflow checks on every push that each committed image has a
   certificate for its current hash, and proves changed images whose proofs
-  fit its budget of 200 runs; the full campaigns, and images over that
+  fit its budget of 150 runs; the full campaigns, and images over that
   budget, run on the cluster.
 - **Gate-level simulation is partial and zero-delay.** It runs 46 of the
   107 tests of the default suite: the official runs so far had 102 tests,

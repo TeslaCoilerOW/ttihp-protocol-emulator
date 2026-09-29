@@ -31,9 +31,9 @@
 #              covers with yices alone)
 #   CI_CHUNK   chunk size in steps (default 96)
 #   SBY_TIMEOUT seconds per run (default 3600)
-#   CI_MAX_RUNS an image needing more runs is not proved here (default 200:
-#              at the slowest rate measured, about 50 s per run with 4 CPUs
-#              including yices reruns, about 2 h 45 min, under the workflow's
+#   CI_MAX_RUNS an image needing more runs is not proved here (default 150:
+#              at the slowest rate measured on GitHub runners, about 85 s per
+#              run, about 3 h 33 min, under the workflow's
 #              300-minute job limit): the script says so (a
 #              ::warning:: annotation under GitHub Actions) and exits 0; such
 #              images are certified by the cluster campaign only. The certs
@@ -119,8 +119,8 @@ open(f"{out}/skipped_negatives.txt", "w").write("".join(s + "\n" for s in skippe
 print(f"ci_prove: {len(tasks)} runs, {len(skipped)} deep negative control(s) skipped")
 PY
 runs=$(grep -c . "$OUT/tasks.txt" || true)
-if [ "$runs" -gt "${CI_MAX_RUNS:-200}" ]; then
-  msg="ci_prove: NOT RUN: $runs runs exceed the CI budget of ${CI_MAX_RUNS:-200}; these images are certified by the cluster campaign only (tools/timing/cert/campaign.sh certify), and the staleness check still requires that"
+if [ "$runs" -gt "${CI_MAX_RUNS:-150}" ]; then
+  msg="ci_prove: NOT RUN: $runs runs exceed the CI budget of ${CI_MAX_RUNS:-150}; these images are certified by the cluster campaign only (tools/timing/cert/campaign.sh certify), and the staleness check still requires that"
   echo "$msg"
   echo "$msg" > "$OUT/results.md"
   if [ "${GITHUB_ACTIONS:-}" = true ]; then echo "::warning title=certs: not proved in CI::$msg"; fi

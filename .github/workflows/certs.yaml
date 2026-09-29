@@ -17,11 +17,11 @@ name: certs
 #   runner with ci_prove.sh: whole-segment certificates up to 96 steps, chunk
 #   chains for longer segments, one cover per run, and the negative controls
 #   of BMC depth up to 98, i.e. 96 steps (deeper ones run only in the cluster
-#   campaign). An image needing more than 200 runs gets no proof job: the plan
+#   campaign). An image needing more than 150 runs gets no proof job: the plan
 #   job names it in a warning and in its summary (cluster campaign only). At
-#   the slowest rate measured (about 50 s per run on a runner-sized node,
-#   including yices reruns), 200 runs take about 2 h 45 min, under the proof
-#   job's 300-minute limit.
+#   the slowest rate measured on GitHub runners (about 85 s per run, jtag and
+#   uart-rx-idle, run 36637581754), 150 runs take about 3 h 33 min, under the
+#   proof job's 300-minute limit.
 #   These CI proofs re-check; the ledger is updated only by a cluster campaign
 #   (campaign.sh certify), so a stale image keeps the staleness job red until
 #   it is certified there.
@@ -65,7 +65,7 @@ env:
   OCAML_COMPILER: "5.2.1"
   OSS_CAD_SUITE: "2026-07-29"
   CI_CHUNK: "96"          # ci_prove.sh and ledger.py plan
-  CI_MAX_RUNS: "200"      # proof runs per image in CI (about 2 h 45 min at 50 s per run)
+  CI_MAX_RUNS: "150"      # proof runs per image in CI (about 3 h 33 min at 85 s per run)
 
 jobs:
   staleness:
