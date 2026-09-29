@@ -280,7 +280,7 @@ jobs:
       - name: Prove the certificates of ${{ matrix.image }}
         env:
           IMAGE: ${{ matrix.image }}
-          CI_PAR: "2"              # 2 runs x 2 solvers on 4 CPUs / 16 GB
+          CI_PAR: "2"              # 2 runs on 4 CPUs / 16 GB; covers with yices alone (ci_prove.sh)
           SBY_TIMEOUT: "3600"
         run: |
           set -euo pipefail

@@ -21,7 +21,12 @@
 #   CI_PAR     certificate runs in parallel (default 2: a GitHub runner has 4
 #              CPUs and 16 GB; 4 runs of 2 solvers each exceed 16 GB on the
 #              longest chunks)
-#   CI_ENGINES solver portfolio per run (default boolector,yices)
+#   CI_ENGINES solver portfolio of the proof (bmc) runs (default boolector,yices)
+#   CI_COVER_ENGINES solvers of the cover runs (default yices: on the first
+#              GitHub run, 36624435421, a boolector+yices cover of
+#              uart-rx-idle's first chunk used up the runner's 16 GB and the
+#              job was killed; the cluster campaign of 24f31f0 also ran its
+#              covers with yices alone)
 #   CI_CHUNK   chunk size in steps (default 96)
 #   SBY_TIMEOUT seconds per run (default 3600)
 #   CI_MAX_RUNS an image needing more runs is not proved here (default 200:
@@ -42,6 +47,7 @@ shift 3
 [ $# -gt 0 ] || { echo "ci_prove.sh: no images" >&2; exit 2; }
 CHUNK=${CI_CHUNK:-96}
 ENGINES=${CI_ENGINES:-boolector,yices}
+COVER_ENGINES=${CI_COVER_ENGINES:-yices}
 PAR=${CI_PAR:-2}
 export SBY_TIMEOUT=${SBY_TIMEOUT:-3600}
 GEN="python3 $HERE/gen_cert.py"
@@ -78,9 +84,9 @@ for m in $SCHEDULE_MUTANTS; do
       --schedule-mutant "$m" --chunk "$CHUNK" --chunk-controls --pick-one --append
 done
 set +e
-python3 - "$OUT" "$CHUNK" "${ENGINES//,/+}" <<'PY'
+python3 - "$OUT" "$CHUNK" "${COVER_ENGINES//,/+}" <<'PY'
 import json, sys
-out, chunk, cover = sys.argv[1], int(sys.argv[2]), sys.argv[3]   # covers: the same portfolio
+out, chunk, cover = sys.argv[1], int(sys.argv[2]), sys.argv[3]   # covers: CI_COVER_ENGINES
 tasks, skipped = [], []
 for c in json.load(open(f"{out}/certs/manifest.json"))["certificates"]:
     if c["depth"] <= chunk + 2:

@@ -901,7 +901,7 @@ campaign in `tools/timing/cert/results/`. After the record job,
   certified by the cluster campaign only. Each other image is proved on its
   own runner (at most four at a time) by `ci_prove.sh`: whole-segment
   certificates of up to 96 steps, chunk chains for longer segments, a cover
-  per run, and the negative controls of BMC depth up to 98 (96 steps). A run
+  per run (with yices alone, `CI_COVER_ENGINES`), and the negative controls of BMC depth up to 98 (96 steps). A run
   that ends in ERROR is rerun with yices alone, as in the cluster campaign.
   Deeper negative controls (among them the six `issue-late` chunk-level
   controls of depth 99, section 6) and whole-segment proofs of the long
@@ -925,8 +925,19 @@ Pushing the image first leaves `staleness` red until the campaign is
 recorded. The ledger names the certified commit, so that commit must not be
 rewritten afterwards.
 
+**First run on GitHub.** In run 36624435421 (the push of `bab697b`), the
+`prove uart-rx-idle` job was killed about two minutes after its proofs
+started (exit code 143; the job's later steps did not run), which is what a
+runner out of memory looks like: the covers then ran on the boolector+yices
+portfolio, whose boolector used up 16 GB on this image's first-chunk covers
+on the cluster. Since then `ci_prove.sh` runs the covers with yices alone
+(`CI_COVER_ENGINES`, default `yices`), as the cluster campaign of
+`24f31f0` did; the proof runs keep the portfolio.
+
 **CI runtime.** Measured on cluster nodes with a GitHub runner's resources
-(4 CPUs, 16 GB, two certificate runs at a time), not on GitHub itself. The
+(4 CPUs, 16 GB, two certificate runs at a time), not on GitHub itself, and
+with the covers on the portfolio (except `uart-rx`), so covers with yices
+alone take longer. The
 first four rows were measured before the `branch-late` and chunk-level
 controls were added (section 5), which add one to four runs of BMC depth at
 most 98 to each of these images; the run counts now are in the last column.
