@@ -1,0 +1,312 @@
+name: certs
+# Timing certificates (docs/timing-certificates.md, tools/timing/cert/).
+#
+# staleness (every push and pull request, about a minute): every
+#   firmware/*.image.json must have a certificate in the ledger
+#   (tools/timing/cert/results/summary.json) for its current sha256, on the
+#   current src/ RTL, SRAM models, harness includes and lemma files, and the
+#   generator must still emit exactly the certificates that were proved
+#   (ledger.py check). It also runs the generator's unit tests.
+#
+# proofs (only when a push or pull request changes firmware/, hardcaml/,
+#   tools/timing/, formal/gen/, formal/run.sh, models/ or configs/): the formal
+#   RTL is regenerated, and ledger.py plan picks the images to prove: changed
+#   image files, and, when the RTL inputs or tools/timing/ changed, every image
+#   that ledger.py check --rtl flags (new image, changed obligations, or a
+#   different processor_fv.v, which flags all). Each is proved on its own
+#   runner with ci_prove.sh: whole-segment certificates up to 96 steps, chunk
+#   chains for longer segments, one cover per run, and the negative controls
+#   of BMC depth up to 98, i.e. 96 steps (deeper ones run only in the cluster
+#   campaign). An image needing more than 200 runs gets no proof job: the plan
+#   job names it in a warning and in its summary (cluster campaign only). At
+#   the slowest rate measured (about 50 s per run on a runner-sized node,
+#   including yices reruns), 200 runs take about 2 h 45 min, under the proof
+#   job's 300-minute limit.
+#   These CI proofs re-check; the ledger is updated only by a cluster campaign
+#   (campaign.sh certify), so a stale image keeps the staleness job red until
+#   it is certified there.
+#
+# lemmas (when the lemma files, cert_dut.vh, gen_cert.py or the RTL inputs
+#   change): the 12 boundary/SRAM lemma tasks (ci_lemmas.sh, a few minutes).
+#
+# It never changes or waits for another workflow. The proof matrix runs at
+# most 4 jobs at a time so that it leaves runners for the TT workflows.
+# Values from the event reach scripts only through env: and are matched
+# against a strict pattern before use.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      images:
+        description: "images to prove: names separated by spaces, or 'all' (empty: none)"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # Branches and pull requests: a newer push cancels the older run. main: one
+  # group per event and commit, so a run on main neither waits for nor cancels
+  # another one (the fast staleness job never queues behind a proof run of an
+  # earlier push, and the proofs of every push complete; two overlapping proof
+  # runs on main can then use up to 4 runners each).
+  group: certs-${{ github.event_name }}-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  OCAML_COMPILER: "5.2.1"
+  OSS_CAD_SUITE: "2026-07-29"
+  CI_CHUNK: "96"          # ci_prove.sh and ledger.py plan
+  CI_MAX_RUNS: "200"      # proof runs per image in CI (about 2 h 45 min at 50 s per run)
+
+jobs:
+  staleness:
+    name: certificate ledger is current
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Generator unit tests
+        run: python3 -m unittest discover -s tools/timing/cert -p 'test_*.py'
+
+      - name: Every firmware image is certified for its current sha256
+        run: python3 tools/timing/cert/ledger.py check --summary "$GITHUB_STEP_SUMMARY"
+
+  plan:
+    name: plan certificate proofs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      images: ${{ steps.plan.outputs.images }}
+      lemmas: ${{ steps.diff.outputs.lemmas }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Changed files
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          INPUT_IMAGES: ${{ inputs.images }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          sha='^[0-9a-f]{40}$'
+          base=""
+          if [ "$EVENT" = pull_request ] && [[ $PR_BASE =~ $sha ]]; then
+            base=$PR_BASE
+          elif [ "$EVENT" = push ] && [[ $BEFORE =~ $sha ]] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            base=$BEFORE
+          elif [ "$EVENT" = push ]; then
+            # a new branch: compare with where it left the default branch
+            [[ $DEFAULT_BRANCH =~ ^[A-Za-z0-9._/-]+$ ]] || DEFAULT_BRANCH=main
+            base=$(git merge-base "origin/$DEFAULT_BRANCH" HEAD 2>/dev/null || true)
+          fi
+          all=""
+          if [ "$EVENT" = workflow_dispatch ]; then
+            [[ $INPUT_IMAGES =~ ^[a-z0-9\ -]*$ ]] || { echo "bad images input" >&2; exit 1; }
+            : > changed.txt
+            if [ "$INPUT_IMAGES" = all ]; then all=--all
+            else for i in $INPUT_IMAGES; do echo "firmware/$i.image.json" >> changed.txt; done; fi
+          elif [ -n "$base" ]; then
+            git diff --name-only "$base" HEAD > changed.txt
+          else
+            git ls-files > changed.txt       # no usable base: treat everything as changed
+          fi
+          trigger=false
+          if [ -n "$all" ] || grep -qE '^(firmware/|hardcaml/|tools/timing/|formal/gen/|formal/run\.sh$|models/|configs/)' changed.txt; then
+            trigger=true
+          fi
+          lemmas=false
+          if [ -n "$all" ] || grep -qE '^(tools/timing/cert/(boundary_lemmas\.sv|sram_lemma\.sv|cert_dut\.vh|gen_cert\.py|ci_lemmas\.sh|run_one\.sh)$|hardcaml/|formal/gen/|formal/run\.sh$|models/|configs/)' changed.txt; then
+            lemmas=true
+          fi
+          {
+            echo "trigger=$trigger"
+            echo "lemmas=$lemmas"
+            echo "all=$all"
+          } >> "$GITHUB_OUTPUT"
+          { echo "Changed files considered (${base:-no base}):"; echo '```'; head -50 changed.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install system packages
+        if: steps.diff.outputs.trigger == 'true'
+        run: sudo apt-get update && sudo apt-get install -y libgmp-dev pkg-config
+
+      - name: Restore opam switch
+        if: steps.diff.outputs.trigger == 'true'
+        uses: actions/cache@v6
+        with:
+          path: _opam
+          key: opam-${{ runner.os }}-${{ runner.arch }}-ocaml-${{ env.OCAML_COMPILER }}-${{ hashFiles('scripts/opam-deps.txt') }}
+
+      - name: Set up OCaml
+        if: steps.diff.outputs.trigger == 'true'
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: ${{ env.OCAML_COMPILER }}
+          cache: false
+          opam-pin: false
+
+      - name: Install pinned opam packages
+        if: steps.diff.outputs.trigger == 'true'
+        run: |
+          set -euo pipefail
+          # every line of scripts/opam-deps.txt that does not start with '#'
+          read -ra deps <<< "$(grep -v '^#' scripts/opam-deps.txt | tr '\n' ' ')"
+          opam install --yes "${deps[@]}"
+
+      - name: Generate formal RTL
+        if: steps.diff.outputs.trigger == 'true'
+        run: opam exec -- formal/run.sh --generate-only
+
+      - name: Images to prove
+        id: plan
+        env:
+          TRIGGER: ${{ steps.diff.outputs.trigger }}
+          ALL: ${{ steps.diff.outputs.all }}
+        run: |
+          set -euo pipefail
+          if [ "$TRIGGER" != true ]; then echo 'images=[]' >> "$GITHUB_OUTPUT"; exit 0; fi
+          extra=()
+          if [ "$ALL" = --all ]; then extra+=(--all); fi
+          images=$(python3 tools/timing/cert/ledger.py plan --changed changed.txt --rtl formal/build/rtl \
+            --budget "$CI_MAX_RUNS" --chunk "$CI_CHUNK" --report over-budget.txt "${extra[@]}")
+          echo "images=$images" >> "$GITHUB_OUTPUT"
+          { echo "processor_fv.v sha256: $(sha256sum formal/build/rtl/processor_fv.v | cut -c1-12)";
+            echo "Images to prove: $images"; } >> "$GITHUB_STEP_SUMMARY"
+          if [ -s over-budget.txt ]; then
+            { echo; echo "Not proved in CI (over the budget of $CI_MAX_RUNS runs):"; echo;
+              sed 's/^/- /' over-budget.txt; } >> "$GITHUB_STEP_SUMMARY"
+            while IFS= read -r line; do
+              echo "::warning title=certs: not proved in CI::$line"
+            done < over-budget.txt
+          fi
+
+      - name: Upload formal RTL
+        if: steps.plan.outputs.images != '[]' || steps.diff.outputs.lemmas == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: certs-formal-rtl
+          path: formal/build/rtl/
+          if-no-files-found: error
+
+  lemmas:
+    name: boundary and SRAM lemmas
+    needs: plan
+    if: needs.plan.outputs.lemmas == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Download formal RTL
+        uses: actions/download-artifact@v8
+        with:
+          name: certs-formal-rtl
+          path: formal/build/rtl
+
+      - name: Set up OSS CAD Suite
+        uses: YosysHQ/setup-oss-cad-suite@v4
+        with:
+          version: ${{ env.OSS_CAD_SUITE }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prove the lemmas
+        env:
+          CI_PAR: "2"
+        run: tools/timing/cert/ci_lemmas.sh lemma-run formal/build/rtl models
+
+      - name: Job summary
+        if: always()
+        run: |
+          if [ -f lemma-run/lemmas.md ]; then cat lemma-run/lemmas.md >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: Upload results and sby logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: certs-lemmas
+          path: |
+            lemma-run/lemmas.md
+            lemma-run/lemmas/results/*.json
+            lemma-run/lemmas/work/*.log
+          if-no-files-found: ignore
+
+  proofs:
+    name: prove ${{ matrix.image }}
+    needs: plan
+    if: needs.plan.outputs.images != '[]' && needs.plan.outputs.images != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        image: ${{ fromJSON(needs.plan.outputs.images) }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Download formal RTL
+        uses: actions/download-artifact@v8
+        with:
+          name: certs-formal-rtl
+          path: formal/build/rtl
+
+      - name: Set up OSS CAD Suite
+        uses: YosysHQ/setup-oss-cad-suite@v4
+        with:
+          version: ${{ env.OSS_CAD_SUITE }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tool versions
+        run: yosys -V && sby --version
+
+      - name: Prove the certificates of ${{ matrix.image }}
+        env:
+          IMAGE: ${{ matrix.image }}
+          CI_PAR: "2"              # 2 runs x 2 solvers on 4 CPUs / 16 GB
+          SBY_TIMEOUT: "3600"
+        run: |
+          set -euo pipefail
+          [[ $IMAGE =~ ^[a-z0-9-]+$ ]] || { echo "bad image name" >&2; exit 1; }
+          set +e
+          tools/timing/cert/ci_prove.sh cert-run formal/build/rtl models "firmware/$IMAGE.image.json" \
+            > cert-run.log 2>&1
+          rc=$?
+          grep -vE '^cert_[a-z0-9_]+\.(bmc|cover)\.[a-z0-9+]+: PASS' cert-run.log || true
+          exit $rc
+
+      - name: Job summary
+        if: always()
+        run: |
+          if [ -f cert-run/results.md ]; then cat cert-run/results.md >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: Upload results and sby logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: certs-${{ matrix.image }}
+          path: |
+            cert-run.log
+            cert-run/results.md
+            cert-run/results.json
+            cert-run/*/results/*.json
+            cert-run/*/work/*.log
+            cert-run/*/manifest.json
+          if-no-files-found: ignore
