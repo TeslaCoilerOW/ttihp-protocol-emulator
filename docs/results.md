@@ -14,6 +14,27 @@ compiled at commit `c118027` (tag `v0.1-hardened`). On 2026-09-26 and
 - the mutation score of `aa07868` (R23c) and the `diet4` mutation rerun
   (R23d).
 
+On 2026-09-28 (UTC) every row was checked again against `24f31f0`, and the
+page was updated with:
+
+- the firmware timing report and its validation for the I²C images of
+  `fb79f31` (R40b, R41b; R40 and R41 are superseded) and the timing
+  certificates (R42);
+- the official runs of the later commits of `main` (section 2d) and the
+  equivalence checks that GitHub ran on their netlists (R93);
+- the equivalence of the formal netlist `processor_fv.v` with `src/`, and
+  its identity with the one CI generates (R95);
+- the official run of the extension variant on a branch (R94);
+- the openXC7 release of 2026-09-27 and the Vivado sign-off of the FPGA
+  builds (R60b, R62);
+- the outcome of the `formal_depth/` runs that had not finished
+  (section 9, item 10).
+
+`tools/evidence/check_consistency.py` (the `consistency` workflow) checks
+part of this page against the repository on every push: stale statuses,
+missing files and workflows, and the `pe_timing` counts
+([tools/evidence/README.md](../tools/evidence/README.md)).
+
 A row that a later result replaces is marked **Superseded** and kept, with
 its commit and run. Each row gives:
 
@@ -58,13 +79,13 @@ It never writes to `src/`.
 | `lint` | quick | `scripts/lint.sh`: iverilog elaboration, `yosys hierarchy -check` with exactly 8 SRAM macros, `verilator -Wall` | R11 |
 | `cocotb` | quick | the cocotb RTL suite (`cd test && make clean && make`); every test must pass | R12 |
 | `formal` | quick | 12 of the 16 `formal/` jobs: `reset_safety`, `engine_safety`, `processor_invariants_prove`, `processor_inductive_prove`, `processor_inductive_cover`, `timing_isolation_prove_k0` to `_k3`, `timing_isolation_cover`, and both negative controls | R30 (part) |
-| `timing` | quick | `pe_timing report` on `firmware/` equals the committed `tools/timing/report/` byte for byte; the analyzer's unit tests | R40 |
+| `timing` | quick | `pe_timing report` on `firmware/` equals the committed `tools/timing/report/` byte for byte; the analyzer's unit tests | R40b (R40 at `c118027`) |
 | `host` | quick | `python3 -m unittest discover -s host/tests` | R24 |
 | `formal-rest` | full | the other 4 `formal/` jobs: `fifo_conservation`, `processor_invariants_bmc`, `processor_inductive_bmc`, `timing_isolation_bmc` | R30 (rest) |
 | `peers` | full | `test_ext/` against the vendored third-party peers, RTL | R22 (fixed stimulus, RTL) |
 | `variants` | full | `scripts/gen_variants.sh` and its three byte-identity checks | R26 (generation) |
 | `hardcaml` | full | the Hardcaml unit tests (`dune test` in `hardcaml/`) | R26 (Hardcaml tests) |
-| `timing-validate` | full | `pe_timing validate` with the scenarios, legacy, event, mutants and margins suites | R41 (base suites) |
+| `timing-validate` | full | `pe_timing validate` with the scenarios, legacy, event, mutants and margins suites | R41b (base suites; R41 at `c118027`) |
 | `gl` | full | the gate-level subset of `test/` on a hardened netlist; runs only when `PDK_ROOT` and `GL_NETLIST` are set | R3 |
 
 **Toolchain.**
@@ -227,7 +248,9 @@ true, `CTS_SINK_CLUSTERING_SIZE` 16 and `GRT_LAYER_ADJUSTMENTS`
   metrics byte-identical to the earlier 6x4 runs (section 2c).
 - **`f511c97`** changes only `tools/opt/driver.py` and `tools/opt/tracks.py`
   (the optimizer's track weights; [optimization.md](optimization.md),
-  "Allocation"). It had no CI run of its own when this was written.
+  "Allocation"). It has no CI run of its own: it was pushed together with
+  `62f1ad6` and `4c30622`, and GitHub ran the workflows on `4c30622` only
+  (section 2d).
 
 ## 2c. The 6x4 fallback build (`.github/workflows/gds_6x4.yaml`)
 
@@ -281,11 +304,34 @@ byte-identical to `c118027`. Tiles, PDK and LibreLane are as in section 2.
 | # | Claim | Stated in | Evidence | Reproduce |
 |---|---|---|---|---|
 | R85 | Official `gds`, `precheck` and `gl_test` of `d76f1cc`, the first official build at 15 ns, all PASS: setup WS typ +5.95, fast +6.92, slow +2.24 ns at 15 ns with 0 setup violations; hold WS min +0.165 ns (fast) with 0 hold violations; utilization 65.30%; route DRC 0; LVS 0; antenna 0; gl_test 102 tests, 46 pass, 56 skip, 0 fail. The artifact's `metrics.csv` is byte-identical to that of the local p018 full run (R84), and so is its gate-level netlist | README.md (Status); [timing-closure.md](timing-closure.md) section 10.2 | Run [36298635436](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36298635436): job `gds` success (05:56 to 10:20 UTC, 4 h 24 min, inside GitHub's 6 h job limit; p018's local flow took 7,833 s); `gl_test` `TESTS=102 PASS=46 FAIL=0 SKIP=56`; `precheck` "Precheck passed" (KLayout SG13CMOS5L DRC 11,501 s, finished 13:33 UTC). `tt_submission` artifact: `stats/metrics.csv` equals the full run's `out/metrics.csv` (`cmp`: no difference; `timing__setup__ws__corner:*` 5.9499 / 6.9240 / 2.2400, `timing__hold__ws` 0.1650, `design__instance__utilization` 0.653002); netlist sha256 `09841e31…` equals the full run's `final/nl` | CI |
-| R86 | At the 50 MHz operating clock (20 ns), the p018 layout has setup WS typ +8.950, fast +9.924, slow +6.790 ns and hold WS typ +0.372, fast +0.165, slow +0.743 ns, with 0 setup and 0 hold violations. In the same analysis the 20 ns layout of `131e793` (p010) has +7.880 / +9.307 / +2.954 ns and +0.318 / +0.112 / +0.657 ns. From 15 to 20 ns the worst slack of each path class moves by +5 ns (register to register), +4 ns (input to register, register to output) and +3 ns (input to output); hold by 0, +1, +1 and +2 ns. This is a re-analysis with the flow's STA script, not a result of the official flow, which times the design at 15 ns | README.md (Status); [info.md](info.md), "Limitations"; [limitations.md](limitations.md) section 2; [timing-closure.md](timing-closure.md) sections 10.3 to 10.5 | Slurm job 24077956 (array 0 to 2): OpenSTA 2.7.0 in the `librelane-3.1.0.dev3` image, LibreLane's `corner.tcl` and `base.sdc` unmodified, the step's environment with only `CLOCK_PERIOD` and the netlist changed. Control (a): p018 at 15 ns equals the full run's `metrics.csv` (10 timing metrics at 3 corners, maximum absolute difference 0). Control (c): the `tt_submission` netlist and SPEF of run 36257636798 at 20 ns equal that run's `stats/metrics.csv` (maximum absolute difference 0). Per-class worst paths from `scripts/pe_extra.tcl`, the same start and end point at both periods. `<work dir>/sta50/` (`README.md`, `results.json`, `results.md`, `manifest.json`); 84 theorems checked with AXLE (`<work dir>/sta50/axle/`, `okay: true`) | [`tools/sta/`](../tools/sta/README.md): `python3 tools/sta/sta_retime.py all --run-dir <run> --period <ns> --out <case>` for (a), (b) and (c), then `sta_retime.py compare`. It needs apptainer, the `librelane-3.1.0.dev3` image and the IHP PDK, and takes about one minute per corner on 3 CPUs. The inputs are not in git: for (c) the `tt_submission` artifact of run 36257636798 (CI); for (a) and (b) p018's final netlist and nominal SPEF from its local full run (cluster files). Run from the repository as jobs 24089033, 24089058 and 24089059, it reproduced job 24077956 exactly |
+| R86 | At the 50 MHz operating clock (20 ns), the p018 layout has setup WS typ +8.950, fast +9.924, slow +6.790 ns and hold WS typ +0.372, fast +0.165, slow +0.743 ns, with 0 setup and 0 hold violations. In the same analysis the 20 ns layout of `131e793` (p010) has +7.880 / +9.307 / +2.954 ns and +0.318 / +0.112 / +0.657 ns. From 15 to 20 ns the worst slack of each path class moves by +5 ns (register to register), +4 ns (input to register, register to output) and +3 ns (input to output); hold by 0, +1, +1 and +2 ns. This is a re-analysis with the flow's STA script, not a result of the official flow, which times the design at 15 ns | README.md (Status); [info.md](info.md), "Limitations"; [limitations.md](limitations.md) section 2; [timing-closure.md](timing-closure.md) sections 10.3 to 10.5 | Slurm job 24077956 (array 0 to 2): OpenSTA 2.7.0 in the `librelane-3.1.0.dev3` image, LibreLane's `corner.tcl` and `base.sdc` unmodified, the step's environment with only `CLOCK_PERIOD` and the netlist changed. Control (a): p018 at 15 ns equals the full run's `metrics.csv` (10 timing metrics at 3 corners, maximum absolute difference 0). Control (c): the `tt_submission` netlist and SPEF of run 36257636798 at 20 ns equal that run's `stats/metrics.csv` (maximum absolute difference 0). Per-class worst paths from the job's `pe_extra.tcl` (in `<work dir>/sta50/scripts/`; the repository's version, `tools/sta/pe_extra.tcl`, reproduced its results, section 9, item 15), the same start and end point at both periods. `<work dir>/sta50/` (`README.md`, `results.json`, `results.md`, `manifest.json`); 84 theorems checked with AXLE (`<work dir>/sta50/axle/`, `okay: true`) | [`tools/sta/`](../tools/sta/README.md): `python3 tools/sta/sta_retime.py all --run-dir <run> --period <ns> --out <case>` for (a), (b) and (c), then `sta_retime.py compare`. It needs apptainer, the `librelane-3.1.0.dev3` image and the IHP PDK, and takes about one minute per corner on 3 CPUs. The inputs are not in git: for (c) the `tt_submission` artifact of run 36257636798 (CI); for (a) and (b) p018's final netlist and nominal SPEF from its local full run (cluster files). Run from the repository as jobs 24089033, 24089058 and 24089059, it reproduced job 24077956 exactly |
 | R88 | With the same knob values, the flow run at 20 ns gives less margin at 50 MHz than the flow run at 15 ns: control promotion p027 (p018's knob set with `CLOCK_PERIOD` 20) has setup WS typ +7.864, fast +9.389, slow +2.998 ns, and the p018 layout re-timed at 20 ns (R86) has +1.085, +0.535 and +3.792 ns more. One pair of runs | [timing-closure.md](timing-closure.md) section 10.6; README.md (Status) | p027: full run job 24077610 (`OPENROAD_THREADS` 4; legal, LVS 0; hold WS +0.362 / +0.154 / +0.724 ns; utilization 0.6196), precheck job 24081008 (9/9), gate-level job 24081009 (102 tests, 46 pass, 56 skip, 0 fail); verdict PASS in the leaderboard of 2026-09-27 08:36 UTC. It is the committed configuration of the optimizer's `dor` track since tree `f511c97`, imported trial `#114` (= v1 `dor-26a873-c8bf57e#118`, fast mode, job 24014107). Arithmetic checked with AXLE (`<work dir>/docs-15ns/axle/`) | Cluster: [optimization.md](optimization.md), "Promotion" |
 
 R85 confirmed R84: the official 15 ns build passed with metrics and
 netlist identical to the local sign-off (2026-09-27 13:33 UTC).
+
+**Later commits of `main`.** No commit after `d76f1cc` changes the design:
+`git diff d76f1cc 24f31f0 -- src info.yaml` lists only comment keys (`//`)
+of `src/config.json` (`62f1ad6`). GitHub runs the workflows on the last
+commit of each push. Every run below that had finished by 2026-09-28
+08:40 UTC passed: `test` with `TESTS=102 PASS=102 FAIL=0 SKIP=0`, `gl_test`
+with `TESTS=102 PASS=46 FAIL=0 SKIP=56`, `precheck` with "Precheck passed".
+The `gds` runs end `failure` only because their `viewer` job fails
+(GitHub Pages is not enabled). The equivalence column is R93.
+
+| Commit | `test`, `formal`, `regen`, `docs` | `gds`: jobs `gds`, `gl_test`, `precheck` | `gds_6x4` | Equivalence on GitHub |
+|---|---|---|---|---|
+| `4c30622` | 36308043755, 36308043782, 36308043772, 36308043780 | 36308043760: all three pass | 36308043804: all five jobs pass | none (before `a15f6f2`) |
+| `fff6746` | 36323174079, 36323174052, 36323174081, 36323174070 | 36323174075: all three pass | 36323174037: all five pass | 8x4: 36351319648; 6x4: none (finished before `a15f6f2`) |
+| `a15f6f2` | 36344917874, 36344917891, 36344917886, 36344917910 | 36344917852: all three pass | 36344917858: all five pass | 8x4: 36368252100; 6x4: 36353833650 |
+| `76a81f5` | 36360006672, 36360006584, 36360006627, 36360006712 | 36360006594: all three pass | 36360006612: cancelled by the push of `127e8e8` | 8x4: 36391888473; 6x4: skipped, no netlist (36360097584) |
+| `127e8e8` | 36360078907, 36360078854, 36360078860, 36360078868 | 36360078852: all three pass | 36360078870: all five pass | 8x4: 36382409490; 6x4: 36369225191 |
+| `65cb65c` | 36369316773, 36369316741, 36369316819, 36369316712 | 36369316719: `gds` and `gl_test` pass; `precheck` had not finished | 36369316684: all five pass | 6x4: 36379351458 |
+| `24f31f0` | 36391218353, 36391218338, 36391218351, 36391218336 | 36391218317: had not finished | 36391218297: had not finished | none yet |
+
+The other commits after `d76f1cc` (`f511c97`, `62f1ad6`, `45de462`,
+`468e560`, `e0b5223`, `0f8576e`, `75ac8af` and `51bf18a`) were pushed
+together with a later commit and have no runs of their own.
 
 ## 3. Simulation-based verification
 
@@ -356,8 +402,10 @@ Reproduce: `formal_depth/run.sh generate`, then
 `FD_PARALLEL=8 formal_depth/run.sh local <work dir> --only '<regex>'`
 without Slurm. The heavy classes need up to 32 GB per task.
 
-**RTL-vs-netlist equivalence (`formal_eq/`, local and in the optimizer's
-promotions; not in CI; see [equivalence.md](equivalence.md)).** Yosys builds a
+**RTL-vs-netlist equivalence (`formal_eq/`: locally, in the optimizer's
+promotions and, since `a15f6f2`, in CI after every `gds` and `gds_6x4` build
+of `main` (`.github/workflows/equiv.yaml`); see
+[equivalence.md](equivalence.md)).** Yosys builds a
 miter of the RTL (`src/project.v` plus the variant's core) and the gate-level
 netlist, with cell functions from the standard-cell liberty, the eight SRAM
 macros as cut points and reset forced in the first cycle; ABC `dprove`
@@ -370,13 +418,18 @@ with the RTL (LVS compares the layout with the netlist).
 | R90 | The netlists of the official builds are equivalent to their RTL: 8x4 at 15 ns (run 36298635436, `d76f1cc`; ABC 692 s), 6x4 (run 36298635404; 67 s) and 8x4 at 20 ns (run 36257636798, `131e793`; 349 s). In each run the self-test also passed: the recipe controls and two mutated netlists (one cell function changed, two SRAM data pins swapped), which were found not equivalent | [equivalence.md](equivalence.md) | Slurm jobs 24093884, 24093883 and 24093885 (`<work dir>/eq-repo/runs-final/*/result.json`, verdict `equivalent`, exit 0; the netlist sha256 in each equals the artifact's). A third mutant (one random cell) stayed undecided after 1,708 s (job 24093081), which the gate counts as a failure | `python3 formal_eq/eq_check.py check --run-dir <tt_submission artifact> --variant base\|diet4 --selftest` ([formal_eq/README.md](../formal_eq/README.md)); about 2 to 13 min on one CPU |
 | R91 | The first recipe (`miter -equiv -ignore_gold_x` followed by `setundef -zero`) was unsound: it compared an output bit only where the RTL value was 1. Its earlier "equivalent" results were not proofs and are superseded by R90. The packaged recipe drops the flag and adds nine recipe controls, including the two cases the old recipe misclassified | [equivalence.md](equivalence.md) | Ablation job 24094085 (`<work dir>/eq-repo/ablation/ablation.json`): with the old recipe, controls c1 (gate `a\|b` against gold `a`) and c4 (a difference after 13 cycles) were reported equivalent; with the packaged recipe all nine controls meet their expectation | `python3 formal_eq/eq_check.py controls` |
 | R92 | The gate-level failure of optimizer promotion p026 (6x4; 8 of 102 tests) is a race in the zero-delay simulation, not a logic change: its netlist is equivalent to the RTL, the SRAM clock branch is 15 to 18 buffers deep against 11 to 13 for the flip-flops, and with the SRAM clock pins tied to `clk` the gate-level subset passes (46 pass, 0 fail). Real timing is the other way round (SRAM clock latency 0.796 ns against up to 1.478 ns at the flip-flops, fast corner) | [equivalence.md](equivalence.md); [optimization.md](optimization.md) | Equivalence job 24093886; simulations 24085496 and 24086215; clock report 24087092 (`<work dir>/gleq/`) | Cluster |
+| R93 | The `equivalence` workflow checked on GitHub the two official netlists of `d76f1cc` (by hand) and every `gds` and `gds_6x4` build of `main` that finished after the workflow reached `main` (`a15f6f2`, 2026-09-27 19:35 UTC) and before 2026-09-28 08:40 UTC: 9 checks, all `equivalent`, each with the self-test passed. Builds that finished in between were not checked: those of `4c30622` (`gds` 36308043760, `gds_6x4` 36308043804) and the `gds_6x4` build of `fff6746` (36323174037); they have the same `src/` as `d76f1cc`. 8x4 (`base`): 5 checks, jobs of 10 min 2 s to 15 min 5 s, `eq_check.py` wall time 568.5 to 873.6 s. 6x4 (`diet4`): 4 checks, jobs of 2 min 32 s to 2 min 45 s, wall time 112.9 to 124.4 s. The `gds_6x4` run of `76a81f5`, cancelled before its `gds` job ended, was skipped with "there is no netlist to check" | [equivalence.md](equivalence.md) section 7 | Runs (checked build in brackets): 36344927204 (6x4 36298635404) and 36344929368 (8x4 36298635436), both `workflow_dispatch` on `d76f1cc`'s builds; by `workflow_run`: 36351319648 (36323174075), 36353833650 (36344917858), 36368252100 (36344917852), 36369225191 (36360078870), 36379351458 (36369316684), 36382409490 (36360078852), 36391888473 (36360006594); skipped: 36360097584 (36360006612). The mapping and the verdicts are from the jobs' logs: the `select` step names the run it checks, and the check prints `{"verdict": "equivalent", "exit_code": 0, "pass": true, "wall_s": …}` | CI: `gh workflow run equiv.yaml -f run_id=<gds or gds_6x4 run>` |
+| R95 | The formal netlist of the timing-isolation proof and of the timing certificates, `processor_fv.v`, is sequentially equivalent to the committed `src/project.v` and `src/protocol_emulator_core.v` on the chip ports, from the all-zero state; a netlist with one extra input flip-flop is found not equivalent. The same file, byte for byte (sha256 `2a039bae…`), is what the `formal` workflow generated on `c118027` and on `24f31f0`, what `formal_depth/` read at `73536f0`, and what the certificate campaign read at `c118027` | [timing-certificates.md](timing-certificates.md) section 6; [limitations.md](limitations.md) section 3; [formal-depth.md](formal-depth.md), "What is still unproven" | Equivalence: Slurm job 23987598 (ABC `dprove`, "Networks are equivalent"), negative control job 23989727. File identity: the `formal-rtl` artifacts of `formal` runs 36144357811 (`c118027`) and 36391218338 (`24f31f0`), and the work-area copies of `formal_depth/` and of the certificate campaign, compared by sha256 on 2026-09-28 | `python3 tools/timing/cert/equiv_src.py --src src --rtl formal/build/rtl --models models …` after `formal/run.sh --generate-only` (timing-certificates.md section 7); cluster |
 
 ## 5. Static timing analysis of the firmware
 
 | # | Claim | Stated in | Evidence | Reproduce |
 |---|---|---|---|---|
-| R40 | Report on the committed images: 182 PASS, 1 FAIL, 3 WARN, 55 INFO. The FAIL is `i2c-repeated-start` `i2c-scl-low-phase`, a 7-cycle SCL low phase | [timing-analysis.md](timing-analysis.md), "Results" and "Findings" | [`tools/timing/report/checks.json`](../tools/timing/report/checks.json). A regeneration for this page gave the same `checks.json` and `timing-report.md`, byte for byte | Local: `reproduce.sh --only timing`, which takes seconds |
-| R41 | Validation against the reference model: 1,303,659 engine runs, 38,037,698 of 38,037,698 pad changes on a predicted edge, 100% path coverage of the committed images; 7 of 7 deliberately wrong analyzers caught | timing-analysis.md, "Validation" | [`tools/timing/report/validation-summary.json`](../tools/timing/report/validation-summary.json) (`runs_ok` 1,303,659, `pad_changes_matched` 38,037,698); runs r2, r3, r4 and r7 (jobs 23757447–23757449, 23759925, 23759928, 23761093, 23762121, 23762123, 23774644, 23776236) | Local: `reproduce.sh --only timing-validate` (base suites only). Cluster: the stress and random arrays ([tools/timing/README.md](../tools/timing/README.md)) |
+| R40 | **Superseded by R40b** (the I²C images of `fb79f31`). Report on the images committed at `c118027`: 182 PASS, 1 FAIL, 3 WARN, 55 INFO. The FAIL is `i2c-repeated-start` `i2c-scl-low-phase`, a 7-cycle SCL low phase | [timing-analysis.md](timing-analysis.md), "Results" and "Findings" | [`tools/timing/report/checks.json`](../tools/timing/report/checks.json) as committed at `c118027` (the file now holds R40b). A regeneration for this page gave the same `checks.json` and `timing-report.md`, byte for byte | Local: `reproduce.sh --only timing`, which takes seconds |
+| R41 | **Superseded by R41b** (the I²C images of `fb79f31`). Validation against the reference model on the images committed at `c118027`: 1,303,659 engine runs, 38,037,698 of 38,037,698 pad changes on a predicted edge, 100% path coverage of those images; 7 of 7 deliberately wrong analyzers caught | timing-analysis.md, "Validation" | [`tools/timing/report/validation-summary.json`](../tools/timing/report/validation-summary.json) as committed at `c118027` (`runs_ok` 1,303,659, `pad_changes_matched` 38,037,698; the file now holds R41b); runs r2, r3, r4 and r7 (jobs 23757447–23757449, 23759925, 23759928, 23761093, 23762121, 23762123, 23774644, 23776236) | Local: `reproduce.sh --only timing-validate` (base suites only). Cluster: the stress and random arrays ([tools/timing/README.md](../tools/timing/README.md)) |
+| R40b | Report on the images committed since `fb79f31`, which regenerated the three I²C controller images (the other 16 are byte-identical): 183 PASS, 0 FAIL, 0 WARN, 55 INFO | [timing-analysis.md](timing-analysis.md), "Results"; [bug-ledger.md](bug-ledger.md) BL-2 and BL-3 | [`tools/timing/report/checks.json`](../tools/timing/report/checks.json) (Slurm jobs 23975273 and 23986537). On 2026-09-28, `pe_timing report` on `firmware/` of `24f31f0` regenerated `checks.json` and `timing-report.md` byte for byte | Local: `reproduce.sh --only timing`, which takes seconds |
+| R41b | Validation of the regenerated images against the reference model (run r8): 1,193,441 of 1,193,441 engine runs consistent; 35,303,947 of 35,303,947 pad changes on a predicted edge; 7 of 7 deliberately wrong analyzers caught; the 3 margin experiments agree with the prediction; path coverage of the 19 committed images 362 of 363 variants (`i2c-read` 27 of 28, every other image all of its variants), and of the 6 uncommitted scalar images of the stress suite 218 of 218 | [timing-analysis.md](timing-analysis.md), "Validation of the regenerated set (run r8)" | [`tools/timing/report/validation-summary.json`](../tools/timing/report/validation-summary.json) (`runs_ok`, `pad_changes_matched`, `mutants`, `margins`, `variant_coverage`); jobs 23984750 to 23984754 and 23986537 | As R41 |
+| R42 | Timing certificates of the images committed at `c118027`: all 368 segments of the 19 images certified on the RTL (368 of 368 whole-segment certificates, 21 of 21 long segments also as chunk chains); the boundary lemmas (four engines, with covers) and the SRAM macro lemma pass, and their two negative controls fail (12 of 12 tasks meet their expectation); 132 of 132 negative controls fail as required; 3 of 5 RTL timing mutants caught. **Scope at `24f31f0`:** `fb79f31` changed the three I²C controller images, so the certificates cover the committed firmware for 16 of the 19 images (249 of the 368 segments); the 119 segments of `i2c-read`, `i2c-write` and `i2c-repeated-start` certify their earlier versions, and those three images await re-certification | [timing-certificates.md](timing-certificates.md) | [`tools/timing/cert/results/summary.json`](../tools/timing/cert/results/summary.json) (`totals`, `lemmas`, `negatives`, `rtl_mutants`); jobs in timing-certificates.md section 6. Which images changed: `bytecode_sha256` of each `firmware/*.image.json` at `c118027` and at `24f31f0` (the `certs` check of `tools/evidence/check_consistency.py`) | Cluster: `tools/timing/cert/campaign.sh` (timing-certificates.md section 7) |
 
 ## 6. Physical exploration (local LibreLane runs; not results of record)
 
@@ -394,33 +447,38 @@ with the RTL (LVS compares the layout with the netlist).
 
 | # | Claim | Stated in | Evidence | Reproduce |
 |---|---|---|---|---|
-| R60 | Seven openXC7 bitstreams, all meeting their clock target in nextpnr-xilinx's timing model after synthesis/place-and-route option and seed optimization (about 12,700 nextpnr runs): `cmod_a7 pll50` DIP pin host 79.69 MHz (was 46.39), bridge-only 78.38, `pll40` 73.91, `osc12` 76.45, `cmod_a7 host` 80.43, `urbana pll50` 86.95, `urbana host` 76.44 MHz; TT design and SRAM replacement unchanged (SRAM proof re-run) | [fpga.md](fpga.md), "Build results" | Release rebuild job 23998703 (each rebuild reproduces its sweep fmax; readback 0 missing/extra bits); bitstreams with SHA256SUMS in `<work dir>/fpga/bitstreams/` (not in git; the 2026-09-25 set in `v1-2026-09-25/`) | Local with the openXC7 toolchain: `fpga/scripts/release.sh <release>` (fpga/scripts/release.tsv) |
+| R60 | **Superseded by R60b** as the current release; these bitstreams are kept. Seven openXC7 bitstreams, all meeting their clock target in nextpnr-xilinx's timing model after synthesis/place-and-route option and seed optimization (about 12,700 nextpnr runs): `cmod_a7 pll50` DIP pin host 79.69 MHz (was 46.39), bridge-only 78.38, `pll40` 73.91, `osc12` 76.45, `cmod_a7 host` 80.43, `urbana pll50` 86.95, `urbana host` 76.44 MHz; TT design and SRAM replacement unchanged (SRAM proof re-run) | [fpga.md](fpga.md), "Build results" | Release rebuild job 23998703 (each rebuild reproduces its sweep fmax; readback 0 missing/extra bits); bitstreams with SHA256SUMS in `<work dir>/fpga/bitstreams/` (not in git; the 2026-09-25 set in `v1-2026-09-25/`) | Local with the openXC7 toolchain: `fpga/scripts/release.sh <release>` (fpga/scripts/release.tsv) |
 | R61 | Configuration readback of all 7 bitstreams | fpga.md, "Build results" | Job 23767112 | Local: `fpga/scripts/readback.sh` |
+| R60b | The 2026-09-27 openXC7 release, with the on-board capture unit in the UART-bridge builds: all seven builds meet their clock target in nextpnr-xilinx's model (not a vendor sign-off): `cmod_a7 pll50` 71.36 MHz, `BRIDGE_ONLY=1` 73.19, `pll40` 66.66, `osc12` 73.83, `urbana pll50` 76.04, `cmod_a7 host` 69.31, `urbana host` 74.32 MHz; every bitstream passed the readback check | [fpga.md](fpga.md), "Build results, capture-unit release (2026-09-27)" | Seed sweep job 24125836 (560 runs), release rebuild job 24126323; bitstreams in `<work dir>/fpga/bitstreams/v3-2026-09-27-scope/` (not in git) | Local with the openXC7 toolchain: `fpga/scripts/release.sh` |
+| R62 | AMD Vivado 2025.2 timing sign-off of the same seven builds (same RTL, pin and clock constraints): all seven meet timing, with WNS ≥ 0, TNS 0, WHS ≥ 0, THS 0, no unclocked register or unconstrained internal endpoint, no methodology critical warning and no DRC error; worst setup slack 4.979 ns (`urbana host`, 20 ns) and worst hold slack 0.014 ns (`cmod_a7 osc12`). A timing sign-off, not a hardware result | [fpga.md](fpga.md), "Vivado sign-off flow" | Jobs 24149331 and 24149924; bitstreams in `<work dir>/fpga/bitstreams/vivado-2025.2-2026-09-27/` (not in git) | Vivado 2025.2 (ML Standard edition; no license needed for the xc7a35t and xc7s50): `fpga/vivado/build.tcl`, then `fpga/vivado/timing_check.py` |
 
-## 8. Extension study (prototypes outside the repository)
+## 8. Extension study and the extension variant
 
 | # | Claim | Stated in | Evidence | Reproduce |
 |---|---|---|---|---|
 | R70 | Conditional GO for line coding plus CRC-16 at 8x4; prototype checks pass on four configurations (16 whole-chip checks each), with 6 of 6 seeded RTL bugs caught | [extension-study.md](extension-study.md) sections 1 and 5 | Job 23789566 and its log, in `<work dir>/extension/`. The prototype Hardcaml sources are not in git (section 9) | Cluster work area only |
+| R94 | The extension variant `diet8_rec16` (line coding and CRC-16; not the design of record) passed the official Tiny Tapeout actions on branch `eval/diet8-rec16` (`ac436f7`, the variant core in `src/`): `gds` (3 h 59 min), `precheck` ("Precheck passed") and `gl_test` (`TESTS=127 PASS=66 FAIL=0 SKIP=61`); `test` 127 of 127 on RTL. Its `metrics.csv` is byte-identical to the local run's (setup WS typ/fast/slow +6.03/+7.38/+2.07 ns at 15 ns, one antenna net), and its official netlist is equivalent to its RTL. `regen` fails on the branch by design: it regenerates `src/` as the design of record | [extension.md](extension.md) section 12.1 | Runs 36360490711 (`gds`), 36360490678 (`test`, `TESTS=127 PASS=127 FAIL=0 SKIP=0`), 36360490685 (`formal`), 36360490692 (`regen`, failure as expected), 36360490710 (`docs`); local full run job 24121613; equivalence job 24163332 | CI on the branch |
 
 ## 9. Claims that are stale or not fully substantiated
 
 These were found while this page was compiled. They are listed so the
-owning documents can be corrected. No number above depends on them.
+owning documents can be corrected. No number above depends on them. Items
+that no longer hold are kept and marked **Resolved**, with the commit that
+resolved them (re-checked on 2026-09-28 against `24f31f0`).
 
 1. **README.md, previous Status section.** It said the design had not been
    hardened and quoted 58.4% utilization and a slow-corner WS of −5.09 ns.
    Those figures came from the local run of `73536f0` (`run2`, job 23720702).
    The official build of `c118027` has 58.53% and −8.52 ns (R4, R7). This
    change replaces that section.
-2. **docs/info.md, "Limitations".** It says the design "has not yet passed
-   the Tiny Tapeout gds flow". It also says a host library "is planned",
-   although `host/` exists (R24). Both statements are stale as of
-   `c118027`.
+2. **Resolved in `fb79f31`: docs/info.md, "Limitations".** At `c118027` it
+   said the design "has not yet passed the Tiny Tapeout gds flow" and that a
+   host library "is planned", although `host/` exists (R24). `fb79f31`
+   removed both statements.
 3. **docs/hardening.md, status paragraph and section 9.** They say nothing
    in the document has been run by the GitHub action. Its slow-corner figure,
    −5.09 ns, is the `run2` figure for `73536f0`. The official results (R1 to
-   R9) now answer most of the section 9 items.
+   R9) now answer most of the section 9 items. Still so at `24f31f0`.
 4. **Mutation score 89.4% (R23b).** The summary and the per-mutant results
    are only in the cluster work area (`<work dir>/test-gaps/`). The
    repository keeps only the 80.2% summary
@@ -430,15 +488,25 @@ owning documents can be corrected. No number above depends on them.
    results (R26) and the early gate-level figure of 22 pass and 17 skip used
    the 39-test suite of `73536f0`. Only the variant suites were re-run with
    the 66-test suite (R25, job 23819698). The FPGA tops have not been
-   simulated with the 66-test suite.
+   simulated with the 66-test or the 102-test suite. For the 2026-09-27
+   release, `test_smoke` and `test_flagship` of `test/` passed on the
+   pin-host tops, 4 of 4 each (job 24125728; [fpga.md](fpga.md),
+   "Checks of the capture-unit tree").
 6. **Extension study (R70).** Its prototype sources and tests are in the
    cluster work area, not in the repository, so its PASS results cannot be
-   re-run from a clone.
+   re-run from a clone. Since `76a81f5` the recommended extension is in the
+   repository as the variant `diet8_rec16`, with its own tests, formal jobs
+   and official branch run (R94); the prototype itself is still not.
 7. **Earlier monorepo results (README.md, "Earlier results").** These are
    the independent-model checks and bounded formal properties of the private
    monorepo, for example Slurm jobs 22625543 and 22620770. They cannot be
    inspected or re-run from this repository.
-8. **Gate-level `test_ext/`.** `test_ext/Makefile` does not add
+8. **Resolved in `fb79f31`: gate-level `test_ext/`.** `fb79f31` adds
+   `sg13cmos5l_udp.v` to the gate-level sources of `test_ext/Makefile`, and
+   with the action's PDK revision and that file the whole suite passed at
+   gate level on the CI netlist of run 36144357821, 65 of 65 (job 23975497;
+   [independent-peers.md](independent-peers.md)). As first written, for
+   `c118027`: `test_ext/Makefile` does not add
    `sg13cmos5l_udp.v` for gate-level runs. `test/Makefile` gained that line
    in `88f89a1` (see [bug-ledger.md](bug-ledger.md), BL-5). The 65/65
    gate-level result (R22) used a PDK copy whose standard-cell file defines
@@ -452,10 +520,17 @@ owning documents can be corrected. No number above depends on them.
    the `73536f0` test tree. Since `c118027` the default generator is
    generation 2. `PE_RANDOM_GEN=1` draws the campaign's cases, except that a
    trailing `deselect` now runs ([test/README.md](../test/README.md)).
-10. **Runs recorded as unfinished.** [formal-depth.md](formal-depth.md) lists
-   runs that had not finished when it was written, for example abc pdr and
-   rIC3 on the unmodified `engine_safety` and on the SRAM data-integrity
-   proof. They are not claimed as results.
+10. **Resolved: runs recorded as unfinished.** As first written,
+   [formal-depth.md](formal-depth.md) listed runs that had not finished, for
+   example abc pdr and rIC3 on the unmodified `engine_safety` and on the SRAM
+   data-integrity proof. All of them have ended, and formal-depth.md
+   ("Runs that finished after this page was written") gives each outcome
+   from its result file in the work area. Two passed: rIC3 BMC 96 on the
+   program-load harness (23767782_0, 13,703 s) and yices BMC 64 on
+   `processor_invariants` (23752066_8, 16,162 s). The others reached the
+   41,400 s limit or ended in an error without a verdict; none failed an
+   assertion. `formal_depth/results/summary.tsv` does not contain these
+   rows.
 11. **Mutation score 96.82% (R23c).** The per-mutant status of the push,
    re-tallied on the `4bd30c8` tree, is in
    `campaigns/mutation/results/push-4bd30c8/` (`summary.json`,
@@ -503,3 +578,17 @@ owning documents can be corrected. No number above depends on them.
    - **Other material.** The original reports and the AXLE check stay in
      `<work dir>/sta50/`.
    - **Official flow.** It reports the design at 15 ns only (R85).
+16. **Timing certificates at `24f31f0` (R42).** The certificates were
+    generated and proved for the 19 images committed at `c118027`. `fb79f31`
+    then regenerated the three I²C controller images, so 119 of the 368
+    certified segments describe earlier versions of those three images.
+    [timing-certificates.md](timing-certificates.md) says so in its "Setup";
+    a headline that cites "368 of 368" for the firmware at `24f31f0` needs
+    this qualification until the three images are re-certified. The
+    `certs` check of `tools/evidence/check_consistency.py` reports each
+    certified image whose `bytecode_sha256` has changed since.
+17. **Path coverage of the validation (R41, R41b).** The "100% path
+    coverage" of R41 was for the images committed at `c118027`. For the
+    images of `fb79f31`, run r8 observed 362 of the 363 path variants of
+    the 19 committed images: one of the 28 variants of `i2c-read` was not
+    observed (`validation-summary.json`, `variant_coverage`).

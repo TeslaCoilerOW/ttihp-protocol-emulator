@@ -1,8 +1,11 @@
 # Four-engine architecture
 
-This describes the ISA2 design generated from `hardcaml/`. It was copied from
-the author's asic-lab monorepo (`projects/protocol-emulator/docs/architecture.md`,
-eb6b17c). The design has not completed physical signoff.
+This describes the ISA2 design generated from `hardcaml/`, the design of
+record. Its 8x4 build passed the official Tiny Tapeout gds, precheck and
+gl_test actions, and the official netlist is proven equivalent to the RTL
+([results.md](results.md), sections 2d and 4). The page began as a copy of
+the architecture note in the author's earlier, private development
+repository (commit `eb6b17c` there, not in this repository's history).
 
 The processor runs four instruction streams concurrently. Each engine reads its
 own writable program store and controls its own registered outputs. Sharing the

@@ -4,8 +4,11 @@ This page lists the defects that the verification process found during
 development. Each entry gives what was wrong, the method that found it, the
 evidence, the fix (commit) and the current status. The scope is:
 
-- this repository's history, from `180f98d` to `c118027` (tag
-  `v0.1-hardened`);
+- this repository's history, from `180f98d` to `24f31f0`. BL-1 to BL-24
+  were compiled at `c118027` (tag `v0.1-hardened`); BL-25 to BL-28 were
+  added on 2026-09-28. Every status was re-checked on 2026-09-28 against
+  `24f31f0`, and an entry whose status changed keeps its earlier status in
+  its details;
 - the earlier development record of the author's private asic-lab
   monorepo, for defects in the ISA and the firmware that this repository
   imported at `180f98d`. That record is not public, so its entries cite
@@ -27,31 +30,36 @@ repository's history** by these methods:
 - the mutation campaign;
 - the `formal/` and `formal_depth/` proofs;
 - the independent-peer tests;
-- the variant lockstep checks.
+- the variant lockstep checks;
+- the per-segment timing certificates of the images committed at
+  `c118027` (368 of 368 pass);
+- the RTL-to-netlist equivalence check of the official netlists.
 
 The sources say so explicitly:
 [verification-campaign.md](verification-campaign.md) (finding 1),
 [formal-depth.md](formal-depth.md) ("No design bug was found"),
-[variants.md](variants.md) section 7.2 and
-[independent-peers.md](independent-peers.md). The design defect below
+[variants.md](variants.md) section 7.2,
+[independent-peers.md](independent-peers.md),
+[timing-certificates.md](timing-certificates.md) and
+[equivalence.md](equivalence.md) section 1. The design defect below
 (BL-1) predates this repository. BL-2 and BL-3 are firmware.
 
 ## Summary
 
-| ID | Class | Defect | Found by | Fix | Status at `c118027` |
+| ID | Class | Defect | Found by | Fix | Status (checked 2026-09-28, `24f31f0`) |
 |---|---|---|---|---|---|
 | BL-1 | Design (ISA1) | A UART byte was lost silently while the receiver's blocking PUSH waited at a full queue | Counterexample run in the monorepo's verification (job 22624426) | ISA2 strict PUSH with fault 4; imported at `180f98d` | Fixed; regression tests in `test/` |
-| BL-2 | Firmware | `i2c-repeated-start` holds SCL low for only 7 cycles before the repeated START | Static timing analysis (`pe_timing`) | none | **Open** |
-| BL-3 | Firmware | I2C controllers on NACK: 2-cycle SCL runt pulse and no STOP; the SPI target's undeclared 9-cycle CS-high minimum; a wrong image name | Static timing analysis (`pe_timing`) | none | **Open** (WARN/INFO) |
+| BL-2 | Firmware | `i2c-repeated-start` held SCL low for only 7 cycles before the repeated START | Static timing analysis (`pe_timing`) | `fb79f31` | Fixed: `pe_timing` reports no FAIL and no WARN on the images of `fb79f31` ([results.md](results.md) R40b). Open at `c118027` |
+| BL-3 | Firmware | I2C controllers on NACK: 2-cycle SCL runt pulse and no STOP; the SPI target's undeclared 9-cycle CS-high minimum; a wrong image name | Static timing analysis (`pe_timing`) | `fb79f31` (the NACK path only) | Partly fixed: the NACK path ends with a STOP since `fb79f31`; the CS-high minimum is still undeclared and the image name still wrong (both INFO). Open (WARN/INFO) at `c118027` |
 | BL-4 | Flow / Tool | LibreLane 3.1.0.dev3 passes `-threads None` to OpenROAD when `OPENROAD_THREADS` is unset, so detailed routing runs on one thread | Log inspection of a local mirror run (job 23715924) | `d16a327` | Fixed |
-| BL-5 | Flow | Official `gl_test` failed to elaborate: `Unknown module type: ihp_mux2/ihp_mux4` | Official `gl_test`, run 36096045527 | `88f89a1` | Fixed for `test/`; **open** for `test_ext/` |
+| BL-5 | Flow | Official `gl_test` failed to elaborate: `Unknown module type: ihp_mux2/ihp_mux4` | Official `gl_test`, run 36096045527 | `88f89a1` (`test/`), `fb79f31` (`test_ext/`) | Fixed. At `c118027` it was fixed for `test/` only |
 | BL-6 | Flow | Official precheck failed its Pin check: short VPWR/VGND Metal4 straps between paired SRAM macros were exported as power ports | Official precheck, run 36096045527 | `1e2cfb3` | Fixed; confirmed by run 36144357821 |
 | BL-7 | Flow | The `docs` action failed: `docs/info.md` was still the template | Official `docs` action, run 36086335680 | `d16a327` | Fixed |
 | BL-8 | Test | The random test's `deselect` operation ran in 0.26% of cases instead of about 10% | Random campaign accounting | `c118027` | Fixed |
 | BL-9 | Test | The random generator never produced five host-command rejection paths | Random campaign coverage holes | `c118027` | Fixed |
 | BL-10 | Test | The minimizer was disabled for replayed cases | Random campaign | `c118027` | Fixed |
 | BL-11 | Test | A shared simulator image was rebuilt while campaign tasks were loading it | Campaign audit | `0cd4697` | Fixed; results shown unaffected |
-| BL-12 | Test | Test-suite gaps: long counters, timeouts after arbitrary instructions, parity-sensitive timing, host corner cases, mover arbitration, unobserved data | Mutation testing (573 survivors analysed) | `c118027` | Fixed in part: score 80.2% → 89.4%; 244 survivors remain |
+| BL-12 | Test | Test-suite gaps: long counters, timeouts after arbitrary instructions, parity-sensitive timing, host corner cases, mover arbitration, unobserved data | Mutation testing (573 survivors analysed) | `c118027`, `aa07868` | Fixed in part: score 80.2% → 89.4% (`c118027`) → 96.82% (`aa07868`); 73 survivors remain, each argued unobservable but not proven |
 | BL-13 | Test | Formal harness: `past_valid` used before its declaration; a negative control counted as met on any failing assertion | Review during integration | `73536f0` | Fixed |
 | BL-14 | Test | `formal_depth` harnesses: vacuous mover tag claims from reset; an out-of-range initial value of a read-mask register; a missing FIFO pointer invariant | From-reset cover; k-induction and BMC counterexamples | before `0fc6fe9` | Fixed |
 | BL-15 | Test | `pe_timing`: two analyzer errors and one checker error | Validation against the reference model | before `0ec5138` | Fixed |
@@ -64,6 +72,10 @@ The sources say so explicitly:
 | BL-22 | Simulation artefact | Gate-level X-pessimism: a synchronous-clear register of `rstreg` stays X in a plain-Yosys netlist | Gate-level simulation of the variants | none needed; LibreLane-replica netlists pass | Documented |
 | BL-23 | Test (monorepo) | A negative canary in the earlier formal flow was vacuous: initialization flags made its assumptions inconsistent | Independent probe (unsatisfiable without the assertion) | Corrected run 22627095 | Fixed before this repository |
 | BL-24 | Tool | Observed tool failures: LibreLane `Netgen.LVS` JSON parse error after a route with shorts; sby AIGER witness replay mismatch for rIC3 and abc; avy segfault | Sweep and formal-depth runs | Worked around | Documented |
+| BL-25 | Flow | The 6x4 overlay pinned only placement keys, so the 8x4 timing keys of `25e331e` reached the 6x4 build, which then failed routing (69 DRC errors) and LVS | Official `gds_6x4`, run 36257636751 | `4bd30c8`, `8a05de7`, `fdc23f2` | Fixed: the overlay pins every flow knob key. From `4bd30c8` to `65cb65c`, every `gds_6x4` run of `main` passed, except one cancelled by a newer push |
+| BL-26 | Test | The first RTL-vs-netlist recipe (`miter -equiv -ignore_gold_x`, then `setundef -zero`) compared an output bit only where the RTL value was 1 | Recipe controls while packaging `formal_eq/` (ablation job 24094085) | Before `formal_eq/` was committed (`468e560`) | Fixed; its earlier "equivalent" results are superseded ([results.md](results.md) R91) |
+| BL-27 | Test | The `formal_eq` verdict parser did not know ABC's upper-case "NOT EQUIVALENT" spelling, so a refuted mutant came out as an error | First round of the equivalence runs (jobs 24093075 to 24093081) | Before `formal_eq/` was committed (`468e560`) | Fixed; the error failed the self-test, so no pass was reported |
+| BL-28 | Simulation artefact | Optimizer promotion p026 (6x4) failed 8 of 102 gate-level tests although its netlist is equivalent to the RTL: a race in the zero-delay simulation between a deep SRAM clock branch and the flip-flops | Optimizer promotion gate; equivalence and clock-depth analysis (jobs 24093886, 24085496, 24086215, 24087092) | none needed for the design of record; the optimizer no longer samples `CTS_MAX_SLEW` | Documented ([results.md](results.md) R92) |
 
 ## Details
 
@@ -91,7 +103,7 @@ The sources say so explicitly:
   `test_legacy.test_legacy_firmware_uart_overflow` test it; both pass in
   the `test` action (run 36144357839).
 
-### BL-2: `i2c-repeated-start` short SCL low phase (firmware, open)
+### BL-2: `i2c-repeated-start` short SCL low phase (firmware, fixed in `fb79f31`)
 
 - **What.**
   - After the register byte's ACK clock, `DIR 0x40` at pc29 pulls SCL low.
@@ -101,30 +113,52 @@ The sources say so explicitly:
     14 MHz (Fm+).
   - A target that is still holding its ACK low when SCL rises would see a
     STOP instead of a repeated START.
-- **Found by.** Static timing analysis. `tools/timing/pe_timing.py report`
-  reports it as the only FAIL among 241 checks: `i2c-repeated-start`
-  `i2c-scl-low-phase`. See [timing-analysis.md](timing-analysis.md),
+- **Found by.** Static timing analysis. At `73536f0`,
+  `tools/timing/pe_timing.py report` reported it as the only FAIL among 241
+  checks: `i2c-repeated-start` `i2c-scl-low-phase`. See [timing-analysis.md](timing-analysis.md),
   finding 1; the analyzer was added in `0ec5138`.
 - **Why simulation missed it.** The test peers release SDA immediately.
   The cocotb suite and the third-party I2C peers pass with this image.
-- **Fix.** None at `c118027`. The analysis suggests one `WAIT 32` on the
-  `JZ tx, start` path; the image has one free word. After a fix, re-run
-  `pe_timing report`, the cocotb suite and `test_ext/`.
+- **Fix.** `fb79f31` regenerated the three I2C controller images from
+  `hardcaml/lib/firmware.ml`. The repeated-START path now starts with
+  `start: WAIT 32`, so the SCL low phase before the repeated START is at
+  least 42 cycles (0.84 us at 50 MHz). The other 16 images are
+  byte-identical.
+- **Verified.**
+  - `pe_timing report` on the regenerated images reports no FAIL and no
+    WARN: 183 checks pass and 55 are INFO (jobs 23975273 and 23986537;
+    [timing-analysis.md](timing-analysis.md), finding 1). This is the
+    committed `tools/timing/report/checks.json`, which
+    `scripts/reproduce.sh --only timing` regenerates byte for byte
+    ([results.md](results.md) R40b).
+  - The validation against the reference model was repeated on the new
+    images (run r8, [results.md](results.md) R41b).
+  - The cocotb suite of the time (66/66) and the third-party I2C peers at
+    RTL and gate level passed on the new images (jobs 23975495 and
+    23975497, [independent-peers.md](independent-peers.md)).
+- **Status at `c118027`.** Open: no fix; the analysis suggested one
+  `WAIT 32` on the `JZ tx, start` path.
 
-### BL-3: other firmware timing findings (open)
+### BL-3: other firmware timing findings (partly fixed in `fb79f31`)
 
 These come from [timing-analysis.md](timing-analysis.md), findings 2, 4
 and 7:
 
-- **NACK runt pulse (WARN).** On NACK (fault 65), the I2C controllers pull
-  SCL low and release the bus 2 cycles later. That is a 40 ns SCL pulse at
-  50 MHz, with no STOP. It happens at pc28 in `i2c-read`, pc29 in
-  `i2c-repeated-start` and pc28/51 in `i2c-write`.
-- **Undeclared SPI-target constraint.** The SPI target needs CS high for at
-  least 9 cycles between bytes. The notes do not declare this; the margin
-  sweep confirms 9 exactly.
-- **Wrong image name (INFO).** `firmware/spi-controller-fast.image.json`
-  carries `"name": "spi-controller-mode0"`.
+- **NACK runt pulse (WARN). Fixed in `fb79f31`.** At `c118027`, on NACK
+  (fault 65), the I2C controllers pulled SCL low and released the bus 2
+  cycles later. That is a 40 ns SCL pulse at 50 MHz, with no STOP. It
+  happened at pc28 in `i2c-read`, pc29 in `i2c-repeated-start` and pc28/51
+  in `i2c-write`. Since `fb79f31` a NACK leads into a STOP sequence, and
+  `FAULT 65` then releases only SDA, which is the STOP condition
+  ([timing-analysis.md](timing-analysis.md), finding 2). `i2c-fault-release`
+  is no longer reported.
+- **Undeclared SPI-target constraint. Open.** The SPI target needs CS high
+  for at least 9 cycles between bytes. The margin sweep confirms 9 exactly.
+  The notes of `firmware/spi-target-mode0.image.json` to `mode3` still say
+  only "CS must be high between bytes".
+- **Wrong image name (INFO). Open.** `firmware/spi-controller-fast.image.json`
+  still carries `"name": "spi-controller-mode0"`; `pe_timing` reports it as
+  the INFO check `image-name`.
 
 **Related.** A third-party I2C target showed that `i2c-repeated-start`
 leaves the bus inside a started transaction, SCL low, while it waits for
@@ -164,18 +198,21 @@ This is recorded as a firmware property, not as a failing test.
     0 fail, with the 39-test suite of the time.
   - Officially, by the `gl_test` job of run 36144357821 on `c118027`:
     66 tests, 36 pass, 30 skip, 0 fail.
-- **Open.** `test_ext/Makefile` has the same gate-level source list without
-  the UDP file. Slurm job 23975124 ran `make GATES=yes
-  COCOTB_TEST_MODULES=test_ext_uart` in `test_ext/` with the action's PDK
-  revision and the CI netlist of run 36144357821:
-  - as committed, it failed to elaborate with `Unknown module type:
-    ihp_mux4`;
+- **`test_ext/`, fixed in `fb79f31`.** At `c118027`, `test_ext/Makefile`
+  had the same gate-level source list without the UDP file. Slurm job
+  23975124 ran `make GATES=yes COCOTB_TEST_MODULES=test_ext_uart` in
+  `test_ext/` with the action's PDK revision and the CI netlist of run
+  36144357821:
+  - as committed at `c118027`, it failed to elaborate with `Unknown module
+    type: ihp_mux4`;
   - with the `test/Makefile` line added to a copy of `test_ext/Makefile`,
     5 of 5 tests passed.
 
   The earlier 65/65 gate-level result used a PDK copy that defines the UDPs
-  inline. The fix is that one line in `test_ext/Makefile`; it is not applied
-  at `c118027`.
+  inline. `fb79f31` adds that one line to `test_ext/Makefile`. With the
+  action's PDK revision and the UDP file added, the whole `test_ext/` suite
+  passed at gate level on the same CI netlist, 65 of 65 (job 23975497,
+  [independent-peers.md](independent-peers.md)).
 
 ### BL-6: precheck Pin check, short power straps (flow)
 
@@ -202,8 +239,9 @@ This is recorded as a firmware property, not as a failing test.
   - Locally: full run job 23850490, then the unmodified precheck passes
     9 of 9 checks (job 23856538).
   - Officially: the `precheck` job of run 36144357821 passed.
-- **Open.** Extending the wrapper's check 3 to every stripe, as
-  drc-triage.md recommends, is not done at `c118027`.
+- **Still open.** Extending the wrapper's check 3 to every stripe, as
+  drc-triage.md recommends, is not done: `src/sram_pdn_cfg.tcl` is
+  unchanged from `c118027` to `24f31f0`.
 
 ### BL-7: datasheet still the template (flow)
 
@@ -273,10 +311,16 @@ All four are from [verification-campaign.md](verification-campaign.md),
   generator generation 2. The mutation score rose from 80.2%
   (1,847 / 2,304) to 89.4% (2,060 / 2,304); it is 85.8% without the
   white-box time warp.
-- **Remaining.** 244 survivors are neither killed nor proven equivalent,
-  71 of them in `engine_ctrl` (55 on `blocked_cycles`). Three mutants that
-  old random cases killed survive the new random stimulus: 2341, 2391 and
-  2394.
+- **Remaining at `c118027`.** 244 survivors were neither killed nor proven
+  equivalent, 71 of them in `engine_ctrl` (55 on `blocked_cycles`). Three
+  mutants that old random cases killed survive the new random stimulus:
+  2341, 2391 and 2394.
+- **After `aa07868`.** The mutation push added 11 `test_kill_*` test
+  modules (36 tests; the suite is 102 tests) and 8 more equivalence proofs.
+  The score is 96.82% (2,223 / (2,420 − 124)). 73 survivors remain; each
+  has a written argument that no test can observe it, but the arguments are
+  not proofs, so they count as survivors ([mutation-push.md](mutation-push.md);
+  [results.md](results.md) R23c).
 
 ### BL-13: formal harness corrections at integration (test)
 
@@ -323,9 +367,10 @@ analyzer". Validation against the reference model found three errors:
 - **LIMIT=1 timeouts.** A checker error rejected a LIMIT=1 wait that times
   out on its arrival edge.
 
-All were fixed before `0ec5138`. The published validation (R41 in
-[results.md](results.md)) uses the fixed code. Its 7 deliberately wrong
-analyzers are all caught.
+All were fixed before `0ec5138`. The published validations (R41 in
+[results.md](results.md) for the images of `c118027`, R41b for the current
+images) use the fixed code. In both, the 7 deliberately wrong analyzers are
+all caught.
 
 ### BL-16: host-library defects (test)
 
@@ -335,8 +380,8 @@ before `host/` was committed in `0ec5138`:
 
 - **MicroPython replay.** An exception subclass called
   `HostError.__init__(self, ...)`, which raises AttributeError on
-  MicroPython. It now calls `super().__init__`, and `tools/upy_check.py`
-  flags the pattern.
+  MicroPython. It now calls `super().__init__`, and
+  `host/tools/upy_check.py` flags the pattern.
 - **Independent review, round 1.**
   - SELECT/READ_SELECT acceptance and selection tracking are now static
     and checked by an acceptance oracle. A mutant with the old rule is
@@ -441,7 +486,8 @@ See [independent-peers.md](independent-peers.md).
 - **Status.** This is not a hardware defect. The LibreLane-replica netlists
   of all six variants pass the gate-level subset (job 23761207), and so
   does the official hardened netlist of the design of record (R3 in
-  [results.md](results.md)).
+  [results.md](results.md) for `c118027`, R85 for the current 15 ns
+  build).
 - **Earlier record.** The monorepo recorded the same class of four-state
   reset pessimism on a Yosys 0.67 mapped netlist (diagnostic 22628927).
 
@@ -469,3 +515,89 @@ See [independent-peers.md](independent-peers.md).
   reports ERROR although the engine's verdict is FAIL. btormc gives a full
   trace (job 23770778; [formal-depth.md](formal-depth.md)).
 - **avy.** It crashes with a segfault on these models.
+
+### BL-25: the 6x4 overlay inherited the 8x4 timing keys (flow)
+
+- **What.** `variants6x4/config.overlay.json` set the 6x4 build's
+  placement, obstruction, density and halo, but no timing key. When
+  `25e331e` added the timing keys of optimizer promotion p010 to
+  `src/config.json` for the 8x4 build, the 6x4 build inherited them.
+- **Found by.** The official `gds_6x4` run of `131e793`,
+  [36257636751](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36257636751):
+  `Checker.TrDRC` "69 Routing DRC errors found", Netgen LVS "Top level cell
+  failed pin matching", then LibreLane stopped on a `JSONDecodeError`
+  reading Netgen's output (BL-24). The same configuration gave 69 routing
+  DRC errors locally (trial job 24024332, full run 24029191;
+  [results.md](results.md) R81).
+- **Fix.**
+  - `4bd30c8` puts optimizer promotion p014 into the overlay.
+  - `8a05de7` and `fdc23f2` make the overlay state all 33 keys that the
+    optimizer treats as flow knobs, plus `OPENROAD_THREADS`, and the
+    `info.yaml` overlay restate `clock_hz`. `tools/opt/test_opt.py` fails if
+    a knob key is missing.
+- **Verified.** Run 36274474540 (`4bd30c8`) passed all five jobs with a
+  `metrics.csv` byte-identical to the local p014 full run (R83). Runs
+  36285537630 (`1e5b1d8`) and 36298635404 (`d76f1cc`) passed with the same
+  metrics (R87, R89). Every later completed `gds_6x4` run of `main` up to
+  `65cb65c` passed; run 36360006612 was cancelled by a newer push.
+- **Limit.** A key outside the 33 knob keys can still reach the 6x4 build
+  from `src/config.json` ([limitations.md](limitations.md) section 5).
+
+### BL-26: the first RTL-vs-netlist recipe was unsound (test)
+
+- **What.** The first version of the equivalence check, written during the
+  p026 investigation (BL-28), built the miter with `miter -equiv
+  -ignore_gold_x` and then ran `setundef -zero`. That turned yosys' test
+  for an x in the RTL value into a test for 0, so every output bit where the
+  RTL value is 0 was ignored: the miter could only fire where the RTL had 1
+  and the netlist 0. Its "equivalent" verdicts for p014, p018, p025 and
+  p026 were therefore not proofs.
+- **Found by.** Recipe controls written while packaging the check. Ablation
+  job 24094085 ran the nine controls through three versions of the miter
+  script. With `-ignore_gold_x`, control c1 (a gate `a|b` against gold `a`)
+  and control c4 (a difference after 13 cycles, where gold is 0) came out
+  equivalent ([equivalence.md](equivalence.md) section 3).
+- **Fix.** The packaged recipe of `formal_eq/`, committed in `468e560`,
+  drops the flag. The nine controls are in `formal_eq/controls/`;
+  `eq_check.py controls` and every `--selftest` run them.
+- **Verified.** With the packaged recipe, p014 (as the 6x4 artifact), p018
+  (as the 8x4 artifact and its local run), p025 and p026 are equivalent
+  ([equivalence.md](equivalence.md) section 1; [results.md](results.md) R90
+  and R91).
+
+### BL-27: the equivalence verdict parser missed an ABC spelling (test)
+
+- **What.** ABC's `dprove` prints `Networks are NOT EQUIVALENT.` in upper
+  case when interpolation finds the counterexample. The first version of the
+  verdict parser did not know that spelling, so the 15 ns 8x4 mutA case came
+  out as `error`.
+- **Found by.** The first round of the equivalence runs (jobs 24093075 to
+  24093081).
+- **Consequence.** An error counts as a failure, so the self-test was marked
+  failed. No pass was reported.
+- **Fix.** The parser was corrected before `formal_eq/` was committed
+  (`formal_eq/README.md`, "Method", step 6, lists the spellings), and every
+  case was run again (round 2, [equivalence.md](equivalence.md) section 1).
+  `formal_eq/test_eq_check.py` covers the spellings (`test_abc_spellings`).
+
+### BL-28: an equivalent netlist that fails zero-delay simulation (simulation artefact)
+
+- **What.** Optimizer promotion p026 (6x4) failed 8 of the 46 gate-level
+  tests that run (job 24078117), although its netlist is sequentially
+  equivalent to the RTL (job 24093886).
+- **Why.** In p026 the clock of the eight SRAM macros passes through more
+  buffers than the flip-flop clocks (18 against 12 on the failing path). In a
+  zero-delay simulation every cell adds an evaluation step, so a new
+  flip-flop value reaches the macro's `A_DIN[3]` before the SRAM model
+  samples it. With only the SRAM clock pins tied to `clk`, the gate-level
+  subset passes (46 pass, 0 fail; job 24086215). Real timing is the other
+  way round: at the fast corner the earliest clock arrival is at an SRAM
+  clock pin (0.796 ns) and the latest at a flip-flop (1.478 ns; job
+  24087092). See [equivalence.md](equivalence.md) section 5.
+- **Handling.** p026 was not adopted. Tiny Tapeout's `gl_test` runs the same
+  kind of zero-delay simulation, so such a layout is rejected although its
+  function and timing are right. The two promotions with such deep SRAM
+  clock trees, p025 and p026, were the only ones that set `CTS_MAX_SLEW`;
+  the optimizer no longer samples that knob
+  ([optimization.md](optimization.md)). The adopted netlists pass `gl_test`
+  ([results.md](results.md) R85, R89).

@@ -2,6 +2,12 @@
 
 Cluster-scale verification campaigns run against a frozen snapshot of the
 design (commit `73536f0`). Each campaign owns one section of this file.
+`src/protocol_emulator_core.v` is unchanged from `73536f0` to `24f31f0`;
+the test suite has grown since (66 tests at `c118027`, 102 at `aa07868`).
+The current mutation scores are those of the mutation push,
+[mutation-push.md](mutation-push.md): 96.82% for the base core and 95.24%
+for `diet4`, with the 102-test suite ([results.md](results.md) R23c and
+R23d). The scores below are kept as history.
 
 ## Random differential campaign
 
@@ -237,7 +243,9 @@ reach/infect/propagate (RIP) differential simulation, 256 extra random cases,
 and directed tests written from the survivor analysis. Scripts and small result
 files: [`campaigns/mutation/`](../campaigns/mutation/README.md).
 
-**Result.** 1,847 of 2,420 mutants are killed by the existing suite (1,433 by
+**Result** (39-test suite of `73536f0`; superseded as the current score by
+the gap closure below and then by [mutation-push.md](mutation-push.md)).
+1,847 of 2,420 mutants are killed by the existing suite (1,433 by
 the fast set, 414 more by the full suite), 0 time out and 0 error. 116
 survivors are proven equivalent. The mutation score is
 **1,847 / (2,420 − 116) = 80.2%**. 457 survivors are not proven equivalent. Of
@@ -700,7 +708,9 @@ By mode, extended suite (old suite in parentheses):
 | `inv` | 95.4% (93.3%) |
 | `cnot0` | 94.8% (90.3%) |
 
-**Survivors.** 244 survivors are neither proven equivalent nor killed.
+**Survivors.** 244 survivors are neither proven equivalent nor killed
+(at `c118027`; after the mutation push of `aa07868`, 73 remain, each argued
+unobservable but not proven; [mutation-push.md](mutation-push.md)).
 
 | region | survivors |
 |---|---:|
@@ -747,7 +757,7 @@ Job ids: `<work dir>/sixby4-verify/manifest.json`. All runs are from
 | design under test | frozen `git archive` of `c11802730ea10a9501ce16517ca6218fd8b7c43e`; `build/variants/diet4/protocol_emulator_core.v` generated in the snapshot by `scripts/gen_variants.sh diet4` (job 23974763; its checks regenerate `src/protocol_emulator_core.v` byte for byte), sha256 `cc27c465…`, the core of the diet4 runs in [`sweep.md`](sweep.md); `src/project.v` sha256 `2aacfd24…` |
 | reference model | the snapshot's `test/model/variant.py`, configured from `configs/variants/diet4.json` by `PE_VARIANT=diet4` (`test/variants.py` checks the file against its own table). Every result file records the variant, `fifo_words` 4 and the model options |
 | stimulus | `random_gen.make_case`, generation 2 (the snapshot default: mid-traffic deselect and rejected command sequences). On `diet4` the generator also draws byte-lane shift counts (15% deliberately off-lane, fault code 1) and jumps to targets of 128 or more (8%, saturated to PC 127) |
-| gate-level netlist | the routed netlist of sweep run `diet4-cc27c4-6x4-fp6_tworow-d65-p20-h0p1_0p05-full-t32` (job 23763343_0, full flow, LVS 0; [`sweep.md`](sweep.md)), `final/nl`, sha256 `98b31b96…` (gzip `c4a2ddfb…`). The eight SRAM macros are simulated with the behavioral models, the cells with the IHP `sg13cmos5l` Verilog models, zero delay. The 6x4 sign-off runs of [`6x4.md`](6x4.md) had no final netlist yet at 2026-09-26 01:00; the gate-level sample should be repeated on the netlist that is submitted |
+| gate-level netlist | the routed netlist of sweep run `diet4-cc27c4-6x4-fp6_tworow-d65-p20-h0p1_0p05-full-t32` (job 23763343_0, full flow, LVS 0; [`sweep.md`](sweep.md)), `final/nl`, sha256 `98b31b96…` (gzip `c4a2ddfb…`). The eight SRAM macros are simulated with the behavioral models, the cells with the IHP `sg13cmos5l` Verilog models, zero delay. The 6x4 sign-off runs of [`6x4.md`](6x4.md) had no final netlist yet at 2026-09-26 01:00; the gate-level sample should be repeated on the netlist that is submitted. No such repeat is recorded in this repository at `24f31f0`; the submitted 6x4 netlist runs the cocotb suite in the official `gl_test` (46 pass, 56 skip, 0 fail; [`results.md`](results.md) R83, R89), not this random sample |
 | simulator | Icarus Verilog 14.0 (devel, OSS CAD Suite 2026-07-29), cocotb 2.0.1, Python 3.12 |
 | compute | Slurm `mit_normal`, `mit_quicktest` and `mit_preemptable` (with `--requeue`); `mit_preemptable` started few tasks during these runs |
 
@@ -857,8 +867,11 @@ proof on the survivors. What differs:
 | equivalence | the `diet4` flops have asynchronous resets: the proof keeps the `$adff` outputs as matched points and runs `async2sync` on both copies before `equiv_make` |
 | controls | `orig` and mutant 0 pass the fast set (job 23975067) and all 66 tests of the suite with none skipped (job 23975068; `test_timewarp` runs its 7 tests on the variant). Mutant 0 is proven equivalent (job 23975069). All 40 negative controls, a random sample (`random.seed(20270118)`) of fast-killed mutants, are "not proven" (job 23976517). All 38 static no-op mutants (`noop_check.py`) are proven equivalent |
 
-**Result.** 2,028 of 2,420 mutants are killed (1,346 by the fast set, 682 more
-by the suite), 0 time out and 0 error. 107 of the 392 survivors are proven
+**Result** (66-test suite of `c118027`; superseded for the current
+102-test suite by 95.24%, [results.md](results.md) R23d and
+[mutation-push.md](mutation-push.md) section 7). 2,028 of 2,420 mutants are
+killed (1,346 by the fast set, 682 more by the suite), 0 time out and 0
+error. 107 of the 392 survivors are proven
 equivalent. The mutation score is **2,028 / (2,420 − 107) = 87.7%**. 285
 survivors are neither killed nor proven equivalent.
 

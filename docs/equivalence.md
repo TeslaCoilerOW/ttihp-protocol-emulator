@@ -254,8 +254,8 @@ is named.
   - 6x4 submission: `gl_test` of run 36298635404, with 102 tests, 46 pass,
     56 skip and 0 fail ([results.md](results.md) R89).
   - p018: local gate-level job 24053972, with 46 pass and 0 fail
-    (results.md R84). The `gl_test` job of run 36298635436 also concluded
-    "success"; its log was not read, because the run was still in progress.
+    (results.md R84). The `gl_test` job of run 36298635436 also passed,
+    with 102 tests, 46 pass, 56 skip and 0 fail (results.md R85).
   - 8x4, 20 ns: `gl_test` of run 36257636798 (results.md R15).
   - p025: promotion job 24073831, with 46 pass and 0 fail.
   - p026: job 24078117.
@@ -323,11 +323,16 @@ case.
 `gds` job succeeded, and of any such run given by hand (builds of other
 branches, such as a variant under evaluation, are checked by hand). Its steps, pins and hardening
 are listed in the CI section of
-[formal_eq/README.md](../formal_eq/README.md#ci). It replaces the inactive
-proposal `formal_eq/ci-proposal.yaml`, whose sparse PDK checkout the
-section 1 row "with the CI proposal's PDK" used. When this section was
-written, the workflow had not yet run on GitHub. The results below come
-from an emulation on the cluster.
+[formal_eq/README.md](../formal_eq/README.md#ci). It replaced the inactive
+proposal `formal_eq/ci-proposal.yaml` (removed in `a15f6f2`), whose sparse
+PDK checkout the section 1 row "with the CI proposal's PDK" used.
+
+This section was first written before the workflow had run on GitHub. The
+design, the static checks, the emulation on the cluster and the runtime
+estimate below are from then. Since then the workflow has checked on
+GitHub the official netlists of `d76f1cc` and every later build of `main`
+that finished after it was added ("Runs on GitHub", at the end of this
+section).
 
 **Design.**
 
@@ -444,8 +449,9 @@ without failing:
 The emulation used `jq` 1.6 and `gh` 2.95.0. The runner image has its own
 versions.
 
-**Runtime on GitHub (estimate).** For 8x4, ABC takes nearly all of the
-time, and its time depends on the CPU and on what else runs on it:
+**Runtime on GitHub (estimate, made before the first run).** For 8x4, ABC
+takes nearly all of the time, and its time depends on the CPU and on what
+else runs on it:
 
 - The 8x4 netlist took 446 s alone on an EPYC 7513 (job 24093888).
 - It took 692 s next to mutA on an EPYC 9474F (job 24093884).
@@ -472,15 +478,50 @@ fails.
 The sums, ratios and roundings in this section were checked with AXLE
 (Lean 4, `<work dir>/eq-ci/axle/`, `okay: true`).
 
-**Activation.** The workflow runs on GitHub only once it is on the default
-branch. `workflow_run` then fires for `gds` and `gds_6x4` runs that
-complete afterwards. Earlier runs, such as the official ones, are checked
-by hand:
+**Activation.** A workflow runs on GitHub only once it is on the default
+branch; this one reached `main` with `a15f6f2` (pushed 2026-09-27 19:35
+UTC). `workflow_run` then fires for the `gds` and `gds_6x4` runs that
+complete afterwards. `127e8e8` limited `workflow_run` to builds of `main`;
+a build of another branch is checked with `workflow_dispatch`. The two
+official builds of `d76f1cc` had finished before, so they were checked by
+hand:
 
 ```sh
 gh workflow run equiv.yaml -f run_id=36298635404   # gds_6x4, 6x4 (diet4)
 gh workflow run equiv.yaml -f run_id=36298635436   # gds, 8x4 (base)
 ```
+
+**Runs on GitHub.** Every run that had finished by 2026-09-28 08:40 UTC.
+The builds of `main` that finished between `d76f1cc`'s and the arrival of
+the workflow were not checked: `gds` 36308043760 and `gds_6x4` 36308043804
+of `4c30622`, and `gds_6x4` 36323174037 of `fff6746` (the same `src/` as
+`d76f1cc`).
+Each verdict is from the job's log, where the check prints
+`{"verdict": "equivalent", "exit_code": 0, "pass": true, "wall_s": …}`,
+and the built run is the one the `select` step names. The job passes only
+when the self-test passes too, so every row below had its two netlist
+mutants refuted and its nine recipe controls met. Job time runs from the
+check job's start to its end as GitHub reports them; wall time is
+`eq_check.py`'s own (`wall_s`). The results are also R93 in
+[results.md](results.md).
+
+| Built commit | Build run | Variant | Equivalence run | Event | Verdict | Check job | Wall time |
+|---|---|---|---|---|---|---|---:|
+| `d76f1cc` | `gds_6x4` [36298635404](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36298635404) | `diet4` | [36344927204](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36344927204) | `workflow_dispatch` | equivalent, self-test passed | 2 min 41 s | 119.3 s |
+| `d76f1cc` | `gds` [36298635436](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36298635436) | `base` | [36344929368](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36344929368) | `workflow_dispatch` | equivalent, self-test passed | 10 min 16 s | 583.4 s |
+| `fff6746` | `gds` 36323174075 | `base` | [36351319648](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36351319648) | `workflow_run` | equivalent, self-test passed | 15 min 5 s | 873.6 s |
+| `a15f6f2` | `gds_6x4` 36344917858 | `diet4` | [36353833650](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36353833650) | `workflow_run` | equivalent, self-test passed | 2 min 45 s | 124.4 s |
+| `a15f6f2` | `gds` 36344917852 | `base` | [36368252100](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36368252100) | `workflow_run` | equivalent, self-test passed | 10 min 2 s | 568.5 s |
+| `127e8e8` | `gds_6x4` 36360078870 | `diet4` | [36369225191](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36369225191) | `workflow_run` | equivalent, self-test passed | 2 min 32 s | 112.9 s |
+| `65cb65c` | `gds_6x4` 36369316684 | `diet4` | [36379351458](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36379351458) | `workflow_run` | equivalent, self-test passed | 2 min 41 s | 122.8 s |
+| `127e8e8` | `gds` 36360078852 | `base` | [36382409490](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36382409490) | `workflow_run` | equivalent, self-test passed | 14 min 6 s | 818.0 s |
+| `76a81f5` | `gds` 36360006594 | `base` | [36391888473](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36391888473) | `workflow_run` | equivalent, self-test passed | 14 min 52 s | 860.4 s |
+| `76a81f5` | `gds_6x4` 36360006612, cancelled by a newer push | – | [36360097584](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36360097584) | `workflow_run` | skipped: "the gds job of run 36360006612 concluded 'cancelled', so there is no netlist to check" | – | – |
+
+**Measured runtime against the estimate.** The 8x4 check jobs took 10 min
+2 s to 15 min 5 s, less than the estimate of 18 to 35 min. The 6x4 check
+jobs took 2 min 32 s to 2 min 45 s, inside the estimate of 109 to 218 s
+plus start-up. Every job ended far inside its 120 min limit.
 
 ## 8. Reproducing
 
