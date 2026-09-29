@@ -21,10 +21,11 @@ let edges trace =
 ;;
 
 let%expect_test "an 8-bit mode 0 transfer: 0xA5 out on MOSI, 0x3C in from MISO" =
-  (* A mode 0 target: it presents the next MISO bit (MSB first) one clock
-     after each falling SCK edge. Inputs pass two synchronizer flops, so that
-     bit reaches the next rising edge only if the half-period is at least 3
-     (with half-period 2 this test receives 0x1E, every bit one bit late). *)
+  (* A mode 0 target: it presents the next MISO bit (MSB first) in the cycle
+     after SCK falls; the chip first sees it at the next clock edge. Inputs
+     pass two synchronizer flops, so that bit reaches the next rising edge
+     only if the half-period is at least 3 (with half-period 2 this test
+     receives 0x1E, every bit one bit late). *)
   let target_byte = 0x3c in
   let bit_index = ref 7 in
   let previous_sck = ref 0 in

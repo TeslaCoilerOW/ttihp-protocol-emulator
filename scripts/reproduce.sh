@@ -27,7 +27,8 @@
 #                    timing_isolation_bmc (the longest, about 8 to 10 minutes)
 #   peers            test_ext/: the firmware against vendored third-party peers (RTL)
 #   variants         scripts/gen_variants.sh with its byte-identity checks
-#   hardcaml         the Hardcaml unit tests (dune test in hardcaml/)
+#   hardcaml         dune test in hardcaml/: the Hardcaml unit tests, line_test and,
+#                    with the '#test ' packages installed, the waveform expect tests
 #   timing-validate  pe_timing validate: scenarios, legacy, event, mutants, margins
 #   gl               the gate-level subset of test/ on a hardened netlist; runs
 #                    only when PDK_ROOT and GL_NETLIST are set, SKIP otherwise
@@ -73,7 +74,7 @@ FORMAL_QUICK_JOBS=(reset_safety engine_safety processor_invariants_prove process
   timing_isolation_neg_pull timing_isolation_neg_mutant)
 FORMAL_REST_JOBS=(fifo_conservation processor_invariants_bmc processor_inductive_bmc timing_isolation_bmc)
 
-usage() { sed -n '2,60p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,62p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 
 FULL=0 PARALLEL=0 ONLY="" SKIP="" LIST=0 CLUSTER_ONLY=0
 while [ $# -gt 0 ]; do
@@ -426,7 +427,11 @@ step_hardcaml() {
     fi
     cd hardcaml && dune test --root . --build-dir "$WORK/dune-hardcaml" -j "${DUNE_JOBS:-2}" --force
   ); local rc=$?
-  if [ $rc -eq 0 ]; then detail "dune test in hardcaml/ passed (7 test executables)"; else detail "dune test failed (exit $rc)"; fi
+  # The expect library is (optional): dune builds and runs it only when the
+  # '#test ' packages of scripts/opam-deps.txt are installed.
+  local expect="waveform expect tests skipped: the '#test ' packages of scripts/opam-deps.txt are not installed"
+  compgen -G "$WORK/dune-hardcaml/default/test/expect/.*inline-tests" >/dev/null && expect="waveform expect tests ran"
+  if [ $rc -eq 0 ]; then detail "dune test in hardcaml/ passed (7 test executables and line_test; $expect)"; else detail "dune test failed (exit $rc)"; fi
   return $rc
 }
 

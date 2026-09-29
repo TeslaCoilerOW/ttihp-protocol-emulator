@@ -17,11 +17,12 @@ dune test --root hardcaml                      # everything below except line_sy
 hardcaml/_build/default/test/line_sys_test.exe configs/variants/diet8_rec16.json
 ```
 
-CI runs the same commands after regenerating the core
-(`.github/workflows/regen.yaml`, step "Hardcaml tests").
+CI runs the same commands in the `hardcaml-tests` job of
+`.github/workflows/regen.yaml`, separate from the job that regenerates the
+core and checks that `src/` is current.
 
 In a switch without the test-only packages, the `expect/` library is
-`(optional)`, so dune skips it and still runs the other tests. The CI step
+`(optional)`, so dune skips it and still runs the other tests. The CI job
 checks that the packages are installed, so there the expect tests always run.
 
 When an expect test fails, dune prints the difference between the recorded
@@ -61,9 +62,10 @@ any change in that behaviour fails `dune test`.
 
 How to read them:
 
-- One column is one clock cycle: two characters per cycle, or several cycles
-  per character where a test compresses a long waveform (the UART test uses
-  four). `╥`/`╨` marks a character that contains several transitions.
+- Each clock cycle is two characters wide, except where a test compresses
+  the waveform: then one character holds one cycle (the program-load and
+  XFER tests) or four cycles (the UART test). `╥`/`╨` marks a character that
+  contains several transitions.
 - Values are sampled just before the rising edge that ends the cycle, which is
   what a host sampling `uo_out` sees.
 - The ports are the chip's pins with `ui_in` and `uo_out` split into the
