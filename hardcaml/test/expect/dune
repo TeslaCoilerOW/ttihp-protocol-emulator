@@ -1,0 +1,16 @@
+; Waveform expect tests: let%expect_test blocks that print Hardcaml_waveterm
+; waveforms of the processor in Cyclesim (../README.md). `dune test` runs them;
+; after an intended behaviour change, review the diff and accept it with
+; `dune promote`.
+;
+; (optional): in a switch without the test packages of scripts/opam-deps.txt
+; (hardcaml_waveterm, ppx_jane, ppx_hardcaml) dune skips this library and the
+; other tests still run. CI installs them and checks that they are present.
+
+(library
+ (name protocol_processor_expect)
+ (libraries protocol_processor hardcaml hardcaml_waveterm base stdio yojson)
+ (optional)
+ (inline_tests)
+ (preprocess
+  (pps ppx_jane ppx_hardcaml)))

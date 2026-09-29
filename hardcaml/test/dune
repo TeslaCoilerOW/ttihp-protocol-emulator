@@ -33,10 +33,19 @@
  (modules variant_test)
  (libraries protocol_processor hardcaml yojson unix))
 
-; Line-unit checks (docs/extension.md). Executables, not tests: they are run
-; explicitly (dune build ./test/line_test.exe ./test/line_sys_test.exe) and
-; are not part of the default `dune test`.
+; Line-unit checks (docs/extension.md). Executables, so that they can also be
+; run by hand (dune build ./test/line_test.exe ./test/line_sys_test.exe).
+; line_test.exe takes no arguments and is part of `dune test` (rule below).
+; line_sys_test.exe needs a refinement config with options.line_unit, and the
+; configs live outside this dune project (../configs), so CI runs it
+; explicitly: line_sys_test.exe configs/variants/diet8_rec16.json
+; (.github/workflows/regen.yaml).
 (executables
  (names line_test line_sys_test)
  (modules line_fw line_test line_sys_test)
  (libraries protocol_processor hardcaml))
+
+(rule
+ (alias runtest)
+ (action
+  (run %{exe:line_test.exe})))

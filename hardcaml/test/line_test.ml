@@ -6,7 +6,6 @@
           line_test.exe --dump-firmware   (the firmware listings as words)
    Exit status 1 when any check fails. Processor-level checks on bounded
    queues: line_sys_test.ml. *)
-[@@@warning "-32-69-26-27"]
 open Hardcaml
 
 let failures = ref 0 and checks = ref 0
@@ -433,7 +432,6 @@ let can_node () =
   let bus_of (bus : can_bus) = fun t out -> 0xfd lor (bus.step t (out (t - 5) land 1) lsl 1) in
   let busb = can_bus ~ours:[] [other ~after:0 ~not_before:400 11 (List.nth frames 0); other ~after:0 10 (List.nth frames 1)] in
   let r2 = run_engine ~own:0x01 ~max_cycles:40000 ~rx_depth:8 ~bus:(Some (bus_of busb)) prog [] in
-  let tx2 t = (r2.pins_out.(t) lor lnot r2.oe.(t)) land 1 in
   let starts = List.map snd (busb.sent ()) in
   let expect = List.concat_map (fun (id, d) -> can_rx_expect id d) frames in
   let got = r2.pushed in

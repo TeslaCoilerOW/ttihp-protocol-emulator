@@ -59,6 +59,28 @@ jobs:
             exit 1
           fi
 
+      # hardcaml/test: the Cyclesim and unit tests, line_test, and the waveform
+      # expect tests in hardcaml/test/expect (a changed waveform fails here and
+      # prints the diff; accept an intended change with `dune promote`).
+      # The tests need the '#test ' packages of scripts/opam-deps.txt, which
+      # only this step installs (cryptokit, under hardcaml_waveterm, needs
+      # zlib). dune skips the expect library when they are missing, so check
+      # that they are installed. line_sys_test needs a config from configs/,
+      # outside the dune project.
+      - name: Hardcaml tests
+        shell: bash
+        run: |
+          sudo apt-get install -y zlib1g-dev
+          opam install --yes $(grep -v '^#' scripts/opam-deps.txt) $(sed -n 's/^#test //p' scripts/opam-deps.txt)
+          test_pkgs=$(sed -n 's/^#test \([^.]*\)\..*/\1/p' scripts/opam-deps.txt)
+          for pkg in $test_pkgs; do
+            opam list --installed --check "$pkg" || { echo "::error::$pkg is not installed; the expect tests would be skipped"; exit 1; }
+          done
+          opam list --installed --columns=name,version $test_pkgs
+          opam exec -- dune test --root hardcaml
+          (cd hardcaml && opam exec -- dune build --root . ./test/line_sys_test.exe)
+          hardcaml/_build/default/test/line_sys_test.exe configs/variants/diet8_rec16.json
+
       - name: Upload regenerated RTL
         if: failure()
         uses: actions/upload-artifact@v7
