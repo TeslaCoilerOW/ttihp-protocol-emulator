@@ -18,9 +18,11 @@
 #   ci_prove.sh OUT RTL_DIR MODELS_DIR IMAGE...
 #
 # Environment: OSS CAD Suite on PATH (sby, yosys, yices, boolector);
-#   CI_PAR     certificate runs in parallel (default 2: a GitHub runner has 4
+#   CI_PAR     proof (bmc) runs in parallel (default 2: a GitHub runner has 4
 #              CPUs and 16 GB; 4 runs of 2 solvers each exceed 16 GB on the
 #              longest chunks)
+#   CI_COVER_PAR cover runs in parallel (default 4: yices alone; four chunk
+#              covers at once peaked at about 9 GB on the cluster)
 #   CI_ENGINES solver portfolio of the proof (bmc) runs (default boolector,yices)
 #   CI_COVER_ENGINES solvers of the cover runs (default yices: on the first
 #              GitHub run, 36624435421, a boolector+yices cover of
@@ -49,6 +51,7 @@ CHUNK=${CI_CHUNK:-96}
 ENGINES=${CI_ENGINES:-boolector,yices}
 COVER_ENGINES=${CI_COVER_ENGINES:-yices}
 PAR=${CI_PAR:-2}
+COVER_PAR=${CI_COVER_PAR:-4}
 export SBY_TIMEOUT=${SBY_TIMEOUT:-3600}
 GEN="python3 $HERE/gen_cert.py"
 MUTANTS="wait-n-cycles xfer-late-edge count-n-iterations open-drain-as-push-pull halt-keeps-pins set-two-cycles"
@@ -124,8 +127,13 @@ if [ "$runs" -gt "${CI_MAX_RUNS:-200}" ]; then
   exit 0
 fi
 start=$(date +%s)
+# The proof runs (portfolio) first, then the covers (yices alone, more at once).
+grep -v ' cover ' "$OUT/tasks.txt" > "$OUT/tasks_bmc.txt" || true
+grep ' cover ' "$OUT/tasks.txt" > "$OUT/tasks_cover.txt" || true
 # shellcheck disable=SC2016  # $0 and $@ belong to the inner bash
-xargs -P "$PAR" -L 1 bash -c '"$0"/run_one.sh "$@"' "$HERE" < "$OUT/tasks.txt"
+xargs -P "$PAR" -L 1 bash -c '"$0"/run_one.sh "$@"' "$HERE" < "$OUT/tasks_bmc.txt"
+# shellcheck disable=SC2016  # $0 and $@ belong to the inner bash
+xargs -P "$COVER_PAR" -L 1 bash -c '"$0"/run_one.sh "$@"' "$HERE" < "$OUT/tasks_cover.txt"
 # A portfolio run ends in ERROR when one solver crashes (sby then stops the
 # other); run those again with yices alone (retry_list.py, as campaign.sh
 # retry does). summarize takes the best result.
@@ -135,7 +143,7 @@ if [ -s "$OUT/retry.txt" ]; then
   # shellcheck disable=SC2016  # $0 and $@ belong to the inner bash
   xargs -P "$PAR" -L 1 bash -c '"$0"/run_one.sh "$@"' "$HERE" < "$OUT/retry.txt"
 fi
-echo "ci_prove: runs finished in $(( $(date +%s) - start )) s with $PAR in parallel"
+echo "ci_prove: runs finished in $(( $(date +%s) - start )) s with $PAR proof and $COVER_PAR cover runs in parallel"
 [ -f "$OUT/neg/manifest.json" ] || echo '{"certificates": []}' > "$OUT/neg/manifest.json"
 mkdir -p "$OUT/certs/results" "$OUT/long/results" "$OUT/neg/results"
 python3 "$HERE/summarize.py" --nodes "$OUT/certs/manifest.json" --chunks "$OUT/long/manifest.json" \
