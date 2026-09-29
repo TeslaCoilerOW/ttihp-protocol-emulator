@@ -16,8 +16,9 @@ digestif.1.3.1
 #
 # Tests only. Lines starting with '#test ' are the extra packages for
 # hardcaml/test (the waveform expect tests in hardcaml/test/expect). Only the
-# "Hardcaml tests" step of regen.yaml installs them, together with the list
-# above:
+# hardcaml-tests job of regen.yaml installs them, together with the list
+# above (its opam cache key has a '-tests' suffix, so it does not share a
+# cache with the generator-only workflows):
 #   opam install $(grep -v '^#' scripts/opam-deps.txt) $(sed -n 's/^#test //p' scripts/opam-deps.txt)
 # They are kept out of the list above so that the other workflows install only
 # the generator's packages. The versions are the v0.17 releases that the
