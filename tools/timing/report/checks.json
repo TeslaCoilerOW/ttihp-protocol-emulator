@@ -611,6 +611,396 @@
     "detail": "6 TCK rising edges with TMS high before the first TMS low (>= 5 resets any TAP)"
    }
   ],
+  "onewire-master": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "28 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "6 boundary contexts, 12 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [96] reachable"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc2 PULL [pin7=Z]; pc26 PUSH [pin7=Z]"
+   },
+   {
+    "id": "onewire-schedule",
+    "status": "PASS",
+    "detail": "reset path: DQ low 25000, presence sample 3500 after release, first slot 25000 after release; 8 slots per byte on both paths: OUT (a 1 releases DQ) at [300], sample at [700], release at [3250], next slot at [3750] clocks (declared {'reset_low': 25000, 'presence': 3500, 'reset_high': 25000, 'release1': 300, 'sample': 700, 'release0': 3250, 'slot': 3750})"
+   },
+   {
+    "id": "onewire-reset",
+    "status": "PASS",
+    "detail": "DS18B20 limits at 50 MHz: reset low (tRSTL) 25000 clocks = 500.00 us (480.00 us..960.00 us; 20.00 us above the minimum, 460.00 us below the maximum); presence sample, pad value 3498 clocks = 69.96 us (60.00 us..75.00 us; 9960 ns above the minimum, 5040 ns below the maximum); release to first slot (tRSTH) 25000 clocks = 500.00 us (>= 480.00 us; 20.00 us above the minimum). all hold for clocks from 46.64 to 52.08 MHz. AN126 Table 1 uses 480.00 us low, samples 70.00 us after release and waits 480.00 us in total; the presence window is where every DS18B20 presence pulse (tPDHIGH 15-60 us, tPDLOW 60-240 us) holds DQ low",
+    "rows": [
+     {
+      "name": "reset low (tRSTL)",
+      "cycles": 25000,
+      "time": "500.00 us",
+      "window": "480.00 us..960.00 us",
+      "ok": true,
+      "margin": "20.00 us above the minimum, 460.00 us below the maximum",
+      "f_min": 26041666.666666664,
+      "f_max": 52083333.33333333
+     },
+     {
+      "name": "presence sample, pad value",
+      "cycles": 3498,
+      "time": "69.96 us",
+      "window": "60.00 us..75.00 us",
+      "ok": true,
+      "margin": "9960 ns above the minimum, 5040 ns below the maximum",
+      "f_min": 46640000.00000001,
+      "f_max": 58300000.0
+     },
+     {
+      "name": "release to first slot (tRSTH)",
+      "cycles": 25000,
+      "time": "500.00 us",
+      "window": ">= 480.00 us",
+      "ok": true,
+      "margin": "20.00 us above the minimum",
+      "f_min": 0.0,
+      "f_max": 52083333.33333333
+     }
+    ],
+    "f_min_hz": 46640000.00000001,
+    "f_max_hz": 52083333.33333333
+   },
+   {
+    "id": "onewire-slot",
+    "status": "PASS",
+    "detail": "DS18B20 limits at 50 MHz: write-1 low (tLOW1) 300 clocks = 6000 ns (1000 ns..15.00 us; 5000 ns above the minimum, 9000 ns below the maximum); write-0 low (tLOW0) 3250 clocks = 65.00 us (60.00 us..120.00 us; 5000 ns above the minimum, 55.00 us below the maximum); read sample, pad value (tRDV) 698 clocks = 13.96 us (<= 15.00 us; 1040 ns below the maximum); time slot (tSLOT) 3750 clocks = 75.00 us (60.00 us..120.00 us; 15.00 us above the minimum, 45.00 us below the maximum); recovery (tREC) 500 clocks = 10.00 us (>= 1000 ns; 9000 ns above the minimum); write-1 released before the slave's window 300 clocks = 6000 ns (<= 15.00 us; 9000 ns below the maximum); write-0 held through the slave's window 3250 clocks = 65.00 us (>= 60.00 us; 5000 ns above the minimum). all hold for clocks from 46.53 to 54.17 MHz. AN126 Table 1: write-1 low 6000 ns, write-0 low 60.00 us, sample 15.00 us after the fall, slot 70.00 us. Rise time after a release is not included",
+    "rows": [
+     {
+      "name": "write-1 low (tLOW1)",
+      "cycles": 300,
+      "time": "6000 ns",
+      "window": "1000 ns..15.00 us",
+      "ok": true,
+      "margin": "5000 ns above the minimum, 9000 ns below the maximum",
+      "f_min": 20000000.0,
+      "f_max": 300000000.0
+     },
+     {
+      "name": "write-0 low (tLOW0)",
+      "cycles": 3250,
+      "time": "65.00 us",
+      "window": "60.00 us..120.00 us",
+      "ok": true,
+      "margin": "5000 ns above the minimum, 55.00 us below the maximum",
+      "f_min": 27083333.333333332,
+      "f_max": 54166666.666666664
+     },
+     {
+      "name": "read sample, pad value (tRDV)",
+      "cycles": 698,
+      "time": "13.96 us",
+      "window": "<= 15.00 us",
+      "ok": true,
+      "margin": "1040 ns below the maximum",
+      "f_min": 46533333.333333336,
+      "f_max": Infinity
+     },
+     {
+      "name": "time slot (tSLOT)",
+      "cycles": 3750,
+      "time": "75.00 us",
+      "window": "60.00 us..120.00 us",
+      "ok": true,
+      "margin": "15.00 us above the minimum, 45.00 us below the maximum",
+      "f_min": 31250000.0,
+      "f_max": 62500000.0
+     },
+     {
+      "name": "recovery (tREC)",
+      "cycles": 500,
+      "time": "10.00 us",
+      "window": ">= 1000 ns",
+      "ok": true,
+      "margin": "9000 ns above the minimum",
+      "f_min": 0.0,
+      "f_max": 500000000.0
+     },
+     {
+      "name": "write-1 released before the slave's window",
+      "cycles": 300,
+      "time": "6000 ns",
+      "window": "<= 15.00 us",
+      "ok": true,
+      "margin": "9000 ns below the maximum",
+      "f_min": 20000000.0,
+      "f_max": Infinity
+     },
+     {
+      "name": "write-0 held through the slave's window",
+      "cycles": 3250,
+      "time": "65.00 us",
+      "window": ">= 60.00 us",
+      "ok": true,
+      "margin": "5000 ns above the minimum",
+      "f_min": 0.0,
+      "f_max": 54166666.666666664
+     }
+    ],
+    "f_min_hz": 46533333.333333336,
+    "f_max_hz": 54166666.666666664
+   },
+   {
+    "id": "onewire-open-drain",
+    "status": "PASS",
+    "detail": "DQ is only pulled low or released, released at every PULL/PUSH holding point and by fault 96; the shortest recovery from a release to the next fall, across bytes, is 500 clocks (10.00 us; tREC >= 1 us); 1-Wire sets no maximum time between slots"
+   }
+  ],
+  "ps2-device": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "45 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "18 boundary contexts, 31 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "bounded-waits",
+    "status": "INFO",
+    "detail": "2 WAITPIN/WAITEVENT contexts; LIMIT values [16777215]; longest bounded stall 16777214 cycles (335544.280 us at 50 MHz) before fault 3"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc1 PULL [pin4=Z pin5=Z]"
+   },
+   {
+    "id": "ps2-frame",
+    "status": "PASS",
+    "detail": "one frame without inhibit (12 segments joined at zero stall): 11 DATA changes (OUT, LSB first), each followed by a CLK fall and a CLK release: 11 clock pulses. Start, parity and stop values are computed from the TX byte (checked at the pins by test/test_protocols_ext.py)"
+   },
+   {
+    "id": "ps2-frame-timing",
+    "status": "PASS",
+    "detail": "inside a frame, exact in every bit: data_to_fall [1000], low [2000], high [2000], rise_to_data [1000], period [4000] clocks; declared data_to_fall 1000, low 2000, rise_to_data 1000, high 2000"
+   },
+   {
+    "id": "ps2-spec-timing",
+    "status": "PASS",
+    "detail": "PS/2 device-to-host limits (Chapweske) at 50 MHz: CLK low 2000 clocks = 40.00 us (30.00 us..50.00 us; 10.00 us above the minimum, 10.00 us below the maximum); CLK high 2000 clocks = 40.00 us (30.00 us..50.00 us; 10.00 us above the minimum, 10.00 us below the maximum); CLK period 4000 clocks = 80.00 us (59.88 us..100.00 us; 20.12 us above the minimum, 20.00 us below the maximum); CLK rise to DATA change 1000 clocks = 20.00 us (>= 5000 ns; 15.00 us above the minimum); DATA change to CLK fall 1000 clocks = 20.00 us (5000 ns..25.00 us; 15.00 us above the minimum, 5000 ns below the maximum). all hold for clocks from 40.00 to 66.67 MHz",
+    "rows": [
+     {
+      "name": "CLK low",
+      "cycles": 2000,
+      "time": "40.00 us",
+      "window": "30.00 us..50.00 us",
+      "ok": true,
+      "margin": "10.00 us above the minimum, 10.00 us below the maximum",
+      "f_min": 40000000.0,
+      "f_max": 66666666.666666664
+     },
+     {
+      "name": "CLK high",
+      "cycles": 2000,
+      "time": "40.00 us",
+      "window": "30.00 us..50.00 us",
+      "ok": true,
+      "margin": "10.00 us above the minimum, 10.00 us below the maximum",
+      "f_min": 40000000.0,
+      "f_max": 66666666.666666664
+     },
+     {
+      "name": "CLK period",
+      "cycles": 4000,
+      "time": "80.00 us",
+      "window": "59.88 us..100.00 us",
+      "ok": true,
+      "margin": "20.12 us above the minimum, 20.00 us below the maximum",
+      "f_min": 40000000.0,
+      "f_max": 66800000.0
+     },
+     {
+      "name": "CLK rise to DATA change",
+      "cycles": 1000,
+      "time": "20.00 us",
+      "window": ">= 5000 ns",
+      "ok": true,
+      "margin": "15.00 us above the minimum",
+      "f_min": 0.0,
+      "f_max": 199999999.99999997
+     },
+     {
+      "name": "DATA change to CLK fall",
+      "cycles": 1000,
+      "time": "20.00 us",
+      "window": "5000 ns..25.00 us",
+      "ok": true,
+      "margin": "15.00 us above the minimum, 5000 ns below the maximum",
+      "f_min": 40000000.0,
+      "f_max": 199999999.99999997
+     }
+    ],
+    "f_min_hz": 40000000.0,
+    "f_max_hz": 66666666.666666664
+   },
+   {
+    "id": "ps2-idle-before-frame",
+    "status": "PASS",
+    "detail": "PS/2 device-to-host limits (Chapweske) at 50 MHz: CLK sampled high 2750 clocks = 55.00 us (>= 50.00 us; 5000 ns above the minimum). all hold for clocks from 0.00 to 55.00 MHz. 56 CLK samples [50] clocks apart after WAITPIN CLK and WAITPIN DATA, all high, span 2750 clocks; the start bit follows the last sample by 8 clocks. Between samples the line is not observed: a low pulse shorter than 50 clocks can be missed (a host inhibit lasts at least 100 us)",
+    "rows": [
+     {
+      "name": "CLK sampled high",
+      "cycles": 2750,
+      "time": "55.00 us",
+      "window": ">= 50.00 us",
+      "ok": true,
+      "margin": "5000 ns above the minimum",
+      "f_min": 0.0,
+      "f_max": 55000000.0
+     }
+    ],
+    "f_min_hz": 0.0,
+    "f_max_hz": 55000000.0
+   },
+   {
+    "id": "ps2-inhibit",
+    "status": "PASS",
+    "detail": "CLK is sampled 2 clocks before each of the 11 CLK falls (the pad value 4 clocks before the fall) and not after the 11th; a low sample branches to the retry path, which releases CLK and DATA and waits for the idle bus (11 abort paths, WAITPIN reached 5 clocks later at most, no CLK fall on the way). The idle waits are bounded by LIMIT 16777215 (335.5 ms at 50 MHz), then fault 3"
+   },
+   {
+    "id": "ps2-open-drain",
+    "status": "PASS",
+    "detail": "CLK and DATA are only pulled low or released (no pad state drives high) and both are released at the PULL holding point"
+   }
+  ],
+  "ps2-host": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "49 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "50 boundary contexts, 52 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "bounded-waits",
+    "status": "INFO",
+    "detail": "9 WAITPIN/WAITEVENT contexts; LIMIT values [800000, 1100000]; longest bounded stall 1099999 cycles (21999.980 us at 50 MHz) before fault 3"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc0 PULL [pin4=Z pin5=Z]"
+   },
+   {
+    "id": "ps2-host-request",
+    "status": "PASS",
+    "detail": "PS/2 host-to-device limits (Chapweske) at 50 MHz: CLK low before DATA low 6000 clocks = 120.00 us (>= 100.00 us; 20.00 us above the minimum); CLK low to the host's first-clock timeout 806250 clocks = 16.1 ms (>= 15.0 ms; 1.1 ms above the minimum). all hold for clocks from 0.00 to 53.75 MHz. request-to-send schedule (CLK low to DATA low, DATA low to CLK release) [(6000, 250)] clocks (declared 6000, 250): CLK low, then DATA low, then CLK released. The host waits for each device clock for up to LIMIT 800000 clocks, so a device that starts clocking within the 15 ms allowed after CLK goes low is never timed out",
+    "rows": [
+     {
+      "name": "CLK low before DATA low",
+      "cycles": 6000,
+      "time": "120.00 us",
+      "window": ">= 100.00 us",
+      "ok": true,
+      "margin": "20.00 us above the minimum",
+      "f_min": 0.0,
+      "f_max": 60000000.0
+     },
+     {
+      "name": "CLK low to the host's first-clock timeout",
+      "cycles": 806250,
+      "time": "16.1 ms",
+      "window": ">= 15.0 ms",
+      "ok": true,
+      "margin": "1.1 ms above the minimum",
+      "f_min": 0.0,
+      "f_max": 53750000.0
+     }
+    ],
+    "f_min_hz": 0.0,
+    "f_max_hz": 53750000.0
+   },
+   {
+    "id": "ps2-host-bits",
+    "status": "PASS",
+    "detail": "command: 10 bits (8 data LSB first, parity, stop), each put on DATA one clock after WAITPIN sees the device's CLK low and held until WAITPIN sees CLK high (the device reads it on the rising edge); response: 11 DATA samples per frame, each one clock after WAITPIN sees CLK low, from the pad value 1 to 2 clocks after the CLK fall"
+   },
+   {
+    "id": "ps2-host-handshake",
+    "status": "PASS",
+    "detail": "PS/2 host-to-device limits (Chapweske) at 50 MHz: response wait 1.1e+06 clocks = 22.0 ms (>= 20.0 ms; 2.0 ms above the minimum). all hold for clocks from 0.00 to 55.00 MHz. WAITPIN sequence [(4, 1), (4, 0), (4, 1), (5, 0), (4, 0), (4, 1), (5, 1), (4, 0), (4, 1)] (CLK seen released, bit clocking, acknowledge DATA low, the acknowledge clock, DATA released, response clocking); LIMIT values [800000, 1100000]; both lines released at every PULL holding point",
+    "rows": [
+     {
+      "name": "response wait",
+      "cycles": 1100000,
+      "time": "22.0 ms",
+      "window": ">= 20.0 ms",
+      "ok": true,
+      "margin": "2.0 ms above the minimum",
+      "f_min": 0.0,
+      "f_max": 55000000.0
+     }
+    ],
+    "f_min_hz": 0.0,
+    "f_max_hz": 55000000.0
+   },
+   {
+    "id": "ps2-host-open-drain",
+    "status": "PASS",
+    "detail": "CLK and DATA are only pulled low or released"
+   }
+  ],
   "spi-controller-fast": [
    {
     "id": "identity",
@@ -1449,6 +1839,174 @@
     "detail": "MISO released (high-Z) at the PULL holding point between frames"
    }
   ],
+  "swd-read": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "60 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "6 boundary contexts, 18 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [80, 81, 82] reachable"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc3 PULL [pin0=0 pin1=1]; pc33 PUSH [pin0=0 pin1=Z]; pc53 PUSH [pin0=0 pin1=0]; pc56 PUSH [pin0=0 pin1=0]"
+   },
+   {
+    "id": "swd-dpidr-header",
+    "status": "PASS",
+    "detail": "declared header 0xA5 = start 1, APnDP 0, RnW 1, A2 0, A3 0, parity 1, stop 0, park 1: a DP read of address 0x0 (DPIDR) with even parity over APnDP, RnW, A[2:3], Stop 0 and Park 1 (ADIv5.1 Supplement 8.3.5)"
+   },
+   {
+    "id": "swd-sequence",
+    "status": "PASS",
+    "detail": "SWDIO at every SWCLK rise, all 14 request paths: connect = 56 x 1, 0xE79E LSB first, 56 x 1 (ADIv5.1 Supplement 6.2.1 and 8.3.6: at least 50 x 1, then at least one idle cycle); every request: 8 idle rises with SWDIO low, 8 driven header bits, then SWDIO released at the turnaround rise, the 3 ACK rises and, after ACK OK, the 32 data rises, the parity rise and the second turnaround rise, then 8 idle rises with SWDIO driven low. Samples are taken exactly at the ACK, data and parity rises (36; 3 when the ACK is not OK). A header with RnW = 0 faults 82 with no SWCLK edge"
+   },
+   {
+    "id": "swd-clock",
+    "status": "PASS",
+    "detail": "SWCLK high phases [(16, 16)] clocks, low phases at least 16 clocks (declared half period 16; a low phase between two XFERs is longer)"
+   },
+   {
+    "id": "swd-host-drive",
+    "status": "PASS",
+    "detail": "every host SWDIO change (drive, release, re-drive) happens while SWCLK is low; set-up to the next SWCLK rise >= 16 clocks, hold after a rise >= 16 clocks (half period 16); Park is driven before the release (ADIv5.1 Supplement erratum 2.6)"
+   },
+   {
+    "id": "swd-target-budget",
+    "status": "PASS",
+    "detail": "each ACK, data or parity sample is taken at a SWCLK rise at least 32 clocks after the rise on which the target launched the bit, from the pad value 2 clocks earlier: the target's output delay plus board delay must stay below 30 clocks (600.0 ns at 50 MHz)",
+    "clocks": {
+     "cycles": 30,
+     "at": {
+      "10MHz": {
+       "time": "3.000 us",
+       "ok": true
+      },
+      "25MHz": {
+       "time": "1.200 us",
+       "ok": true
+      },
+      "50MHz": {
+       "time": "600.0 ns",
+       "ok": true
+      },
+      "66MHz": {
+       "time": "454.5 ns",
+       "ok": true
+      },
+      "100MHz": {
+       "time": "300.0 ns",
+       "ok": true
+      }
+     }
+    }
+   },
+   {
+    "id": "swd-clock-after-data",
+    "status": "PASS",
+    "detail": "9 SWCLK rises after the data parity bit before SWCLK stops (one turnaround and 8 idle cycles); ADIv5.1 Supplement 8.2 asks for at least 8"
+   },
+   {
+    "id": "swd-idle-line",
+    "status": "PASS",
+    "detail": "SWCLK low and SWDIO driven high at every PULL holding point (ADIv5.1 Supplement 8.3.2: the host holds the line high between uses)"
+   },
+   {
+    "id": "swd-rate",
+    "status": "INFO",
+    "detail": "SWCLK = clock/32: 10MHz 0.3125 MHz, 25MHz 0.7812 MHz, 50MHz 1.562 MHz, 66MHz 2.062 MHz, 100MHz 3.125 MHz; SWCLK stretches between instructions (ADIv5 has no minimum SWCLK frequency); longest request path 6220 clocks"
+   }
+  ],
+  "uart-rx-idle": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "24 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "5 boundary contexts, 9 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [64] reachable"
+   },
+   {
+    "id": "uart-rx-idle-unbounded-wait",
+    "status": "PASS",
+    "detail": "no WAITPIN, WAITEVENT or LIMIT in the image, so fault 3 is unreachable; the idle and start-bit waits are data-dependent loops without a counter: JZ at pc3 samples pin1 at pc2 every [2] clocks; JZ at pc20 samples pin1 at pc18 every [3] clocks"
+   },
+   {
+    "id": "uart-rx-idle-poll-period",
+    "status": "PASS",
+    "detail": "start-bit poll period [3] clocks (detection latency 0..2); declared: \"poll period 3 clocks\""
+   },
+   {
+    "id": "uart-rx-idle-center-sampling",
+    "status": "PASS",
+    "detail": "data bits sampled 31..33 and the stop bit 31..33 clocks into the bit, counted from the first edge that registered the start bit (one more from the line edge; centre 32); the first data sample is 95 clocks after the poll sample that saw the start bit; declared: \"sampled 64n+31..64n+33 clocks\"",
+    "sample_positions": [
+     "bit1: +31..34 of 64",
+     "bit2: +31..34 of 64",
+     "bit3: +31..34 of 64",
+     "bit4: +31..34 of 64",
+     "bit5: +31..34 of 64",
+     "bit6: +31..34 of 64",
+     "bit7: +31..34 of 64",
+     "bit8: +31..34 of 64",
+     "bit9: +31..34 of 64"
+    ]
+   },
+   {
+    "id": "uart-rx-idle-baud-tolerance",
+    "status": "PASS",
+    "detail": "all 9 samples stay inside their bit for a transmitter bit period within -4.688% .. +5.382% of 64 clocks, i.e. a baud error of -5.107% .. +4.918% (includes the 0..2-clock poll latency and the 1-clock asynchronous edge uncertainty); declared: +-2%",
+    "eps_min": -0.046875,
+    "eps_max": 0.05381944444444442
+   },
+   {
+    "id": "uart-rx-idle-rearm",
+    "status": "PASS",
+    "detail": "the poll samples the line again 612 clocks after the poll sample that saw the start bit (614 after the registered start edge at the latest); the next start edge (1 stop bit, no idle) is 640 clocks after the previous one: margin 25 clocks; back-to-back traffic keeps the 0..2-clock detection latency for a transmitter bit period down to -3.906% of 64 clocks",
+    "rearm_cycles": 612
+   },
+   {
+    "id": "uart-rx-idle-rate",
+    "status": "INFO",
+    "detail": "baud = clock/64: 10MHz 156250 Bd, 25MHz 390625 Bd, 50MHz 781250 Bd, 66MHz 1031250 Bd, 100MHz 1562500 Bd"
+   }
+  ],
   "uart-rx": [
    {
     "id": "identity",
@@ -1670,13 +2228,263 @@
     "status": "INFO",
     "detail": "TIME issues 1540 cycles after the START edge, 64 cycles after the last falling edge"
    }
+  ],
+  "ws2812": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "22 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "3 boundary contexts, 5 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc3 PULL [pin2=0]"
+   },
+   {
+    "id": "ws2812-bit-schedule",
+    "status": "PASS",
+    "detail": "every pixel: 24 bits, MSB first (OUT c=1); high 20 clocks then the bit (OUT), low at 40; next bit 63 clocks after the previous one, also across the pixel boundary when the next TX word is queued: T0H [20], T1H [40], T0L [43], T1L [23], bit period [63] (declared T0H 20, T1H 40, T0L 43, T1L 23, period 63); rises/OUTs/falls per pixel [(24, 24, 24)]"
+   },
+   {
+    "id": "ws2812-datasheet-bits",
+    "status": "PASS",
+    "detail": "WS2812B datasheet at 50 MHz: T0H 20 clocks = 400 ns (250 ns..550 ns; 150 ns above the minimum, 150 ns below the maximum); T1H 40 clocks = 800 ns (650 ns..950 ns; 150 ns above the minimum, 150 ns below the maximum); T0L 43 clocks = 860 ns (700 ns..1000 ns; 160 ns above the minimum, 140 ns below the maximum); T1L 23 clocks = 460 ns (300 ns..600 ns; 160 ns above the minimum, 140 ns below the maximum); TH+TL 63 clocks = 1260 ns (650 ns..1850 ns; 610 ns above the minimum, 590 ns below the maximum). all hold for clocks from 43.00 to 61.43 MHz",
+    "rows": [
+     {
+      "name": "T0H",
+      "cycles": 20,
+      "time": "400 ns",
+      "window": "250 ns..550 ns",
+      "ok": true,
+      "margin": "150 ns above the minimum, 150 ns below the maximum",
+      "f_min": 36363636.36363636,
+      "f_max": 80000000.0
+     },
+     {
+      "name": "T1H",
+      "cycles": 40,
+      "time": "800 ns",
+      "window": "650 ns..950 ns",
+      "ok": true,
+      "margin": "150 ns above the minimum, 150 ns below the maximum",
+      "f_min": 42105263.15789474,
+      "f_max": 61538461.538461536
+     },
+     {
+      "name": "T0L",
+      "cycles": 43,
+      "time": "860 ns",
+      "window": "700 ns..1000 ns",
+      "ok": true,
+      "margin": "160 ns above the minimum, 140 ns below the maximum",
+      "f_min": 43000000.0,
+      "f_max": 61428571.42857143
+     },
+     {
+      "name": "T1L",
+      "cycles": 23,
+      "time": "460 ns",
+      "window": "300 ns..600 ns",
+      "ok": true,
+      "margin": "160 ns above the minimum, 140 ns below the maximum",
+      "f_min": 38333333.333333336,
+      "f_max": 76666666.66666667
+     },
+     {
+      "name": "TH+TL",
+      "cycles": 63,
+      "time": "1260 ns",
+      "window": "650 ns..1850 ns",
+      "ok": true,
+      "margin": "610 ns above the minimum, 590 ns below the maximum",
+      "f_min": 34054054.05405405,
+      "f_max": 96923076.92307691
+     }
+    ],
+    "f_min_hz": 43000000.0,
+    "f_max_hz": 61428571.42857143
+   },
+   {
+    "id": "ws2812-reset",
+    "status": "PASS",
+    "detail": "WS2812B datasheet at 50 MHz: reset after START 15004 clocks = 300.08 us (>= 50.00 us; 250.08 us above the minimum); reset after a latch word 15025 clocks = 300.50 us (>= 50.00 us; 250.50 us above the minimum). all hold for clocks from 0.00 to 300.08 MHz. low times ending a frame [15004, 15025, 15045] clocks (declared 15004 after START, 15025 after a latch word); DOUT is low at the PULL holding point, so a TX FIFO underrun also latches once the stall exceeds 2477 clocks",
+    "rows": [
+     {
+      "name": "reset after START",
+      "cycles": 15004,
+      "time": "300.08 us",
+      "window": ">= 50.00 us",
+      "ok": true,
+      "margin": "250.08 us above the minimum",
+      "f_min": 0.0,
+      "f_max": 300080000.0
+     },
+     {
+      "name": "reset after a latch word",
+      "cycles": 15025,
+      "time": "300.50 us",
+      "window": ">= 50.00 us",
+      "ok": true,
+      "margin": "250.50 us above the minimum",
+      "f_min": 0.0,
+      "f_max": 300500000.0
+     }
+    ],
+    "f_min_hz": 0.0,
+    "f_max_hz": 300080000.0
+   },
+   {
+    "id": "ws2812-underrun",
+    "status": "PASS",
+    "detail": "DOUT is driven low at every PULL holding point. A PULL stall of s clocks between pixels lengthens the last bit's low time by s: T0L stays within WS2812B datasheet for s <= 7, T1L for s <= 7; one TX word is consumed every 1512 clocks (30.240 us at 50 MHz)"
+   }
+  ],
+  "ws2812b-v5": [
+   {
+    "id": "identity",
+    "status": "PASS",
+    "detail": "bytecode sha256 matches, source sha256 matches"
+   },
+   {
+    "id": "assembler-timing-table",
+    "status": "PASS",
+    "detail": "22 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model"
+   },
+   {
+    "id": "exact-analysis",
+    "status": "PASS",
+    "detail": "3 boundary contexts, 5 path variants, no widening or budget cut"
+   },
+   {
+    "id": "no-self-deadlock",
+    "status": "PASS",
+    "detail": "no WAITPIN waits for a level the engine itself forces"
+   },
+   {
+    "id": "reachable-faults",
+    "status": "PASS",
+    "detail": "only explicit FAULT codes [] reachable"
+   },
+   {
+    "id": "holding-points",
+    "status": "INFO",
+    "detail": "unbounded FIFO waits hold: pc3 PULL [pin2=0]"
+   },
+   {
+    "id": "ws2812-bit-schedule",
+    "status": "PASS",
+    "detail": "every pixel: 24 bits, MSB first (OUT c=1); high 15 clocks then the bit (OUT), low at 32; next bit 63 clocks after the previous one, also across the pixel boundary when the next TX word is queued: T0H [15], T1H [32], T0L [48], T1L [31], bit period [63] (declared T0H 15, T1H 32, T0L 48, T1L 31, period 63); rises/OUTs/falls per pixel [(24, 24, 24)]"
+   },
+   {
+    "id": "ws2812-datasheet-bits",
+    "status": "PASS",
+    "detail": "WS2812B-V5 datasheet V1.0 at 50 MHz: T0H 15 clocks = 300 ns (220 ns..380 ns; 80 ns above the minimum, 80 ns below the maximum); T1H 32 clocks = 640 ns (580 ns..1000 ns; 60 ns above the minimum, 360 ns below the maximum); T0L 48 clocks = 960 ns (580 ns..1000 ns; 380 ns above the minimum, 40 ns below the maximum); T1L 31 clocks = 620 ns (580 ns..1000 ns; 40 ns above the minimum, 380 ns below the maximum). all hold for clocks from 48.00 to 53.45 MHz",
+    "rows": [
+     {
+      "name": "T0H",
+      "cycles": 15,
+      "time": "300 ns",
+      "window": "220 ns..380 ns",
+      "ok": true,
+      "margin": "80 ns above the minimum, 80 ns below the maximum",
+      "f_min": 39473684.21052632,
+      "f_max": 68181818.18181817
+     },
+     {
+      "name": "T1H",
+      "cycles": 32,
+      "time": "640 ns",
+      "window": "580 ns..1000 ns",
+      "ok": true,
+      "margin": "60 ns above the minimum, 360 ns below the maximum",
+      "f_min": 32000000.0,
+      "f_max": 55172413.79310346
+     },
+     {
+      "name": "T0L",
+      "cycles": 48,
+      "time": "960 ns",
+      "window": "580 ns..1000 ns",
+      "ok": true,
+      "margin": "380 ns above the minimum, 40 ns below the maximum",
+      "f_min": 48000000.0,
+      "f_max": 82758620.68965518
+     },
+     {
+      "name": "T1L",
+      "cycles": 31,
+      "time": "620 ns",
+      "window": "580 ns..1000 ns",
+      "ok": true,
+      "margin": "40 ns above the minimum, 380 ns below the maximum",
+      "f_min": 31000000.0,
+      "f_max": 53448275.86206897
+     }
+    ],
+    "f_min_hz": 48000000.0,
+    "f_max_hz": 53448275.86206897
+   },
+   {
+    "id": "ws2812-reset",
+    "status": "PASS",
+    "detail": "WS2812B-V5 datasheet V1.0 at 50 MHz: reset after START 15004 clocks = 300.08 us (>= 280.00 us; 20.08 us above the minimum); reset after a latch word 15033 clocks = 300.66 us (>= 280.00 us; 20.66 us above the minimum). all hold for clocks from 0.00 to 53.59 MHz. low times ending a frame [15004, 15033, 15050] clocks (declared 15004 after START, 15033 after a latch word); DOUT is low at the PULL holding point, so a TX FIFO underrun also latches once the stall exceeds 13968 clocks",
+    "rows": [
+     {
+      "name": "reset after START",
+      "cycles": 15004,
+      "time": "300.08 us",
+      "window": ">= 280.00 us",
+      "ok": true,
+      "margin": "20.08 us above the minimum",
+      "f_min": 0.0,
+      "f_max": 53585714.28571429
+     },
+     {
+      "name": "reset after a latch word",
+      "cycles": 15033,
+      "time": "300.66 us",
+      "window": ">= 280.00 us",
+      "ok": true,
+      "margin": "20.66 us above the minimum",
+      "f_min": 0.0,
+      "f_max": 53689285.71428572
+     }
+    ],
+    "f_min_hz": 0.0,
+    "f_max_hz": 53585714.28571429
+   },
+   {
+    "id": "ws2812-underrun",
+    "status": "PASS",
+    "detail": "DOUT is driven low at every PULL holding point. A PULL stall of s clocks between pixels lengthens the last bit's low time by s: T0L stays within WS2812B-V5 datasheet V1.0 for s <= 2, T1L for s <= 19; one TX word is consumed every 1512 clocks (30.240 us at 50 MHz)"
+   }
   ]
  },
  "flagship": [
   {
    "id": "flagship-ownership",
    "status": "PASS",
-   "detail": "images on engines 0:uart-tx (0x01), 1:uart-rx (0x00), 2:spi-controller-mode0 (0x2c), 3:i2c-write (0xc0); ownership disjoint and matches each image's engine"
+   "detail": "images on engines 0:uart-tx (0x01), 1:uart-rx-idle (0x00), 2:spi-controller-mode0 (0x2c), 3:i2c-write (0xc0); ownership disjoint and matches each image's engine"
   },
   {
    "id": "flagship-pin-roles",
@@ -1691,7 +2499,7 @@
   {
    "id": "flagship-engine1-schedule",
    "status": "PASS",
-   "detail": "uart-rx: 5 contexts, WCET between boundaries 618 cycles; schedule exact per engine (no widening). Isolation from the other engines, host and mover rests on formal job timing_isolation_prove_k1 (formal/README.md; not re-run by this tool)"
+   "detail": "uart-rx-idle: 5 contexts, WCET between boundaries 606 cycles; schedule exact per engine (no widening). Isolation from the other engines, host and mover rests on formal job timing_isolation_prove_k1 (formal/README.md; not re-run by this tool)"
   },
   {
    "id": "flagship-engine2-schedule",

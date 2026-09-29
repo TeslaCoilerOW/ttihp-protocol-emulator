@@ -27,6 +27,9 @@ Random and legacy programs analyzed on the fly: 297112 (not exact: 844).
 | i2c-target-write | 3 | 48 | 49 | 7 | 27886 | 49/49 | 10 PASS |
 | i2c-write | 3 | 25 | 27 | 106 | 28836 | 27/27 | 9 PASS |
 | jtag | 0 | 4 | 4 | 695 | 33910 | 4/4 | 9 PASS |
+| onewire-master | 3 | 6 | 12 | 80005 | - | - | 9 PASS |
+| ps2-device | 2 | 18 | 31 | 4000 | - | - | 11 PASS |
+| ps2-host | 2 | 50 | 52 | 6290 | - | - | 9 PASS |
 | spi-controller-fast | 2 | 4 | 4 | 262 | 35071 | 4/4 | 10 PASS |
 | spi-controller-mode0 | 2 | 4 | 4 | 518 | 34446 | 4/4 | 10 PASS |
 | spi-controller-mode1 | 2 | 4 | 4 | 518 | 34901 | 4/4 | 10 PASS |
@@ -36,16 +39,20 @@ Random and legacy programs analyzed on the fly: 297112 (not exact: 844).
 | spi-target-mode1 | 2 | 25 | 25 | 4 | 31529 | 25/25 | 10 PASS |
 | spi-target-mode2 | 2 | 24 | 24 | 4 | 31306 | 24/24 | 10 PASS |
 | spi-target-mode3 | 2 | 25 | 25 | 4 | 31631 | 25/25 | 10 PASS |
+| swd-read | 0 | 6 | 18 | 6220 | - | - | 12 PASS |
+| uart-rx-idle | 1 | 5 | 9 | 606 | - | - | 10 PASS |
 | uart-rx | 1 | 5 | 7 | 618 | 28657 | 7/7 | 8 PASS |
 | uart-tx | 0 | 3 | 3 | 644 | 31234 | 3/3 | 9 PASS |
 | waveform | 0 | 2 | 2 | 1541 | 28336 | 2/2 | 6 PASS |
+| ws2812 | 1 | 3 | 5 | 16514 | - | - | 9 PASS |
+| ws2812b-v5 | 1 | 3 | 5 | 16514 | - | - | 9 PASS |
 
 ## Flagship scenario
 
-- **PASS** `flagship-ownership`: images on engines 0:uart-tx (0x01), 1:uart-rx (0x00), 2:spi-controller-mode0 (0x2c), 3:i2c-write (0xc0); ownership disjoint and matches each image's engine
+- **PASS** `flagship-ownership`: images on engines 0:uart-tx (0x01), 1:uart-rx-idle (0x00), 2:spi-controller-mode0 (0x2c), 3:i2c-write (0xc0); ownership disjoint and matches each image's engine
 - **PASS** `flagship-pin-roles`: pin connections match the image pin roles of docs/firmware.md
 - **PASS** `flagship-engine0-schedule`: uart-tx: 3 contexts, WCET between boundaries 644 cycles; schedule exact per engine (no widening). Isolation from the other engines, host and mover rests on formal job timing_isolation_prove_k0 (formal/README.md; not re-run by this tool)
-- **PASS** `flagship-engine1-schedule`: uart-rx: 5 contexts, WCET between boundaries 618 cycles; schedule exact per engine (no widening). Isolation from the other engines, host and mover rests on formal job timing_isolation_prove_k1 (formal/README.md; not re-run by this tool)
+- **PASS** `flagship-engine1-schedule`: uart-rx-idle: 5 contexts, WCET between boundaries 606 cycles; schedule exact per engine (no widening). Isolation from the other engines, host and mover rests on formal job timing_isolation_prove_k1 (formal/README.md; not re-run by this tool)
 - **PASS** `flagship-engine2-schedule`: spi-controller-mode0: 4 contexts, WCET between boundaries 518 cycles; schedule exact per engine (no widening). Isolation from the other engines, host and mover rests on formal job timing_isolation_prove_k2 (formal/README.md; not re-run by this tool)
 - **PASS** `flagship-engine3-schedule`: i2c-write: 25 contexts, WCET between boundaries 106 cycles; schedule exact per engine (no widening). Isolation from the other engines, host and mover rests on formal job timing_isolation_prove_k3 (formal/README.md; not re-run by this tool)
 - **PASS** `flagship-bridge-rate`: UART RX (engine1) delivers at most one word per 640 cycles (10 x 64); the SPI engine returns to PULL 520 cycles after taking a word when its RX FIFO has room: the route never backs up at line rate (margin 120 cycles/word)
@@ -949,6 +956,458 @@ Engine 0, owned 0x0b, open-drain 0x00, fused, 50 MHz annotation. Notes: "JTAG pi
     +516    pc33  arrive PUSH
 ```
 
+## onewire-master
+
+Engine 3, owned 0x80, open-drain 0x80, fused, 50 MHz annotation. Notes: "1-Wire bus master (Maxim AN126 operations, standard speed) on DQ pin7, open-drain; external pull-up required. TX word: bits 7..0 a byte; bit 8 set: reset and presence detect first. The byte is sent LSB first in 8 time slots that also sample DQ; RX word: the 8 sampled bits (the byte itself for a write, the slave's data when the byte is 0xFF)." "Reset at 50000000 Hz: DQ low 25000 clocks (500 us); presence sampled 3500 clocks (70 us) after release; first slot 25000 clocks (500 us) after release. No presence pulse: fault 96." "Time slot at 50000000 Hz: DQ low at 0; a 1 bit releases DQ at 300 clocks (6 us); DQ sampled 700 clocks (14 us) after the fall; a 0 bit releases DQ at 3250 clocks (65 us); next slot at 3750 clocks (75 us)." "DQ is released at every holding point (PULL, PUSH). The host checks CRCs. Scope: standard speed only; no overdrive, strong pull-up (parasite power) or alarm-presence handling."
+
+### Checks
+
+- **PASS** `identity`: bytecode sha256 matches, source sha256 matches
+- **PASS** `assembler-timing-table`: 28 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model
+- **PASS** `exact-analysis`: 6 boundary contexts, 12 path variants, no widening or budget cut
+- **PASS** `no-self-deadlock`: no WAITPIN waits for a level the engine itself forces
+- **PASS** `reachable-faults`: only explicit FAULT codes [96] reachable
+- **INFO** `holding-points`: unbounded FIFO waits hold: pc2 PULL [pin7=Z]; pc26 PUSH [pin7=Z]
+- **PASS** `onewire-schedule`: reset path: DQ low 25000, presence sample 3500 after release, first slot 25000 after release; 8 slots per byte on both paths: OUT (a 1 releases DQ) at [300], sample at [700], release at [3250], next slot at [3750] clocks (declared {'reset_low': 25000, 'presence': 3500, 'reset_high': 25000, 'release1': 300, 'sample': 700, 'release0': 3250, 'slot': 3750})
+- **PASS** `onewire-reset`: DS18B20 limits at 50 MHz: reset low (tRSTL) 25000 clocks = 500.00 us (480.00 us..960.00 us; 20.00 us above the minimum, 460.00 us below the maximum); presence sample, pad value 3498 clocks = 69.96 us (60.00 us..75.00 us; 9960 ns above the minimum, 5040 ns below the maximum); release to first slot (tRSTH) 25000 clocks = 500.00 us (>= 480.00 us; 20.00 us above the minimum). all hold for clocks from 46.64 to 52.08 MHz. AN126 Table 1 uses 480.00 us low, samples 70.00 us after release and waits 480.00 us in total; the presence window is where every DS18B20 presence pulse (tPDHIGH 15-60 us, tPDLOW 60-240 us) holds DQ low
+- **PASS** `onewire-slot`: DS18B20 limits at 50 MHz: write-1 low (tLOW1) 300 clocks = 6000 ns (1000 ns..15.00 us; 5000 ns above the minimum, 9000 ns below the maximum); write-0 low (tLOW0) 3250 clocks = 65.00 us (60.00 us..120.00 us; 5000 ns above the minimum, 55.00 us below the maximum); read sample, pad value (tRDV) 698 clocks = 13.96 us (<= 15.00 us; 1040 ns below the maximum); time slot (tSLOT) 3750 clocks = 75.00 us (60.00 us..120.00 us; 15.00 us above the minimum, 45.00 us below the maximum); recovery (tREC) 500 clocks = 10.00 us (>= 1000 ns; 9000 ns above the minimum); write-1 released before the slave's window 300 clocks = 6000 ns (<= 15.00 us; 9000 ns below the maximum); write-0 held through the slave's window 3250 clocks = 65.00 us (>= 60.00 us; 5000 ns above the minimum). all hold for clocks from 46.53 to 54.17 MHz. AN126 Table 1: write-1 low 6000 ns, write-0 low 60.00 us, sample 15.00 us after the fall, slot 70.00 us. Rise time after a release is not included
+- **PASS** `onewire-open-drain`: DQ is only pulled low or released, released at every PULL/PUSH holding point and by fault 96; the shortest recovery from a release to the next fall, across bytes, is 500 clocks (10.00 us; tREC >= 1 us); 1-Wire sets no maximum time between slots
+
+### Boundaries
+
+| boundary (context) | stall min..max | segment BCET..WCET | holding pads |
+|---|---|---|---|
+| START | 0..0 | 3..3 | pin7=Z |
+| pc2 PULL | 0..inf | 28506..80005 | pin7=Z |
+| pc26 PUSH | 0..inf | 2..2 | pin7=Z |
+| pc26 PUSH | 0..inf | 2..2 | pin7=Z |
+| pc2 PULL | 0..inf | 28506..80005 | pin7=Z |
+| pc2 PULL | 0..inf | 28506..80005 | pin7=Z |
+
+### Pin spacing
+
+- pin7: exact spacings {300: 48, 500: 42, 2950: 48, 25000: 9}; across boundaries [('507', 'inf')]; minimum 300
+
+### Loop periods
+
+- pc2 `PULL` via JMP@pc27: 30008..inf (x3)
+- pc16 `SET 0x00` via LOOP@pc24: 3750 (x42), 3758..inf (x6)
+
+### Edge schedules
+
+```
+  from START v0:
+    +3      pc2   arrive PULL
+  from pc2 PULL v0 (+2 identical contexts):
+    +4      pc6   pin7 Z->0
+    +25004  pc8   pin7 0->Z
+    +28504  pc11  sample pin7
+    end: fault96 at +28506
+  from pc2 PULL v1 (+2 identical contexts):
+    +4      pc6   pin7 Z->0
+    +25004  pc8   pin7 0->Z
+    +28504  pc11  sample pin7
+    +50004  pc16  pin7 Z->0
+    +50304  pc18  pin7 0->0|Z
+    +50704  pc20  sample pin7
+    +53254  pc22  pin7 0|Z->Z
+    +53754  pc16  pin7 Z->0
+    +54054  pc18  pin7 0->0|Z
+    +54454  pc20  sample pin7
+    +57004  pc22  pin7 0|Z->Z
+    +57504  pc16  pin7 Z->0
+    +57804  pc18  pin7 0->0|Z
+    +58204  pc20  sample pin7
+    +60754  pc22  pin7 0|Z->Z
+    +61254  pc16  pin7 Z->0
+    +61554  pc18  pin7 0->0|Z
+    +61954  pc20  sample pin7
+    +64504  pc22  pin7 0|Z->Z
+    +65004  pc16  pin7 Z->0
+    +65304  pc18  pin7 0->0|Z
+    +65704  pc20  sample pin7
+    +68254  pc22  pin7 0|Z->Z
+    +68754  pc16  pin7 Z->0
+    +69054  pc18  pin7 0->0|Z
+    +69454  pc20  sample pin7
+    +72004  pc22  pin7 0|Z->Z
+    +72504  pc16  pin7 Z->0
+    +72804  pc18  pin7 0->0|Z
+    +73204  pc20  sample pin7
+    +75754  pc22  pin7 0|Z->Z
+    +76254  pc16  pin7 Z->0
+    +76554  pc18  pin7 0->0|Z
+    +76954  pc20  sample pin7
+    +79504  pc22  pin7 0|Z->Z
+    +80005  pc26  arrive PUSH
+  from pc2 PULL v2 (+2 identical contexts):
+    +5      pc16  pin7 Z->0
+    +305    pc18  pin7 0->0|Z
+    +705    pc20  sample pin7
+    +3255   pc22  pin7 0|Z->Z
+    +3755   pc16  pin7 Z->0
+    +4055   pc18  pin7 0->0|Z
+    +4455   pc20  sample pin7
+    +7005   pc22  pin7 0|Z->Z
+    +7505   pc16  pin7 Z->0
+    +7805   pc18  pin7 0->0|Z
+    +8205   pc20  sample pin7
+    +10755  pc22  pin7 0|Z->Z
+    +11255  pc16  pin7 Z->0
+    +11555  pc18  pin7 0->0|Z
+    +11955  pc20  sample pin7
+    +14505  pc22  pin7 0|Z->Z
+    +15005  pc16  pin7 Z->0
+    +15305  pc18  pin7 0->0|Z
+    +15705  pc20  sample pin7
+    +18255  pc22  pin7 0|Z->Z
+    +18755  pc16  pin7 Z->0
+    +19055  pc18  pin7 0->0|Z
+    +19455  pc20  sample pin7
+    +22005  pc22  pin7 0|Z->Z
+    +22505  pc16  pin7 Z->0
+    +22805  pc18  pin7 0->0|Z
+    +23205  pc20  sample pin7
+    +25755  pc22  pin7 0|Z->Z
+    +26255  pc16  pin7 Z->0
+    +26555  pc18  pin7 0->0|Z
+    +26955  pc20  sample pin7
+    +29505  pc22  pin7 0|Z->Z
+    +30006  pc26  arrive PUSH
+  from pc26 PUSH v0 (+1 identical contexts):
+    +2      pc2   arrive PULL
+```
+
+## ps2-device
+
+Engine 2, owned 0x30, open-drain 0x30, fused, 50 MHz annotation. Notes: "PS/2 device-to-host transmitter (keyboard or mouse side) on CLK pin4 and DATA pin5, open-drain; external pull-ups required (a 5 V host needs level shifting to the 3.3 V pads). TX word: a byte in bits 7..0, sent as an 11-bit frame: start 0, 8 data bits LSB first, odd parity, stop 1." "Before each frame: WAITPIN CLK high, WAITPIN DATA high, then 56 CLK samples 50 clocks apart (1 us at 50000000 Hz, 55 us from first to last) must all read high, or the wait starts again." "Timing at 50000000 Hz: DATA change to CLK fall 1000 clocks (20 us), CLK low 2000 clocks (40 us), CLK rise to DATA change 1000 clocks (20 us), CLK high 2000 clocks (40 us): 12.5 kHz." "Inhibit: CLK is sampled before each of the 11 CLK falls; if the host holds it low, the device releases both lines and retransmits the same frame after the idle check. No check after the 11th clock. The CLK-high and DATA-high waits are bounded by LIMIT 16777215 (335.5 ms at 50000000 Hz): a longer inhibit or request-to-send ends in fault 3." "Scope: device-to-host only. This image does not receive host-to-device commands: PULL is the only TX-queue test of the design-of-record ISA and it blocks, so one engine cannot wait for a queued byte and a host request-to-send at the same time."
+
+### Checks
+
+- **PASS** `identity`: bytecode sha256 matches, source sha256 matches
+- **PASS** `assembler-timing-table`: 45 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model
+- **PASS** `exact-analysis`: 18 boundary contexts, 31 path variants, no widening or budget cut
+- **PASS** `no-self-deadlock`: no WAITPIN waits for a level the engine itself forces
+- **PASS** `reachable-faults`: only explicit FAULT codes [] reachable
+- **INFO** `bounded-waits`: 2 WAITPIN/WAITEVENT contexts; LIMIT values [16777215]; longest bounded stall 16777214 cycles (335544.280 us at 50 MHz) before fault 3
+- **INFO** `holding-points`: unbounded FIFO waits hold: pc1 PULL [pin4=Z pin5=Z]
+- **PASS** `ps2-frame`: one frame without inhibit (12 segments joined at zero stall): 11 DATA changes (OUT, LSB first), each followed by a CLK fall and a CLK release: 11 clock pulses. Start, parity and stop values are computed from the TX byte (checked at the pins by test/test_protocols_ext.py)
+- **PASS** `ps2-frame-timing`: inside a frame, exact in every bit: data_to_fall [1000], low [2000], high [2000], rise_to_data [1000], period [4000] clocks; declared data_to_fall 1000, low 2000, rise_to_data 1000, high 2000
+- **PASS** `ps2-spec-timing`: PS/2 device-to-host limits (Chapweske) at 50 MHz: CLK low 2000 clocks = 40.00 us (30.00 us..50.00 us; 10.00 us above the minimum, 10.00 us below the maximum); CLK high 2000 clocks = 40.00 us (30.00 us..50.00 us; 10.00 us above the minimum, 10.00 us below the maximum); CLK period 4000 clocks = 80.00 us (59.88 us..100.00 us; 20.12 us above the minimum, 20.00 us below the maximum); CLK rise to DATA change 1000 clocks = 20.00 us (>= 5000 ns; 15.00 us above the minimum); DATA change to CLK fall 1000 clocks = 20.00 us (5000 ns..25.00 us; 15.00 us above the minimum, 5000 ns below the maximum). all hold for clocks from 40.00 to 66.67 MHz
+- **PASS** `ps2-idle-before-frame`: PS/2 device-to-host limits (Chapweske) at 50 MHz: CLK sampled high 2750 clocks = 55.00 us (>= 50.00 us; 5000 ns above the minimum). all hold for clocks from 0.00 to 55.00 MHz. 56 CLK samples [50] clocks apart after WAITPIN CLK and WAITPIN DATA, all high, span 2750 clocks; the start bit follows the last sample by 8 clocks. Between samples the line is not observed: a low pulse shorter than 50 clocks can be missed (a host inhibit lasts at least 100 us)
+- **PASS** `ps2-inhibit`: CLK is sampled 2 clocks before each of the 11 CLK falls (the pad value 4 clocks before the fall) and not after the 11th; a low sample branches to the retry path, which releases CLK and DATA and waits for the idle bus (11 abort paths, WAITPIN reached 5 clocks later at most, no CLK fall on the way). The idle waits are bounded by LIMIT 16777215 (335.5 ms at 50 MHz), then fault 3
+- **PASS** `ps2-open-drain`: CLK and DATA are only pulled low or released (no pad state drives high) and both are released at the PULL holding point
+
+### Boundaries
+
+| boundary (context) | stall min..max | segment BCET..WCET | holding pads |
+|---|---|---|---|
+| START | 0..0 | 2..2 | pin4=Z pin5=Z |
+| pc1 PULL | 0..inf | 42..42 | pin4=Z pin5=Z |
+| pc22 WAITPIN pin4==1 [repeat=55] | 0..16777214 | 1..1 | pin4=Z pin5=Z |
+| pc23 WAITPIN pin5==1 [repeat=55] | 0..16777214 | 2806..3805 | pin4=Z pin5=Z |
+| pc37 JZ rx, 18 <retry> [repeat=10] | 0..0 | 5..4000 | pin4=Z pin5=0|Z |
+| pc22 WAITPIN pin4==1 [repeat=55] | 0..16777214 | 1..1 | pin4=Z pin5=Z |
+| pc37 JZ rx, 18 <retry> [repeat=9] | 0..0 | 5..4000 | pin4=Z pin5=0|Z |
+| pc23 WAITPIN pin5==1 [repeat=55] | 0..16777214 | 2806..3805 | pin4=Z pin5=Z |
+| pc37 JZ rx, 18 <retry> [repeat=8] | 0..0 | 5..4000 | pin4=Z pin5=0|Z |
+| pc37 JZ rx, 18 <retry> [repeat=7] | 0..0 | 5..4000 | pin4=Z pin5=0|Z |
+| pc37 JZ rx, 18 <retry> [repeat=6] | 0..0 | 5..4000 | pin4=Z pin5=0|Z |
+| pc37 JZ rx, 18 <retry> [repeat=5] | 0..0 | 5..4000 | pin4=Z pin5=0|Z |
+| pc37 JZ rx, 18 <retry> [repeat=4] | 0..0 | 5..4000 | pin4=Z pin5=0|Z |
+| pc37 JZ rx, 18 <retry> [repeat=3] | 0..0 | 5..4000 | pin4=Z pin5=0|Z |
+| pc37 JZ rx, 18 <retry> [repeat=2] | 0..0 | 5..4000 | pin4=Z pin5=0|Z |
+| pc37 JZ rx, 18 <retry> [repeat=1] | 0..0 | 5..4000 | pin4=Z pin5=0|Z |
+| pc37 JZ rx, 18 <retry> | 0..0 | 5..3003 | pin4=Z pin5=0|Z |
+| pc1 PULL | 0..inf | 42..42 | pin4=Z pin5=Z |
+
+### Pin spacing
+
+- pin4: exact spacings {2000: 11}; across boundaries [('2000', 'inf'), ('4851', 'inf')]; minimum 2000
+- pin5: exact spacings {}; across boundaries [('1000', '4000'), ('2811', 'inf'), ('2851', 'inf')]; minimum 1000
+
+### Loop periods
+
+- pc1 `PULL` via JMP@pc44: 46851..inf (x2)
+- pc7 `XOR y, x` via LOOP@pc9: 3 (x14), 46830..inf (x2)
+- pc18 `DIR 0x00` via JZ@pc28, JZ@pc37: 2807..inf (x15)
+- pc24 `WAIT 46` via LOOP@pc27: 50 (x220), 57..33554485 (x2), 1061..inf (x2)
+- pc33 `OUT pin5 lsb` via LOOP@pc42: 3811..inf (x12)
+
+### Edge schedules
+
+```
+  from START v0:
+    +2      pc1   arrive PULL
+  from pc1 PULL v0 (+1 identical contexts):
+    +42     pc22  arrive WAITPIN pin4==1
+  from pc22 WAITPIN pin4==1 [repeat=55] v0 (+1 identical contexts):
+    +1      pc23  arrive WAITPIN pin5==1
+  from pc23 WAITPIN pin5==1 [repeat=55] v0 (+1 identical contexts):
+    +48     pc25  sample pin4
+    +98     pc25  sample pin4
+    +148    pc25  sample pin4
+    +198    pc25  sample pin4
+    +248    pc25  sample pin4
+    +298    pc25  sample pin4
+    +348    pc25  sample pin4
+    +398    pc25  sample pin4
+    +448    pc25  sample pin4
+    +498    pc25  sample pin4
+    +548    pc25  sample pin4
+    +598    pc25  sample pin4
+    +648    pc25  sample pin4
+    +698    pc25  sample pin4
+    +748    pc25  sample pin4
+    +798    pc25  sample pin4
+    +848    pc25  sample pin4
+    +898    pc25  sample pin4
+    +948    pc25  sample pin4
+    +998    pc25  sample pin4
+    +1048   pc25  sample pin4
+    +1098   pc25  sample pin4
+    +1148   pc25  sample pin4
+    +1198   pc25  sample pin4
+    +1248   pc25  sample pin4
+    +1298   pc25  sample pin4
+    +1348   pc25  sample pin4
+    +1398   pc25  sample pin4
+    +1448   pc25  sample pin4
+    +1498   pc25  sample pin4
+    +1548   pc25  sample pin4
+    +1598   pc25  sample pin4
+    +1648   pc25  sample pin4
+    +1698   pc25  sample pin4
+    +1748   pc25  sample pin4
+    +1798   pc25  sample pin4
+    +1848   pc25  sample pin4
+    +1898   pc25  sample pin4
+    +1948   pc25  sample pin4
+    +1998   pc25  sample pin4
+    +2048   pc25  sample pin4
+    +2098   pc25  sample pin4
+    +2148   pc25  sample pin4
+    +2198   pc25  sample pin4
+    +2248   pc25  sample pin4
+    +2298   pc25  sample pin4
+    +2348   pc25  sample pin4
+    +2398   pc25  sample pin4
+    +2448   pc25  sample pin4
+    +2498   pc25  sample pin4
+    +2548   pc25  sample pin4
+    +2598   pc25  sample pin4
+    +2648   pc25  sample pin4
+    +2698   pc25  sample pin4
+    +2748   pc25  sample pin4
+    +2798   pc25  sample pin4
+    +2806   pc33  pin5 Z->0|Z
+    +3804   pc36  sample pin4
+    +3805   pc37  arrive JZ rx, 18 <retry>
+  from pc23 WAITPIN pin5==1 [repeat=55] v1 (+1 identical contexts):
+    +48     pc25  sample pin4
+    +98     pc25  sample pin4
+    +148    pc25  sample pin4
+    +198    pc25  sample pin4
+    +248    pc25  sample pin4
+    +298    pc25  sample pin4
+    +348    pc25  sample pin4
+    +398    pc25  sample pin4
+    +448    pc25  sample pin4
+    +498    pc25  sample pin4
+    +548    pc25  sample pin4
+    +598    pc25  sample pin4
+    +648    pc25  sample pin4
+    +698    pc25  sample pin4
+    +748    pc25  sample pin4
+    +798    pc25  sample pin4
+    +848    pc25  sample pin4
+    +898    pc25  sample pin4
+    +948    pc25  sample pin4
+    +998    pc25  sample pin4
+    +1048   pc25  sample pin4
+    +1098   pc25  sample pin4
+    +1148   pc25  sample pin4
+    +1198   pc25  sample pin4
+    +1248   pc25  sample pin4
+    +1298   pc25  sample pin4
+    +1348   pc25  sample pin4
+    +1398   pc25  sample pin4
+    +1448   pc25  sample pin4
+    +1498   pc25  sample pin4
+    +1548   pc25  sample pin4
+    +1598   pc25  sample pin4
+    +1648   pc25  sample pin4
+    +1698   pc25  sample pin4
+    +1748   pc25  sample pin4
+    +1798   pc25  sample pin4
+    +1848   pc25  sample pin4
+    +1898   pc25  sample pin4
+    +1948   pc25  sample pin4
+    +1998   pc25  sample pin4
+    +2048   pc25  sample pin4
+    +2098   pc25  sample pin4
+    +2148   pc25  sample pin4
+    +2198   pc25  sample pin4
+    +2248   pc25  sample pin4
+    +2298   pc25  sample pin4
+    +2348   pc25  sample pin4
+    +2398   pc25  sample pin4
+    +2448   pc25  sample pin4
+    +2498   pc25  sample pin4
+    +2548   pc25  sample pin4
+    +2598   pc25  sample pin4
+    +2648   pc25  sample pin4
+    +2698   pc25  sample pin4
+    +2748   pc25  sample pin4
+    +2798   pc25  sample pin4
+    +2806   pc22  arrive WAITPIN pin4==1
+  from pc37 JZ rx, 18 <retry> [repeat=10] v0 (+10 identical contexts):
+    +1      pc18  pin5 0|Z->Z
+    +5      pc22  arrive WAITPIN pin4==1
+  from pc37 JZ rx, 18 <retry> [repeat=10] v1 (+9 identical contexts):
+    +1      pc38  pin4 Z->0
+    +2001   pc40  pin4 0->Z
+    +3001   pc33  pin5 0|Z->0|Z
+    +3999   pc36  sample pin4
+    +4000   pc37  arrive JZ rx, 18 <retry>
+  from pc37 JZ rx, 18 <retry> v1:
+    +1      pc38  pin4 Z->0
+    +2001   pc40  pin4 0->Z
+    +3001   pc43  pin5 0|Z->Z
+    +3003   pc1   arrive PULL
+```
+
+## ps2-host
+
+Engine 2, owned 0x30, open-drain 0x30, fused, 50 MHz annotation. Notes: "PS/2 host (computer side) on CLK pin4 and DATA pin5, open-drain; external pull-ups required (a 5 V device needs level shifting to the 3.3 V pads). TX word: bits 7..0 a command byte, bits 11..8 the number of response frames to read. RX word: one received frame, bit 0 start, bits 8..1 data LSB first, bit 9 parity, bit 10 stop; the TT host checks the framing." "Request to send at 50000000 Hz: CLK low 6000 clocks (120 us), then DATA low, then CLK released 250 clocks (5 us) later. After it sees CLK high, the host puts each of the 10 bits (8 data bits LSB first, odd parity, stop 1) on DATA one clock after it sees the device's CLK low and waits for CLK high before the next one; after the stop bit it waits for the device's acknowledge (DATA low), one more CLK pulse and DATA high." "Timeouts: every wait for the device during the command is bounded by LIMIT 800000 (16 ms at 50000000 Hz; a device must start clocking within 15 ms), every wait while reading responses by LIMIT 1100000 (22 ms; a response is due within 20 ms); a device that does not clock, acknowledge or answer in time ends in fault 3." "Each response frame is sampled on 11 device CLK falls (DATA read one clock after WAITPIN sees CLK low) and pushed with strict PUSH: more than 8 unread frames end in fault 4. The host does not inhibit the device between commands."
+
+### Checks
+
+- **PASS** `identity`: bytecode sha256 matches, source sha256 matches
+- **PASS** `assembler-timing-table`: 49 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model
+- **PASS** `exact-analysis`: 50 boundary contexts, 52 path variants, no widening or budget cut
+- **PASS** `no-self-deadlock`: no WAITPIN waits for a level the engine itself forces
+- **PASS** `reachable-faults`: only explicit FAULT codes [] reachable
+- **INFO** `bounded-waits`: 9 WAITPIN/WAITEVENT contexts; LIMIT values [800000, 1100000]; longest bounded stall 1099999 cycles (21999.980 us at 50 MHz) before fault 3
+- **INFO** `holding-points`: unbounded FIFO waits hold: pc0 PULL [pin4=Z pin5=Z]
+- **PASS** `ps2-host-request`: PS/2 host-to-device limits (Chapweske) at 50 MHz: CLK low before DATA low 6000 clocks = 120.00 us (>= 100.00 us; 20.00 us above the minimum); CLK low to the host's first-clock timeout 806250 clocks = 16.1 ms (>= 15.0 ms; 1.1 ms above the minimum). all hold for clocks from 0.00 to 53.75 MHz. request-to-send schedule (CLK low to DATA low, DATA low to CLK release) [(6000, 250)] clocks (declared 6000, 250): CLK low, then DATA low, then CLK released. The host waits for each device clock for up to LIMIT 800000 clocks, so a device that starts clocking within the 15 ms allowed after CLK goes low is never timed out
+- **PASS** `ps2-host-bits`: command: 10 bits (8 data LSB first, parity, stop), each put on DATA one clock after WAITPIN sees the device's CLK low and held until WAITPIN sees CLK high (the device reads it on the rising edge); response: 11 DATA samples per frame, each one clock after WAITPIN sees CLK low, from the pad value 1 to 2 clocks after the CLK fall
+- **PASS** `ps2-host-handshake`: PS/2 host-to-device limits (Chapweske) at 50 MHz: response wait 1.1e+06 clocks = 22.0 ms (>= 20.0 ms; 2.0 ms above the minimum). all hold for clocks from 0.00 to 55.00 MHz. WAITPIN sequence [(4, 1), (4, 0), (4, 1), (5, 0), (4, 0), (4, 1), (5, 1), (4, 0), (4, 1)] (CLK seen released, bit clocking, acknowledge DATA low, the acknowledge clock, DATA released, response clocking); LIMIT values [800000, 1100000]; both lines released at every PULL holding point
+- **PASS** `ps2-host-open-drain`: CLK and DATA are only pulled low or released
+
+### Boundaries
+
+| boundary (context) | stall min..max | segment BCET..WCET | holding pads |
+|---|---|---|---|
+| START | 0..0 | 1..1 | pin4=Z pin5=Z |
+| pc0 PULL | 0..inf | 6290..6290 | pin4=Z pin5=Z |
+| pc23 WAITPIN pin4==1 | 2..799999 | 2..2 | pin4=Z pin5=0 |
+| pc25 WAITPIN pin4==0 [repeat=9] | 0..799999 | 2..2 | pin4=Z pin5=0 |
+| pc27 WAITPIN pin4==1 [repeat=9] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc25 WAITPIN pin4==0 [repeat=8] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc27 WAITPIN pin4==1 [repeat=8] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc25 WAITPIN pin4==0 [repeat=7] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc27 WAITPIN pin4==1 [repeat=7] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc25 WAITPIN pin4==0 [repeat=6] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc27 WAITPIN pin4==1 [repeat=6] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc25 WAITPIN pin4==0 [repeat=5] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc27 WAITPIN pin4==1 [repeat=5] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc25 WAITPIN pin4==0 [repeat=4] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc27 WAITPIN pin4==1 [repeat=4] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc25 WAITPIN pin4==0 [repeat=3] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc27 WAITPIN pin4==1 [repeat=3] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc25 WAITPIN pin4==0 [repeat=2] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc27 WAITPIN pin4==1 [repeat=2] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc25 WAITPIN pin4==0 [repeat=1] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc27 WAITPIN pin4==1 [repeat=1] | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc25 WAITPIN pin4==0 | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc27 WAITPIN pin4==1 | 0..799999 | 2..2 | pin4=Z pin5=0|Z |
+| pc29 WAITPIN pin5==0 | 0..799999 | 1..1 | pin4=Z pin5=0|Z |
+| pc30 WAITPIN pin4==0 | 0..799999 | 1..1 | pin4=Z pin5=0|Z |
+| pc31 WAITPIN pin4==1 | 0..799999 | 1..1 | pin4=Z pin5=0|Z |
+| pc32 WAITPIN pin5==1 | 0..799999 | 8..9 | pin4=Z pin5=0|Z |
+| pc41 WAITPIN pin4==0 [repeat=10] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc0 PULL | 0..inf | 6290..6290 | pin4=Z pin5=Z |
+| pc43 WAITPIN pin4==1 [repeat=10] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc41 WAITPIN pin4==0 [repeat=9] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc43 WAITPIN pin4==1 [repeat=9] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc41 WAITPIN pin4==0 [repeat=8] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc43 WAITPIN pin4==1 [repeat=8] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc41 WAITPIN pin4==0 [repeat=7] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc43 WAITPIN pin4==1 [repeat=7] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc41 WAITPIN pin4==0 [repeat=6] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc43 WAITPIN pin4==1 [repeat=6] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc41 WAITPIN pin4==0 [repeat=5] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc43 WAITPIN pin4==1 [repeat=5] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc41 WAITPIN pin4==0 [repeat=4] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc43 WAITPIN pin4==1 [repeat=4] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc41 WAITPIN pin4==0 [repeat=3] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc43 WAITPIN pin4==1 [repeat=3] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc41 WAITPIN pin4==0 [repeat=2] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc43 WAITPIN pin4==1 [repeat=2] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc41 WAITPIN pin4==0 [repeat=1] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc43 WAITPIN pin4==1 [repeat=1] | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc41 WAITPIN pin4==0 | 0..1099999 | 2..2 | pin4=Z pin5=Z |
+| pc43 WAITPIN pin4==1 | 0..1099999 | 7..8 | pin4=Z pin5=Z |
+
+### Pin spacing
+
+- pin4: exact spacings {6250: 2}; across boundaries [('95', 'inf')]; minimum 95
+- pin5: exact spacings {}; across boundaries [('256', '1600252'), ('4', '1600002'), ('6046', 'inf'), ('6096', 'inf'), ('7', '4000002')]; minimum 4
+
+### Loop periods
+
+- pc0 `PULL` via JZ@pc39: 6345..inf (x3)
+- pc7 `XOR rx, x` via LOOP@pc9: 3 (x14), 6324..inf (x2)
+- pc25 `WAITPIN pin4==0` via LOOP@pc28: 4..1600002 (x9), 6309..inf (x1)
+- pc39 `JZ x, 0 <command>` via JMP@pc48: 50..24200028 (x2), 6345..inf (x2)
+- pc41 `WAITPIN pin4==0` via LOOP@pc44: 4..2200002 (x11), 10..inf (x1)
+
+### Edge schedules
+
+```
+  from START v0:
+    +1      pc0   arrive PULL
+  from pc0 PULL v0 (+1 identical contexts):
+    +39     pc18  pin4 Z->0
+    +6039   pc20  pin5 Z->0
+    +6289   pc22  pin4 0->Z
+    +6290   pc23  arrive WAITPIN pin4==1
+  from pc23 WAITPIN pin4==1 v0 (+9 identical contexts):
+    +2      pc25  arrive WAITPIN pin4==0
+  from pc25 WAITPIN pin4==0 [repeat=9] v0:
+    +1      pc26  pin5 0->0|Z
+    +2      pc27  arrive WAITPIN pin4==1
+  from pc25 WAITPIN pin4==0 [repeat=8] v0 (+8 identical contexts):
+    +1      pc26  pin5 0|Z->0|Z
+    +2      pc27  arrive WAITPIN pin4==1
+  from pc27 WAITPIN pin4==1 v0:
+    +2      pc29  arrive WAITPIN pin5==0
+  from pc29 WAITPIN pin5==0 v0:
+    +1      pc30  arrive WAITPIN pin4==0
+  from pc30 WAITPIN pin4==0 v0:
+    +1      pc31  arrive WAITPIN pin4==1
+  from pc31 WAITPIN pin4==1 v0:
+    +1      pc32  arrive WAITPIN pin5==1
+  from pc32 WAITPIN pin5==1 v0:
+    +1      pc33  pin5 0|Z->Z
+    +9      pc41  arrive WAITPIN pin4==0
+  from pc32 WAITPIN pin5==1 v1:
+    +1      pc33  pin5 0|Z->Z
+    +8      pc0   arrive PULL
+  from pc41 WAITPIN pin4==0 [repeat=10] v0 (+10 identical contexts):
+    +1      pc42  sample pin5
+    +2      pc43  arrive WAITPIN pin4==1
+  from pc43 WAITPIN pin4==1 [repeat=10] v0 (+9 identical contexts):
+    +2      pc41  arrive WAITPIN pin4==0
+  from pc43 WAITPIN pin4==1 v0:
+    +3      pc46  interaction
+    +8      pc41  arrive WAITPIN pin4==0
+  from pc43 WAITPIN pin4==1 v1:
+    +3      pc46  interaction
+    +7      pc0   arrive PULL
+```
+
 ## spi-controller-fast
 
 Engine 2, owned 0x2c, open-drain 0x00, fused, 50 MHz annotation. Notes: "SPI controller mode0, MSB-first 8-bit full duplex; pins SCK2/MOSI3/MISO4/CSn5." "Fused transfers have 16-cycle half periods; scalar expansion preserves mode but adds data-dependent instruction overhead between bits." "One CS assertion per FIFO byte; low-byte receive words. Input synchronization requires external return/setup margin; no maximum external rate asserted."
@@ -1748,6 +2207,1666 @@ Engine 2, owned 0x10, open-drain 0x00, fused, 50 MHz annotation. Notes: "SPI tar
     +2      pc10  arrive WAITPIN pin2==0
 ```
 
+## swd-read
+
+Engine 0, owned 0x03, open-drain 0x00, fused, 50 MHz annotation. Notes: "SWD host (Arm ADIv5 Serial Wire Debug) on SWCLK pin0 and SWDIO pin1, push-pull; SWDIO is released while the target drives it. TX word: bits 7..0 a read request header (Start, APnDP, RnW=1, A[2:3], Parity, Stop, Park; LSB first; 0xA5 reads DP DPIDR); bit 8 set: connect first. RX word: the 32-bit read data." "Connect: 56 SWCLK cycles with SWDIO high, the 16-bit JTAG-to-SWD select sequence 0xE79E LSB first, then 56 SWCLK cycles with SWDIO high (line reset). Every request starts with 8 idle cycles (SWDIO low)." "SWCLK half period 16 clocks (1.5625 MHz at 50000000 Hz). SWDIO changes only while SWCLK is low; ACK, data and parity are sampled at SWCLK rising edges from the pad value 2 clocks before the edge." "Park is driven high, then SWDIO is released for one turnaround cycle before ACK[0:2]. After RDATA[0:31] and its even parity bit: one turnaround cycle, 8 idle cycles with SWDIO low, then SWCLK stops low and SWDIO is driven high until the next request." "An ACK other than OK pushes the three ACK bits in wire order (4 OK, 2 WAIT, 1 FAULT, 7 no response), clocks one turnaround cycle and faults 80. A data parity error pushes the data word and faults 81. A header with RnW=0 faults 82 before any SWCLK edge." "Scope: read transactions only; the host builds the header, including its parity. No write data phase, no WAIT retry, no dormant-state (ADIv5.2) wake-up sequence. SWCLK is not free-running and a fault releases both pins."
+
+### Checks
+
+- **PASS** `identity`: bytecode sha256 matches, source sha256 matches
+- **PASS** `assembler-timing-table`: 60 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model
+- **PASS** `exact-analysis`: 6 boundary contexts, 18 path variants, no widening or budget cut
+- **PASS** `no-self-deadlock`: no WAITPIN waits for a level the engine itself forces
+- **PASS** `reachable-faults`: only explicit FAULT codes [80, 81, 82] reachable
+- **INFO** `holding-points`: unbounded FIFO waits hold: pc3 PULL [pin0=0 pin1=1]; pc33 PUSH [pin0=0 pin1=Z]; pc53 PUSH [pin0=0 pin1=0]; pc56 PUSH [pin0=0 pin1=0]
+- **PASS** `swd-dpidr-header`: declared header 0xA5 = start 1, APnDP 0, RnW 1, A2 0, A3 0, parity 1, stop 0, park 1: a DP read of address 0x0 (DPIDR) with even parity over APnDP, RnW, A[2:3], Stop 0 and Park 1 (ADIv5.1 Supplement 8.3.5)
+- **PASS** `swd-sequence`: SWDIO at every SWCLK rise, all 14 request paths: connect = 56 x 1, 0xE79E LSB first, 56 x 1 (ADIv5.1 Supplement 6.2.1 and 8.3.6: at least 50 x 1, then at least one idle cycle); every request: 8 idle rises with SWDIO low, 8 driven header bits, then SWDIO released at the turnaround rise, the 3 ACK rises and, after ACK OK, the 32 data rises, the parity rise and the second turnaround rise, then 8 idle rises with SWDIO driven low. Samples are taken exactly at the ACK, data and parity rises (36; 3 when the ACK is not OK). A header with RnW = 0 faults 82 with no SWCLK edge
+- **PASS** `swd-clock`: SWCLK high phases [(16, 16)] clocks, low phases at least 16 clocks (declared half period 16; a low phase between two XFERs is longer)
+- **PASS** `swd-host-drive`: every host SWDIO change (drive, release, re-drive) happens while SWCLK is low; set-up to the next SWCLK rise >= 16 clocks, hold after a rise >= 16 clocks (half period 16); Park is driven before the release (ADIv5.1 Supplement erratum 2.6)
+- **PASS** `swd-target-budget`: each ACK, data or parity sample is taken at a SWCLK rise at least 32 clocks after the rise on which the target launched the bit, from the pad value 2 clocks earlier: the target's output delay plus board delay must stay below 30 clocks (600.0 ns at 50 MHz)
+- **PASS** `swd-clock-after-data`: 9 SWCLK rises after the data parity bit before SWCLK stops (one turnaround and 8 idle cycles); ADIv5.1 Supplement 8.2 asks for at least 8
+- **PASS** `swd-idle-line`: SWCLK low and SWDIO driven high at every PULL holding point (ADIv5.1 Supplement 8.3.2: the host holds the line high between uses)
+- **INFO** `swd-rate`: SWCLK = clock/32: 10MHz 0.3125 MHz, 25MHz 0.7812 MHz, 50MHz 1.562 MHz, 66MHz 2.062 MHz, 100MHz 3.125 MHz; SWCLK stretches between instructions (ADIv5 has no minimum SWCLK frequency); longest request path 6220 clocks
+
+### Boundaries
+
+| boundary (context) | stall min..max | segment BCET..WCET | holding pads |
+|---|---|---|---|
+| START | 0..0 | 4..4 | pin0=Z pin1=Z |
+| pc3 PULL | 0..inf | 5..6220 | pin0=0 pin1=1 |
+| pc33 PUSH | 0..inf | 34..34 | pin0=0 pin1=Z |
+| pc53 PUSH | 0..inf | 1..1 | pin0=0 pin1=0 |
+| pc56 PUSH | 0..inf | 3..3 | pin0=0 pin1=0 |
+| pc3 PULL | 0..inf | 5..6220 | pin0=0 pin1=1 |
+
+### Pin spacing
+
+- pin0: exact spacings {1: 1, 16: 2585, 17: 20, 18: 24, 19: 34, 20: 14}; across boundaries [('104', 'inf'), ('111', 'inf'), ('21', 'inf'), ('7', 'inf')]; minimum 1
+- pin1: exact spacings {32: 90, 33: 12, 64: 12, 128: 6, 131: 6, 259: 12, 1229: 8, 1891: 6}; across boundaries [('361', 'inf'), ('7', 'inf')]; minimum 7
+
+### Loop periods
+
+- pc3 `PULL` via JMP@pc58: 2115..inf (x2)
+- pc45 `XOR rx, x` via LOOP@pc47: 3 (x248), 2022..inf (x4)
+
+### Edge schedules
+
+```
+  from START v0:
+    +2      pc1   pin0 Z->0
+    +2      pc1   pin1 Z->1
+    +4      pc3   arrive PULL
+  from pc3 PULL v0 (+1 identical contexts):
+    +25     pc12  pin0 0->1
+    +41     pc12  pin0 1->0
+    +57     pc12  pin0 0->1
+    +73     pc12  pin0 1->0
+    +89     pc12  pin0 0->1
+    +105    pc12  pin0 1->0
+    +121    pc12  pin0 0->1
+    +137    pc12  pin0 1->0
+    +153    pc12  pin0 0->1
+    +169    pc12  pin0 1->0
+    +185    pc12  pin0 0->1
+    +201    pc12  pin0 1->0
+    +217    pc12  pin0 0->1
+    +233    pc12  pin0 1->0
+    +249    pc12  pin0 0->1
+    +265    pc12  pin0 1->0
+    +281    pc12  pin0 0->1
+    +297    pc12  pin0 1->0
+    +313    pc12  pin0 0->1
+    +329    pc12  pin0 1->0
+    +345    pc12  pin0 0->1
+    +361    pc12  pin0 1->0
+    +377    pc12  pin0 0->1
+    +393    pc12  pin0 1->0
+    +409    pc12  pin0 0->1
+    +425    pc12  pin0 1->0
+    +441    pc12  pin0 0->1
+    +457    pc12  pin0 1->0
+    +473    pc12  pin0 0->1
+    +489    pc12  pin0 1->0
+    +505    pc12  pin0 0->1
+    +521    pc12  pin0 1->0
+    +537    pc12  pin0 0->1
+    +553    pc12  pin0 1->0
+    +569    pc12  pin0 0->1
+    +585    pc12  pin0 1->0
+    +601    pc12  pin0 0->1
+    +617    pc12  pin0 1->0
+    +633    pc12  pin0 0->1
+    +649    pc12  pin0 1->0
+    +665    pc12  pin0 0->1
+    +681    pc12  pin0 1->0
+    +697    pc12  pin0 0->1
+    +713    pc12  pin0 1->0
+    +729    pc12  pin0 0->1
+    +745    pc12  pin0 1->0
+    +761    pc12  pin0 0->1
+    +777    pc12  pin0 1->0
+    +793    pc12  pin0 0->1
+    +809    pc12  pin0 1->0
+    +825    pc12  pin0 0->1
+    +841    pc12  pin0 1->0
+    +857    pc12  pin0 0->1
+    +873    pc12  pin0 1->0
+    +889    pc12  pin0 0->1
+    +905    pc12  pin0 1->0
+    +921    pc12  pin0 0->1
+    +937    pc12  pin0 1->0
+    +953    pc12  pin0 0->1
+    +969    pc12  pin0 1->0
+    +985    pc12  pin0 0->1
+    +1001   pc12  pin0 1->0
+    +1017   pc12  pin0 0->1
+    +1033   pc12  pin0 1->0
+    +1053   pc16  pin0 0->1
+    +1069   pc16  pin0 1->0
+    +1085   pc16  pin0 0->1
+    +1101   pc16  pin0 1->0
+    +1117   pc16  pin0 0->1
+    +1133   pc16  pin0 1->0
+    +1149   pc16  pin0 0->1
+    +1165   pc16  pin0 1->0
+    +1181   pc16  pin0 0->1
+    +1197   pc16  pin0 1->0
+    +1213   pc16  pin0 0->1
+    +1229   pc16  pin0 1->0
+    +1245   pc16  pin0 0->1
+    +1261   pc16  pin0 1->0
+    +1277   pc16  pin0 0->1
+    +1293   pc16  pin0 1->0
+    +1309   pc16  pin0 0->1
+    +1325   pc16  pin0 1->0
+    +1341   pc16  pin0 0->1
+    +1357   pc16  pin0 1->0
+    +1373   pc16  pin0 0->1
+    +1389   pc16  pin0 1->0
+    +1405   pc16  pin0 0->1
+    +1421   pc16  pin0 1->0
+    +1437   pc16  pin0 0->1
+    +1453   pc16  pin0 1->0
+    +1469   pc16  pin0 0->1
+    +1485   pc16  pin0 1->0
+    +1501   pc16  pin0 0->1
+    +1517   pc16  pin0 1->0
+    +1533   pc16  pin0 0->1
+    +1549   pc16  pin0 1->0
+    +1565   pc16  pin0 0->1
+    +1581   pc16  pin0 1->0
+    +1597   pc16  pin0 0->1
+    +1613   pc16  pin0 1->0
+    +1629   pc16  pin0 0->1
+    +1645   pc16  pin0 1->0
+    +1661   pc16  pin0 0->1
+    +1677   pc16  pin0 1->0
+    +1693   pc16  pin0 0->1
+    +1709   pc16  pin0 1->0
+    +1725   pc16  pin0 0->1
+    +1741   pc16  pin0 1->0
+    +1757   pc16  pin0 0->1
+    +1773   pc16  pin0 1->0
+    +1789   pc16  pin0 0->1
+    +1805   pc16  pin0 1->0
+    +1805   pc16  pin1 1->0
+    +1821   pc16  pin0 0->1
+    +1837   pc16  pin0 1->0
+    +1837   pc16  pin1 0->1
+    +1853   pc16  pin0 0->1
+    +1869   pc16  pin0 1->0
+    +1885   pc16  pin0 0->1
+    +1901   pc16  pin0 1->0
+    +1917   pc16  pin0 0->1
+    +1933   pc16  pin0 1->0
+    +1949   pc16  pin0 0->1
+    +1965   pc16  pin0 1->0
+    +1965   pc16  pin1 1->0
+    +1981   pc16  pin0 0->1
+    +1997   pc16  pin0 1->0
+    +2013   pc16  pin0 0->1
+    +2029   pc16  pin0 1->0
+    +2029   pc16  pin1 0->1
+    +2045   pc16  pin0 0->1
+    +2061   pc16  pin0 1->0
+    +2080   pc19  pin0 0->1
+    +2096   pc19  pin0 1->0
+    +2112   pc19  pin0 0->1
+    +2128   pc19  pin0 1->0
+    +2144   pc19  pin0 0->1
+    +2160   pc19  pin0 1->0
+    +2160   pc19  pin1 1->0
+    +2176   pc19  pin0 0->1
+    +2192   pc19  pin0 1->0
+    +2208   pc19  pin0 0->1
+    +2224   pc19  pin0 1->0
+    +2224   pc19  pin1 0->1
+    +2240   pc19  pin0 0->1
+    +2256   pc19  pin0 1->0
+    +2272   pc19  pin0 0->1
+    +2288   pc19  pin0 1->0
+    +2304   pc19  pin0 0->1
+    +2320   pc19  pin0 1->0
+    +2336   pc19  pin0 0->1
+    +2352   pc19  pin0 1->0
+    +2368   pc19  pin0 0->1
+    +2384   pc19  pin0 1->0
+    +2400   pc19  pin0 0->1
+    +2416   pc19  pin0 1->0
+    +2432   pc19  pin0 0->1
+    +2448   pc19  pin0 1->0
+    +2464   pc19  pin0 0->1
+    +2480   pc19  pin0 1->0
+    +2496   pc19  pin0 0->1
+    +2512   pc19  pin0 1->0
+    +2528   pc19  pin0 0->1
+    +2544   pc19  pin0 1->0
+    +2560   pc19  pin0 0->1
+    +2576   pc19  pin0 1->0
+    +2592   pc19  pin0 0->1
+    +2608   pc19  pin0 1->0
+    +2624   pc19  pin0 0->1
+    +2640   pc19  pin0 1->0
+    +2656   pc19  pin0 0->1
+    +2672   pc19  pin0 1->0
+    +2688   pc19  pin0 0->1
+    +2704   pc19  pin0 1->0
+    +2720   pc19  pin0 0->1
+    +2736   pc19  pin0 1->0
+    +2752   pc19  pin0 0->1
+    +2768   pc19  pin0 1->0
+    +2784   pc19  pin0 0->1
+    +2800   pc19  pin0 1->0
+    +2816   pc19  pin0 0->1
+    +2832   pc19  pin0 1->0
+    +2848   pc19  pin0 0->1
+    +2864   pc19  pin0 1->0
+    +2880   pc19  pin0 0->1
+    +2896   pc19  pin0 1->0
+    +2912   pc19  pin0 0->1
+    +2928   pc19  pin0 1->0
+    +2944   pc19  pin0 0->1
+    +2960   pc19  pin0 1->0
+    +2976   pc19  pin0 0->1
+    +2992   pc19  pin0 1->0
+    +3008   pc19  pin0 0->1
+    +3024   pc19  pin0 1->0
+    +3040   pc19  pin0 0->1
+    +3056   pc19  pin0 1->0
+    +3072   pc19  pin0 0->1
+    +3088   pc19  pin0 1->0
+    +3106   pc21  pin0 0->1
+    +3122   pc21  pin0 1->0
+    +3138   pc21  pin0 0->1
+    +3154   pc21  pin0 1->0
+    +3170   pc21  pin0 0->1
+    +3186   pc21  pin0 1->0
+    +3202   pc21  pin0 0->1
+    +3218   pc21  pin0 1->0
+    +3234   pc21  pin0 0->1
+    +3250   pc21  pin0 1->0
+    +3266   pc21  pin0 0->1
+    +3282   pc21  pin0 1->0
+    +3298   pc21  pin0 0->1
+    +3314   pc21  pin0 1->0
+    +3330   pc21  pin0 0->1
+    +3346   pc21  pin0 1->0
+    +3362   pc21  pin0 0->1
+    +3378   pc21  pin0 1->0
+    +3394   pc21  pin0 0->1
+    +3410   pc21  pin0 1->0
+    +3426   pc21  pin0 0->1
+    +3442   pc21  pin0 1->0
+    +3458   pc21  pin0 0->1
+    +3474   pc21  pin0 1->0
+    +3490   pc21  pin0 0->1
+    +3506   pc21  pin0 1->0
+    +3522   pc21  pin0 0->1
+    +3538   pc21  pin0 1->0
+    +3554   pc21  pin0 0->1
+    +3570   pc21  pin0 1->0
+    +3586   pc21  pin0 0->1
+    +3602   pc21  pin0 1->0
+    +3618   pc21  pin0 0->1
+    +3634   pc21  pin0 1->0
+    +3650   pc21  pin0 0->1
+    +3666   pc21  pin0 1->0
+    +3682   pc21  pin0 0->1
+    +3698   pc21  pin0 1->0
+    +3714   pc21  pin0 0->1
+    +3730   pc21  pin0 1->0
+    +3746   pc21  pin0 0->1
+    +3762   pc21  pin0 1->0
+    +3778   pc21  pin0 0->1
+    +3794   pc21  pin0 1->0
+    +3810   pc21  pin0 0->1
+    +3826   pc21  pin0 1->0
+    +3842   pc21  pin0 0->1
+    +3858   pc21  pin0 1->0
+    +3874   pc21  pin0 0->1
+    +3890   pc21  pin0 1->0
+    +3906   pc21  pin0 0->1
+    +3922   pc21  pin0 1->0
+    +3938   pc21  pin0 0->1
+    +3954   pc21  pin0 1->0
+    +3970   pc21  pin0 0->1
+    +3986   pc21  pin0 1->0
+    +4002   pc21  pin0 0->1
+    +4018   pc21  pin0 1->0
+    +4034   pc21  pin0 0->1
+    +4050   pc21  pin0 1->0
+    +4066   pc21  pin0 0->1
+    +4082   pc21  pin0 1->0
+    +4098   pc21  pin0 0->1
+    +4114   pc21  pin0 1->0
+    +4115   pc22  pin1 1->0
+    +4132   pc23  pin0 0->1
+    +4148   pc23  pin0 1->0
+    +4164   pc23  pin0 0->1
+    +4180   pc23  pin0 1->0
+    +4196   pc23  pin0 0->1
+    +4212   pc23  pin0 1->0
+    +4228   pc23  pin0 0->1
+    +4244   pc23  pin0 1->0
+    +4260   pc23  pin0 0->1
+    +4276   pc23  pin0 1->0
+    +4292   pc23  pin0 0->1
+    +4308   pc23  pin0 1->0
+    +4324   pc23  pin0 0->1
+    +4340   pc23  pin0 1->0
+    +4356   pc23  pin0 0->1
+    +4372   pc23  pin0 1->0
+    +4374   pc25  pin1 0->0|1
+    +4390   pc25  pin0 0->1
+    +4406   pc25  pin0 1->0
+    +4406   pc25  pin1 0|1->0|1
+    +4422   pc25  pin0 0->1
+    +4438   pc25  pin0 1->0
+    +4438   pc25  pin1 0|1->0|1
+    +4454   pc25  pin0 0->1
+    +4470   pc25  pin0 1->0
+    +4470   pc25  pin1 0|1->0|1
+    +4486   pc25  pin0 0->1
+    +4502   pc25  pin0 1->0
+    +4502   pc25  pin1 0|1->0|1
+    +4518   pc25  pin0 0->1
+    +4534   pc25  pin0 1->0
+    +4534   pc25  pin1 0|1->0|1
+    +4550   pc25  pin0 0->1
+    +4566   pc25  pin0 1->0
+    +4566   pc25  pin1 0|1->0|1
+    +4582   pc25  pin0 0->1
+    +4598   pc25  pin0 1->0
+    +4598   pc25  pin1 0|1->0|1
+    +4614   pc25  pin0 0->1
+    +4630   pc25  pin0 1->0
+    +4631   pc26  pin1 0|1->Z
+    +4649   pc28  pin0 0->1
+    +4665   pc28  pin0 1->0
+    +4682   pc29  pin0 0->1
+    +4682   pc29  sample pin1
+    +4698   pc29  pin0 1->0
+    +4714   pc29  pin0 0->1
+    +4714   pc29  sample pin1
+    +4730   pc29  pin0 1->0
+    +4746   pc29  pin0 0->1
+    +4746   pc29  sample pin1
+    +4762   pc29  pin0 1->0
+    +4766   pc33  arrive PUSH
+  from pc3 PULL v1 (+1 identical contexts):
+    +25     pc12  pin0 0->1
+    +41     pc12  pin0 1->0
+    +57     pc12  pin0 0->1
+    +73     pc12  pin0 1->0
+    +89     pc12  pin0 0->1
+    +105    pc12  pin0 1->0
+    +121    pc12  pin0 0->1
+    +137    pc12  pin0 1->0
+    +153    pc12  pin0 0->1
+    +169    pc12  pin0 1->0
+    +185    pc12  pin0 0->1
+    +201    pc12  pin0 1->0
+    +217    pc12  pin0 0->1
+    +233    pc12  pin0 1->0
+    +249    pc12  pin0 0->1
+    +265    pc12  pin0 1->0
+    +281    pc12  pin0 0->1
+    +297    pc12  pin0 1->0
+    +313    pc12  pin0 0->1
+    +329    pc12  pin0 1->0
+    +345    pc12  pin0 0->1
+    +361    pc12  pin0 1->0
+    +377    pc12  pin0 0->1
+    +393    pc12  pin0 1->0
+    +409    pc12  pin0 0->1
+    +425    pc12  pin0 1->0
+    +441    pc12  pin0 0->1
+    +457    pc12  pin0 1->0
+    +473    pc12  pin0 0->1
+    +489    pc12  pin0 1->0
+    +505    pc12  pin0 0->1
+    +521    pc12  pin0 1->0
+    +537    pc12  pin0 0->1
+    +553    pc12  pin0 1->0
+    +569    pc12  pin0 0->1
+    +585    pc12  pin0 1->0
+    +601    pc12  pin0 0->1
+    +617    pc12  pin0 1->0
+    +633    pc12  pin0 0->1
+    +649    pc12  pin0 1->0
+    +665    pc12  pin0 0->1
+    +681    pc12  pin0 1->0
+    +697    pc12  pin0 0->1
+    +713    pc12  pin0 1->0
+    +729    pc12  pin0 0->1
+    +745    pc12  pin0 1->0
+    +761    pc12  pin0 0->1
+    +777    pc12  pin0 1->0
+    +793    pc12  pin0 0->1
+    +809    pc12  pin0 1->0
+    +825    pc12  pin0 0->1
+    +841    pc12  pin0 1->0
+    +857    pc12  pin0 0->1
+    +873    pc12  pin0 1->0
+    +889    pc12  pin0 0->1
+    +905    pc12  pin0 1->0
+    +921    pc12  pin0 0->1
+    +937    pc12  pin0 1->0
+    +953    pc12  pin0 0->1
+    +969    pc12  pin0 1->0
+    +985    pc12  pin0 0->1
+    +1001   pc12  pin0 1->0
+    +1017   pc12  pin0 0->1
+    +1033   pc12  pin0 1->0
+    +1053   pc16  pin0 0->1
+    +1069   pc16  pin0 1->0
+    +1085   pc16  pin0 0->1
+    +1101   pc16  pin0 1->0
+    +1117   pc16  pin0 0->1
+    +1133   pc16  pin0 1->0
+    +1149   pc16  pin0 0->1
+    +1165   pc16  pin0 1->0
+    +1181   pc16  pin0 0->1
+    +1197   pc16  pin0 1->0
+    +1213   pc16  pin0 0->1
+    +1229   pc16  pin0 1->0
+    +1245   pc16  pin0 0->1
+    +1261   pc16  pin0 1->0
+    +1277   pc16  pin0 0->1
+    +1293   pc16  pin0 1->0
+    +1309   pc16  pin0 0->1
+    +1325   pc16  pin0 1->0
+    +1341   pc16  pin0 0->1
+    +1357   pc16  pin0 1->0
+    +1373   pc16  pin0 0->1
+    +1389   pc16  pin0 1->0
+    +1405   pc16  pin0 0->1
+    +1421   pc16  pin0 1->0
+    +1437   pc16  pin0 0->1
+    +1453   pc16  pin0 1->0
+    +1469   pc16  pin0 0->1
+    +1485   pc16  pin0 1->0
+    +1501   pc16  pin0 0->1
+    +1517   pc16  pin0 1->0
+    +1533   pc16  pin0 0->1
+    +1549   pc16  pin0 1->0
+    +1565   pc16  pin0 0->1
+    +1581   pc16  pin0 1->0
+    +1597   pc16  pin0 0->1
+    +1613   pc16  pin0 1->0
+    +1629   pc16  pin0 0->1
+    +1645   pc16  pin0 1->0
+    +1661   pc16  pin0 0->1
+    +1677   pc16  pin0 1->0
+    +1693   pc16  pin0 0->1
+    +1709   pc16  pin0 1->0
+    +1725   pc16  pin0 0->1
+    +1741   pc16  pin0 1->0
+    +1757   pc16  pin0 0->1
+    +1773   pc16  pin0 1->0
+    +1789   pc16  pin0 0->1
+    +1805   pc16  pin0 1->0
+    +1805   pc16  pin1 1->0
+    +1821   pc16  pin0 0->1
+    +1837   pc16  pin0 1->0
+    +1837   pc16  pin1 0->1
+    +1853   pc16  pin0 0->1
+    +1869   pc16  pin0 1->0
+    +1885   pc16  pin0 0->1
+    +1901   pc16  pin0 1->0
+    +1917   pc16  pin0 0->1
+    +1933   pc16  pin0 1->0
+    +1949   pc16  pin0 0->1
+    +1965   pc16  pin0 1->0
+    +1965   pc16  pin1 1->0
+    +1981   pc16  pin0 0->1
+    +1997   pc16  pin0 1->0
+    +2013   pc16  pin0 0->1
+    +2029   pc16  pin0 1->0
+    +2029   pc16  pin1 0->1
+    +2045   pc16  pin0 0->1
+    +2061   pc16  pin0 1->0
+    +2080   pc19  pin0 0->1
+    +2096   pc19  pin0 1->0
+    +2112   pc19  pin0 0->1
+    +2128   pc19  pin0 1->0
+    +2144   pc19  pin0 0->1
+    +2160   pc19  pin0 1->0
+    +2160   pc19  pin1 1->0
+    +2176   pc19  pin0 0->1
+    +2192   pc19  pin0 1->0
+    +2208   pc19  pin0 0->1
+    +2224   pc19  pin0 1->0
+    +2224   pc19  pin1 0->1
+    +2240   pc19  pin0 0->1
+    +2256   pc19  pin0 1->0
+    +2272   pc19  pin0 0->1
+    +2288   pc19  pin0 1->0
+    +2304   pc19  pin0 0->1
+    +2320   pc19  pin0 1->0
+    +2336   pc19  pin0 0->1
+    +2352   pc19  pin0 1->0
+    +2368   pc19  pin0 0->1
+    +2384   pc19  pin0 1->0
+    +2400   pc19  pin0 0->1
+    +2416   pc19  pin0 1->0
+    +2432   pc19  pin0 0->1
+    +2448   pc19  pin0 1->0
+    +2464   pc19  pin0 0->1
+    +2480   pc19  pin0 1->0
+    +2496   pc19  pin0 0->1
+    +2512   pc19  pin0 1->0
+    +2528   pc19  pin0 0->1
+    +2544   pc19  pin0 1->0
+    +2560   pc19  pin0 0->1
+    +2576   pc19  pin0 1->0
+    +2592   pc19  pin0 0->1
+    +2608   pc19  pin0 1->0
+    +2624   pc19  pin0 0->1
+    +2640   pc19  pin0 1->0
+    +2656   pc19  pin0 0->1
+    +2672   pc19  pin0 1->0
+    +2688   pc19  pin0 0->1
+    +2704   pc19  pin0 1->0
+    +2720   pc19  pin0 0->1
+    +2736   pc19  pin0 1->0
+    +2752   pc19  pin0 0->1
+    +2768   pc19  pin0 1->0
+    +2784   pc19  pin0 0->1
+    +2800   pc19  pin0 1->0
+    +2816   pc19  pin0 0->1
+    +2832   pc19  pin0 1->0
+    +2848   pc19  pin0 0->1
+    +2864   pc19  pin0 1->0
+    +2880   pc19  pin0 0->1
+    +2896   pc19  pin0 1->0
+    +2912   pc19  pin0 0->1
+    +2928   pc19  pin0 1->0
+    +2944   pc19  pin0 0->1
+    +2960   pc19  pin0 1->0
+    +2976   pc19  pin0 0->1
+    +2992   pc19  pin0 1->0
+    +3008   pc19  pin0 0->1
+    +3024   pc19  pin0 1->0
+    +3040   pc19  pin0 0->1
+    +3056   pc19  pin0 1->0
+    +3072   pc19  pin0 0->1
+    +3088   pc19  pin0 1->0
+    +3106   pc21  pin0 0->1
+    +3122   pc21  pin0 1->0
+    +3138   pc21  pin0 0->1
+    +3154   pc21  pin0 1->0
+    +3170   pc21  pin0 0->1
+    +3186   pc21  pin0 1->0
+    +3202   pc21  pin0 0->1
+    +3218   pc21  pin0 1->0
+    +3234   pc21  pin0 0->1
+    +3250   pc21  pin0 1->0
+    +3266   pc21  pin0 0->1
+    +3282   pc21  pin0 1->0
+    +3298   pc21  pin0 0->1
+    +3314   pc21  pin0 1->0
+    +3330   pc21  pin0 0->1
+    +3346   pc21  pin0 1->0
+    +3362   pc21  pin0 0->1
+    +3378   pc21  pin0 1->0
+    +3394   pc21  pin0 0->1
+    +3410   pc21  pin0 1->0
+    +3426   pc21  pin0 0->1
+    +3442   pc21  pin0 1->0
+    +3458   pc21  pin0 0->1
+    +3474   pc21  pin0 1->0
+    +3490   pc21  pin0 0->1
+    +3506   pc21  pin0 1->0
+    +3522   pc21  pin0 0->1
+    +3538   pc21  pin0 1->0
+    +3554   pc21  pin0 0->1
+    +3570   pc21  pin0 1->0
+    +3586   pc21  pin0 0->1
+    +3602   pc21  pin0 1->0
+    +3618   pc21  pin0 0->1
+    +3634   pc21  pin0 1->0
+    +3650   pc21  pin0 0->1
+    +3666   pc21  pin0 1->0
+    +3682   pc21  pin0 0->1
+    +3698   pc21  pin0 1->0
+    +3714   pc21  pin0 0->1
+    +3730   pc21  pin0 1->0
+    +3746   pc21  pin0 0->1
+    +3762   pc21  pin0 1->0
+    +3778   pc21  pin0 0->1
+    +3794   pc21  pin0 1->0
+    +3810   pc21  pin0 0->1
+    +3826   pc21  pin0 1->0
+    +3842   pc21  pin0 0->1
+    +3858   pc21  pin0 1->0
+    +3874   pc21  pin0 0->1
+    +3890   pc21  pin0 1->0
+    +3906   pc21  pin0 0->1
+    +3922   pc21  pin0 1->0
+    +3938   pc21  pin0 0->1
+    +3954   pc21  pin0 1->0
+    +3970   pc21  pin0 0->1
+    +3986   pc21  pin0 1->0
+    +4002   pc21  pin0 0->1
+    +4018   pc21  pin0 1->0
+    +4034   pc21  pin0 0->1
+    +4050   pc21  pin0 1->0
+    +4066   pc21  pin0 0->1
+    +4082   pc21  pin0 1->0
+    +4098   pc21  pin0 0->1
+    +4114   pc21  pin0 1->0
+    +4115   pc22  pin1 1->0
+    +4132   pc23  pin0 0->1
+    +4148   pc23  pin0 1->0
+    +4164   pc23  pin0 0->1
+    +4180   pc23  pin0 1->0
+    +4196   pc23  pin0 0->1
+    +4212   pc23  pin0 1->0
+    +4228   pc23  pin0 0->1
+    +4244   pc23  pin0 1->0
+    +4260   pc23  pin0 0->1
+    +4276   pc23  pin0 1->0
+    +4292   pc23  pin0 0->1
+    +4308   pc23  pin0 1->0
+    +4324   pc23  pin0 0->1
+    +4340   pc23  pin0 1->0
+    +4356   pc23  pin0 0->1
+    +4372   pc23  pin0 1->0
+    +4374   pc25  pin1 0->0|1
+    +4390   pc25  pin0 0->1
+    +4406   pc25  pin0 1->0
+    +4406   pc25  pin1 0|1->0|1
+    +4422   pc25  pin0 0->1
+    +4438   pc25  pin0 1->0
+    +4438   pc25  pin1 0|1->0|1
+    +4454   pc25  pin0 0->1
+    +4470   pc25  pin0 1->0
+    +4470   pc25  pin1 0|1->0|1
+    +4486   pc25  pin0 0->1
+    +4502   pc25  pin0 1->0
+    +4502   pc25  pin1 0|1->0|1
+    +4518   pc25  pin0 0->1
+    +4534   pc25  pin0 1->0
+    +4534   pc25  pin1 0|1->0|1
+    +4550   pc25  pin0 0->1
+    +4566   pc25  pin0 1->0
+    +4566   pc25  pin1 0|1->0|1
+    +4582   pc25  pin0 0->1
+    +4598   pc25  pin0 1->0
+    +4598   pc25  pin1 0|1->0|1
+    +4614   pc25  pin0 0->1
+    +4630   pc25  pin0 1->0
+    +4631   pc26  pin1 0|1->Z
+    +4649   pc28  pin0 0->1
+    +4665   pc28  pin0 1->0
+    +4682   pc29  pin0 0->1
+    +4682   pc29  sample pin1
+    +4698   pc29  pin0 1->0
+    +4714   pc29  pin0 0->1
+    +4714   pc29  sample pin1
+    +4730   pc29  pin0 1->0
+    +4746   pc29  pin0 0->1
+    +4746   pc29  sample pin1
+    +4762   pc29  pin0 1->0
+    +4782   pc36  pin0 0->1
+    +4782   pc36  sample pin1
+    +4798   pc36  pin0 1->0
+    +4814   pc36  pin0 0->1
+    +4814   pc36  sample pin1
+    +4830   pc36  pin0 1->0
+    +4846   pc36  pin0 0->1
+    +4846   pc36  sample pin1
+    +4862   pc36  pin0 1->0
+    +4878   pc36  pin0 0->1
+    +4878   pc36  sample pin1
+    +4894   pc36  pin0 1->0
+    +4910   pc36  pin0 0->1
+    +4910   pc36  sample pin1
+    +4926   pc36  pin0 1->0
+    +4942   pc36  pin0 0->1
+    +4942   pc36  sample pin1
+    +4958   pc36  pin0 1->0
+    +4974   pc36  pin0 0->1
+    +4974   pc36  sample pin1
+    +4990   pc36  pin0 1->0
+    +5006   pc36  pin0 0->1
+    +5006   pc36  sample pin1
+    +5022   pc36  pin0 1->0
+    +5038   pc36  pin0 0->1
+    +5038   pc36  sample pin1
+    +5054   pc36  pin0 1->0
+    +5070   pc36  pin0 0->1
+    +5070   pc36  sample pin1
+    +5086   pc36  pin0 1->0
+    +5102   pc36  pin0 0->1
+    +5102   pc36  sample pin1
+    +5118   pc36  pin0 1->0
+    +5134   pc36  pin0 0->1
+    +5134   pc36  sample pin1
+    +5150   pc36  pin0 1->0
+    +5166   pc36  pin0 0->1
+    +5166   pc36  sample pin1
+    +5182   pc36  pin0 1->0
+    +5198   pc36  pin0 0->1
+    +5198   pc36  sample pin1
+    +5214   pc36  pin0 1->0
+    +5230   pc36  pin0 0->1
+    +5230   pc36  sample pin1
+    +5246   pc36  pin0 1->0
+    +5262   pc36  pin0 0->1
+    +5262   pc36  sample pin1
+    +5278   pc36  pin0 1->0
+    +5294   pc36  pin0 0->1
+    +5294   pc36  sample pin1
+    +5310   pc36  pin0 1->0
+    +5326   pc36  pin0 0->1
+    +5326   pc36  sample pin1
+    +5342   pc36  pin0 1->0
+    +5358   pc36  pin0 0->1
+    +5358   pc36  sample pin1
+    +5374   pc36  pin0 1->0
+    +5390   pc36  pin0 0->1
+    +5390   pc36  sample pin1
+    +5406   pc36  pin0 1->0
+    +5422   pc36  pin0 0->1
+    +5422   pc36  sample pin1
+    +5438   pc36  pin0 1->0
+    +5454   pc36  pin0 0->1
+    +5454   pc36  sample pin1
+    +5470   pc36  pin0 1->0
+    +5486   pc36  pin0 0->1
+    +5486   pc36  sample pin1
+    +5502   pc36  pin0 1->0
+    +5518   pc36  pin0 0->1
+    +5518   pc36  sample pin1
+    +5534   pc36  pin0 1->0
+    +5550   pc36  pin0 0->1
+    +5550   pc36  sample pin1
+    +5566   pc36  pin0 1->0
+    +5582   pc36  pin0 0->1
+    +5582   pc36  sample pin1
+    +5598   pc36  pin0 1->0
+    +5614   pc36  pin0 0->1
+    +5614   pc36  sample pin1
+    +5630   pc36  pin0 1->0
+    +5646   pc36  pin0 0->1
+    +5646   pc36  sample pin1
+    +5662   pc36  pin0 1->0
+    +5678   pc36  pin0 0->1
+    ... 34 more events
+  from pc3 PULL v2 (+1 identical contexts):
+    +25     pc12  pin0 0->1
+    +41     pc12  pin0 1->0
+    +57     pc12  pin0 0->1
+    +73     pc12  pin0 1->0
+    +89     pc12  pin0 0->1
+    +105    pc12  pin0 1->0
+    +121    pc12  pin0 0->1
+    +137    pc12  pin0 1->0
+    +153    pc12  pin0 0->1
+    +169    pc12  pin0 1->0
+    +185    pc12  pin0 0->1
+    +201    pc12  pin0 1->0
+    +217    pc12  pin0 0->1
+    +233    pc12  pin0 1->0
+    +249    pc12  pin0 0->1
+    +265    pc12  pin0 1->0
+    +281    pc12  pin0 0->1
+    +297    pc12  pin0 1->0
+    +313    pc12  pin0 0->1
+    +329    pc12  pin0 1->0
+    +345    pc12  pin0 0->1
+    +361    pc12  pin0 1->0
+    +377    pc12  pin0 0->1
+    +393    pc12  pin0 1->0
+    +409    pc12  pin0 0->1
+    +425    pc12  pin0 1->0
+    +441    pc12  pin0 0->1
+    +457    pc12  pin0 1->0
+    +473    pc12  pin0 0->1
+    +489    pc12  pin0 1->0
+    +505    pc12  pin0 0->1
+    +521    pc12  pin0 1->0
+    +537    pc12  pin0 0->1
+    +553    pc12  pin0 1->0
+    +569    pc12  pin0 0->1
+    +585    pc12  pin0 1->0
+    +601    pc12  pin0 0->1
+    +617    pc12  pin0 1->0
+    +633    pc12  pin0 0->1
+    +649    pc12  pin0 1->0
+    +665    pc12  pin0 0->1
+    +681    pc12  pin0 1->0
+    +697    pc12  pin0 0->1
+    +713    pc12  pin0 1->0
+    +729    pc12  pin0 0->1
+    +745    pc12  pin0 1->0
+    +761    pc12  pin0 0->1
+    +777    pc12  pin0 1->0
+    +793    pc12  pin0 0->1
+    +809    pc12  pin0 1->0
+    +825    pc12  pin0 0->1
+    +841    pc12  pin0 1->0
+    +857    pc12  pin0 0->1
+    +873    pc12  pin0 1->0
+    +889    pc12  pin0 0->1
+    +905    pc12  pin0 1->0
+    +921    pc12  pin0 0->1
+    +937    pc12  pin0 1->0
+    +953    pc12  pin0 0->1
+    +969    pc12  pin0 1->0
+    +985    pc12  pin0 0->1
+    +1001   pc12  pin0 1->0
+    +1017   pc12  pin0 0->1
+    +1033   pc12  pin0 1->0
+    +1053   pc16  pin0 0->1
+    +1069   pc16  pin0 1->0
+    +1085   pc16  pin0 0->1
+    +1101   pc16  pin0 1->0
+    +1117   pc16  pin0 0->1
+    +1133   pc16  pin0 1->0
+    +1149   pc16  pin0 0->1
+    +1165   pc16  pin0 1->0
+    +1181   pc16  pin0 0->1
+    +1197   pc16  pin0 1->0
+    +1213   pc16  pin0 0->1
+    +1229   pc16  pin0 1->0
+    +1245   pc16  pin0 0->1
+    +1261   pc16  pin0 1->0
+    +1277   pc16  pin0 0->1
+    +1293   pc16  pin0 1->0
+    +1309   pc16  pin0 0->1
+    +1325   pc16  pin0 1->0
+    +1341   pc16  pin0 0->1
+    +1357   pc16  pin0 1->0
+    +1373   pc16  pin0 0->1
+    +1389   pc16  pin0 1->0
+    +1405   pc16  pin0 0->1
+    +1421   pc16  pin0 1->0
+    +1437   pc16  pin0 0->1
+    +1453   pc16  pin0 1->0
+    +1469   pc16  pin0 0->1
+    +1485   pc16  pin0 1->0
+    +1501   pc16  pin0 0->1
+    +1517   pc16  pin0 1->0
+    +1533   pc16  pin0 0->1
+    +1549   pc16  pin0 1->0
+    +1565   pc16  pin0 0->1
+    +1581   pc16  pin0 1->0
+    +1597   pc16  pin0 0->1
+    +1613   pc16  pin0 1->0
+    +1629   pc16  pin0 0->1
+    +1645   pc16  pin0 1->0
+    +1661   pc16  pin0 0->1
+    +1677   pc16  pin0 1->0
+    +1693   pc16  pin0 0->1
+    +1709   pc16  pin0 1->0
+    +1725   pc16  pin0 0->1
+    +1741   pc16  pin0 1->0
+    +1757   pc16  pin0 0->1
+    +1773   pc16  pin0 1->0
+    +1789   pc16  pin0 0->1
+    +1805   pc16  pin0 1->0
+    +1805   pc16  pin1 1->0
+    +1821   pc16  pin0 0->1
+    +1837   pc16  pin0 1->0
+    +1837   pc16  pin1 0->1
+    +1853   pc16  pin0 0->1
+    +1869   pc16  pin0 1->0
+    +1885   pc16  pin0 0->1
+    +1901   pc16  pin0 1->0
+    +1917   pc16  pin0 0->1
+    +1933   pc16  pin0 1->0
+    +1949   pc16  pin0 0->1
+    +1965   pc16  pin0 1->0
+    +1965   pc16  pin1 1->0
+    +1981   pc16  pin0 0->1
+    +1997   pc16  pin0 1->0
+    +2013   pc16  pin0 0->1
+    +2029   pc16  pin0 1->0
+    +2029   pc16  pin1 0->1
+    +2045   pc16  pin0 0->1
+    +2061   pc16  pin0 1->0
+    +2080   pc19  pin0 0->1
+    +2096   pc19  pin0 1->0
+    +2112   pc19  pin0 0->1
+    +2128   pc19  pin0 1->0
+    +2144   pc19  pin0 0->1
+    +2160   pc19  pin0 1->0
+    +2160   pc19  pin1 1->0
+    +2176   pc19  pin0 0->1
+    +2192   pc19  pin0 1->0
+    +2208   pc19  pin0 0->1
+    +2224   pc19  pin0 1->0
+    +2224   pc19  pin1 0->1
+    +2240   pc19  pin0 0->1
+    +2256   pc19  pin0 1->0
+    +2272   pc19  pin0 0->1
+    +2288   pc19  pin0 1->0
+    +2304   pc19  pin0 0->1
+    +2320   pc19  pin0 1->0
+    +2336   pc19  pin0 0->1
+    +2352   pc19  pin0 1->0
+    +2368   pc19  pin0 0->1
+    +2384   pc19  pin0 1->0
+    +2400   pc19  pin0 0->1
+    +2416   pc19  pin0 1->0
+    +2432   pc19  pin0 0->1
+    +2448   pc19  pin0 1->0
+    +2464   pc19  pin0 0->1
+    +2480   pc19  pin0 1->0
+    +2496   pc19  pin0 0->1
+    +2512   pc19  pin0 1->0
+    +2528   pc19  pin0 0->1
+    +2544   pc19  pin0 1->0
+    +2560   pc19  pin0 0->1
+    +2576   pc19  pin0 1->0
+    +2592   pc19  pin0 0->1
+    +2608   pc19  pin0 1->0
+    +2624   pc19  pin0 0->1
+    +2640   pc19  pin0 1->0
+    +2656   pc19  pin0 0->1
+    +2672   pc19  pin0 1->0
+    +2688   pc19  pin0 0->1
+    +2704   pc19  pin0 1->0
+    +2720   pc19  pin0 0->1
+    +2736   pc19  pin0 1->0
+    +2752   pc19  pin0 0->1
+    +2768   pc19  pin0 1->0
+    +2784   pc19  pin0 0->1
+    +2800   pc19  pin0 1->0
+    +2816   pc19  pin0 0->1
+    +2832   pc19  pin0 1->0
+    +2848   pc19  pin0 0->1
+    +2864   pc19  pin0 1->0
+    +2880   pc19  pin0 0->1
+    +2896   pc19  pin0 1->0
+    +2912   pc19  pin0 0->1
+    +2928   pc19  pin0 1->0
+    +2944   pc19  pin0 0->1
+    +2960   pc19  pin0 1->0
+    +2976   pc19  pin0 0->1
+    +2992   pc19  pin0 1->0
+    +3008   pc19  pin0 0->1
+    +3024   pc19  pin0 1->0
+    +3040   pc19  pin0 0->1
+    +3056   pc19  pin0 1->0
+    +3072   pc19  pin0 0->1
+    +3088   pc19  pin0 1->0
+    +3106   pc21  pin0 0->1
+    +3122   pc21  pin0 1->0
+    +3138   pc21  pin0 0->1
+    +3154   pc21  pin0 1->0
+    +3170   pc21  pin0 0->1
+    +3186   pc21  pin0 1->0
+    +3202   pc21  pin0 0->1
+    +3218   pc21  pin0 1->0
+    +3234   pc21  pin0 0->1
+    +3250   pc21  pin0 1->0
+    +3266   pc21  pin0 0->1
+    +3282   pc21  pin0 1->0
+    +3298   pc21  pin0 0->1
+    +3314   pc21  pin0 1->0
+    +3330   pc21  pin0 0->1
+    +3346   pc21  pin0 1->0
+    +3362   pc21  pin0 0->1
+    +3378   pc21  pin0 1->0
+    +3394   pc21  pin0 0->1
+    +3410   pc21  pin0 1->0
+    +3426   pc21  pin0 0->1
+    +3442   pc21  pin0 1->0
+    +3458   pc21  pin0 0->1
+    +3474   pc21  pin0 1->0
+    +3490   pc21  pin0 0->1
+    +3506   pc21  pin0 1->0
+    +3522   pc21  pin0 0->1
+    +3538   pc21  pin0 1->0
+    +3554   pc21  pin0 0->1
+    +3570   pc21  pin0 1->0
+    +3586   pc21  pin0 0->1
+    +3602   pc21  pin0 1->0
+    +3618   pc21  pin0 0->1
+    +3634   pc21  pin0 1->0
+    +3650   pc21  pin0 0->1
+    +3666   pc21  pin0 1->0
+    +3682   pc21  pin0 0->1
+    +3698   pc21  pin0 1->0
+    +3714   pc21  pin0 0->1
+    +3730   pc21  pin0 1->0
+    +3746   pc21  pin0 0->1
+    +3762   pc21  pin0 1->0
+    +3778   pc21  pin0 0->1
+    +3794   pc21  pin0 1->0
+    +3810   pc21  pin0 0->1
+    +3826   pc21  pin0 1->0
+    +3842   pc21  pin0 0->1
+    +3858   pc21  pin0 1->0
+    +3874   pc21  pin0 0->1
+    +3890   pc21  pin0 1->0
+    +3906   pc21  pin0 0->1
+    +3922   pc21  pin0 1->0
+    +3938   pc21  pin0 0->1
+    +3954   pc21  pin0 1->0
+    +3970   pc21  pin0 0->1
+    +3986   pc21  pin0 1->0
+    +4002   pc21  pin0 0->1
+    +4018   pc21  pin0 1->0
+    +4034   pc21  pin0 0->1
+    +4050   pc21  pin0 1->0
+    +4066   pc21  pin0 0->1
+    +4082   pc21  pin0 1->0
+    +4098   pc21  pin0 0->1
+    +4114   pc21  pin0 1->0
+    +4115   pc22  pin1 1->0
+    +4132   pc23  pin0 0->1
+    +4148   pc23  pin0 1->0
+    +4164   pc23  pin0 0->1
+    +4180   pc23  pin0 1->0
+    +4196   pc23  pin0 0->1
+    +4212   pc23  pin0 1->0
+    +4228   pc23  pin0 0->1
+    +4244   pc23  pin0 1->0
+    +4260   pc23  pin0 0->1
+    +4276   pc23  pin0 1->0
+    +4292   pc23  pin0 0->1
+    +4308   pc23  pin0 1->0
+    +4324   pc23  pin0 0->1
+    +4340   pc23  pin0 1->0
+    +4356   pc23  pin0 0->1
+    +4372   pc23  pin0 1->0
+    +4374   pc25  pin1 0->0|1
+    +4390   pc25  pin0 0->1
+    +4406   pc25  pin0 1->0
+    +4406   pc25  pin1 0|1->0|1
+    +4422   pc25  pin0 0->1
+    +4438   pc25  pin0 1->0
+    +4438   pc25  pin1 0|1->0|1
+    +4454   pc25  pin0 0->1
+    +4470   pc25  pin0 1->0
+    +4470   pc25  pin1 0|1->0|1
+    +4486   pc25  pin0 0->1
+    +4502   pc25  pin0 1->0
+    +4502   pc25  pin1 0|1->0|1
+    +4518   pc25  pin0 0->1
+    +4534   pc25  pin0 1->0
+    +4534   pc25  pin1 0|1->0|1
+    +4550   pc25  pin0 0->1
+    +4566   pc25  pin0 1->0
+    +4566   pc25  pin1 0|1->0|1
+    +4582   pc25  pin0 0->1
+    +4598   pc25  pin0 1->0
+    +4598   pc25  pin1 0|1->0|1
+    +4614   pc25  pin0 0->1
+    +4630   pc25  pin0 1->0
+    +4631   pc26  pin1 0|1->Z
+    +4649   pc28  pin0 0->1
+    +4665   pc28  pin0 1->0
+    +4682   pc29  pin0 0->1
+    +4682   pc29  sample pin1
+    +4698   pc29  pin0 1->0
+    +4714   pc29  pin0 0->1
+    +4714   pc29  sample pin1
+    +4730   pc29  pin0 1->0
+    +4746   pc29  pin0 0->1
+    +4746   pc29  sample pin1
+    +4762   pc29  pin0 1->0
+    +4782   pc36  pin0 0->1
+    +4782   pc36  sample pin1
+    +4798   pc36  pin0 1->0
+    +4814   pc36  pin0 0->1
+    +4814   pc36  sample pin1
+    +4830   pc36  pin0 1->0
+    +4846   pc36  pin0 0->1
+    +4846   pc36  sample pin1
+    +4862   pc36  pin0 1->0
+    +4878   pc36  pin0 0->1
+    +4878   pc36  sample pin1
+    +4894   pc36  pin0 1->0
+    +4910   pc36  pin0 0->1
+    +4910   pc36  sample pin1
+    +4926   pc36  pin0 1->0
+    +4942   pc36  pin0 0->1
+    +4942   pc36  sample pin1
+    +4958   pc36  pin0 1->0
+    +4974   pc36  pin0 0->1
+    +4974   pc36  sample pin1
+    +4990   pc36  pin0 1->0
+    +5006   pc36  pin0 0->1
+    +5006   pc36  sample pin1
+    +5022   pc36  pin0 1->0
+    +5038   pc36  pin0 0->1
+    +5038   pc36  sample pin1
+    +5054   pc36  pin0 1->0
+    +5070   pc36  pin0 0->1
+    +5070   pc36  sample pin1
+    +5086   pc36  pin0 1->0
+    +5102   pc36  pin0 0->1
+    +5102   pc36  sample pin1
+    +5118   pc36  pin0 1->0
+    +5134   pc36  pin0 0->1
+    +5134   pc36  sample pin1
+    +5150   pc36  pin0 1->0
+    +5166   pc36  pin0 0->1
+    +5166   pc36  sample pin1
+    +5182   pc36  pin0 1->0
+    +5198   pc36  pin0 0->1
+    +5198   pc36  sample pin1
+    +5214   pc36  pin0 1->0
+    +5230   pc36  pin0 0->1
+    +5230   pc36  sample pin1
+    +5246   pc36  pin0 1->0
+    +5262   pc36  pin0 0->1
+    +5262   pc36  sample pin1
+    +5278   pc36  pin0 1->0
+    +5294   pc36  pin0 0->1
+    +5294   pc36  sample pin1
+    +5310   pc36  pin0 1->0
+    +5326   pc36  pin0 0->1
+    +5326   pc36  sample pin1
+    +5342   pc36  pin0 1->0
+    +5358   pc36  pin0 0->1
+    +5358   pc36  sample pin1
+    +5374   pc36  pin0 1->0
+    +5390   pc36  pin0 0->1
+    +5390   pc36  sample pin1
+    +5406   pc36  pin0 1->0
+    +5422   pc36  pin0 0->1
+    +5422   pc36  sample pin1
+    +5438   pc36  pin0 1->0
+    +5454   pc36  pin0 0->1
+    +5454   pc36  sample pin1
+    +5470   pc36  pin0 1->0
+    +5486   pc36  pin0 0->1
+    +5486   pc36  sample pin1
+    +5502   pc36  pin0 1->0
+    +5518   pc36  pin0 0->1
+    +5518   pc36  sample pin1
+    +5534   pc36  pin0 1->0
+    +5550   pc36  pin0 0->1
+    +5550   pc36  sample pin1
+    +5566   pc36  pin0 1->0
+    +5582   pc36  pin0 0->1
+    +5582   pc36  sample pin1
+    +5598   pc36  pin0 1->0
+    +5614   pc36  pin0 0->1
+    +5614   pc36  sample pin1
+    +5630   pc36  pin0 1->0
+    +5646   pc36  pin0 0->1
+    +5646   pc36  sample pin1
+    +5662   pc36  pin0 1->0
+    +5678   pc36  pin0 0->1
+    ... 34 more events
+  from pc3 PULL v3 (+1 identical contexts):
+    +7      pc22  pin1 1->0
+    +24     pc23  pin0 0->1
+    +40     pc23  pin0 1->0
+    +56     pc23  pin0 0->1
+    +72     pc23  pin0 1->0
+    +88     pc23  pin0 0->1
+    +104    pc23  pin0 1->0
+    +120    pc23  pin0 0->1
+    +136    pc23  pin0 1->0
+    +152    pc23  pin0 0->1
+    +168    pc23  pin0 1->0
+    +184    pc23  pin0 0->1
+    +200    pc23  pin0 1->0
+    +216    pc23  pin0 0->1
+    +232    pc23  pin0 1->0
+    +248    pc23  pin0 0->1
+    +264    pc23  pin0 1->0
+    +266    pc25  pin1 0->0|1
+    +282    pc25  pin0 0->1
+    +298    pc25  pin0 1->0
+    +298    pc25  pin1 0|1->0|1
+    +314    pc25  pin0 0->1
+    +330    pc25  pin0 1->0
+    +330    pc25  pin1 0|1->0|1
+    +346    pc25  pin0 0->1
+    +362    pc25  pin0 1->0
+    +362    pc25  pin1 0|1->0|1
+    +378    pc25  pin0 0->1
+    +394    pc25  pin0 1->0
+    +394    pc25  pin1 0|1->0|1
+    +410    pc25  pin0 0->1
+    +426    pc25  pin0 1->0
+    +426    pc25  pin1 0|1->0|1
+    +442    pc25  pin0 0->1
+    +458    pc25  pin0 1->0
+    +458    pc25  pin1 0|1->0|1
+    +474    pc25  pin0 0->1
+    +490    pc25  pin0 1->0
+    +490    pc25  pin1 0|1->0|1
+    +506    pc25  pin0 0->1
+    +522    pc25  pin0 1->0
+    +523    pc26  pin1 0|1->Z
+    +541    pc28  pin0 0->1
+    +557    pc28  pin0 1->0
+    +574    pc29  pin0 0->1
+    +574    pc29  sample pin1
+    +590    pc29  pin0 1->0
+    +606    pc29  pin0 0->1
+    +606    pc29  sample pin1
+    +622    pc29  pin0 1->0
+    +638    pc29  pin0 0->1
+    +638    pc29  sample pin1
+    +654    pc29  pin0 1->0
+    +658    pc33  arrive PUSH
+  from pc3 PULL v4 (+1 identical contexts):
+    +7      pc22  pin1 1->0
+    +24     pc23  pin0 0->1
+    +40     pc23  pin0 1->0
+    +56     pc23  pin0 0->1
+    +72     pc23  pin0 1->0
+    +88     pc23  pin0 0->1
+    +104    pc23  pin0 1->0
+    +120    pc23  pin0 0->1
+    +136    pc23  pin0 1->0
+    +152    pc23  pin0 0->1
+    +168    pc23  pin0 1->0
+    +184    pc23  pin0 0->1
+    +200    pc23  pin0 1->0
+    +216    pc23  pin0 0->1
+    +232    pc23  pin0 1->0
+    +248    pc23  pin0 0->1
+    +264    pc23  pin0 1->0
+    +266    pc25  pin1 0->0|1
+    +282    pc25  pin0 0->1
+    +298    pc25  pin0 1->0
+    +298    pc25  pin1 0|1->0|1
+    +314    pc25  pin0 0->1
+    +330    pc25  pin0 1->0
+    +330    pc25  pin1 0|1->0|1
+    +346    pc25  pin0 0->1
+    +362    pc25  pin0 1->0
+    +362    pc25  pin1 0|1->0|1
+    +378    pc25  pin0 0->1
+    +394    pc25  pin0 1->0
+    +394    pc25  pin1 0|1->0|1
+    +410    pc25  pin0 0->1
+    +426    pc25  pin0 1->0
+    +426    pc25  pin1 0|1->0|1
+    +442    pc25  pin0 0->1
+    +458    pc25  pin0 1->0
+    +458    pc25  pin1 0|1->0|1
+    +474    pc25  pin0 0->1
+    +490    pc25  pin0 1->0
+    +490    pc25  pin1 0|1->0|1
+    +506    pc25  pin0 0->1
+    +522    pc25  pin0 1->0
+    +523    pc26  pin1 0|1->Z
+    +541    pc28  pin0 0->1
+    +557    pc28  pin0 1->0
+    +574    pc29  pin0 0->1
+    +574    pc29  sample pin1
+    +590    pc29  pin0 1->0
+    +606    pc29  pin0 0->1
+    +606    pc29  sample pin1
+    +622    pc29  pin0 1->0
+    +638    pc29  pin0 0->1
+    +638    pc29  sample pin1
+    +654    pc29  pin0 1->0
+    +674    pc36  pin0 0->1
+    +674    pc36  sample pin1
+    +690    pc36  pin0 1->0
+    +706    pc36  pin0 0->1
+    +706    pc36  sample pin1
+    +722    pc36  pin0 1->0
+    +738    pc36  pin0 0->1
+    +738    pc36  sample pin1
+    +754    pc36  pin0 1->0
+    +770    pc36  pin0 0->1
+    +770    pc36  sample pin1
+    +786    pc36  pin0 1->0
+    +802    pc36  pin0 0->1
+    +802    pc36  sample pin1
+    +818    pc36  pin0 1->0
+    +834    pc36  pin0 0->1
+    +834    pc36  sample pin1
+    +850    pc36  pin0 1->0
+    +866    pc36  pin0 0->1
+    +866    pc36  sample pin1
+    +882    pc36  pin0 1->0
+    +898    pc36  pin0 0->1
+    +898    pc36  sample pin1
+    +914    pc36  pin0 1->0
+    +930    pc36  pin0 0->1
+    +930    pc36  sample pin1
+    +946    pc36  pin0 1->0
+    +962    pc36  pin0 0->1
+    +962    pc36  sample pin1
+    +978    pc36  pin0 1->0
+    +994    pc36  pin0 0->1
+    +994    pc36  sample pin1
+    +1010   pc36  pin0 1->0
+    +1026   pc36  pin0 0->1
+    +1026   pc36  sample pin1
+    +1042   pc36  pin0 1->0
+    +1058   pc36  pin0 0->1
+    +1058   pc36  sample pin1
+    +1074   pc36  pin0 1->0
+    +1090   pc36  pin0 0->1
+    +1090   pc36  sample pin1
+    +1106   pc36  pin0 1->0
+    +1122   pc36  pin0 0->1
+    +1122   pc36  sample pin1
+    +1138   pc36  pin0 1->0
+    +1154   pc36  pin0 0->1
+    +1154   pc36  sample pin1
+    +1170   pc36  pin0 1->0
+    +1186   pc36  pin0 0->1
+    +1186   pc36  sample pin1
+    +1202   pc36  pin0 1->0
+    +1218   pc36  pin0 0->1
+    +1218   pc36  sample pin1
+    +1234   pc36  pin0 1->0
+    +1250   pc36  pin0 0->1
+    +1250   pc36  sample pin1
+    +1266   pc36  pin0 1->0
+    +1282   pc36  pin0 0->1
+    +1282   pc36  sample pin1
+    +1298   pc36  pin0 1->0
+    +1314   pc36  pin0 0->1
+    +1314   pc36  sample pin1
+    +1330   pc36  pin0 1->0
+    +1346   pc36  pin0 0->1
+    +1346   pc36  sample pin1
+    +1362   pc36  pin0 1->0
+    +1378   pc36  pin0 0->1
+    +1378   pc36  sample pin1
+    +1394   pc36  pin0 1->0
+    +1410   pc36  pin0 0->1
+    +1410   pc36  sample pin1
+    +1426   pc36  pin0 1->0
+    +1442   pc36  pin0 0->1
+    +1442   pc36  sample pin1
+    +1458   pc36  pin0 1->0
+    +1474   pc36  pin0 0->1
+    +1474   pc36  sample pin1
+    +1490   pc36  pin0 1->0
+    +1506   pc36  pin0 0->1
+    +1506   pc36  sample pin1
+    +1522   pc36  pin0 1->0
+    +1538   pc36  pin0 0->1
+    +1538   pc36  sample pin1
+    +1554   pc36  pin0 1->0
+    +1570   pc36  pin0 0->1
+    +1570   pc36  sample pin1
+    +1586   pc36  pin0 1->0
+    +1602   pc36  pin0 0->1
+    +1602   pc36  sample pin1
+    +1618   pc36  pin0 1->0
+    +1634   pc36  pin0 0->1
+    +1634   pc36  sample pin1
+    +1650   pc36  pin0 1->0
+    +1666   pc36  pin0 0->1
+    +1666   pc36  sample pin1
+    +1682   pc36  pin0 1->0
+    +1701   pc39  pin0 0->1
+    +1701   pc39  sample pin1
+    +1717   pc39  pin0 1->0
+    +1734   pc40  pin0 0->1
+    +1750   pc40  pin0 1->0
+    +1752   pc42  pin1 Z->0
+    +1769   pc43  pin0 0->1
+    +1785   pc43  pin0 1->0
+    +1801   pc43  pin0 0->1
+    +1817   pc43  pin0 1->0
+    +1833   pc43  pin0 0->1
+    +1849   pc43  pin0 1->0
+    +1865   pc43  pin0 0->1
+    +1881   pc43  pin0 1->0
+    +1897   pc43  pin0 0->1
+    +1913   pc43  pin0 1->0
+    +1929   pc43  pin0 0->1
+    +1945   pc43  pin0 1->0
+    +1961   pc43  pin0 0->1
+    +1977   pc43  pin0 1->0
+    +1993   pc43  pin0 0->1
+    +2009   pc43  pin0 1->0
+    +2112   pc53  arrive PUSH
+  from pc3 PULL v5 (+1 identical contexts):
+    +7      pc22  pin1 1->0
+    +24     pc23  pin0 0->1
+    +40     pc23  pin0 1->0
+    +56     pc23  pin0 0->1
+    +72     pc23  pin0 1->0
+    +88     pc23  pin0 0->1
+    +104    pc23  pin0 1->0
+    +120    pc23  pin0 0->1
+    +136    pc23  pin0 1->0
+    +152    pc23  pin0 0->1
+    +168    pc23  pin0 1->0
+    +184    pc23  pin0 0->1
+    +200    pc23  pin0 1->0
+    +216    pc23  pin0 0->1
+    +232    pc23  pin0 1->0
+    +248    pc23  pin0 0->1
+    +264    pc23  pin0 1->0
+    +266    pc25  pin1 0->0|1
+    +282    pc25  pin0 0->1
+    +298    pc25  pin0 1->0
+    +298    pc25  pin1 0|1->0|1
+    +314    pc25  pin0 0->1
+    +330    pc25  pin0 1->0
+    +330    pc25  pin1 0|1->0|1
+    +346    pc25  pin0 0->1
+    +362    pc25  pin0 1->0
+    +362    pc25  pin1 0|1->0|1
+    +378    pc25  pin0 0->1
+    +394    pc25  pin0 1->0
+    +394    pc25  pin1 0|1->0|1
+    +410    pc25  pin0 0->1
+    +426    pc25  pin0 1->0
+    +426    pc25  pin1 0|1->0|1
+    +442    pc25  pin0 0->1
+    +458    pc25  pin0 1->0
+    +458    pc25  pin1 0|1->0|1
+    +474    pc25  pin0 0->1
+    +490    pc25  pin0 1->0
+    +490    pc25  pin1 0|1->0|1
+    +506    pc25  pin0 0->1
+    +522    pc25  pin0 1->0
+    +523    pc26  pin1 0|1->Z
+    +541    pc28  pin0 0->1
+    +557    pc28  pin0 1->0
+    +574    pc29  pin0 0->1
+    +574    pc29  sample pin1
+    +590    pc29  pin0 1->0
+    +606    pc29  pin0 0->1
+    +606    pc29  sample pin1
+    +622    pc29  pin0 1->0
+    +638    pc29  pin0 0->1
+    +638    pc29  sample pin1
+    +654    pc29  pin0 1->0
+    +674    pc36  pin0 0->1
+    +674    pc36  sample pin1
+    +690    pc36  pin0 1->0
+    +706    pc36  pin0 0->1
+    +706    pc36  sample pin1
+    +722    pc36  pin0 1->0
+    +738    pc36  pin0 0->1
+    +738    pc36  sample pin1
+    +754    pc36  pin0 1->0
+    +770    pc36  pin0 0->1
+    +770    pc36  sample pin1
+    +786    pc36  pin0 1->0
+    +802    pc36  pin0 0->1
+    +802    pc36  sample pin1
+    +818    pc36  pin0 1->0
+    +834    pc36  pin0 0->1
+    +834    pc36  sample pin1
+    +850    pc36  pin0 1->0
+    +866    pc36  pin0 0->1
+    +866    pc36  sample pin1
+    +882    pc36  pin0 1->0
+    +898    pc36  pin0 0->1
+    +898    pc36  sample pin1
+    +914    pc36  pin0 1->0
+    +930    pc36  pin0 0->1
+    +930    pc36  sample pin1
+    +946    pc36  pin0 1->0
+    +962    pc36  pin0 0->1
+    +962    pc36  sample pin1
+    +978    pc36  pin0 1->0
+    +994    pc36  pin0 0->1
+    +994    pc36  sample pin1
+    +1010   pc36  pin0 1->0
+    +1026   pc36  pin0 0->1
+    +1026   pc36  sample pin1
+    +1042   pc36  pin0 1->0
+    +1058   pc36  pin0 0->1
+    +1058   pc36  sample pin1
+    +1074   pc36  pin0 1->0
+    +1090   pc36  pin0 0->1
+    +1090   pc36  sample pin1
+    +1106   pc36  pin0 1->0
+    +1122   pc36  pin0 0->1
+    +1122   pc36  sample pin1
+    +1138   pc36  pin0 1->0
+    +1154   pc36  pin0 0->1
+    +1154   pc36  sample pin1
+    +1170   pc36  pin0 1->0
+    +1186   pc36  pin0 0->1
+    +1186   pc36  sample pin1
+    +1202   pc36  pin0 1->0
+    +1218   pc36  pin0 0->1
+    +1218   pc36  sample pin1
+    +1234   pc36  pin0 1->0
+    +1250   pc36  pin0 0->1
+    +1250   pc36  sample pin1
+    +1266   pc36  pin0 1->0
+    +1282   pc36  pin0 0->1
+    +1282   pc36  sample pin1
+    +1298   pc36  pin0 1->0
+    +1314   pc36  pin0 0->1
+    +1314   pc36  sample pin1
+    +1330   pc36  pin0 1->0
+    +1346   pc36  pin0 0->1
+    +1346   pc36  sample pin1
+    +1362   pc36  pin0 1->0
+    +1378   pc36  pin0 0->1
+    +1378   pc36  sample pin1
+    +1394   pc36  pin0 1->0
+    +1410   pc36  pin0 0->1
+    +1410   pc36  sample pin1
+    +1426   pc36  pin0 1->0
+    +1442   pc36  pin0 0->1
+    +1442   pc36  sample pin1
+    +1458   pc36  pin0 1->0
+    +1474   pc36  pin0 0->1
+    +1474   pc36  sample pin1
+    +1490   pc36  pin0 1->0
+    +1506   pc36  pin0 0->1
+    +1506   pc36  sample pin1
+    +1522   pc36  pin0 1->0
+    +1538   pc36  pin0 0->1
+    +1538   pc36  sample pin1
+    +1554   pc36  pin0 1->0
+    +1570   pc36  pin0 0->1
+    +1570   pc36  sample pin1
+    +1586   pc36  pin0 1->0
+    +1602   pc36  pin0 0->1
+    +1602   pc36  sample pin1
+    +1618   pc36  pin0 1->0
+    +1634   pc36  pin0 0->1
+    +1634   pc36  sample pin1
+    +1650   pc36  pin0 1->0
+    +1666   pc36  pin0 0->1
+    +1666   pc36  sample pin1
+    +1682   pc36  pin0 1->0
+    +1701   pc39  pin0 0->1
+    +1701   pc39  sample pin1
+    +1717   pc39  pin0 1->0
+    +1734   pc40  pin0 0->1
+    +1750   pc40  pin0 1->0
+    +1752   pc42  pin1 Z->0
+    +1769   pc43  pin0 0->1
+    +1785   pc43  pin0 1->0
+    +1801   pc43  pin0 0->1
+    +1817   pc43  pin0 1->0
+    +1833   pc43  pin0 0->1
+    +1849   pc43  pin0 1->0
+    +1865   pc43  pin0 0->1
+    +1881   pc43  pin0 1->0
+    +1897   pc43  pin0 0->1
+    +1913   pc43  pin0 1->0
+    +1929   pc43  pin0 0->1
+    +1945   pc43  pin0 1->0
+    +1961   pc43  pin0 0->1
+    +1977   pc43  pin0 1->0
+    +1993   pc43  pin0 0->1
+    +2009   pc43  pin0 1->0
+    +2112   pc56  arrive PUSH
+  from pc3 PULL v6 (+1 identical contexts):
+    +5      pc59  pin0 0->Z
+    +5      pc59  pin1 1->Z
+    end: fault82 at +5
+  from pc33 PUSH v0:
+    +17     pc34  pin0 0->1
+    +33     pc34  pin0 1->0
+    +34     pc35  pin0 0->Z
+    end: fault80 at +34
+  from pc53 PUSH v0:
+    +1      pc54  pin0 0->Z
+    +1      pc54  pin1 0->Z
+    end: fault81 at +1
+  from pc56 PUSH v0:
+    +1      pc57  pin1 0->1
+    +3      pc3   arrive PULL
+```
+
+## uart-rx-idle
+
+Engine 1, owned 0x00, open-drain 0x00, fused, 50 MHz annotation. Notes: "UART 8N1 RX on pin1, 64 clocks per bit, low-byte RX words." "Idle-tolerant: the idle and start-bit waits poll the synchronized line with IN/XOR/JZ and have no bound (no WAITPIN, no LIMIT), so the line may stay idle indefinitely and fault3 cannot occur. After START it first waits for the idle-high line." "Start-bit poll period 3 clocks (detection latency 0..2 clocks). Frame bit n (start bit 0, stop bit 9) is sampled 64n+31..64n+33 clocks after the edge whose pad sample first showed the start bit low (95 clocks after the poll sample that saw it); declared baud tolerance +-2%." "Stop-bit low produces fault64; a full RX FIFO at completed-frame delivery halts with fault4 (strict PUSH), as in uart-rx; the captured byte remains inspectable in the RX register (READ_SELECT6)."
+
+### Checks
+
+- **PASS** `identity`: bytecode sha256 matches, source sha256 matches
+- **PASS** `assembler-timing-table`: 24 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model
+- **PASS** `exact-analysis`: 5 boundary contexts, 9 path variants, no widening or budget cut
+- **PASS** `no-self-deadlock`: no WAITPIN waits for a level the engine itself forces
+- **PASS** `reachable-faults`: only explicit FAULT codes [64] reachable
+- **PASS** `uart-rx-idle-unbounded-wait`: no WAITPIN, WAITEVENT or LIMIT in the image, so fault 3 is unreachable; the idle and start-bit waits are data-dependent loops without a counter: JZ at pc3 samples pin1 at pc2 every [2] clocks; JZ at pc20 samples pin1 at pc18 every [3] clocks
+- **PASS** `uart-rx-idle-poll-period`: start-bit poll period [3] clocks (detection latency 0..2); declared: "poll period 3 clocks"
+- **PASS** `uart-rx-idle-center-sampling`: data bits sampled 31..33 and the stop bit 31..33 clocks into the bit, counted from the first edge that registered the start bit (one more from the line edge; centre 32); the first data sample is 95 clocks after the poll sample that saw the start bit; declared: "sampled 64n+31..64n+33 clocks"
+- **PASS** `uart-rx-idle-baud-tolerance`: all 9 samples stay inside their bit for a transmitter bit period within -4.688% .. +5.382% of 64 clocks, i.e. a baud error of -5.107% .. +4.918% (includes the 0..2-clock poll latency and the 1-clock asynchronous edge uncertainty); declared: +-2%
+- **PASS** `uart-rx-idle-rearm`: the poll samples the line again 612 clocks after the poll sample that saw the start bit (614 after the registered start edge at the latest); the next start edge (1 stop bit, no idle) is 640 clocks after the previous one: margin 25 clocks; back-to-back traffic keeps the 0..2-clock detection latency for a transmitter bit period down to -3.906% of 64 clocks
+- **INFO** `uart-rx-idle-rate`: baud = clock/64: 10MHz 156250 Bd, 25MHz 390625 Bd, 50MHz 781250 Bd, 66MHz 1031250 Bd, 100MHz 1562500 Bd
+
+### Boundaries
+
+| boundary (context) | stall min..max | segment BCET..WCET | holding pads |
+|---|---|---|---|
+| START | 0..0 | 4..4 |  |
+| pc3 JZ rx, 2 <idle> [repeat=7] | 0..0 | 2..5 |  |
+| pc20 JZ rx, 18 <poll> [repeat=7] | 0..0 | 3..606 |  |
+| pc14 JZ rx, 23 <framing_error> [repeat=7] | 0..0 | 1..6 |  |
+| pc20 JZ rx, 18 <poll> [repeat=7] | 0..0 | 3..606 |  |
+
+### Pin spacing
+
+
+### Loop periods
+
+- pc2 `IN pin1 msb` via JZ@pc3: 2..inf (x2)
+- pc5 `WAIT 61` via LOOP@pc7, JMP@pc22: 64 (x14), 164..inf (x2)
+- pc18 `IN pin1 msb` via JZ@pc20: 3..612 (x4)
+
+### Edge schedules
+
+```
+  from START v0:
+    +3      pc2   sample pin1
+    +4      pc3   arrive JZ rx, 2 <idle>
+  from pc3 JZ rx, 2 <idle> [repeat=7] v0:
+    +1      pc2   sample pin1
+    +2      pc3   arrive JZ rx, 2 <idle>
+  from pc3 JZ rx, 2 <idle> [repeat=7] v1:
+    +3      pc18  sample pin1
+    +5      pc20  arrive JZ rx, 18 <poll>
+  from pc20 JZ rx, 18 <poll> [repeat=7] v0 (+1 identical contexts):
+    +1      pc18  sample pin1
+    +3      pc20  arrive JZ rx, 18 <poll>
+  from pc20 JZ rx, 18 <poll> [repeat=7] v1 (+1 identical contexts):
+    +93     pc6   sample pin1
+    +157    pc6   sample pin1
+    +221    pc6   sample pin1
+    +285    pc6   sample pin1
+    +349    pc6   sample pin1
+    +413    pc6   sample pin1
+    +477    pc6   sample pin1
+    +541    pc6   sample pin1
+    +605    pc13  sample pin1
+    +606    pc14  arrive JZ rx, 23 <framing_error>
+  from pc14 JZ rx, 23 <framing_error> [repeat=7] v0:
+    end: fault64 at +1
+  from pc14 JZ rx, 23 <framing_error> [repeat=7] v1:
+    +2      pc16  interaction
+    +4      pc18  sample pin1
+    +6      pc20  arrive JZ rx, 18 <poll>
+```
+
 ## uart-rx
 
 Engine 1, owned 0x00, open-drain 0x00, fused, 50 MHz annotation. Notes: "UART 8N1 RX on pin1, 64 clocks per bit, low-byte RX words." "Two-flop input synchronization precedes center sampling; stop-bit low produces fault64. Idle/start waits are bounded by 12 bit periods." "A full RX FIFO at completed-frame delivery halts with fault4; the captured byte remains inspectable in the RX register (READ_SELECT6)."
@@ -1943,4 +4062,384 @@ Engine 0, owned 0x01, open-drain 0x00, fused, 50 MHz annotation. Notes: "Custom 
   from pc9 PUSH v0:
     +1      pc10  pin0 0->Z
     end: halt at +1
+```
+
+## ws2812
+
+Engine 1, owned 0x04, open-drain 0x00, fused, 50 MHz annotation. Notes: "WS2812B data output on DOUT pin2, push-pull; timing from the Worldsemi WS2812B datasheet (T0H 0.4 us, T1H 0.8 us, T0L 0.85 us, T1L 0.45 us, each +-150 ns; RES above 50 us). TX word: G<<24 | R<<16 | B<<8 | L: 24 bits GRB, MSB first; a nonzero low byte L ends the frame with a reset (latch) low time." "Bit timing at 50000000 Hz: T0H 20, T1H 40, T0L 43, T1L 23 clocks (0.4, 0.8, 0.86, 0.46 us); bit period 63 clocks (1.26 us), also across pixel boundaries while the TX FIFO has data." "Reset low time: 15004 clocks (300.08 us) after START and 15025 clocks (300.5 us) after a word with a nonzero low byte." "Holding point: DOUT low while PULL waits. Keep the TX FIFO non-empty during a frame: an empty FIFO stretches the low time of the last bit sent, and a gap longer than the reset time latches early." "3.3 V output: this datasheet gives VIH = 0.7 VDD (3.5 V at VDD = 5 V), so a 5 V LED needs a level shifter. The WS2812B-V5 revision has other bit windows: see ws2812b-v5."
+
+### Checks
+
+- **PASS** `identity`: bytecode sha256 matches, source sha256 matches
+- **PASS** `assembler-timing-table`: 22 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model
+- **PASS** `exact-analysis`: 3 boundary contexts, 5 path variants, no widening or budget cut
+- **PASS** `no-self-deadlock`: no WAITPIN waits for a level the engine itself forces
+- **PASS** `reachable-faults`: only explicit FAULT codes [] reachable
+- **INFO** `holding-points`: unbounded FIFO waits hold: pc3 PULL [pin2=0]
+- **PASS** `ws2812-bit-schedule`: every pixel: 24 bits, MSB first (OUT c=1); high 20 clocks then the bit (OUT), low at 40; next bit 63 clocks after the previous one, also across the pixel boundary when the next TX word is queued: T0H [20], T1H [40], T0L [43], T1L [23], bit period [63] (declared T0H 20, T1H 40, T0L 43, T1L 23, period 63); rises/OUTs/falls per pixel [(24, 24, 24)]
+- **PASS** `ws2812-datasheet-bits`: WS2812B datasheet at 50 MHz: T0H 20 clocks = 400 ns (250 ns..550 ns; 150 ns above the minimum, 150 ns below the maximum); T1H 40 clocks = 800 ns (650 ns..950 ns; 150 ns above the minimum, 150 ns below the maximum); T0L 43 clocks = 860 ns (700 ns..1000 ns; 160 ns above the minimum, 140 ns below the maximum); T1L 23 clocks = 460 ns (300 ns..600 ns; 160 ns above the minimum, 140 ns below the maximum); TH+TL 63 clocks = 1260 ns (650 ns..1850 ns; 610 ns above the minimum, 590 ns below the maximum). all hold for clocks from 43.00 to 61.43 MHz
+- **PASS** `ws2812-reset`: WS2812B datasheet at 50 MHz: reset after START 15004 clocks = 300.08 us (>= 50.00 us; 250.08 us above the minimum); reset after a latch word 15025 clocks = 300.50 us (>= 50.00 us; 250.50 us above the minimum). all hold for clocks from 0.00 to 300.08 MHz. low times ending a frame [15004, 15025, 15045] clocks (declared 15004 after START, 15025 after a latch word); DOUT is low at the PULL holding point, so a TX FIFO underrun also latches once the stall exceeds 2477 clocks
+- **PASS** `ws2812-underrun`: DOUT is driven low at every PULL holding point. A PULL stall of s clocks between pixels lengthens the last bit's low time by s: T0L stays within WS2812B datasheet for s <= 7, T1L for s <= 7; one TX word is consumed every 1512 clocks (30.240 us at 50 MHz)
+
+### Boundaries
+
+| boundary (context) | stall min..max | segment BCET..WCET | holding pads |
+|---|---|---|---|
+| START | 0..0 | 15004..15004 | pin2=Z |
+| pc3 PULL | 0..inf | 1512..16514 | pin2=0 |
+| pc3 PULL | 0..inf | 1512..16514 | pin2=0 |
+
+### Pin spacing
+
+- pin2: exact spacings {20: 192, 23: 92}; across boundaries [('15004', 'inf'), ('15025', 'inf'), ('23', 'inf')]; minimum 20
+
+### Loop periods
+
+- pc3 `PULL` via JZ@pc19, JMP@pc21: 1512..inf (x5)
+- pc5 `SET 0x04` via LOOP@pc11: 63 (x88), 126..inf (x2), 15128..inf (x2)
+
+### Edge schedules
+
+```
+  from START v0:
+    +2      pc1   pin2 Z->0
+    +15004  pc3   arrive PULL
+  from pc3 PULL v0 (+1 identical contexts):
+    +2      pc5   pin2 0->1
+    +22     pc7   pin2 1->0|1
+    +42     pc9   pin2 0|1->0
+    +65     pc5   pin2 0->1
+    +85     pc7   pin2 1->0|1
+    +105    pc9   pin2 0|1->0
+    +128    pc5   pin2 0->1
+    +148    pc7   pin2 1->0|1
+    +168    pc9   pin2 0|1->0
+    +191    pc5   pin2 0->1
+    +211    pc7   pin2 1->0|1
+    +231    pc9   pin2 0|1->0
+    +254    pc5   pin2 0->1
+    +274    pc7   pin2 1->0|1
+    +294    pc9   pin2 0|1->0
+    +317    pc5   pin2 0->1
+    +337    pc7   pin2 1->0|1
+    +357    pc9   pin2 0|1->0
+    +380    pc5   pin2 0->1
+    +400    pc7   pin2 1->0|1
+    +420    pc9   pin2 0|1->0
+    +443    pc5   pin2 0->1
+    +463    pc7   pin2 1->0|1
+    +483    pc9   pin2 0|1->0
+    +506    pc5   pin2 0->1
+    +526    pc7   pin2 1->0|1
+    +546    pc9   pin2 0|1->0
+    +569    pc5   pin2 0->1
+    +589    pc7   pin2 1->0|1
+    +609    pc9   pin2 0|1->0
+    +632    pc5   pin2 0->1
+    +652    pc7   pin2 1->0|1
+    +672    pc9   pin2 0|1->0
+    +695    pc5   pin2 0->1
+    +715    pc7   pin2 1->0|1
+    +735    pc9   pin2 0|1->0
+    +758    pc5   pin2 0->1
+    +778    pc7   pin2 1->0|1
+    +798    pc9   pin2 0|1->0
+    +821    pc5   pin2 0->1
+    +841    pc7   pin2 1->0|1
+    +861    pc9   pin2 0|1->0
+    +884    pc5   pin2 0->1
+    +904    pc7   pin2 1->0|1
+    +924    pc9   pin2 0|1->0
+    +947    pc5   pin2 0->1
+    +967    pc7   pin2 1->0|1
+    +987    pc9   pin2 0|1->0
+    +1010   pc5   pin2 0->1
+    +1030   pc7   pin2 1->0|1
+    +1050   pc9   pin2 0|1->0
+    +1073   pc5   pin2 0->1
+    +1093   pc7   pin2 1->0|1
+    +1113   pc9   pin2 0|1->0
+    +1136   pc5   pin2 0->1
+    +1156   pc7   pin2 1->0|1
+    +1176   pc9   pin2 0|1->0
+    +1199   pc5   pin2 0->1
+    +1219   pc7   pin2 1->0|1
+    +1239   pc9   pin2 0|1->0
+    +1262   pc5   pin2 0->1
+    +1282   pc7   pin2 1->0|1
+    +1302   pc9   pin2 0|1->0
+    +1325   pc5   pin2 0->1
+    +1345   pc7   pin2 1->0|1
+    +1365   pc9   pin2 0|1->0
+    +1388   pc5   pin2 0->1
+    +1408   pc7   pin2 1->0|1
+    +1428   pc9   pin2 0|1->0
+    +1451   pc12  pin2 0->1
+    +1471   pc14  pin2 1->0|1
+    +1491   pc16  pin2 0|1->0
+    +16514  pc3   arrive PULL
+  from pc3 PULL v1 (+1 identical contexts):
+    +2      pc5   pin2 0->1
+    +22     pc7   pin2 1->0|1
+    +42     pc9   pin2 0|1->0
+    +65     pc5   pin2 0->1
+    +85     pc7   pin2 1->0|1
+    +105    pc9   pin2 0|1->0
+    +128    pc5   pin2 0->1
+    +148    pc7   pin2 1->0|1
+    +168    pc9   pin2 0|1->0
+    +191    pc5   pin2 0->1
+    +211    pc7   pin2 1->0|1
+    +231    pc9   pin2 0|1->0
+    +254    pc5   pin2 0->1
+    +274    pc7   pin2 1->0|1
+    +294    pc9   pin2 0|1->0
+    +317    pc5   pin2 0->1
+    +337    pc7   pin2 1->0|1
+    +357    pc9   pin2 0|1->0
+    +380    pc5   pin2 0->1
+    +400    pc7   pin2 1->0|1
+    +420    pc9   pin2 0|1->0
+    +443    pc5   pin2 0->1
+    +463    pc7   pin2 1->0|1
+    +483    pc9   pin2 0|1->0
+    +506    pc5   pin2 0->1
+    +526    pc7   pin2 1->0|1
+    +546    pc9   pin2 0|1->0
+    +569    pc5   pin2 0->1
+    +589    pc7   pin2 1->0|1
+    +609    pc9   pin2 0|1->0
+    +632    pc5   pin2 0->1
+    +652    pc7   pin2 1->0|1
+    +672    pc9   pin2 0|1->0
+    +695    pc5   pin2 0->1
+    +715    pc7   pin2 1->0|1
+    +735    pc9   pin2 0|1->0
+    +758    pc5   pin2 0->1
+    +778    pc7   pin2 1->0|1
+    +798    pc9   pin2 0|1->0
+    +821    pc5   pin2 0->1
+    +841    pc7   pin2 1->0|1
+    +861    pc9   pin2 0|1->0
+    +884    pc5   pin2 0->1
+    +904    pc7   pin2 1->0|1
+    +924    pc9   pin2 0|1->0
+    +947    pc5   pin2 0->1
+    +967    pc7   pin2 1->0|1
+    +987    pc9   pin2 0|1->0
+    +1010   pc5   pin2 0->1
+    +1030   pc7   pin2 1->0|1
+    +1050   pc9   pin2 0|1->0
+    +1073   pc5   pin2 0->1
+    +1093   pc7   pin2 1->0|1
+    +1113   pc9   pin2 0|1->0
+    +1136   pc5   pin2 0->1
+    +1156   pc7   pin2 1->0|1
+    +1176   pc9   pin2 0|1->0
+    +1199   pc5   pin2 0->1
+    +1219   pc7   pin2 1->0|1
+    +1239   pc9   pin2 0|1->0
+    +1262   pc5   pin2 0->1
+    +1282   pc7   pin2 1->0|1
+    +1302   pc9   pin2 0|1->0
+    +1325   pc5   pin2 0->1
+    +1345   pc7   pin2 1->0|1
+    +1365   pc9   pin2 0|1->0
+    +1388   pc5   pin2 0->1
+    +1408   pc7   pin2 1->0|1
+    +1428   pc9   pin2 0|1->0
+    +1451   pc12  pin2 0->1
+    +1471   pc14  pin2 1->0|1
+    +1491   pc16  pin2 0|1->0
+    +1512   pc3   arrive PULL
+```
+
+## ws2812b-v5
+
+Engine 1, owned 0x04, open-drain 0x00, fused, 50 MHz annotation. Notes: "WS2812B data output on DOUT pin2, push-pull; timing from the Worldsemi WS2812B-V5 datasheet V1.0 (T0H 220-380 ns, T1H 580 ns-1 us, T0L 580 ns-1 us, T1L 580 ns-1 us; RES above 280 us). TX word: G<<24 | R<<16 | B<<8 | L: 24 bits GRB, MSB first; a nonzero low byte L ends the frame with a reset (latch) low time." "Bit timing at 50000000 Hz: T0H 15, T1H 32, T0L 48, T1L 31 clocks (0.3, 0.64, 0.96, 0.62 us); bit period 63 clocks (1.26 us), also across pixel boundaries while the TX FIFO has data." "Reset low time: 15004 clocks (300.08 us) after START and 15033 clocks (300.66 us) after a word with a nonzero low byte." "Holding point: DOUT low while PULL waits. Keep the TX FIFO non-empty during a frame: an empty FIFO stretches the low time of the last bit sent, and a gap longer than the reset time latches early." "3.3 V output: the WS2812B-V5 datasheet gives VIH >= 2.7 V. The earlier WS2812B table (T0H 0.4 us +-150 ns) is not met by these bit times: see ws2812."
+
+### Checks
+
+- **PASS** `identity`: bytecode sha256 matches, source sha256 matches
+- **PASS** `assembler-timing-table`: 22 per-instruction entries (minimum_cycles, blocking) agree with the ISA cost model
+- **PASS** `exact-analysis`: 3 boundary contexts, 5 path variants, no widening or budget cut
+- **PASS** `no-self-deadlock`: no WAITPIN waits for a level the engine itself forces
+- **PASS** `reachable-faults`: only explicit FAULT codes [] reachable
+- **INFO** `holding-points`: unbounded FIFO waits hold: pc3 PULL [pin2=0]
+- **PASS** `ws2812-bit-schedule`: every pixel: 24 bits, MSB first (OUT c=1); high 15 clocks then the bit (OUT), low at 32; next bit 63 clocks after the previous one, also across the pixel boundary when the next TX word is queued: T0H [15], T1H [32], T0L [48], T1L [31], bit period [63] (declared T0H 15, T1H 32, T0L 48, T1L 31, period 63); rises/OUTs/falls per pixel [(24, 24, 24)]
+- **PASS** `ws2812-datasheet-bits`: WS2812B-V5 datasheet V1.0 at 50 MHz: T0H 15 clocks = 300 ns (220 ns..380 ns; 80 ns above the minimum, 80 ns below the maximum); T1H 32 clocks = 640 ns (580 ns..1000 ns; 60 ns above the minimum, 360 ns below the maximum); T0L 48 clocks = 960 ns (580 ns..1000 ns; 380 ns above the minimum, 40 ns below the maximum); T1L 31 clocks = 620 ns (580 ns..1000 ns; 40 ns above the minimum, 380 ns below the maximum). all hold for clocks from 48.00 to 53.45 MHz
+- **PASS** `ws2812-reset`: WS2812B-V5 datasheet V1.0 at 50 MHz: reset after START 15004 clocks = 300.08 us (>= 280.00 us; 20.08 us above the minimum); reset after a latch word 15033 clocks = 300.66 us (>= 280.00 us; 20.66 us above the minimum). all hold for clocks from 0.00 to 53.59 MHz. low times ending a frame [15004, 15033, 15050] clocks (declared 15004 after START, 15033 after a latch word); DOUT is low at the PULL holding point, so a TX FIFO underrun also latches once the stall exceeds 13968 clocks
+- **PASS** `ws2812-underrun`: DOUT is driven low at every PULL holding point. A PULL stall of s clocks between pixels lengthens the last bit's low time by s: T0L stays within WS2812B-V5 datasheet V1.0 for s <= 2, T1L for s <= 19; one TX word is consumed every 1512 clocks (30.240 us at 50 MHz)
+
+### Boundaries
+
+| boundary (context) | stall min..max | segment BCET..WCET | holding pads |
+|---|---|---|---|
+| START | 0..0 | 15004..15004 | pin2=Z |
+| pc3 PULL | 0..inf | 1512..16514 | pin2=0 |
+| pc3 PULL | 0..inf | 1512..16514 | pin2=0 |
+
+### Pin spacing
+
+- pin2: exact spacings {15: 96, 17: 96, 31: 92}; across boundaries [('15004', 'inf'), ('15033', 'inf'), ('31', 'inf')]; minimum 15
+
+### Loop periods
+
+- pc3 `PULL` via JZ@pc19, JMP@pc21: 1512..inf (x5)
+- pc5 `SET 0x04` via LOOP@pc11: 63 (x88), 126..inf (x2), 15128..inf (x2)
+
+### Edge schedules
+
+```
+  from START v0:
+    +2      pc1   pin2 Z->0
+    +15004  pc3   arrive PULL
+  from pc3 PULL v0 (+1 identical contexts):
+    +2      pc5   pin2 0->1
+    +17     pc7   pin2 1->0|1
+    +34     pc9   pin2 0|1->0
+    +65     pc5   pin2 0->1
+    +80     pc7   pin2 1->0|1
+    +97     pc9   pin2 0|1->0
+    +128    pc5   pin2 0->1
+    +143    pc7   pin2 1->0|1
+    +160    pc9   pin2 0|1->0
+    +191    pc5   pin2 0->1
+    +206    pc7   pin2 1->0|1
+    +223    pc9   pin2 0|1->0
+    +254    pc5   pin2 0->1
+    +269    pc7   pin2 1->0|1
+    +286    pc9   pin2 0|1->0
+    +317    pc5   pin2 0->1
+    +332    pc7   pin2 1->0|1
+    +349    pc9   pin2 0|1->0
+    +380    pc5   pin2 0->1
+    +395    pc7   pin2 1->0|1
+    +412    pc9   pin2 0|1->0
+    +443    pc5   pin2 0->1
+    +458    pc7   pin2 1->0|1
+    +475    pc9   pin2 0|1->0
+    +506    pc5   pin2 0->1
+    +521    pc7   pin2 1->0|1
+    +538    pc9   pin2 0|1->0
+    +569    pc5   pin2 0->1
+    +584    pc7   pin2 1->0|1
+    +601    pc9   pin2 0|1->0
+    +632    pc5   pin2 0->1
+    +647    pc7   pin2 1->0|1
+    +664    pc9   pin2 0|1->0
+    +695    pc5   pin2 0->1
+    +710    pc7   pin2 1->0|1
+    +727    pc9   pin2 0|1->0
+    +758    pc5   pin2 0->1
+    +773    pc7   pin2 1->0|1
+    +790    pc9   pin2 0|1->0
+    +821    pc5   pin2 0->1
+    +836    pc7   pin2 1->0|1
+    +853    pc9   pin2 0|1->0
+    +884    pc5   pin2 0->1
+    +899    pc7   pin2 1->0|1
+    +916    pc9   pin2 0|1->0
+    +947    pc5   pin2 0->1
+    +962    pc7   pin2 1->0|1
+    +979    pc9   pin2 0|1->0
+    +1010   pc5   pin2 0->1
+    +1025   pc7   pin2 1->0|1
+    +1042   pc9   pin2 0|1->0
+    +1073   pc5   pin2 0->1
+    +1088   pc7   pin2 1->0|1
+    +1105   pc9   pin2 0|1->0
+    +1136   pc5   pin2 0->1
+    +1151   pc7   pin2 1->0|1
+    +1168   pc9   pin2 0|1->0
+    +1199   pc5   pin2 0->1
+    +1214   pc7   pin2 1->0|1
+    +1231   pc9   pin2 0|1->0
+    +1262   pc5   pin2 0->1
+    +1277   pc7   pin2 1->0|1
+    +1294   pc9   pin2 0|1->0
+    +1325   pc5   pin2 0->1
+    +1340   pc7   pin2 1->0|1
+    +1357   pc9   pin2 0|1->0
+    +1388   pc5   pin2 0->1
+    +1403   pc7   pin2 1->0|1
+    +1420   pc9   pin2 0|1->0
+    +1451   pc12  pin2 0->1
+    +1466   pc14  pin2 1->0|1
+    +1483   pc16  pin2 0|1->0
+    +16514  pc3   arrive PULL
+  from pc3 PULL v1 (+1 identical contexts):
+    +2      pc5   pin2 0->1
+    +17     pc7   pin2 1->0|1
+    +34     pc9   pin2 0|1->0
+    +65     pc5   pin2 0->1
+    +80     pc7   pin2 1->0|1
+    +97     pc9   pin2 0|1->0
+    +128    pc5   pin2 0->1
+    +143    pc7   pin2 1->0|1
+    +160    pc9   pin2 0|1->0
+    +191    pc5   pin2 0->1
+    +206    pc7   pin2 1->0|1
+    +223    pc9   pin2 0|1->0
+    +254    pc5   pin2 0->1
+    +269    pc7   pin2 1->0|1
+    +286    pc9   pin2 0|1->0
+    +317    pc5   pin2 0->1
+    +332    pc7   pin2 1->0|1
+    +349    pc9   pin2 0|1->0
+    +380    pc5   pin2 0->1
+    +395    pc7   pin2 1->0|1
+    +412    pc9   pin2 0|1->0
+    +443    pc5   pin2 0->1
+    +458    pc7   pin2 1->0|1
+    +475    pc9   pin2 0|1->0
+    +506    pc5   pin2 0->1
+    +521    pc7   pin2 1->0|1
+    +538    pc9   pin2 0|1->0
+    +569    pc5   pin2 0->1
+    +584    pc7   pin2 1->0|1
+    +601    pc9   pin2 0|1->0
+    +632    pc5   pin2 0->1
+    +647    pc7   pin2 1->0|1
+    +664    pc9   pin2 0|1->0
+    +695    pc5   pin2 0->1
+    +710    pc7   pin2 1->0|1
+    +727    pc9   pin2 0|1->0
+    +758    pc5   pin2 0->1
+    +773    pc7   pin2 1->0|1
+    +790    pc9   pin2 0|1->0
+    +821    pc5   pin2 0->1
+    +836    pc7   pin2 1->0|1
+    +853    pc9   pin2 0|1->0
+    +884    pc5   pin2 0->1
+    +899    pc7   pin2 1->0|1
+    +916    pc9   pin2 0|1->0
+    +947    pc5   pin2 0->1
+    +962    pc7   pin2 1->0|1
+    +979    pc9   pin2 0|1->0
+    +1010   pc5   pin2 0->1
+    +1025   pc7   pin2 1->0|1
+    +1042   pc9   pin2 0|1->0
+    +1073   pc5   pin2 0->1
+    +1088   pc7   pin2 1->0|1
+    +1105   pc9   pin2 0|1->0
+    +1136   pc5   pin2 0->1
+    +1151   pc7   pin2 1->0|1
+    +1168   pc9   pin2 0|1->0
+    +1199   pc5   pin2 0->1
+    +1214   pc7   pin2 1->0|1
+    +1231   pc9   pin2 0|1->0
+    +1262   pc5   pin2 0->1
+    +1277   pc7   pin2 1->0|1
+    +1294   pc9   pin2 0|1->0
+    +1325   pc5   pin2 0->1
+    +1340   pc7   pin2 1->0|1
+    +1357   pc9   pin2 0|1->0
+    +1388   pc5   pin2 0->1
+    +1403   pc7   pin2 1->0|1
+    +1420   pc9   pin2 0|1->0
+    +1451   pc12  pin2 0->1
+    +1466   pc14  pin2 1->0|1
+    +1483   pc16  pin2 0|1->0
+    +1512   pc3   arrive PULL
 ```
