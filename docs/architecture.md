@@ -108,3 +108,20 @@ unimplemented memory organization; private instruction SRAM does not provide
 it. Area measurements and the 6x4 insurance options are in
 [area-study.md](area-study.md); the macro integration and local hardening
 evidence are in [hardening.md](hardening.md).
+
+## Hardcaml structure
+
+`Processor.create_refinement` (`hardcaml/lib/processor.ml`) builds the chip:
+the host port, the host-command decoder, four engines, their instruction
+SRAMs, the TX/RX queues, the mover, the mailboxes and triggers, and pin
+ownership. Each engine is one call of `Engine.create`, which is split by
+stage into `Engine_datapath` (registers), `Engine_decode` (operand fields
+and validity rules), the execute stage in `engine.ml`, `Engine_transfer`
+(XFER) and, with the extension, `Engine_line` (the line unit). Opcodes and
+host commands are the variant types `Opcode.t` and `Host_command.t`; the
+validity rule, the execute body, the assembler's operand rule and the
+mnemonic of every opcode are matches without a wildcard, so the build fails
+until a new opcode has all four. The generated Verilog is one flat module;
+the chip's core instantiates the 8 SRAM macros in it.
+[hardcaml/README.md](../hardcaml/README.md) describes the modules and how
+the source relates to the generated Verilog.

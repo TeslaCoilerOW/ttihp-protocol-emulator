@@ -70,12 +70,23 @@ let () =
       let byte_lane_shifts= !byte_lane || (match target with Some (_,b,_) -> b | None -> false) in
       let line_unit=match target with Some (_,_,l) -> l | None -> false in
       let source_bytes = if !source<>"" then read_file !source else
+        (* An unknown --issue is reported where a source's would be: after
+           Firmware.make's checks (the built-in is generated as scalar
+           meanwhile) and after the architecture's size checks. *)
+        let issue=match Issue.of_string !issue with
+          | issue -> Ok issue | exception Invalid_argument msg -> Error msg in
         let architecture=match target with
           | Some (architecture,_,_) -> architecture
-          | None -> {Isa.engine_count= !engines;data_width= !width;
-              program_words= !words;fifo_words= !fifo_words;issue= !issue;prefetch= !prefetch} in
+          | None -> {Isa.engine_count= !engines;data_width= !width;program_words= !words;
+              fifo_words= !fifo_words;issue=Result.value issue ~default:Issue.Scalar;
+              prefetch= !prefetch} in
         let s=Firmware.make ~architecture ~half_period:!half_period ~mode:!mode ~clock_hz:!clock_hz
             ~byte_lane_shifts !firmware in
+        (match target,issue with
+         | None,Error msg ->
+           ignore (Isa.architecture_of_json (Isa.architecture_to_json architecture) : Isa.architecture);
+           invalid_arg msg
+         | _ -> ());
         Yojson.Safe.pretty_to_string (Assembler.source_to_json s)^"\n" in
       let image=Assembler.assemble_target ~byte_lane_shifts ~line_unit ~source_bytes in
       (match target with

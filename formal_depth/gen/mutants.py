@@ -6,7 +6,9 @@ hardcaml/lib (never the repository's hardcaml/). The copy is built with its
 own dune build directory and generate_fd --lenient then emits
 processor_fd_<mutant>.v, with the FIFO arrays exposed as for the real design.
 Every substitution must match exactly once, so a mutant cannot silently
-become a no-op when the sources change.
+become a no-op when the sources change. A substitution may list alternatives
+for older snapshots (OLD and NEW are then tuples, newest first): the first
+alternative that matches exactly once is used.
 
     mutants.py SNAP_DIR WORK_DIR OUT_RTL_DIR [NAME ...]
 
@@ -61,9 +63,14 @@ MUTANTS = {
          "e.pin_enables &: owners.(k).value &: electrical_mask\n"
          "    &: repeat (e.running &: ~:clear) 8)) in")]),
     # pin_safety.sv
+    # The OWN case of the command acceptance rule: a Host_command.t
+    # constructor after 16cfc20, the command code 3 up to 16cfc20.
     "pin_own_overlap": ("OWN no longer rejects overlapping ownership", [
-        ("processor.ml", "| 3 -> halted &: (select payload 23 16 ==:. 0) &: ~:overlap",
-         "| 3 -> halted &: (select payload 23 16 ==:. 0) &: ~:(overlap &: gnd)")]),
+        ("processor.ml",
+         ("| Own -> halted &: (select payload 23 16 ==:. 0) &: ~:overlap",
+          "| 3 -> halted &: (select payload 23 16 ==:. 0) &: ~:overlap"),
+         ("| Own -> halted &: (select payload 23 16 ==:. 0) &: ~:(overlap &: gnd)",
+          "| 3 -> halted &: (select payload 23 16 ==:. 0) &: ~:(overlap &: gnd)"))]),
     "pin_od_drive_high": ("open-drain pins are not masked in uio_out", [
         ("processor.ml", "e.pin_values &: owners.(k).value &: ~:(drains.(k).value)",
          "e.pin_values &: owners.(k).value")]),
@@ -94,9 +101,12 @@ def main():
         for fname, old, new in subs:
             path = os.path.join(ws, "lib", fname)
             text = open(path).read()
-            if text.count(old) != 1:
-                raise SystemExit(f"mutants: {name}: pattern occurs {text.count(old)} times in {fname}")
-            open(path, "w").write(text.replace(old, new))
+            olds, news = (old, new) if isinstance(old, tuple) else ((old,), (new,))
+            counts = [text.count(o) for o in olds]
+            if 1 not in counts:
+                raise SystemExit(f"mutants: {name}: pattern occurs {counts} times in {fname}")
+            k = counts.index(1)
+            open(path, "w").write(text.replace(olds[k], news[k]))
         build = os.path.join(work, "mut", "_build-" + name)
         run(["dune", "build", "--root", ".", "--build-dir", build, "-j", os.environ.get("DUNE_JOBS", "2"),
              "./fdgen/generate_fd.exe"], cwd=ws)

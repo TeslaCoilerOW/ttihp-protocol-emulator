@@ -11,9 +11,9 @@ let%expect_test "BEGIN, three words, OWN, a rejected and an accepted COMMIT" =
   let t = create () in
   let owned = 0b0000_0001 in
   let program =
-    [ "DIR", instruction ~owned ~imm:owned "DIR"
-    ; "SET", instruction ~owned ~imm:owned "SET"
-    ; "HALT", instruction ~owned "HALT"
+    [ Opcode.Dir, instruction ~owned ~imm:owned Dir
+    ; Set, instruction ~owned ~imm:owned Set
+    ; Halt, instruction ~owned Halt
     ]
   in
   let start = t.cycle in
@@ -29,8 +29,8 @@ let%expect_test "BEGIN, three words, OWN, a rejected and an accepted COMMIT" =
   (* Window 1 is closed after COMMIT: write-ready stays low. *)
   enter_window t 1;
   idle t 3;
-  List.iteri program ~f:(fun address (mnemonic, word) ->
-    printf "word %d: 0x%08x %s\n" address word mnemonic);
+  List.iteri program ~f:(fun address (op, word) ->
+    printf "word %d: 0x%08x %s\n" address word (Opcode.mnemonic op));
   Queue.iter log ~f:(fun (cycle, name, ok) ->
     printf "cycle %2d: %-26s %s\n" cycle name (if ok then "accepted" else "rejected"));
   print

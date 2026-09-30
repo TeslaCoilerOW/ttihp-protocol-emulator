@@ -1,13 +1,14 @@
 open Hardcaml
 
 let check label condition = if not condition then failwith label
-let instruction op immediate = (op lsl 24) lor immediate
+let instruction (op:Opcode.t) immediate = (Opcode.to_int op lsl 24) lor immediate
+let host_word (command:Host_command.t) payload = (Host_command.to_int command lsl 24) lor payload
 
 let architecture_json (c:Config.t) = `Assoc [
   "schema_version",`String "protocol-emulator.architecture.v1";
   "engine_count",`Int c.engine_count;"data_width",`Int c.data_width;
   "program_words",`Int c.program_words;"fifo_words",`Int c.fifo_words;
-  "issue",`String c.issue;"prefetch",`Bool c.prefetch]
+  "issue",`String (Issue.to_string c.issue);"prefetch",`Bool c.prefetch]
 let refinement_json architecture = `Assoc [
   "schema_version",`String "protocol-emulator.refinement.v1";
   "architecture",architecture;"implementation",`String Refinement_config.implementation]
@@ -23,8 +24,12 @@ let configuration_test () =
   List.iter (fun config -> reject (refinement_json (architecture_json config)))
     [{Config.default with engine_count=2};{Config.default with program_words=32};
      {Config.default with program_words=128};{Config.default with prefetch=true};
-     {Config.default with data_width=8};{Config.default with fifo_words=16};
-     {Config.default with issue="custom"}];
+     {Config.default with data_width=8};{Config.default with fifo_words=16}];
+  (* An issue other than scalar/fused is not representable in Config.t; the
+     JSON reader rejects it. *)
+  reject (refinement_json (`Assoc (("issue",`String "custom")::
+    (match architecture_json Config.default with
+     | `Assoc fields -> List.remove_assoc "issue" fields | _ -> assert false))));
   let fields=match good with `Assoc fields -> fields | _ -> assert false in
   List.iter reject [
     `Null;`Assoc (List.tl fields);`Assoc (("extra",`Null)::fields);
@@ -70,14 +75,8 @@ let adapter_test () =
   check "clear cannot corrupt previously loaded instruction" (get "data"=0x1234beef)
 
 let next_pc_test config =
-  let input=Signal.input and output=Signal.output in
-  let e=Engine.create config {
-    clock=input "clk" 1;clear=input "clear" 1;start=input "start" 1;
-    stop=input "stop" 1;clear_fault=input "clear_fault" 1;
-    instruction=input "instruction" 32;image_length=input "image_length" 24;
-    ownership=input "ownership" 8;pins=input "pins" 8;timestamp=input "timestamp" 32;
-    tx_valid=input "tx_valid" 1;tx_data=input "tx_data" config.Config.data_width;
-    rx_ready=input "rx_ready" 1;event=input "event_pending" 1} in
+  let output=Signal.output in
+  let e=Engine.create config (Engine.I.ports config) in
   let sim=Cyclesim.create (Circuit.create_exn ~name:"actual_next_pc_test"
     [output "pc" e.pc;output "next_pc" (Engine.next_pc e);output "issue" e.issue]) in
   let set name width value=Cyclesim.in_port sim name := Bits.of_int ~width value in
@@ -136,58 +135,58 @@ let processor_test config =
         if tick ui land 16=0 then accept (left-1) in
       accept 100
     done;ignore(tick (window lsl 6)) in
-  let command op payload=write 0 (instruction op payload) in
+  let command op payload=write 0 (host_word op payload) in
   let load engine owner words =
-    command 0 engine;command 1 0;command 3 owner;
-    List.iter (write 1) words;command 2 (List.length words) in
+    command Select engine;command Begin 0;command Own owner;
+    List.iter (write 1) words;command Commit (List.length words) in
   set "rst_n" 1 0;set "ena" 1 1;set "uio_in" 8 0;idle 2;
   set "rst_n" 1 1;idle 2;
-  load 0 3 [instruction 2 1;instruction 3 3;instruction 6 0;
-    instruction 18 (1 lsl 16);instruction 7 0;instruction 10 2;
-    instruction 4 2;instruction 11 6;instruction 19 (2 lsl 16);
-    instruction 26 ((2 lsl 16) lor 11);instruction 29 99;instruction 12 255;
-    instruction 13 ((7 lsl 16) lor (1 lsl 8));instruction 15 0;
-    instruction 2 0;instruction 16 ((1 lsl 3) lor (7 lsl 6));
-    (if config.Config.issue="fused" then instruction 17 ((4 lsl 16) lor (2 lsl 8) lor 24) else 0);
-    instruction 7 0;instruction 1 0];
-  load 1 4 [instruction 6 0;instruction 18 (1 lsl 16);instruction 7 0;
-    instruction 2 4;instruction 3 4;instruction 15 0;instruction 1 0];
-  load 2 8 [instruction 3 8;instruction 2 8;instruction 4 1;
-    instruction 2 0;instruction 4 2;instruction 5 1];
+  load 0 3 [instruction Set 1;instruction Dir 3;instruction Pull 0;
+    instruction Mov (1 lsl 16);instruction Push 0;instruction Count 2;
+    instruction Wait 2;instruction Loop 6;instruction Load (2 lsl 16);
+    instruction Jz ((2 lsl 16) lor 11);instruction Fault 99;instruction Limit 255;
+    instruction Waitpin ((7 lsl 16) lor (1 lsl 8));instruction Waitevent 0;
+    instruction Set 0;instruction Pins ((1 lsl 3) lor (7 lsl 6));
+    (if Issue.equal config.Config.issue Fused then instruction Xfer ((4 lsl 16) lor (2 lsl 8) lor 24) else 0);
+    instruction Push 0;instruction Halt 0];
+  load 1 4 [instruction Pull 0;instruction Mov (1 lsl 16);instruction Push 0;
+    instruction Set 4;instruction Dir 4;instruction Waitevent 0;instruction Halt 0];
+  load 2 8 [instruction Dir 8;instruction Set 8;instruction Wait 1;
+    instruction Set 0;instruction Wait 2;instruction Jmp 1];
   load 3 16 (List.init 64 (fun index ->
-    if index=0 then instruction 5 63 else if index=63 then instruction 1 0 else instruction 29 77));
-  command 6 ((1 lsl 2) lor (1 lsl 4) lor (1 lsl 5));command 4 15;idle 20;
+    if index=0 then instruction Jmp 63 else if index=63 then instruction Halt 0 else instruction Fault 77));
+  command Route ((1 lsl 2) lor (1 lsl 4) lor (1 lsl 5));command Start 15;idle 20;
   check "other engines run while PULL stalls and address63 halts"
     (get "dbg_running"=7 && get "uo_out" land 128=0);
-  command 0 0;write 2 0xa5;idle 15;
-  set "uio_in" 8 128;idle 5;command 9 3;idle 60;
+  command Select 0;write 2 0xa5;idle 15;
+  set "uio_in" 8 128;idle 5;command Event 3;idle 60;
   check "branches, waits and fused transfer complete without fault"
     (get "uo_out" land 128=0 && get "dbg_running"=4);
   (* Reload a halted engine while the independent pin generator keeps running. *)
-  load 3 16 [instruction 19 ((1 lsl 16) lor 0x55aa);instruction 7 0;instruction 5 3];
-  command 4 8;idle 15;
+  load 3 16 [instruction Load ((1 lsl 16) lor 0x55aa);instruction Push 0;instruction Jmp 3];
+  command Start 8;idle 15;
   check "out-of-image next address faults after committed words"
     (get "uo_out" land 128<>0 && get "dbg_running"=4);
-  command 7 8;
-  load 3 16 [instruction 19 ((1 lsl 16) lor 0x1234);instruction 7 (1 lsl 16);instruction 5 1];
-  command 4 8;idle (config.fifo_words*3+10);
+  command Clear 8;
+  load 3 16 [instruction Load ((1 lsl 16) lor 0x1234);instruction Push (1 lsl 16);instruction Jmp 1];
+  command Start 8;idle (config.fifo_words*3+10);
   check "strict overflow preserves trapping behavior" (get "uo_out" land 128<>0 && get "dbg_running"=4);
-  command 7 8;command 10 0;
-  load 3 16 [instruction 12 3;instruction 13 (7 lsl 16)];command 4 8;idle 10;
+  command Clear 8;command Flush 0;
+  load 3 16 [instruction Limit 3;instruction Waitpin (7 lsl 16)];command Start 8;idle 10;
   check "bounded WAITPIN preserves timeout fault" (get "uo_out" land 128<>0 && get "dbg_running"=4);
-  command 7 8;
-  load 3 16 [instruction 3 16;instruction 16 4;
-    (if config.issue="fused" then instruction 17 ((8 lsl 16) lor (31 lsl 8) lor 16)
-     else instruction 4 1000);instruction 5 2];
-  command 4 8;idle 8;command 5 8;idle 3;
+  command Clear 8;
+  load 3 16 [instruction Dir 16;instruction Pins 4;
+    (if Issue.equal config.issue Fused then instruction Xfer ((8 lsl 16) lor (31 lsl 8) lor 16)
+     else instruction Wait 1000);instruction Jmp 2];
+  command Start 8;idle 8;command Stop 8;idle 3;
   check "STOP interrupts committed transfer or timer without advancing it"
     (get "dbg_running"=4 && get "uo_out" land 128=0);
-  command 4 8;idle 8;
+  command Start 8;idle 8;
   check "START restarts word0 after an interrupted timed operation" (get "dbg_running"=12);
   (* Abort loading/running through reset, then a fresh START must fetch word0. *)
   set "rst_n" 1 0;idle 2;set "rst_n" 1 1;idle 3;
   check "reset discards commits and releases outputs" (get "dbg_image_valid"=0 && get "uio_oe"=0);
-  load 0 1 [instruction 2 1;instruction 3 1;instruction 5 2];command 4 1;idle 5;
+  load 0 1 [instruction Set 1;instruction Dir 1;instruction Jmp 2];command Start 1;idle 5;
   check "fresh load after reset executes word0" (get "uio_oe"=1 && get "uio_out"=1);
   set "ena" 1 0;idle 2;
   check "deselection clears exposed state" (get "dbg_running"=0 && get "uio_oe"=0);
@@ -197,6 +196,6 @@ let () =
   configuration_test ();adapter_test ();
   let configs=List.concat_map (fun data_width -> List.concat_map (fun issue ->
     List.map (fun fifo_words -> {Config.default with data_width;issue;fifo_words}) [8;32])
-    ["scalar";"fused"]) [16;32] in
+    [Issue.Scalar;Fused]) [16;32] in
   let cycles=List.fold_left (fun total config -> next_pc_test config;total+processor_test config) 0 configs in
   Printf.printf "Instruction SRAM Cyclesim: closed config, adapter timing, 32000 actual PC transitions and %d complete-processor cycle comparisons across 8 refinements passed.\n" cycles

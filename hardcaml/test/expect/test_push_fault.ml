@@ -10,11 +10,11 @@ let program ~strict =
   let owned = 0b0000_0001 in
   let i = instruction ~owned in
   ( owned
-  , [ i ~imm:owned "SET"
-    ; i ~imm:owned "DIR"
-    ; i ~a:1 ~imm:0x42 "LOAD" (* rx := 0x42 *)
-    ; i ~a:(if strict then 1 else 0) "PUSH"
-    ; i ~imm:3 "JMP"
+  , [ i ~imm:owned Set
+    ; i ~imm:owned Dir
+    ; i ~a:1 ~imm:0x42 Load (* rx := 0x42 *)
+    ; i ~a:(if strict then 1 else 0) Push
+    ; i ~imm:3 Jmp
     ] )
 ;;
 

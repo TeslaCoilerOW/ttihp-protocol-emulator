@@ -151,7 +151,9 @@ SPI bytes, JTAG shifts, the waveform) is also certified as a chain of
   differ there get separate chunks.
 
 The intermediate states come from `rtl_trace` in `gen_cert.py`. It simulates
-`hardcaml/lib/engine.ml` cycle by cycle over the analyzer's abstract values.
+the engine RTL (`hardcaml/lib/engine.ml`; after `16cfc20` also
+`engine_transfer.ml`, `engine_datapath.ml` and `engine_decode.ml`) cycle by
+cycle over the analyzer's abstract values.
 It must reproduce the analyzer's issue slots and pad sets exactly, or the
 generator stops. For the 363 variants of the 19 images committed at
 `24f31f0` (18,790 steps) it does. This is a self-check of the generator only: it reuses the
@@ -640,9 +642,15 @@ from the `24f31f0` snapshot by job 24168782, certificates in job 24168801):
 | `rtl_od_oe_ungated` | `i2c-write` | 26 | 0 | none (not caught; section 5) |
 | `rtl_od_drive_high` | `i2c-write` | 26 | 0 | none (not pad-visible; expected) |
 
-Since `76a81f5`, `engine.ml` holds a second copy of the `XFER` tick update
-(the line unit's). `rtl_xfer_short_tick` mutates the design of record's copy
-(the one without a line unit).
+From `76a81f5` until `16cfc20`, `engine.ml` held a second copy of the
+classic `XFER` tick update (the one for engines with the line unit), and
+`rtl_xfer_short_tick` mutated the design of record's copy (the one without a
+line unit). After `16cfc20` the
+classic transfer body is built once, in `Engine_transfer.transfer`
+(`hardcaml/lib/engine_transfer.ml`), for engines with and without the line
+unit; `rtl_mutants.py` mutates it there and keeps the `engine.ml` sites as
+alternatives for older snapshots. For the design of record the mutated
+netlist is the same either way (it has no line unit).
 
 **Equivalence of the formal netlist with the committed top.**
 

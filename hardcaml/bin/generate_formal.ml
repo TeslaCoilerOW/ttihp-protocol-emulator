@@ -14,14 +14,7 @@ let fifo (config:Config.t) =
      output "data_out" f.data; output "level" f.level]
 
 let engine (config:Config.t) =
-  let e=Engine.create config {
-    clock=input "clk" 1; clear=input "clear" 1; start=input "start" 1;
-    stop=input "stop" 1; clear_fault=input "clear_fault" 1;
-    instruction=input "instruction" 32; image_length=input "image_length" 24;
-    ownership=input "ownership" 8; pins=input "pins" 8;
-    timestamp=input "timestamp" 32; tx_valid=input "tx_valid" 1;
-    tx_data=input "tx_data" config.data_width; rx_ready=input "rx_ready" 1;
-    event=input "event_pending" 1} in
+  let e=Engine.create config (Engine.I.ports config) in
   Circuit.create_exn ~name:"protocol_engine"
     [output "pc" e.pc; output "running" e.running; output "fault" e.fault;
      output "stalled" e.stalled; output "tx_pop" e.tx_pop;

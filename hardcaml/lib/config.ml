@@ -3,21 +3,24 @@ type t = {
   data_width : int;
   program_words : int;
   fifo_words : int;
-  issue : string;
+  issue : Issue.t;
   prefetch : bool;
 }
 
 let default = {engine_count=4; data_width=32; program_words=64;
-               fifo_words=8; issue="fused"; prefetch=false}
+               fifo_words=8; issue=Fused; prefetch=false}
 
-let validate t =
+let check_sizes ~engine_count ~data_width ~program_words ~fifo_words =
   let member name value choices =
     if not (List.mem value choices) then invalid_arg ("invalid " ^ name) in
-  member "engine_count" t.engine_count [2;4];
-  member "data_width" t.data_width [16;32];
-  member "program_words" t.program_words [32;64;128];
-  member "fifo_words" t.fifo_words [2;4;8;32];
-  if not (List.mem t.issue ["scalar";"fused"]) then invalid_arg "invalid issue";
+  member "engine_count" engine_count [2;4];
+  member "data_width" data_width [16;32];
+  member "program_words" program_words [32;64;128];
+  member "fifo_words" fifo_words [2;4;8;32]
+
+let validate t =
+  check_sizes ~engine_count:t.engine_count ~data_width:t.data_width
+    ~program_words:t.program_words ~fifo_words:t.fifo_words;
   t
 
 let of_json = function
@@ -32,9 +35,22 @@ let of_json = function
     let boolean k = match get k with `Bool b -> b | _ -> invalid_arg k in
     if string "schema_version" <> "protocol-emulator.architecture.v1"
     then invalid_arg "unsupported architecture schema";
-    validate {engine_count=integer "engine_count"; data_width=integer "data_width";
-              program_words=integer "program_words"; fifo_words=integer "fifo_words";
-              issue=string "issue"; prefetch=boolean "prefetch"}
+    (* The order of the checks decides which error a config with several bad
+       fields reports: the field types from prefetch back to engine_count
+       (up to 16cfc20 one record expression, which OCaml evaluates right to
+       left), then the sizes, then the issue name. *)
+    let prefetch = boolean "prefetch" in
+    let issue = string "issue" in
+    let fifo_words = integer "fifo_words" in
+    let program_words = integer "program_words" in
+    let data_width = integer "data_width" in
+    let engine_count = integer "engine_count" in
+    check_sizes ~engine_count ~data_width ~program_words ~fifo_words;
+    let issue =
+      match Issue.of_string issue with
+      | issue -> issue
+      | exception Invalid_argument _ -> invalid_arg "invalid issue" in
+    {engine_count; data_width; program_words; fifo_words; issue; prefetch}
   | _ -> invalid_arg "architecture must be an object"
 
 let load path = Yojson.Safe.from_file path |> of_json

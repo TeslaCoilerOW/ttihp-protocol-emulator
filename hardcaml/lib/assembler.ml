@@ -31,12 +31,16 @@ let identifier s =
   let good = function 'a'..'z'|'A'..'Z'|'_'|'0'..'9' -> true | _ -> false in
   let first = match s.[0] with '0'..'9' -> false | c -> good c in
   first && String.for_all good s
-let node ?label ?target i =
-  let base = ["mnemonic",`String i.Isa.mnemonic] in
+let node ?label ?target (i:Isa.instruction) =
+  let base = ["mnemonic",`String (Opcode.mnemonic i.op)] in
   let base=List.fold_left (fun xs (k,v) -> if v=0 then xs else xs@[k,`Int v]) base
     ["a",i.a;"b",i.b;"c",i.c;"imm",i.imm] in
   let base=match label with None -> base | Some s -> base@["label",`String s] in
   let base=match target with None -> base | Some s -> base@["target",`String s] in `Assoc base
+(* Branches: their immediate is a PC, so they may name a label as [target]. *)
+let takes_target mnemonic = match Opcode.of_mnemonic mnemonic with
+  | Some (Jmp | Loop | Jz) -> true
+  | Some _ | None -> false
 let assemble_target ~byte_lane_shifts ~line_unit ~source_bytes =
   let source=source_of_json (Yojson.Safe.from_string source_bytes) in
   let fields=List.map (Isa.object_fields "instruction" ["mnemonic";"a";"b";"c";"imm";"label";"target"]) source.instructions in
@@ -55,14 +59,22 @@ let assemble_target ~byte_lane_shifts ~line_unit ~source_bytes =
       | None -> i "imm"
       | Some j ->
         if List.mem_assoc "imm" f then fail "pc %d: target and imm are mutually exclusive" pc;
-        if not (List.mem mnemonic ["JMP";"LOOP";"JZ"]) then fail "pc %d: target is only legal for branches" pc;
+        if not (takes_target mnemonic) then fail "pc %d: target is only legal for branches" pc;
         let target=Isa.json_string "target" j in
         (match Hashtbl.find_opt seen target with Some n -> n | None -> fail "pc %d: undefined target %s" pc target) in
-    if List.mem mnemonic ["JMP";"LOOP";"JZ"] && (imm<0 || imm>=List.length fields) then fail "pc %d: branch leaves committed image" pc;
-    Isa.instruction ~a ~b ~c ~imm mnemonic) fields in
-  let words=List.mapi (fun pc i -> try Isa.encode ~byte_lane_shifts ~line_unit source.architecture ~owned_pins:source.owned_pins i
-      with Invalid_argument why -> fail "pc %d (%s): %s" pc i.mnemonic why) decoded in
-  {source;words;labels;decoded;source_sha256=sha256 source_bytes}
+    if takes_target mnemonic && (imm<0 || imm>=List.length fields) then fail "pc %d: branch leaves committed image" pc;
+    mnemonic,(a,b,c,imm)) fields in
+  (* Mnemonics are resolved here, after every label and target is checked,
+     so that an unknown mnemonic is reported with its pc like any other
+     operand error. *)
+  let encoded=List.mapi (fun pc (mnemonic,(a,b,c,imm)) ->
+      try
+        let op=match Opcode.of_mnemonic mnemonic with
+          | Some op -> op | None -> invalid_arg ("unknown mnemonic "^mnemonic) in
+        let i=Isa.instruction ~a ~b ~c ~imm op in
+        i,Isa.encode ~byte_lane_shifts ~line_unit source.architecture ~owned_pins:source.owned_pins i
+      with Invalid_argument why -> fail "pc %d (%s): %s" pc mnemonic why) decoded in
+  {source;words=List.map snd encoded;labels;decoded=List.map fst encoded;source_sha256=sha256 source_bytes}
 let assemble_with ~byte_lane_shifts ~source_bytes =
   assemble_target ~byte_lane_shifts ~line_unit:false ~source_bytes
 let assemble ~source_bytes = assemble_with ~byte_lane_shifts:false ~source_bytes

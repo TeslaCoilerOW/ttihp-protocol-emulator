@@ -39,14 +39,9 @@ let mutation =
 
 let make_sim () =
   let config = Config.default in
-  let input = Signal.input and output = Signal.output in
-  let e = Engine.create ~line:{Line_options.line_unit=Rec16} ?line_mutation:mutation config {
-    clock=input "clk" 1; clear=input "clear" 1; start=input "start" 1;
-    stop=input "stop" 1; clear_fault=input "clear_fault" 1;
-    instruction=input "instruction" 32; image_length=input "image_length" 24;
-    ownership=input "ownership" 8; pins=input "pins" 8; timestamp=input "timestamp" 32;
-    tx_valid=input "tx_valid" 1; tx_data=input "tx_data" config.data_width;
-    rx_ready=input "rx_ready" 1; event=input "event_pending" 1} in
+  let output = Signal.output in
+  let e = Engine.create ~line:{Line_options.line_unit=Rec16} ?line_mutation:mutation config
+      (Engine.I.ports config) in
   let circuit = Circuit.create_exn ~name:"ext_engine"
     [output "pc" e.pc; output "running" e.running; output "fault" e.fault;
      output "tx_pop" e.tx_pop; output "rx_push" e.rx_push; output "rx_data" e.rx_data;

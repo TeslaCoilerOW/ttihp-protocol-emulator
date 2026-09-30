@@ -189,44 +189,14 @@ let read_word t ~window =
   word
 ;;
 
-module Command = struct
-  type t =
-    | Select
-    | Begin
-    | Commit
-    | Own
-    | Start
-    | Stop
-    | Route
-    | Clear
-    | Read_select
-    | Event
-    | Flush
-    | Trigger
-  [@@deriving sexp_of]
-
-  let opcode = function
-    | Select -> 0
-    | Begin -> 1
-    | Commit -> 2
-    | Own -> 3
-    | Start -> 4
-    | Stop -> 5
-    | Route -> 6
-    | Clear -> 7
-    | Read_select -> 8
-    | Event -> 9
-    | Flush -> 10
-    | Trigger -> 11
-  ;;
-end
+module Command = Host_command
 
 let command t command payload =
-  write_word t ~window:0 ((Command.opcode command lsl 24) lor payload)
+  write_word t ~window:0 ((Command.to_int command lsl 24) lor payload)
 ;;
 
 let command_exn t command payload =
-  if not (write_word t ~window:0 ((Command.opcode command lsl 24) lor payload))
+  if not (write_word t ~window:0 ((Command.to_int command lsl 24) lor payload))
   then raise_s [%message "command rejected" (command : Command.t) (payload : int)]
 ;;
 
@@ -237,8 +207,8 @@ let read_status t index =
   read_word t ~window:0
 ;;
 
-let instruction ?a ?b ?c ?imm ~owned mnemonic =
-  Isa.encode Isa.flagship ~owned_pins:owned (Isa.instruction ?a ?b ?c ?imm mnemonic)
+let instruction ?a ?b ?c ?imm ~owned op =
+  Isa.encode Isa.flagship ~owned_pins:owned (Isa.instruction ?a ?b ?c ?imm op)
   |> Int32.to_int_exn
 ;;
 

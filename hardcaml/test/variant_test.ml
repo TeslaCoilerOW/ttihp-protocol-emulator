@@ -74,7 +74,7 @@ let architecture_json (c:Config.t) = `Assoc [
   "schema_version",`String "protocol-emulator.architecture.v1";
   "engine_count",`Int c.engine_count;"data_width",`Int c.data_width;
   "program_words",`Int c.program_words;"fifo_words",`Int c.fifo_words;
-  "issue",`String c.issue;"prefetch",`Bool c.prefetch]
+  "issue",`String (Issue.to_string c.issue);"prefetch",`Bool c.prefetch]
 let refinement_json ?options architecture = `Assoc ([
   "schema_version",`String "protocol-emulator.refinement.v1";
   "architecture",architecture;"implementation",`String Refinement_config.implementation]
@@ -187,13 +187,7 @@ let fifo_test ~depth kind =
 
 let next_pc_test ~options ~width =
   let config={Config.default with data_width=width} in
-  let e=Engine.create ~options config {
-    clock=input "clk" 1;clear=input "clear" 1;start=input "start" 1;
-    stop=input "stop" 1;clear_fault=input "clear_fault" 1;
-    instruction=input "instruction" 32;image_length=input "image_length" 24;
-    ownership=input "ownership" 8;pins=input "pins" 8;timestamp=input "timestamp" 32;
-    tx_valid=input "tx_valid" 1;tx_data=input "tx_data" width;
-    rx_ready=input "rx_ready" 1;event=input "event_pending" 1} in
+  let e=Engine.create ~options config (Engine.I.ports config) in
   let sim=Cyclesim.create (Circuit.create_exn ~name:"variant_next_pc"
     [output "pc" e.pc;output "next_pc" (Engine.next_pc e);output "issue" e.issue]) in
   let set name w v=Cyclesim.in_port sim name := Bits.of_int ~width:w v in

@@ -5,13 +5,14 @@ selects this class only for configurations with ``options.line_unit`` set
 (default off).
 
 Independence: this model implements the ISA contract, but it was written by
-the author of the RTL and follows the structure of ``hardcaml/lib/engine.ml``
-step for step (ticker, Manchester second half, boundary and mid-bit actions,
-stuffing counters). A misreading of the contract shared by both would pass the
-lockstep comparison. The tests' independent checks are the references of
-``test/line_support.py`` (published CRC check values, line encoders and
-decoders, the behavioural CAN node, USB host and Ethernet decoder) and the
-ticker timing formula of ``test/line_scenarios.py``.
+the author of the RTL and follows the structure of the RTL step for step
+(``hardcaml/lib/engine.ml`` until 16cfc20, ``engine_line.ml`` after it: ticker,
+Manchester second half, boundary and mid-bit actions, stuffing counters). A
+misreading of the contract shared by both would pass the lockstep comparison.
+The tests' independent checks are the references of ``test/line_support.py``
+(published CRC check values, line encoders and decoders, the behavioural CAN
+node, USB host and Ethernet decoder) and the ticker timing formula of
+``test/line_scenarios.py``.
 
 Per engine the unit adds (feature set ``rec16``):
 

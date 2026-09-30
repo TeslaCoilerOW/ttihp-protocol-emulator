@@ -40,13 +40,13 @@ let%expect_test "an 8-bit mode 0 transfer: 0xA5 out on MOSI, 0x3C in from MISO" 
     t
     ~engine:0
     ~owned
-    [ i ~imm:pins "PINS"
-    ; i ~imm:owned "DIR"
-    ; i "PULL"
-    ; i ~a:0 ~c:24 "SHL" (* the byte to tx[31:24], sent MSB first *)
-    ; i ~a:8 ~b:3 ~c:(msb_first lor drive lor sample) "XFER"
-    ; i ~a:0 "PUSH"
-    ; i "HALT"
+    [ i ~imm:pins Pins
+    ; i ~imm:owned Dir
+    ; i Pull
+    ; i ~a:0 ~c:24 Shl (* the byte to tx[31:24], sent MSB first *)
+    ; i ~a:8 ~b:3 ~c:(msb_first lor drive lor sample) Xfer
+    ; i ~a:0 Push
+    ; i Halt
     ];
   ignore (write_word t ~window:2 0xa5 : bool);
   command_exn t Command.Start 0b0001;
@@ -96,14 +96,14 @@ let%expect_test "SPI modes 0 to 3: 4 bits of 1010, half-period 2" =
       t
       ~engine:0
       ~owned
-      [ i ~imm:pins "PINS"
-      ; i ~imm:(cpol lsl sck) "SET" (* SCK at its idle level before DIR *)
-      ; i ~imm:owned "DIR"
-      ; i ~a:0 ~imm:0xa000 "LOAD"
-      ; i ~a:0 ~c:16 "SHL" (* tx = 0xA0000000 *)
-      ; i ~a:4 ~b:2 ~c:(msb_first lor drive lor cpol lor (cpha lsl 1)) "XFER"
-      ; i ~imm:2 "WAIT"
-      ; i "HALT"
+      [ i ~imm:pins Pins
+      ; i ~imm:(cpol lsl sck) Set (* SCK at its idle level before DIR *)
+      ; i ~imm:owned Dir
+      ; i ~a:0 ~imm:0xa000 Load
+      ; i ~a:0 ~c:16 Shl (* tx = 0xA0000000 *)
+      ; i ~a:4 ~b:2 ~c:(msb_first lor drive lor cpol lor (cpha lsl 1)) Xfer
+      ; i ~imm:2 Wait
+      ; i Halt
       ];
     command_exn t Command.Start 0b0001;
     let start = t.cycle + 4 in

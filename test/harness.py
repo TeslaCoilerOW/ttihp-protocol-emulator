@@ -71,7 +71,8 @@ class WarpUnsupported(RuntimeError):
 
 
 # Time warp (Harness.warp): the core registers that count with time, by the names
-# Hardcaml gives them (hardcaml/lib/engine.ml, processor.ml). The per-engine
+# Hardcaml gives them (hardcaml/lib/engine_datapath.ml, processor.ml; until
+# 16cfc20 engine.ml instead of engine_datapath.ml). The per-engine
 # families carry Hardcaml's de-duplication suffixes (<name>, <name>_0, _1, _2),
 # which do not follow the engine index; warp() only ever applies one delta to a
 # whole family, so it needs no engine map. Variants without debug counters have

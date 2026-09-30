@@ -146,7 +146,7 @@ Ethernet frame per session.
 |---|---|
 | `hardcaml/lib/line_options.ml` | The option (`"line_unit": "none" | "rec16"`), read from the refinement's `"options"` object like `Timing_options`; validation (fused issue, 32-bit datapath, not with `split_instruction_decode`); the capability bits |
 | `hardcaml/lib/line_unit.ml` | CRC presets and step function, and the seeded defects used by the negative controls |
-| `hardcaml/lib/engine.ml` | The unit, built only with the option (`?line`); `?line_mutation` is used only by the formal generator and `line_test.exe` |
+| `hardcaml/lib/engine_line.ml`, `engine_decode.ml`, `engine_transfer.ml`, `engine.ml` | The unit (`Engine_line`: its registers and its part of the datapath), its validity rules (`Engine_decode`) and the line mode of `XFER` (`Engine_transfer`), built by `Engine.create` only with the option (`?line`); `?line_mutation` is used only by the formal generator and `line_test.exe`. Until `16cfc20` all of this was in `engine.ml` |
 | `hardcaml/lib/processor.ml`, `refinement_config.ml`, `variant_options.ml` | Pass the option through; READ_SELECT 7; the debug export `dbg_queue_status_read` (LSTAT issue, formal only) |
 | `hardcaml/lib/isa.ml`, `assembler.ml`, `bin/assemble.ml` | LTIM, LCFG, CRC, LSTAT and the XFER line/CRC bits, for targets with the option |
 | `hardcaml/test/line_fw.ml`, `line_test.ml`, `line_sys_test.ml` | Engine-level and whole-chip checks ported from the study (executables). Since `4c0753c`, `dune test` also runs `line_test`; `line_sys_test` takes a config and is run separately (`hardcaml/test/README.md`) |
@@ -204,8 +204,9 @@ cocotb 2.0.1 and Icarus Verilog 13.0, the CI versions. The harness compares
 after every edge.
 
 The lockstep model is not independent of the RTL: it implements the contract
-of [isa.md](isa.md) but was written together with the RTL and follows
-`engine.ml`'s structure step for step, so a misreading of the contract that
+of [isa.md](isa.md) but was written together with the RTL and follows the
+RTL's structure step for step (`engine.ml` until `16cfc20`, `engine_line.ml`
+after it), so a misreading of the contract that
 both share would not show up as a mismatch. The independent checks are the
 published CRC check values and the references in `test/line_support.py`
 (line encoders and decoders, the behavioural CAN node, the USB low-speed host

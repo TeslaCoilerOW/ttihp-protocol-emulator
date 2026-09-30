@@ -34,7 +34,7 @@ output and the new one. If the change is intended, accept it with
 | Test | Checks |
 |------|--------|
 | `smoke.ml` | Host loading, an event, an autonomous mover transfer and deselection, in Cyclesim, for six architectures |
-| `assembler_test.ml` | Assembler and `Firmware` images, byte-lane and FIFO-depth variants, and rejection of invalid images |
+| `assembler_test.ml` | Assembler and `Firmware` images, byte-lane and FIFO-depth variants, rejection of invalid images, and the `Opcode`, `Host_command` and `Issue` tables |
 | `isa2_test.ml` | Strict and blocking `PUSH`, stalls, RX and version status, the four trigger modes |
 | `instruction_sram_test.ml` | The SRAM refinement: config validation, adapter timing, next-PC prediction, and cycle-by-cycle comparison against the register-store processor |
 | `instruction_sram_formal_test.ml`, `payload_sram_test.ml` | The formal wrappers and the payload SRAM model |
@@ -82,4 +82,5 @@ of the SRAM macro instances, which Cyclesim cannot simulate.
 `expect/harness.ml` drives the processor's own port wires from typed
 `[@@deriving hardcaml]` interfaces and provides host-port helpers (`command`,
 `load`, `read_status`) that follow the sequences in `docs/info.md`.
-Instructions are encoded by `Isa.encode` from their mnemonics.
+Instructions are encoded by `Isa.encode` from `Opcode.t` values, and host
+commands are `Host_command.t` values.

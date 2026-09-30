@@ -1,4 +1,9 @@
+; ppx_jane is in hardcaml's own dependency closure (scripts/opam-deps.txt), so
+; the derivers below add no package to the generator's pinned set. The
+; library uses [@@deriving compare, enumerate, equal, sexp_of] only.
 (library
  (name protocol_processor)
  (wrapped false)
- (libraries hardcaml yojson digestif))
+ (libraries hardcaml yojson digestif)
+ (preprocess
+  (pps ppx_jane)))

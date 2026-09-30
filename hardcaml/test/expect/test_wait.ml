@@ -22,17 +22,17 @@ let%expect_test "WAIT n: pin 0 toggles by SET with WAIT 0, 1, 2 and 3 in between
     t
     ~engine:0
     ~owned
-    [ i ~imm:owned "DIR"
-    ; i ~imm:1 "SET"
-    ; i ~imm:0 "WAIT"
-    ; i ~imm:0 "SET"
-    ; i ~imm:1 "WAIT"
-    ; i ~imm:1 "SET"
-    ; i ~imm:2 "WAIT"
-    ; i ~imm:0 "SET"
-    ; i ~imm:3 "WAIT"
-    ; i ~imm:1 "SET"
-    ; i "HALT"
+    [ i ~imm:owned Dir
+    ; i ~imm:1 Set
+    ; i ~imm:0 Wait
+    ; i ~imm:0 Set
+    ; i ~imm:1 Wait
+    ; i ~imm:1 Set
+    ; i ~imm:2 Wait
+    ; i ~imm:0 Set
+    ; i ~imm:3 Wait
+    ; i ~imm:1 Set
+    ; i Halt
     ];
   command_exn t Command.Start 0b0001;
   let start = t.cycle - 1 in
@@ -58,7 +58,7 @@ let%expect_test "WAIT n: pin 0 toggles by SET with WAIT 0, 1, 2 and 3 in between
 
 let waitpin_program () =
   let i = instruction ~owned:0 in
-  [ i ~imm:6 "LIMIT"; i ~a:1 ~b:1 "WAITPIN" (* until pin 1 is high *); i "HALT" ]
+  [ i ~imm:6 Limit; i ~a:1 ~b:1 Waitpin (* until pin 1 is high *); i Halt ]
 ;;
 
 let status word =

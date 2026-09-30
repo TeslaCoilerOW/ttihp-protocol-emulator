@@ -72,24 +72,7 @@ val write_word : t -> window:int -> int -> bool
 val read_word : t -> window:int -> int
 
 (** Host commands (docs/info.md, "Commands"). *)
-module Command : sig
-  type t =
-    | Select
-    | Begin
-    | Commit
-    | Own
-    | Start
-    | Stop
-    | Route
-    | Clear
-    | Read_select
-    | Event
-    | Flush
-    | Trigger
-  [@@deriving sexp_of]
-
-  val opcode : t -> int
-end
+module Command = Host_command
 
 val command : t -> Command.t -> int -> bool
 val command_exn : t -> Command.t -> int -> unit
@@ -99,7 +82,7 @@ val read_status : t -> int -> int
 
 (** One instruction word, encoded by [Isa.encode] for the flagship
     architecture. *)
-val instruction : ?a:int -> ?b:int -> ?c:int -> ?imm:int -> owned:int -> string -> int
+val instruction : ?a:int -> ?b:int -> ?c:int -> ?imm:int -> owned:int -> Opcode.t -> int
 
 (** SELECT, BEGIN, the words in window 1, OWN, COMMIT (docs/info.md,
     "Loading and starting"). *)

@@ -5,7 +5,10 @@
 # formal.yaml, certs.yaml, gds_6x4.yaml), which also key their opam cache on
 # this file; opam resolves the transitive closure. The generator's only direct
 # libraries (hardcaml/lib, hardcaml/bin) are hardcaml, yojson and digestif, and
-# it uses no ppx. The committed RTL was produced by a switch that also had
+# hardcaml/lib uses the ppx_jane derivers (compare, enumerate, equal,
+# sexp_of). ppx_jane needs no line here: hardcaml.v0.17.0 depends on it
+# directly, so every switch with hardcaml has it. The committed RTL was
+# produced by a switch that also had
 # (among 81 packages) base v0.17.3, core v0.17.2, ppxlib 0.35.0, zarith 1.14
 # and ppx_jane v0.17.0; pin those here if a CI regeneration ever diverges from
 # a local one.

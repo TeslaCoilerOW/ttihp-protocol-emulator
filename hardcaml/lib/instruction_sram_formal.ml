@@ -21,13 +21,11 @@ let adapter_impl ~model () =
 
 let engine_impl ~model (refinement:Refinement_config.t) =
   let config=refinement.architecture in
-  let clock=input "clk" 1 and clear=input "clear" 1 and instruction=wire 32 in
-  let e=Engine.create ~options:refinement.options ~timing:refinement.timing config {
-    clock;clear;instruction;start=input "start" 1;stop=input "stop" 1;
-    clear_fault=input "clear_fault" 1;image_length=input "image_length" 24;
-    ownership=input "ownership" 8;pins=input "pins" 8;timestamp=input "timestamp" 32;
-    tx_valid=input "tx_valid" 1;tx_data=input "tx_data" config.data_width;
-    rx_ready=input "rx_ready" 1;event=input "event_pending" 1} in
+  (* The engine's ports, except that the instruction comes from the memory. *)
+  let ports=Engine.I.ports config and instruction=wire 32 in
+  let clock=ports.clock and clear=ports.clear in
+  let e=Engine.create ~options:refinement.options ~timing:refinement.timing config
+      {ports with instruction} in
   let next_pc=Engine.next_pc e in
   let m=memory ~model ~engine_index:0 {
     clock;clear;next_pc;write=input "write" 1;

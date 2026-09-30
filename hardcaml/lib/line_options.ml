@@ -35,7 +35,7 @@ let to_json_fields t =
 
 let validate (architecture : Config.t) (timing : Timing_options.t) t =
   if enabled t then begin
-    if architecture.issue <> "fused" then invalid_arg "options.line_unit needs issue=fused (line XFERs)";
+    if not (Issue.equal architecture.issue Fused) then invalid_arg "options.line_unit needs issue=fused (line XFERs)";
     if architecture.data_width <> 32 then invalid_arg "options.line_unit needs data_width 32 (LSTAT)";
     if timing.Timing_options.split_instruction_decode then
       invalid_arg "options.line_unit cannot be combined with split_instruction_decode"

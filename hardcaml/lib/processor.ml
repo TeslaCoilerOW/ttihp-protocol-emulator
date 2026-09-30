@@ -123,33 +123,34 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default)
   let own=select payload 7 0 and drain=select payload 15 8 in
   let overlap = any (List.init n (fun k -> (~:(selected_is k))
       &: ((owners.(k).value &: own) <>:. 0))) in
-  let valid_rule command = match command with
-    | 0 -> payload <:. n
-    | 1 -> payload ==:. 0
-    | 2 -> halted &: selected_var writing &: (payload <>:. 0) &: (payload <=:. config.program_words)
+  (* Acceptance rule of each host command (docs/info.md, "Commands"). *)
+  let valid_rule : Host_command.t -> Signal.t = function
+    | Select -> payload <:. n
+    | Begin -> payload ==:. 0
+    | Commit -> halted &: selected_var writing &: (payload <>:. 0) &: (payload <=:. config.program_words)
            &: (if options.narrow_image_regs
                then uresize payload 16 ==: uresize (selected_var loaded) 16
                else uresize payload 16 ==: selected_var loaded)
-    | 3 -> halted &: (select payload 23 16 ==:. 0) &: ~:overlap
+    | Own -> halted &: (select payload 23 16 ==:. 0) &: ~:overlap
            &: ((drain &: ~:own) ==:. 0)
-    | 4 -> mask_ok &: all (List.init n (fun k -> (~:(bit payload k))
+    | Start -> mask_ok &: all (List.init n (fun k -> (~:(bit payload k))
              |: (committed.(k).value &: (engines.(k).fault ==:. 0))))
-    | 5|9 -> mask_ok
-    | 6 -> (select payload 23 21 ==:. 0)
+    | Stop | Event -> mask_ok
+    | Route -> (select payload 23 21 ==:. 0)
            &: (if n=4 then vdd else (select payload 1 0 <:. n) &: (select payload 3 2 <:. n))
-    | 7 -> (select payload 22 n ==:. 0)
+    | Clear -> (select payload 22 n ==:. 0)
            &: ((low_engine_mask &: active_engine_mask) ==:. 0)
-    | 8 -> payload <:. 8
-    | 10 -> halted &: (payload ==:. 0)
-    | 11 -> halted &: (select payload 23 6 ==:. 0)
-    | _ -> gnd in
+    | Read_select -> payload <:. 8
+    | Flush -> halted &: (payload ==:. 0)
+    | Trigger -> halted &: (select payload 23 6 ==:. 0) in
   let split = timing.Timing_options.split_command_decode in
-  let cmd_valid, command_write, accepted, command =
+  let cmd_valid, command_write, accepted, (command : Host_command.t -> Signal.t) =
     if not split then
-      let cmd_valid = mux code (List.init 256 valid_rule) in
+      let cmd_valid = mux code (List.init 256 (fun c ->
+          match Host_command.of_int c with Some command -> valid_rule command | None -> gnd)) in
       let command_write = host.write &: (host.window ==:. 0) in
       let accepted = command_write &: cmd_valid in
-      let command c = accepted &: (code ==:. c) in
+      let command c = accepted &: (code ==:. Host_command.to_int c) in
       cmd_valid, command_write, accepted, command
     else
       (* Timing knob split_command_decode. Codes 12..255 are invalid, so the
@@ -159,12 +160,13 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default)
          read only registers and the buffered payload. Window 0's write-ready
          term is constant 1, so its strobe is the raw last-nibble strobe. *)
       let code_is c = (select code 7 4 ==:. (c lsr 4)) &: (select code 3 0 ==:. (c land 15)) in
-      let hits = Array.init 12 (fun c -> code_is c &: valid_rule c) in
+      let hits = Array.of_list (List.map (fun command ->
+          code_is (Host_command.to_int command) &: valid_rule command) Host_command.all) in
       let cmd_valid = List.fold_left ( |: ) gnd (Array.to_list hits) in
       let command_write = host.last_nibble_strobe &: (host.window ==:. 0) in
       let accepted = command_write &: cmd_valid in
       let commands = Array.map (fun hit -> command_write &: hit) hits in
-      let command c = commands.(c) in
+      let command c = commands.(Host_command.to_int c) in
       cmd_valid, command_write, accepted, command in
   let program_write, host_tx =
     if not split then
@@ -202,24 +204,21 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default)
   read_data <== mux2 (host.window ==:. 3)
       (uresize (selected_fifo rxs (fun (f:Processor_fifo.t)->f.data)) 32) status_data;
   Array.iteri (fun k _ ->
-    starts.(k) <== (command 4 &: bit payload k);
-    stops.(k) <== ((command 5 &: bit payload k) |: (command 1 &: selected_is k));
-    clears.(k) <== (command 7 &: bit payload k);
-    flushes.(k) <== (command 10 &: selected_is k);
+    starts.(k) <== (command Start &: bit payload k);
+    stops.(k) <== ((command Stop &: bit payload k) |: (command Begin &: selected_is k));
+    clears.(k) <== (command Clear &: bit payload k);
+    flushes.(k) <== (command Flush &: selected_is k);
     let pc=engines.(k).pc in
     let address_width=Config.log2 config.program_words in
     let wp={Write_port.write_clock=clock; write_address=uresize loaded.(k).value address_width;
             write_enable=program_write &: selected_is k &: ~:clear; write_data=host.word} in
+    let sram create =
+      (create ~engine_index:k
+         {Instruction_sram.clock;clear;write=wp.write_enable;write_address=wp.write_address;
+          write_data=wp.write_data;next_pc=Engine.next_pc engines.(k)}).Instruction_sram.instruction in
     let instruction=match memory_backend with
-      | Ihp_pair | Synchronous_model ->
-        let inputs:Instruction_sram.inputs =
-          {clock;clear;write=wp.write_enable;write_address=wp.write_address;
-           write_data=wp.write_data;next_pc=Engine.next_pc engines.(k)} in
-        let adapter=match memory_backend with
-          | Ihp_pair -> Instruction_sram.create ~engine_index:k inputs
-          | Synchronous_model -> Instruction_sram.create_model ~engine_index:k inputs
-          | Baseline -> assert false in
-        adapter.instruction
+      | Ihp_pair -> sram Instruction_sram.create
+      | Synchronous_model -> sram Instruction_sram.create_model
       | Baseline -> if config.prefetch then (
       let next=pc +:. 1 in
       let reads=multiport_memory config.program_words ~write_ports:[|wp|]
@@ -236,8 +235,8 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default)
     let destination_ready=mux_arr dest (fun (f:Processor_fifo.t)->f.ready) txs in
     let host_destination=host_tx &: (selected.value ==: dest) in
     let read_reserved=host.read_lock &: selected_is k in
-    let route_edit=command 6 &: (select payload 1 0 ==:. k) in
-    let flushing=(command 10) &: ((selected_is k) |: (selected.value ==: dest)) in
+    let route_edit=command Route &: (select payload 1 0 ==:. k) in
+    let flushing=(command Flush) &: ((selected_is k) |: (selected.value ==: dest)) in
     if not split then
     (route_count.(k).value <>:. 0) &: rxs.(k).valid &: destination_ready
     &: ~:host_destination &: ~:read_reserved &: ~:route_edit &: ~:flushing &: ~:gate
@@ -292,31 +291,31 @@ let create_with_memory ?(debug=false) ?(options=Variant_options.default)
     let pin_before=mux trigger_pin (List.init 8 (bit previous_pins)) in
     let condition=mux (select trigger 4 3)
         [pin_now &: ~:pin_before; ~:pin_now &: pin_before; pin_now; ~:pin_now] in
-    let external_event=bit trigger 5 &: condition &: ~:(command 11 &: is_selected) &: ~:gate in
+    let external_event=bit trigger 5 &: condition &: ~:(command Trigger &: is_selected) &: ~:gate in
     pin_deliveries.(k) <- external_event;
-    let delivered= external_event |: (command 9 &: bit payload k) |:
+    let delivered= external_event |: (command Event &: bit payload k) |:
       any (Array.to_list (Array.map (fun (e:Engine.t)->bit e.signal_events k) engines)) in
     deliveries.(k) <- delivered;
-    [when_ (command 1 &: is_selected)
+    [when_ (command Begin &: is_selected)
        [committed.(k) <--. 0; writing.(k) <--. 1; loaded.(k) <--. 0; lengths.(k) <--. 0];
      when_ (program_write &: is_selected) [loaded.(k) <-- step (loaded.(k).value +:. 1)];
-     when_ (command 2 &: is_selected)
+     when_ (command Commit &: is_selected)
        [committed.(k) <--. 1; writing.(k) <--. 0; lengths.(k) <-- select payload (iw-1) 0];
-     when_ (command 3 &: is_selected) [owners.(k) <-- own; drains.(k) <-- drain];
-     when_ (command 11 &: is_selected) [trigger_config.(k) <-- select payload 5 0];
+     when_ (command Own &: is_selected) [owners.(k) <-- own; drains.(k) <-- drain];
+     when_ (command Trigger &: is_selected) [trigger_config.(k) <-- select payload 5 0];
      when_ engines.(k).consume_event [events.(k) <--. 0];
      when_ delivered [events.(k) <--. 1];
      when_ grants.(k) [route_count.(k) <-- step (route_count.(k).value -:. 1)];
-     when_ (command 6 &: (select payload 1 0 ==:. k))
+     when_ (command Route &: (select payload 1 0 ==:. k))
        [route_dest.(k) <-- select payload 3 2;
         route_count.(k) <-- mux2 (bit payload 4) (select payload 20 5) (zero 16)];
-     when_ (command 10 &: (is_selected |: (selected.value ==: route_dest.(k).value)))
+     when_ (command Flush &: (is_selected |: (selected.value ==: route_dest.(k).value)))
        [route_count.(k) <--. 0]])) in
   compile ([timestamp <-- timestamp.value +:. 1;
             when_ (command_write &: ~:cmd_valid) [host_fault <--. 1];
-            when_ (command 7 &: bit payload 23) [host_fault <--. 0];
-            when_ (command 0) [selected <-- select payload 1 0];
-            when_ (command 8) [read_select <-- select payload 2 0];
+            when_ (command Clear &: bit payload 23) [host_fault <--. 0];
+            when_ (command Select) [selected <-- select payload 1 0];
+            when_ (command Read_select) [read_select <-- select payload 2 0];
             when_ grant_valid [rr <-- grant_index +:. 1]] @ control_updates);
   let out=List.fold_left ( |: ) (zero 8) (List.init n (fun k ->
     let e=engines.(k) in

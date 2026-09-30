@@ -1,19 +1,13 @@
 open Hardcaml
 
 let check message condition = if not condition then failwith message
-let instruction op immediate = (op lsl 24) lor immediate
-let input = Signal.input
+let instruction (op:Opcode.t) immediate = (Opcode.to_int op lsl 24) lor immediate
+let host_word (command:Host_command.t) payload = (Host_command.to_int command lsl 24) lor payload
 let output = Signal.output
 
 let engine_test width =
   let config={Config.default with data_width=width} in
-  let e=Engine.create config {
-    clock=input "clk" 1;clear=input "clear" 1;start=input "start" 1;
-    stop=input "stop" 1;clear_fault=input "clear_fault" 1;
-    instruction=input "instruction" 32;image_length=input "image_length" 24;
-    ownership=input "ownership" 8;pins=input "pins" 8;timestamp=input "timestamp" 32;
-    tx_valid=input "tx_valid" 1;tx_data=input "tx_data" width;
-    rx_ready=input "rx_ready" 1;event=input "event_pending" 1} in
+  let e=Engine.create config (Engine.I.ports config) in
   let circuit=Circuit.create_exn ~name:"strict_push_test"
     [output "pc" e.pc;output "running" e.running;output "fault" e.fault;
      output "stalled" e.stalled;output "rx_push" e.rx_push;output "rx_data" e.rx_data;
@@ -32,9 +26,9 @@ let engine_test width =
     set "clear" 1 1;ignore(tick 0 0);set "clear" 1 0;
     set "ownership" 8 1;set "image_length" 24 16;
     set "start" 1 1;ignore(tick 0 0);set "start" 1 0;
-    ignore(tick (instruction 19 ((1 lsl 16) lor 0xbeef)) 0);
-    ignore(tick (instruction 3 1) 0);
-    ignore(tick (instruction 2 1) 0);
+    ignore(tick (instruction Load ((1 lsl 16) lor 0xbeef)) 0);
+    ignore(tick (instruction Dir 1) 0);
+    ignore(tick (instruction Set 1) 0);
     check "push setup" (get "pc"=3 && get "completed"=3 && get "enables"=1) in
   start ();
   check "strict full neither accepts nor stalls" (tick 0x07010000 0=(0,0));
@@ -80,10 +74,10 @@ let processor_test config =
         if tick ui land 16=0 then accept (left-1) in
       accept 100
     done;ignore(tick (window lsl 6)) in
-  let command op payload=write 0 (instruction op payload) in
+  let command op payload=write 0 (host_word op payload) in
   let load engine words =
-    command 0 engine;command 1 0;command 3 0;
-    List.iter (write 1) words;command 2 (List.length words) in
+    command Select engine;command Begin 0;command Own 0;
+    List.iter (write 1) words;command Commit (List.length words) in
   let read_status () =
     enter 1;enter 0;
     let value=ref 0 in
@@ -95,19 +89,19 @@ let processor_test config =
         else value:= !value lor ((sample land 15) lsl (4*nibble)) in
       take 100
     done;!value in
-  let status selection=command 8 selection;read_status () in
+  let status selection=command Read_select selection;read_status () in
   reset 0;
-  load 0 [instruction 19 ((1 lsl 16) lor 65535);instruction 24 ((1 lsl 16) lor 1);instruction 1 0];
-  command 4 1;idle 4;
+  load 0 [instruction Load ((1 lsl 16) lor 65535);instruction Shl ((1 lsl 16) lor 1);instruction Halt 0];
+  command Start 1;idle 4;
   check "RX inspection zero extends configured datapath" (status 6=(if config.Config.data_width=16 then 65534 else 131070));
   check "ISA version register" (status 7=2);
-  command 8 8;
+  command Read_select 8;
   check "invalid READ_SELECT reports host fault" (get "uo_out" land 128<>0);
   check "invalid READ_SELECT preserves selection" (read_status ()=2);
   (* All trigger modes observe pins without owning outputs, and run while halted. *)
   List.iter (fun mode ->
     let initial=if mode=1 || mode=3 then 1 else 0 in
-    reset initial;command 11 (32 lor (mode lsl 3));
+    reset initial;command Trigger (32 lor (mode lsl 3));
     check "inactive configured trigger" (get "dbg_events"=0 && get "dbg_running"=0);
     set "uio_in" 8 (1-initial);
     ignore(tick 0);check "trigger waits for synchronizer first edge" (get "dbg_events"=0);
@@ -116,23 +110,23 @@ let processor_test config =
     check "halted trigger raises IRQ without pin ownership" (get "uo_out" land 64<>0 && get "uio_oe"=0))
     [0;1;2;3];
   (* Suppress only the selected old trigger exactly on accepted configuration. *)
-  reset 0;command 11 32;command 0 1;command 11 32;command 0 0;
-  write ~on_nibble:(fun nibble -> if nibble=5 then set "uio_in" 8 1) 0 (instruction 11 0);
+  reset 0;command Trigger 32;command Select 1;command Trigger 32;command Select 0;
+  write ~on_nibble:(fun nibble -> if nibble=5 then set "uio_in" 8 1) 0 (host_word Trigger 0);
   check "configuration edge suppresses selected old trigger only" (get "dbg_events"=2);
-  command 11 32;idle 4;
+  command Trigger 32;idle 4;
   check "enabling at static high does not synthesize rising edge" (get "dbg_events"=2);
   set "uio_in" 8 0;idle 4;set "uio_in" 8 1;idle 4;
   check "fresh edge delivered after configuration" (get "dbg_events"=3);
   (* Level delivery wins event consumption, and invalid running writes are atomic. *)
-  reset 0;load 0 [instruction 15 0;instruction 5 0];command 11 48;command 4 1;
+  reset 0;load 0 [instruction Waitevent 0;instruction Jmp 0];command Trigger 48;command Start 1;
   set "uio_in" 8 1;idle 5;
   check "level event consumption keeps pending delivery" (get "dbg_events"=1 && get "dbg_running"=1);
-  command 11 0;
+  command Trigger 0;
   check "running trigger edit is rejected atomically"
     (get "uo_out" land 128<>0 && get "dbg_trigger_config" land 63=48);
-  command 5 1;idle 3;
+  command Stop 1;idle 3;
   check "STOP does not disable trigger observer" (get "dbg_running"=0 && get "dbg_trigger_config" land 63=48 && get "dbg_events"=1);
-  command 11 64;
+  command Trigger 64;
   check "reserved trigger bits rejected atomically" (get "dbg_trigger_config" land 63=48);
   set "ena" 1 0;ignore(tick 0);
   check "deselection clears triggers, samples, mailbox and IRQ"

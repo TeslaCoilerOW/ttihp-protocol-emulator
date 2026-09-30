@@ -24,18 +24,32 @@ import subprocess
 import sys
 from pathlib import Path
 
+# name: (what the mutant breaks, FILE, OLD, NEW), FILE relative to hardcaml/lib.
+# A site is one substitution, or alternatives for older snapshots (newest
+# first): OLD and NEW are then tuples, and so is FILE when the alternatives
+# are in different files.
 MUTANTS = {
+    # The WAIT body of the execute stage (engine.ml); the second alternative is
+    # the same case of the opcode switch in snapshots up to 16cfc20.
     "rtl_wait_plus1": ("WAIT n holds for n+1 extra cycles instead of n",
-                       "engine.ml", "4,finish @ [timer <-- imm24];",
-                       "4,finish @ [timer <-- imm24 +:. 1];"),
-    # The design of record's XFER path (no line unit); since 76a81f5 engine.ml also
-    # has the line unit's copy, so the site includes the "| None ->" branch.
+                       "engine.ml",
+                       ("| Wait -> Some (finish @ [timer <-- imm24])",
+                        "4,finish @ [timer <-- imm24];"),
+                       ("| Wait -> Some (finish @ [timer <-- imm24 +:. 1])",
+                        "4,finish @ [timer <-- imm24 +:. 1];")),
+    # The classic XFER transfer body: in engine_transfer.ml after 16cfc20,
+    # which the design of record (no line unit) uses; in engine.ml before.
+    # From 76a81f5 to 16cfc20 engine.ml also has the line unit's copy, so that
+    # alternative includes the "| None ->" branch; the last one fits snapshots
+    # before 76a81f5.
     "rtl_xfer_short_tick": ("after the first XFER transition every half period is one cycle short",
-                            "engine.ml",
-                            ("    | None ->\n  [if_ (xtick.value >:. 1) [xtick <-- xtick.value -:. 1]\n"
+                            ("engine_transfer.ml", "engine.ml", "engine.ml"),
+                            ("[xtick <-- d.transfer_period.value; xremaining <-- xremaining.value -:. 1;",
+                             "    | None ->\n  [if_ (xtick.value >:. 1) [xtick <-- xtick.value -:. 1]\n"
                              "    [xtick <-- xperiod.value; xremaining <-- xremaining.value -:. 1;",
                              "[xtick <-- xperiod.value; xremaining <-- xremaining.value -:. 1;"),
-                            ("    | None ->\n  [if_ (xtick.value >:. 1) [xtick <-- xtick.value -:. 1]\n"
+                            ("[xtick <-- d.transfer_period.value -:. 1; xremaining <-- xremaining.value -:. 1;",
+                             "    | None ->\n  [if_ (xtick.value >:. 1) [xtick <-- xtick.value -:. 1]\n"
                              "    [xtick <-- xperiod.value -:. 1; xremaining <-- xremaining.value -:. 1;",
                              "[xtick <-- xperiod.value -:. 1; xremaining <-- xremaining.value -:. 1;")),
     "rtl_od_drive_high": ("open-drain pins are not masked in uio_out; uio_out then shows 1 only while "
@@ -63,18 +77,21 @@ def build(snap: Path, out: Path, name: str) -> Path:
         # real design's RTL, and the mutant must be built into its own tree.
         shutil.copytree(snap / part, tree / part, ignore=shutil.ignore_patterns("build", "_build"))
     shutil.copy(snap / "hardcaml" / "dune-project", tree / "hardcaml" / "dune-project")
-    src = tree / "hardcaml" / "lib" / fname
-    text = src.read_text()
-    # A site is one string, or alternatives (for older snapshots): the first
-    # alternative that occurs exactly once is used.
+    # The first alternative whose OLD occurs exactly once in its file is used.
     olds, news = (old, new) if isinstance(old, tuple) else ((old,), (new,))
-    for o, n in zip(olds, news):
-        if text.count(o) == 1:
+    fnames = fname if isinstance(fname, tuple) else (fname,) * len(olds)
+    assert len(fnames) == len(olds) == len(news), name
+    counts = []
+    for f, o, n in zip(fnames, olds, news):
+        src = tree / "hardcaml" / "lib" / f
+        text = src.read_text() if src.exists() else ""
+        counts.append(text.count(o))
+        if counts[-1] == 1:
             src.write_text(text.replace(o, n))
             break
     else:
         raise SystemExit(f"rtl_mutants: {name}: substitution site found "
-                         f"{[text.count(o) for o in olds]} times")
+                         f"{counts} times in {list(fnames)}")
     env = dict(os.environ, FORMAL_WORK=str(out / name / "fbuild"))
     subprocess.run([str(tree / "formal" / "run.sh"), "--generate-only"], cwd=tree, env=env, check=True)
     rtl = out / name / "fbuild" / "rtl"

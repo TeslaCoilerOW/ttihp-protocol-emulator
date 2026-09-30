@@ -248,7 +248,9 @@ stuffing, a complementary pin pair with SE0 detection, an arbitration monitor
 and a 16-bit CRC with four polynomial presets. It needs fused issue and a 32-bit
 datapath. `docs/extension.md` describes the design, its verification and its
 area; this section is the contract. The Hardcaml RTL
-(`hardcaml/lib/line_options.ml`, `line_unit.ml`, `engine.ml`), the assembler
+(`hardcaml/lib/line_options.ml`, `line_unit.ml`, `engine_line.ml`,
+`engine_decode.ml`, `engine_transfer.ml`; until `16cfc20`: `engine.ml` in
+place of the last three), the assembler
 (`Isa.encode ~line_unit`) and the reference model (`test/model/line_unit.py`)
 implement it.
 
