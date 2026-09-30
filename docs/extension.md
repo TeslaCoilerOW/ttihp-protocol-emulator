@@ -34,14 +34,14 @@ in section 10. "PASS" means a check that was run and passed.
 | What it adds | Per engine: a bit ticker with an 8-bit fraction, NRZ/NRZI/Manchester (TX) line coding, bit stuffing, a complementary pin pair with SE0 end, an arbitration monitor, a 16-bit CRC with four polynomial presets. Opcodes 30-33 (LTIM, LCFG, CRC, LSTAT) and two XFER mode bits (section 3). |
 | Variant | `diet8_rec16` = the `diet4` options with 8-word queues (`diet8`, also added) plus `"line_unit": "rec16"`. ISA version 3; READ_SELECT 7 reads 0x000F5F03 (section 3.3). |
 | Default configuration | Unchanged: `make check-generated` PASS; design-of-record formal RTL byte-identical to git `HEAD`'s; default cocotb suite 102/102 with the same per-test status and simulated time as a `HEAD` control; `formal/run.sh --list` unchanged; the 12 quick formal jobs meet their expectations (section 6.1). Second round: with the new `formal/run.sh`, `--list` gives the same 16 jobs, the formal RTL is identical (7 of 7 files) and the 12 quick jobs meet their expectations (24307355); with the base design selection the workflows run the same commands as `main` (section 12.3). |
-| RTL against the lockstep model | cocotb lockstep on every cycle (the model follows the RTL's structure; the independent checks are the references in the next row), CI-matching cocotb 2.0.1 and Icarus 13: 160/160 tests on `diet8_rec16` (the 102 default tests, 25 line-unit tests and the 33 tests of the fourteen `test_line_spec_*` modules; 24369277, and on the integrated branch tree 24376082, section 10.1), and the random lockstep campaign of section 6.5: 724,480 cases (304,128 of them line-unit cases), 4,935,357,251 lockstep cycles at RTL and gate level, without a mismatch, all 357 line-unit coverage bins hit. First round (superseded): 127/127 tests and 512 constrained-random cases (3,701,150 cycles) without a mismatch (section 6.3). |
+| RTL against the lockstep model | cocotb lockstep on every cycle (the model follows the RTL's structure; the independent checks are the references in the next row), CI-matching cocotb 2.0.1 and Icarus 13: 160/160 tests on `diet8_rec16` (the 102 default tests, 25 line-unit tests and the 33 tests of the fourteen `test_line_spec_*` modules; 24369277, and on the integrated branch tree 24376082, section 10.1; after the merge of `main` `3364ad9`, with its five `uart-rx-idle` tests, 165/165, section 13.1), and the random lockstep campaign of section 6.5: 724,480 cases (304,128 of them line-unit cases), 4,935,357,251 lockstep cycles at RTL and gate level, without a mismatch, all 357 line-unit coverage bins hit. First round (superseded): 127/127 tests and 512 constrained-random cases (3,701,150 cycles) without a mismatch (section 6.3). |
 | Independent references | A reference written from the contract and public standards before the RTL was read, `test/model/line_std_ref.py` (section 6.6): 159 standalone tests against published vectors pass; the RTL matches it on 40,997 of 41,000 random cases, and the 3 other cases and one directed test differ on the LSTAT[13:8] point below. The formal references of section 6.4 are written from [isa.md](isa.md). From the first round: nine catalogued CRC check values (CRC-16/IBM-3740 0x29B1, ARC 0xBB3D, USB 0xB4C8, CAN-15 0x059E, ...), bit-level line encoders and decoders, the ticker formula, and the study's three demos (10BASE-T UDP frame, CAN node, USB low-speed IN responder) decoded at the pads (sections 6.2, 6.3). No third-party protocol peer (section 8). |
 | Formal | The 16 existing jobs on `diet8_rec16` meet their expectations. 46 line-unit jobs, all meeting their expectations (section 6.4): unbounded proofs of the tick schedule, the CRC of driven and sampled line XFERs against the reference fold, coder/decoder inverse for any valid ticker with delay 0 and up to 32 bits, the driven cells and pins against an ISA-derived encoder, the decoder against an ISA-derived decoder, the arbitration monitor, pin locality, reset/START and decode; bounded checks from reset against the closed-form CRC; at least one negative control per property, using all ten seeded defects. One LSTAT field differs from [isa.md](isa.md) in one case (section 6.4, "Finding"). First round (superseded): 15 line-unit jobs, the codec and end-to-end CRC properties bounded. |
 | Mutation testing | Three uniform samples. The unit's state logic (3,000 of 90,372 `mutate` mutations): committed suite 52.39 %; with fourteen `test_line_spec_*` modules (33 tests) 92.98 % [91.99 %, 93.86 %] in-sample and 92.72 % [90.90 %, 94.19 %] on a held-out sample of 1,000. The rest of the logic the option adds or changes, except the statements downstream of line-unit state (2,117 of 63,773, of which 1,181 are on the blocked-cycle count's stages for base opcodes): committed suite 79.64 %, with the modules 87.72 % [86.22 %, 89.09 %]; all 246 of its survivors are argued on the blocked-cycle count. Neither proven nor argued: 76 (2.65 %), 26 (2.71 %) and 0 (section 11). First round: not run. |
 | Area | TT-replica synthesis (Yosys 0.66, AREA 0): 432,203.4 µm² and 3,903 flops for the core, +56,980.1 µm² and +272 flops over `diet8` (section 7). |
 | Hardening at 8x4 | One full LibreLane run with the committed 15 ns configuration: flow complete, utilization 63.2% (design of record 65.3%), setup met at all three corners (WS typ +6.03, fast +7.38, slow +2.07 ns), hold met (WS min +0.166 ns), route DRC 0, LVS 0, one antenna violation. On that layout the Tiny Tapeout precheck passes 9/9, the gate-level suite has 0 failures, and the netlist is sequentially equivalent to the RTL (`formal_eq`) (sections 7.2, 7.3). The official Tiny Tapeout actions then passed on branch `eval/diet8-rec16` (run 36360490711: gds, precheck, gl_test) with a `metrics.csv` byte-identical to the local run's, and the official netlist is equivalent to the RTL (section 12.1). Second round: with `GRT_ANTENNA_REPAIR_DIODE_ONLY` set in the branch's `src/config.json`, the local mirror gives antenna 0 with setup WS slow +2.21 ns, route DRC 0, LVS 0, precheck 9/9, gate level 0 failures and an equivalent netlist (section 7.2.1); no official run of that configuration exists yet. |
 | Open finding | LSTAT[13:8] reads 1 instead of 0 when a sampling XFER ends on SE0 in the cell of a trailing stuff bit; found independently by the formal harnesses and the standards-based reference, present in the RTL, the official netlist and the lockstep model (sections 6.4, 6.6). Not resolved; `test_line_stdref` is therefore not in the default module list. |
-| Workflows and host | `configs/design-selection.txt` names the design; regen, test, formal and equivalence follow it (section 12.2), checked by local emulation only. `host/` decodes the capability bits (section 8). |
+| Workflows and host | `configs/design-selection.txt` names the design; regen, test, formal and equivalence follow it (section 12.2), checked by local emulation only. After the merge of `main` `3364ad9` the `certs` plan follows it too, and every workflow whose `run:` steps were emulated (test, formal, regen, consistency, certs, the gl_test commands) passes except `certs`, which is red on the branch because no timing certificate exists for the variant's RTL (section 13.1); `docs` and the `gds` hardening were not run on the merged tree. `host/` decodes the capability bits and refuses `ps2-host` on the variant (section 8). |
 | Comparison with the design of record | Section 13. |
 
 ## 2. What the extension does
@@ -1160,7 +1160,10 @@ replaced are at its end.
   `load_image()` raises `CapabilityMismatch` on a device, or an engine,
   without them, before writing anything. Images keep `isa_version` 2. The
   assembler does not write `"requires"`; the loader derives the requirement
-  from the words. The self-test checks the whole READ_SELECT 7 word against
+  from the words. On a version-3 device the loader also refuses an ISA-2
+  image that breaks the rule of [isa.md](isa.md), "ISA version" (a shift
+  count that is not a byte lane, a target of 128 or more): of the committed
+  images, `ps2-host` (an SHR by 21; section 13.1). The self-test checks the whole READ_SELECT 7 word against
   the device profile and, on a device with the unit, runs a CRC/LTIM/LSTAT
   probe twice on every engine the capability bits name (on one without it,
   LSTAT must fault with code 1); in the RTL lockstep replay (`make
@@ -1185,7 +1188,12 @@ replaced are at its end.
 - **Workflow changes not run on GitHub.** The design selection and the
   changed `regen`, `test`, `formal` and `equiv` workflows (section 12.2) were
   checked by local emulation of their `run:` steps only (sections 12.3,
-  10.1). Run times of the formal CI subset on a hosted runner are not known.
+  10.1), and so were the branch's workflows after the merge of `main`
+  `3364ad9`, including the changed `certs` workflow (section 13.1). Run times
+  of the formal CI subset on a hosted runner are not known.
+- **No timing certificates.** The certificate ledger's campaigns certified the
+  design of record's RTL; the certificate harness does not fit the variant's
+  formal RTL, and the `certs` workflow is red on this branch (section 13.1).
 
 Replaced bullets of the 2026-09-27 version of this list (superseded):
 "Formal bounds and exclusions" (the coder/decoder and end-to-end CRC
@@ -1272,7 +1280,7 @@ Second round:
 cd test && make                                               # the design selection (diet8_rec16): 160 tests
 make COCOTB_TEST_MODULES=test_line_stdref                     # section 6.6; fails on the LSTAT[13:8] point
 cd .. && python3 -m pytest test/stdref -q                     # 159 standalone reference tests
-SBY_TIMEOUT=10800 formal/run.sh --variant diet8_rec16         # 62 jobs; line_codec_bmc needs > 1,500 s
+SBY_TIMEOUT=3600 formal/run.sh --variant diet8_rec16          # 62 jobs; line_codec_bmc takes 1,300-2,340 s
 formal/run.sh --variant diet8_rec16 --ci --parallel 4         # the 42-job line-unit CI subset
 ```
 
@@ -1806,18 +1814,23 @@ following do not follow the selection and need their own change at adoption:
   the default in `host.py` is changed).
 - `formal_eq/test_eq_check.py` (`TestInputs.test_pdk_mismatch_refused`) assumes
   that `src/` holds the base core; a proposed change gives the test its own
-  base core file (proposed, not applied; section 12.3).
+  base core file (proposed in section 12.3; applied after the merge of `main`
+  `3364ad9`, with `test_variant_header` changed the same way, section 13.1).
 - The mutation tooling (`campaigns/mutation/gen_mutants.sh`,
   `gen_line_mutants.sh`, `mk_design.sh`) packs test trees without `scripts/`;
   a base task (no `PE_VARIANT`) from a commit that carries this `test/Makefile`
   then stops at the error above. A proposed change packs
-  `scripts/design_selection.sh` when the snapshot has it (proposed, not applied;
-  section 12.3).
+  `scripts/design_selection.sh` when the snapshot has it (proposed in section
+  12.3; applied after the merge, section 13.1).
 - `certs.yaml` on `main` (timing certificates, added after 24f31f0) generates
   the formal RTL with `formal/run.sh --generate-only`, that is for the base
-  configuration, whatever the selection says.
+  configuration, whatever the selection says. (Until the merge of `main`
+  `3364ad9`; since then its `plan` job follows the selection, section 13.1.)
 - `scripts/generate.sh` without arguments and `scripts/gen_variants.sh` checks
   1 and 2 still assume `configs/instruction-sram-32.json`.
+- The consistency check (`tools/evidence/`, added to `main` after 24f31f0)
+  compares a run marked "(current)" with the design in the checkout; section
+  13.1 describes the marker for the design of record's runs on this branch.
 
 **Formal CI subset.** On the branch the formal matrix is the 16 existing jobs
 with the variant's settings plus the line-unit CI subset of `formal/run.sh
@@ -1922,11 +1935,13 @@ same way (section 10.1).
 ## 13. Verification parity
 
 The evidence for the design of record and for `diet8_rec16`, side by side.
-"Design of record" means the base configuration as documented on this branch
-(`main` at 24f31f0 and earlier); `main` has added evidence since (for example
-timing certificates in CI), which this table does not follow. Each cell names
-its source: a section of this page, another page of `docs/`, a Slurm job or a
-GitHub Actions run.
+"Design of record" means the base configuration on `main` at `3364ad9`,
+which this branch merged in `64f3811`. This table was first written against
+`main` at 24f31f0 (2026-09-29); the rows marked "(3364ad9)" were updated
+for the evidence `main` added since: the certificate ledger in CI, the
+`protocols-ext` job, the Hardcaml expect tests and the base suite's five
+`uart-rx-idle` tests. Each cell names its source: a section of this page,
+another page of `docs/`, a Slurm job or a GitHub Actions run.
 
 | Evidence | Design of record | `diet8_rec16` |
 |---|---|---|
@@ -1934,22 +1949,25 @@ GitHub Actions run.
 | Oracle of the random campaign | the lockstep model `test/model/`, which shares the specification with the RTL ([limitations.md](limitations.md) section 4) | the same model with `line_unit.py`, which follows `engine.ml` step for step (section 6.3); model-independent parts: the contract-text decode check (0 disagreements) and 4 negative controls, all detected (section 6.5) |
 | Random negative controls | XOR model bug: 64 of 64 seeds, 1,536 of 4,096 cases ([verification-campaign.md](verification-campaign.md), "Negative control") | XOR model bug, a model CRC defect and two RTL defects, all detected (section 6.5) |
 | Coverage bins | `random_gen.Coverage`: every bin hit; `xcov.py`: 71 of 71 ([verification-campaign.md](verification-campaign.md), "Coverage") | the same bins: every bin hit, 71 of 71; line unit: 357 of 357, also at gate level alone; the in-tree CI generator 245 of 357 (section 6.5) |
-| cocotb suite in CI | 102 tests, 102 pass (`test` run 36298635420 of d76f1cc, [results.md](results.md) section 2b) | 160 tests: 102 + 25 line-unit + 33 `test_line_spec_*`, 160 pass on the integrated tree (24376082, local emulation of `test.yaml`); on GitHub only the 127-test list has run (run 36360490678) |
-| Reference independent of the RTL's structure | third-party protocol peers, vendored unmodified ([independent-peers.md](independent-peers.md)); protocol checks of the static timing analyzer ([timing-analysis.md](timing-analysis.md)) | no third-party peer; `line_std_ref.py`, written from the contract and public standards before the RTL was read: 159 standalone tests against published vectors; 40,997 of 41,000 random cases, the demos and the 17 probes match at RTL; the 3 other cases and one directed test differ on the LSTAT[13:8] point (section 6.6); published CRC check values and the `test/line_support.py` references (sections 6.2, 6.3) |
-| Formal jobs in `formal/` | 16: 8 unbounded proofs, 4 bounded checks, 2 covers, 2 negative controls; all meet their expectations (formal/README.md, "What is verified"; `formal` run 36298635454) | 62: the same 16 on the variant and 46 line-unit jobs (11 unbounded proofs, 8 bounded checks, 8 covers, 19 negative controls); 62 of 62 meet their expectations (24307353, re-run 24311615; section 6.4) |
-| Formal in CI | the 16 jobs (`formal.yaml`) | 58 jobs: the 16 and the 42-job line-unit subset; 58 of 58 met in local emulation (24309631; integrated tree 24376084); not yet run on GitHub (section 12.2) |
-| Formal beyond `formal/` | `formal_depth/` deeper runs and properties ([formal-depth.md](formal-depth.md)); timing certificates, 368 of 368 segments of the 19 images at c118027 ([timing-certificates.md](timing-certificates.md)) | not run on the variant (section 8) |
+| cocotb suite in CI (3364ad9) | `test` job: 107 tests (the 102 of 24f31f0 and the 5 `uart-rx-idle` tests of `test_flagship`), 107 pass; `protocols-ext` job: `test_protocols_ext`, 22 of 22 ([results.md](results.md) R29); run 36657674148 of `3364ad9`. At 24f31f0: 102 tests (run 36298635420 of `d76f1cc`) | `test` job: 165 tests (107 + 25 line-unit + 33 `test_line_spec_*`), 165 pass in local emulation of `test.yaml` on the merged branch (24385760; 160 before the merge, 24376082); `protocols-ext`: 23 tests (the 22 and `test_ps2_host_restricted`), 21 pass and the two `test_ps2_host` tests are skipped, because `ps2-host` cannot run unchanged on a byte-lane design (section 13.1; 24385760). On GitHub only the 127-test list of `ac436f7` has run (run 36360490678) |
+| Hardcaml tests in CI (3364ad9) | `hardcaml-tests` job of `regen.yaml`: `dune test` in `hardcaml/` with the waveform expect tests, and `line_sys_test` on `configs/variants/diet8_rec16.json` ([results.md](results.md) R26b; run 36657674246 of `3364ad9`) | the same job, which tests the generator with the base configuration and `line_sys_test` on the variant: passes in local emulation on the merged branch (24381426, 24385762); not yet on GitHub |
+| Reference independent of the RTL's structure | third-party protocol peers, vendored unmodified ([independent-peers.md](independent-peers.md)); protocol checks of the static timing analyzer ([timing-analysis.md](timing-analysis.md)); the peers of `test_protocols_ext`, written from the cited specifications (R29) | no third-party peer; `line_std_ref.py`, written from the contract and public standards before the RTL was read: 159 standalone tests against published vectors; 40,997 of 41,000 random cases, the demos and the 17 probes match at RTL; the 3 other cases and one directed test differ on the LSTAT[13:8] point (section 6.6); published CRC check values and the `test/line_support.py` references (sections 6.2, 6.3); the `test_protocols_ext` peers for the five images it runs |
+| Formal jobs in `formal/` | 16: 8 unbounded proofs, 4 bounded checks, 2 covers, 2 negative controls; all meet their expectations (formal/README.md, "What is verified"; `formal` run 36657674261 of `3364ad9`) | 62: the same 16 on the variant and 46 line-unit jobs (11 unbounded proofs, 8 bounded checks, 8 covers, 19 negative controls); 62 of 62 meet their expectations (24307353, re-run 24311615; section 6.4) |
+| Formal in CI | the 16 jobs (`formal.yaml`) | 58 jobs: the 16 and the 42-job line-unit subset; 58 of 58 met in local emulation (24309631; integrated tree 24376084; merged branch 24381235, 24385761); not yet run on GitHub (section 12.2) |
+| Timing certificates (3364ad9) | 441 of 441 segments of the 26 committed images certified on the design of record's RTL, ledger 26 of 26 (campaigns `24f31f0` and `6a3ea08`, [results.md](results.md) R42b, R42c; [timing-certificates.md](timing-certificates.md)); checked on every push by `certs.yaml` (`staleness`; run 36657674247 of `3364ad9`), proofs of changed images within 150 runs in CI | none: every campaign of the ledger certified the design of record's RTL, and the harness does not fit the variant's formal RTL; `certs.yaml` is red on this branch (section 13.1) |
+| Formal beyond `formal/` and the certificates | `formal_depth/` deeper runs and properties ([formal-depth.md](formal-depth.md)) | not run on the variant (section 8) |
 | Negative controls of the formal properties | 2 (`timing_isolation_neg_pull`, `_neg_mutant`) | 2 + 19 line-unit controls over all 10 seeded defects (section 6.4) |
 | Mutation campaign, sampling | 2,420 mutants of the whole core, drawn with region quotas and coverage weights (`gen_mutants.sh`) ([mutation-push.md](mutation-push.md)) | three uniform samples of the logic the option adds or changes: 3,000 of the unit's state logic, a held-out 1,000 of the same population and 2,117 of the rest; the 268,232 mutations of the statements downstream of line-unit state are not sampled (section 11.1) |
-| Mutation score | 96.82 % (2,223 / 2,296); 97.93 % with the longer ABC cap ([mutation-push.md](mutation-push.md), "Result" and 4.5) | 92.98 % [91.99, 93.86] (in-sample for the new modules), 92.72 % [90.90, 94.19] held-out, 87.72 % [86.22, 89.09] second population; pooled 90.82 % [89.98, 91.60] (section 11.2) |
+| Mutation score | 96.82 % (2,223 / 2,296); 97.93 % with the longer ABC cap ([mutation-push.md](mutation-push.md), "Result" and 4.5); unchanged by `3364ad9`. Its three clock-input mutants are killed, so no proof of a clock inversion is counted (24383364) | 92.98 % [91.99, 93.86] (in-sample for the new modules), 92.72 % [90.90, 94.19] held-out, 87.72 % [86.22, 89.09] second population; pooled 90.82 % [89.98, 91.60] (section 11.2) |
 | Mutation accounting | killed / (mutants − proven equivalent); argued survivors stay in the denominator; 73 survivors, all argued, 0 neither proven nor argued (47 after the longer cap) ([mutation-push.md](mutation-push.md)) | the same formula and proof methods (ABC cap 900 s); clock-inversion "proofs" not counted; Wilson 95 % intervals; 76, 26 and 0 survivors neither proven nor argued; not a paired comparison with the design of record (sections 11.2, 11.4) |
-| Test gap found by the other campaign | the four WAITEVENT blocked-count `cnot1` analogues pass all 102 tests (24370776, section 11.4); no fix on this branch | killed by `test_line_spec_limit_bits` (section 11.3) |
-| Official gate level (`gl_test`) | 102 tests: 46 pass, 56 skipped by design, 0 fail (`gds` run 36298635436, [results.md](results.md) R85) | 127 tests: 66 pass, 61 skipped by design, 0 fail (run 36360490711, section 12.1); the integrated tree's 160 tests: 66 pass, 94 skipped, 0 fail on that netlist and on the antenna-fix netlist (24376083, local) |
+| Test gap found by the other campaign | the four `cnot1` analogues of the variant's survivors 331, 333, 1438 and 1442 (bits of engine 0's and engine 2's blocked-cycle count at the WAITEVENT stage, which LIMIT bounds) pass all 102 base tests and fail `test_line_spec_limit_bits` (24370776; reproduced from the committed scripts, 24383219; `campaigns/mutation/README.md`, section 11.4). No such test on `main` at `3364ad9` | killed by `test_line_spec_limit_bits` (section 11.3) |
+| Official gate level (`gl_test`) | 107 tests: 46 pass, 61 skipped by design, 0 fail (`gds` run 36624435821 of `bab697b`, the RTL of `3364ad9`); at 24f31f0: 102 tests, 46 pass, 56 skipped (run 36298635436, [results.md](results.md) R85) | 127 tests: 66 pass, 61 skipped by design, 0 fail (run 36360490711, section 12.1); the merged branch's 165 tests on that netlist: 66 pass, 99 skipped, 0 fail (24381234, 24385760; local); 160 tests on the antenna-fix netlist before the merge (24376083) |
 | Other gate-level simulation | 10,752 random cases ([verification-campaign.md](verification-campaign.md)) | 15,872 random cases (section 6.5); `test_line_stdref` 1,999 of 2,000 random cases, the other on the LSTAT point (section 6.6); full-mode suites 127 tests: 71 pass, 56 skipped, 0 fail (24134621, 24307911) and on the integrated tree 160 tests: 102 pass, 58 skipped, 0 fail, 31 of them `test_line_spec_*` tests (24376083) |
 | RTL-to-netlist equivalence | official 15 ns netlist equivalent, self-test passed (run 36298635436, job 24093884, [equivalence.md](equivalence.md) section 1); checked in CI by `equiv.yaml` ([equivalence.md](equivalence.md) section 7) | official netlist equivalent (24163332, section 12.1); antenna-fix netlist equivalent (24306936, section 7.2.1); `equiv.yaml` for branch builds not yet run on GitHub (section 12.2) |
-| Official Tiny Tapeout actions | `gds`, `precheck`, `gl_test` pass on d76f1cc, antenna 0 ([results.md](results.md) R85) | `gds`, `precheck`, `gl_test` pass on ac436f7 with 1 antenna net (run 36360490711); the antenna change gives antenna 0 on the local mirror only (section 7.2.1) |
-| Other official workflows | `test`, `formal`, `regen` pass on d76f1cc (runs 36298635420, 36298635454, 36298635381) | on ac436f7: `test` and `formal` pass (runs 36360490678, 36360490685; the `formal` workflow of that commit ran the design of record's jobs and settings); `regen` fails by design (36360490692); the design-selection workflows of section 12.2 not yet run |
+| Official Tiny Tapeout actions | `gds`, `precheck`, `gl_test` pass on `bab697b` (run 36624435821); on d76f1cc with antenna 0 ([results.md](results.md) R85) | `gds`, `precheck`, `gl_test` pass on ac436f7 with 1 antenna net (run 36360490711); the antenna change gives antenna 0 on the local mirror only (section 7.2.1) |
+| Other official workflows (3364ad9) | on `3364ad9`: `test` (with `protocols-ext`), `formal`, `regen` (with `hardcaml-tests`), `certs`, `consistency` and `docs` pass (runs 36657674148, 36657674261, 36657674246, 36657674247, 36657674144, 36657674234) | on ac436f7: `test` and `formal` pass (runs 36360490678, 36360490685; the `formal` workflow of that commit ran the design of record's jobs and settings); `regen` fails by design (36360490692); the merged branch's workflows in local emulation: all pass except `certs`, which is red on this branch by design (section 13.1) |
 | Timing at 15 ns (official flow) | setup WS slow +2.24 ns, hold WS min +0.165 ns (R85) | +2.07 ns and +0.166 ns (official, section 7.2); +2.21 ns and +0.166 ns with the antenna change (local, section 7.2.1) |
+| Firmware images of `firmware/` | all 26 run (the 19 of `c118027`, `uart-rx-idle` and the six SWD, WS2812B, PS/2 and 1-Wire images of R29) | 25 of 26 run unchanged; `ps2-host` shifts by 21, which faults with code 1 on the variant's byte-lane shifts ([isa.md](isa.md), "ISA version"; section 13.1) |
 | Open deviations from the contract | no defect in the generated RTL found by these methods ([bug-ledger.md](bug-ledger.md)) | LSTAT[13:8] after SE0 in a trailing stuff cell (sections 6.4, 6.6); two isa.md wordings (section 8) |
 
 **Where the variant's evidence is now stronger or equal.** More random
@@ -1957,12 +1975,130 @@ lockstep cases and cycles, with the same base bins covered; a line-unit bin
 set that is fully hit; unbounded formal proofs for most line-unit properties
 with a negative control each; a reference that does not share the RTL's
 structure and found a deviation from the contract; a mutation campaign with
-uniform samples, a held-out sample and confidence intervals.
+uniform samples, a held-out sample and confidence intervals, whose new module
+`test_line_spec_limit_bits` also kills the design-of-record analogues of a gap
+in the design of record's suite (it runs in the variant's list only).
 
 **Where it is still weaker.** No third-party peer for the line protocols; no
-timing certificates or `formal_depth/` runs; a lower mutation score than the
-design of record's, with 76 and 26 survivors neither proven nor argued and a
-second-population score that rests on one unproven property; the official
+timing certificates, while the design of record's ledger covers all 26
+committed images and is checked in CI; no `formal_depth/` runs; one committed
+image (`ps2-host`) that the variant cannot run; a lower mutation score than
+the design of record's, with 76 and 26 survivors neither proven nor argued and
+a second-population score that rests on one unproven property; the official
 flow has run only once, without the antenna change, and none of the new
 workflows has run on GitHub; one open deviation from the contract.
 
+As first written (against 24f31f0, 2026-09-29), the "cocotb suite in CI" row
+gave the design of record 102 tests (run 36298635420); "Formal beyond
+`formal/`" gave its timing certificates as 368 of 368 segments of the 19
+images at c118027; "Official gate level" gave 102 tests, 46 pass, 56 skipped
+(run 36298635436); "Other official workflows" named `test`, `formal` and
+`regen` on d76f1cc (runs 36298635420, 36298635454, 36298635381); and the rows
+"Hardcaml tests in CI", "Timing certificates" and "Firmware images of
+`firmware/`" did not exist.
+
+### 13.1 Branch CI after the merge of `main` `3364ad9`
+
+Merging `main` `3364ad9` brought the round-5 firmware images (assembled for
+the design of record), the certificate ledger and the `certs` workflow, the
+evidence consistency check and the `consistency` workflow, the Hardcaml
+expect tests and the `protocols-ext` job. The workflows a push of this branch starts, except `docs` and the `gds`
+hardening, were emulated on the merged tree (`64f3811`) and again after
+the changes below, with the emulator of section 12.3: `run:` steps verbatim
+(`bash --noprofile --norc -eo pipefail`), tool installation replaced by the
+same versions on the cluster (OCaml 5.2.1 switch with the pinned and the
+`#test ` opam packages, Icarus 13.0, cocotb 2.0.1, OSS CAD Suite 2026-07-29),
+a git clone of the branch with `origin/main` at `3364ad9`, and, for `certs`,
+the push event's `before` set to the branch's last pushed commit `ac436f7`.
+The `gl_test` action's commands (`make clean; GATES=yes make`, no variables
+set) ran on the official netlist of `gds` run 36360490711 (sha256
+`e2404100…`; its `src/` core equals the branch's, `d517e277…`).
+
+| Workflow, job | Merged tree `64f3811` (jobs 24381234, 24381235, 24381426) | Change | After the change (24385760, 24385761, 24385762) |
+|---|---|---|---|
+| `test`, `test` | 165 of 165 pass | none | 165 of 165 pass |
+| `test`, `protocols-ext` | **fails**: `test_ps2_host` (half periods 30 and 50 µs) fails; `ps2-host`, assembled for the design of record, shifts by 21 at PC 45, which faults with code 1 on the variant's byte-lane shifts, and the module's compatibility check compared only engine count, width, queue depth and issue mode | `test_protocols_ext.py` also skips the tests of an image whose words the design's ISA knobs change (`Options.image_differences` in `test/model/variant.py`, the rule of [isa.md](isa.md), "ISA version"); the new `test_ps2_host_restricted` runs `ps2-host` on such a design and requires the fault with code 1 at PC 45 after the command byte is sent (skipped on the design of record); `test_ps2_host_no_device`, whose path ends before that word, still runs. The host library refuses the image on a version-3 device (section 8) | 23 tests: 21 pass, the two `test_ps2_host` tests skipped (415 s). On the design of record (a copy of the tree with the base selection and the base core): 23 tests, 22 pass, `test_ps2_host_restricted` skipped (24385818) |
+| `test`, `lint` | passes | none | passes |
+| `regen`, `regen` and `hardcaml-tests` | both pass (no difference in `src/`; `dune test` with the expect tests, `line_sys_test` 16 checks) | none | both pass |
+| `formal`, `rtl` and 58 `sby` entries | rtl passes (generated core equals `src/` below its header); 58 of 58 entries meet their expectations | none (comments of `formal/line_rx.sv` only) | rtl passes; 58 of 58 entries meet their expectations (387 s at 20 entries at a time) |
+| `certs`, `staleness` | **fails** at the generator unit tests: two `test_ledger.py` tests copy `src/` into their fixture and expected it to be the certified RTL | the fixture uses a copy of the ledger that records the fixture's RTL when `src/` is not the certified one; `ledger.py check` names a variant design selection in its report | **fails** at `ledger.py check`: 0 of 26 images certified on the current RTL (`src/protocol_emulator_core.v` changed since campaigns `24f31f0` and `6a3ea08`); expected, see below |
+| `certs`, `plan` | passes, but it regenerated the design of record's formal RTL (`processor_fv.v` `2a039bae…`) and planned proofs of 20 images on it (6 more over the budget), that is, proof jobs for a design that is not the branch's | `plan` generates the formal RTL of the design selection, as `formal.yaml` does (with `VARIANT_CORES`), and `ledger.py plan --rtl` first requires the certificate harness to fit it: every port that `cert_dut.vh` connects must exist with its wire's width | **fails** at "Images to prove": the variant's `processor_fv.v` has `fv_pc`, `fv_transfer_mode`, `fv_image_loaded` and `dbg_image_length` of 28 bits where `cert_dut.vh` connects 96, 20, 64 and 64; no lemma or proof job starts; expected, see below |
+| `consistency` | **fails**: 1 error, `docs/signoff-history.md` marks `d76f1cc`'s run 36298635436 as the current status while `src/` differs from `d76f1cc`; 15 warnings | on this branch that page marks the design of record's column "(current on `main`)", and the `status-runs` check compares such a marker with `origin/main`'s design (`ref_markers` in `tools/evidence/consistency.json`, with a unit test) | passes: 0 errors, 15 warnings (citations of superseded results rows, as on `main`); the checker's unit tests pass, 52 with the new one |
+| `docs` | inputs (`info.yaml`, `docs/info.md`) byte-identical to `main` `3364ad9`, whose `docs` run 36657674234 passed | none | not emulated (the action installs `tt-support-tools` with its Python packages); its inputs are unchanged |
+| `gds`, `gl_test` commands | 165 tests: 66 pass, 99 skipped, 0 fail (660 s) | none | 165 tests: 66 pass, 99 skipped, 0 fail |
+| `equivalence` (`equiv.yaml`) | runs from `main` (`workflow_run`); dispatched from this branch, its unit-test step failed (section 12.3) | `test_eq_check.py`: `test_pdk_mismatch_refused` and `test_variant_header` use a base core file of their own | `formal_eq` unit tests: 28 of 28 pass, none skipped (24385763) |
+| `gds_6x4`, `fpga` | not started by a push of this branch (`gds_6x4`: pushes to `main` and dispatch; `fpga`: dispatch only) | none | not started by a push. Dispatched on this branch, `gds_6x4` would stop at `switch.py check`, which refuses a checkout whose `src/` core already names a variant configuration; `check_core.sh` passes (24385763) |
+
+Two checks outside the workflows, on the same tree (24385763): the host
+library's unit tests (90 tests, including the RTL replays on both devices and
+the MicroPython replays), `upy-check`, `make mpy` and `make rtl-cocotb` pass,
+and its self-test runs 77 checks on `base` and 93 on `diet8_rec16`; and the
+mutation tooling now packs `scripts/design_selection.sh` (the change proposed
+in section 12.3): control mutant 0 through `run_mutant.py` (stage `kill`,
+`test_smoke`) from trees packed by `gen_mutants.sh` and `mk_design.sh` (a copy
+with the base selection) and by `mk_design.sh` and `gen_line_mutants.sh`
+(`diet8_rec16`) packs the script and passes 3 of 3 tests in each case.
+
+**Expected red on this branch.** Two jobs of `certs.yaml` fail on this
+branch, and each failure is a true statement about it, not a defect of the
+branch:
+
+- `staleness`: no timing certificate exists for the RTL in `src/`. Every
+  campaign of the ledger (`c118027`, `24f31f0`, `6a3ea08`) certified the
+  design of record's RTL; the ledger check reports all 26 images stale
+  because `src/protocol_emulator_core.v` is the `diet8_rec16` core.
+- `plan` (when a push changes `firmware/`, `hardcaml/`, `tools/timing/`,
+  `formal/gen/`, `formal/run.sh`, `models/` or `configs/`, as a push of the
+  merged branch does): the certificate harness cannot be bound to the
+  variant's formal RTL, so no proofs can be planned for the design in
+  `src/`.
+
+**What closing it would take** (an estimate; nothing of it was run):
+
+- *Harness.* `cert_dut.vh` binds the design of record's port widths (24-bit
+  PCs, 16-bit image lengths, a 5-bit transfer mode); the variant has 7-bit
+  PCs and image registers and a 7-bit transfer mode, and 21 more ports
+  (19 line-unit registers per engine, the reset synchronizer and
+  `dbg_queue_status_read`).
+  `cert_env.vh`'s quiet environment and the boundary lemmas assume the
+  design of record: the lemmas count completed instructions
+  (`k_completed == p_completed + 1`), which the variant does not have
+  (`debug_counters: false`), and the environment would need the
+  `async_sync_release` reset's synchronizer held quiet. A certificate's
+  precondition would have to fix engine K's line-unit state (idle after START,
+  which `line_reset_prove` proves). The campaign's equivalence step
+  (`equiv_src.py`) would have to compare the variant's formal netlist with
+  `src/`.
+- *Analyzer.* `pe_timing` models the design of record's instruction timing.
+  The variant's ISA knobs change the behaviour of non-lane shifts and targets
+  of 128 or more only, and no image other than `ps2-host` has them; whether
+  every cycle count carries over was not checked.
+- *Runs.* `gen_cert.py preflight` (independent of the RTL; job 24384186)
+  accepts all 26 images. For the 25 that run on the variant (all but
+  `ps2-host`) it emits 391 segment certificates, 5,289 chunk certificates and
+  260 negative controls (180 of them at most 98 steps deep), 11,444 CI runs
+  in all; 20 images fit the CI budget of 150 runs, and `onewire-master`
+  (6,889), `ps2-device` (1,082), `ws2812` and `ws2812b-v5` (1,010 each) and
+  `swd-read` (362) would be certified by the cluster campaign only.
+- *CPU time.* The design of record's two current campaigns were allocated
+  43.3 CPU-hours (`24f31f0`, 19 images) and 274.6 CPU-hours (`6a3ea08`, 7
+  images), 317.9 in all (`sacct` of their jobs). A campaign on the variant's
+  RTL would be of that order if its solver times are similar, which was not
+  measured.
+
+**Other observations.**
+
+- The `certs` plan of the unchanged merged tree would have started 20 proof
+  jobs of up to 300 minutes each on the design of record's RTL for a push of
+  this branch; with the change it starts none.
+- `docs/isa.md` ("ISA version") said that every image in `firmware/` runs
+  unchanged on a version-3 device. That held for the 19 images of `c118027`;
+  since `e64cd6b` it holds for all but `ps2-host`, and the text now says so.
+  The same sentence is on `main`.
+- `docs/mutation-push.md` section 7 now notes that one of `diet4`'s
+  `equiv_induct` proofs (mutant 1860) is of a clock inversion: without it,
+  95.19 % (96.62 % with the longer cap) instead of 95.24 % (96.66 %), job
+  24383267.
+- The emulator treats an `if:` without a status function as
+  `success() && (...)`, as GitHub does (the earlier emulator of section 12.3
+  evaluated the expression alone).
