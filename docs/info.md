@@ -490,6 +490,10 @@ tried on hardware.
 3. Run `clock_project_PWM(frequency)`.
 4. Call `clock_project_stop()` before any further host transfer.
 
+docs/host.md, "Lockstep PIO port", describes a second way: an RP2 PIO state
+machine keeps the project clock running and carries the host transfers on
+the same clock. It has been built and simulated, not tested on hardware.
+
 The assembler (`hardcaml/bin/assemble.exe`) rebuilds the example firmware for
 other bit rates. `--half-period` sets the timing, and `uart-tx` uses a bit
 period of exactly 2 × half-period clocks. For example, `--half-period 217`

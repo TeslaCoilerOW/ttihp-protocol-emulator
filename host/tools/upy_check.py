@@ -22,7 +22,7 @@ MICROPYTHON_MODULES = [
     "pe_host/__init__.py", "pe_host/protocol.py", "pe_host/errors.py", "pe_host/image.py",
     "pe_host/host.py", "pe_host/peers.py", "pe_host/flagship.py", "pe_host/selftest.py",
     "pe_host/ports/__init__.py", "pe_host/ports/base.py", "pe_host/ports/ttboard.py",
-    "pe_host/ports/pico.py", "pe_host/ports/replay.py",
+    "pe_host/ports/pico.py", "pe_host/ports/replay.py", "pe_host/ports/pio_lockstep.py",
     "examples/flagship_demo.py", "examples/selftest_demo.py", "tests/upy/replay_main.py",
     "tests/upy/ops.py", "tests/upy/sha_check.py",
 ]
@@ -36,6 +36,7 @@ FORBIDDEN_MODULES = {
 }
 ALLOWED_MODULES = {
     "json", "hashlib", "binascii", "struct", "sys", "os", "time", "gc", "machine", "micropython",
+    "array",
     "ttboard", "ttboard.mode", "ttboard.demoboard", "ttboard.util.platform", "rp2",
     "ops",  # tests/upy/ops.py (test-only helper next to replay_main.py)
 }

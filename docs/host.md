@@ -10,6 +10,7 @@
 | Reference model | CPython: `test/model/reference.py`, one clock per call | `pe_host.ports.model.ModelPort` |
 | RTL or gate-level netlist in cocotb | CPython: cocotb bridge thread, lockstep with the model | `pe_host.ports.cocotb_port.CocotbPort` |
 | Recorded trace | any interpreter: differential replay | `pe_host.ports.replay.ReplayPort` |
+| Demo board v3 or a Pico, with the project clock free-running on a PIO state machine | MicroPython, `rp2` PIO ([Lockstep PIO port](#lockstep-pio-port-free-running-clock)) | `pe_host.ports.pio_lockstep.LockstepPort` |
 
 The same scripts run everywhere. `host/examples/selftest_demo.py` exercises
 every host command through the host port alone. `host/examples/flagship_demo.py`
@@ -30,8 +31,9 @@ port. Both are listed under [Verification](#verification-of-the-library).
 3. [How one host clock works](#how-one-host-clock-works)
 4. [API reference](#api-reference)
 5. [Running the same scripts on silicon](#running-the-same-scripts-on-silicon)
-6. [Verification of the library](#verification-of-the-library)
-7. [Sources](#sources)
+6. [Lockstep PIO port (free-running clock)](#lockstep-pio-port-free-running-clock)
+7. [Verification of the library](#verification-of-the-library)
+8. [Sources](#sources)
 
 ## Quick start
 
@@ -593,11 +595,371 @@ peers may be tight next to the SDK. The ISA-version-3 check of
 architecture (job 24391202), against 39,133 on `dced528`. Job 24391460
 bisected the heap again on `dced528` and with the check: the flagship
 scenario (7,842 cycles with `uart-rx-idle`) needed 194 KiB in both, the
-self-test 128 and 125 KiB.
+self-test 128 and 125 KiB. `make mpy` also builds the lockstep PIO driver
+(`pe_host/ports/pio_lockstep.py`) since it joined `tools/upy_check.py`'s
+module list: 9,345 bytes, 48,958 bytes in all for either architecture (job
+24415035). The host-clocked ports do not import it, so copying it is
+optional.
 
 SHA-256: `image.py` uses `hashlib.sha256` when the firmware provides it,
 otherwise a pure-Python SHA-256. The fallback was checked against `hashlib`
 under CPython and under the MicroPython unix port.
+
+## Lockstep PIO port (free-running clock)
+
+The other ports stop the project clock whenever the host talks to the chip,
+because the host port is synchronous and `ui_in` is not synchronised
+([isa.md](isa.md)). With them the engines run at a steady rate only while the
+host is silent (`free_run`), so queues cannot be serviced while the chip runs
+(risk R1 in [extension-study.md](extension-study.md)).
+In simulation, `pe_host.ports.pio_lockstep` removes that limit without
+changing the RTL. One RP2040/RP2350 PIO state machine generates the project
+clock on its side-set pin and carries the host's nibble transfers on the
+same clock. The clock does
+not pause for host transactions; between them the program keeps clocking with
+write-valid and read-ready low, which the protocol treats as idle cycles in the
+current window.
+
+**Status.** Nothing here has run on hardware. The program, the driver and the
+library ran on a cycle-accurate model of the PIO against the reference model,
+the RTL and the FPGA host-clock builds in simulation (see
+[Lockstep verification](#lockstep-verification) below).
+
+What it enables:
+
+- The engines run at a steady rate outside reset/deselect halts and watchdog
+  restarts, and the host reads status, drains RX queues and tops up TX
+  queues while they run. Two simulated scenarios need this. One streams
+  32 bytes through the 8-word TX queue of a running UART transmitter. The
+  other bridges 24 UART bytes from engine 1 to engine 0 through the host
+  with no ROUTE. Without host service, `uart-rx-idle` faults with code 4
+  once its 8-word RX queue is full (a control run with 12 bytes).
+- Every `ProtocolEmulator` call runs (see [Limits](#limits)).
+  `ProtocolEmulator` code runs unchanged: `LockstepPort.cycle(ui)` presents
+  `ui` for exactly one clock and returns `uo` sampled before that clock's
+  rising edge.
+- `port.count` stays exact: the number of rising edges up to the last sampled
+  one, from counters the program returns with each result.
+
+### Frame and operations
+
+Every path through the program runs the same 6-cycle frame per project clock
+(slots 3, 4 and 5 with the clock low, slot 0 raising it, slots 1 and 2 high):
+
+```
+slot    3          4    5    0 (rising edge)   1    2
+clk     0          0    0    1                 1    1
+ui_in   changes    -    -    -                 -    -
+uo_out  -          -    -    -                 -    read (level at the rising edge)
+```
+
+`ui_in` changes only at slot 3, half a period from both rising edges. The
+slot-2 instruction reads `uo_out` through the RP2's two-flop input
+synchroniser, whose first flop sampled the pads at the system-clock edge that
+raises `clk`. The value is therefore the one from before the edge, since the
+chip cannot react to the edge before its signal has made the round trip.
+
+The host sends one 32-bit TX FIFO word per operation. Bits 4:0 are the handler
+address (`out pc, 5`) and bits 12:5 the `ui` byte:
+
+| Operation | What the program does | Result (RX FIFO) |
+|---|---|---|
+| CYC | presents `ui` for one frame | `uo` (bits 31:24) and 24 bits of the frame counter Y |
+| WR | presents `ui` (write-valid set) and holds it, one frame per stall, until write-ready was read high | none |
+| RD | presents `ui` (read-ready set), waits until read-valid was read high, then takes the eight nibbles in eight frames | the 32-bit word |
+| RDB | one frame with a new window (the bubble; its sample is not used), then RD | the 32-bit word |
+| HALT | stops the clock low until the next TX word, then acts as CYC | as CYC |
+
+Each operation starts with one fetch frame that drives write-valid and
+read-ready low and keeps the window bits. While the TX FIFO is empty, fetch
+frames repeat. Idle frames and stall frames decrement Y, so the host
+reconstructs the exact edge count from the fixed frame count of each
+operation. The program fills the 32-word instruction memory and is therefore
+always loaded at offset 0; `out pc` needs absolute addresses. Listing
+(`python3 -m pio.pathcheck` in `host/`):
+
+```
+ 0  1009  slot 0     rv_low     jmp 9 side 1
+ 1  5024  slot 0     rv_high    in x, 4 side 1
+ 2  b042  slot 1     hr_n1      mov y, y side 1
+ 3  5004  slot 2                in pins, 4 side 1
+ 4  6264  slot 3                out null, 4 side 0 [2]
+ 5  10e2  slot 0                jmp !osre, 2 side 1
+ 6  1118  slot 1                jmp 24 side 1 [1]
+ 7  6208  slot 3     rdb        out pins, 8 side 0 [2]
+ 8  121f  slot 0                jmp 31 side 1 [2]
+ 9  108a  slot 1     hr_stall   jmp y--, 10 side 1
+10  b0e0  slot 2     hr_smp     mov osr, pins side 1
+11  6024  slot 3                out x, 4 side 0
+12  6061  slot 4                out null, 1 side 0
+13  60a1  slot 5                out pc, 1 side 0
+14  6208  slot 3     wr         out pins, 8 side 0 [2]
+15  b142  slot 0     hw_e       mov y, y side 1 [1]
+16  10d8  slot 2                jmp pin, 24 side 1
+17  0092  slot 3                jmp y--, 18 side 0
+18  010f  slot 4     hw_h       jmp 15 side 0 [1]
+19  81a0  slot 3     halt       pull block side 0 [1]
+20  0016  slot 5                jmp 22 side 0
+21  6208  slot 3     cyc        out pins, 8 side 0 [2]
+22  5158  slot 0     cyc0       in y, 24 side 1 [1]
+23  5008  slot 2                in pins, 8 side 1
+24  e000  slot 3     fetch      set pins, 0 side 0
+25  8040  slot 4                push iffull noblock side 0
+26  a025  slot 5                mov x, status side 0
+27  103d  slot 0                jmp !x, 29 side 1
+28  1198  slot 1                jmp y--, 24 side 1 [1]
+29  90a0  slot 1     disp       pull block side 1
+30  70a5  slot 2                out pc, 5 side 1
+31  6208  slot 3     rd         out pins, 8 side 0 [2]
+```
+
+The pins are the side-set pin (`clk`), 8 OUT pins (`ui_in[7:0]`), 2 SET pins
+(`ui_in[5:4]`, cleared at every fetch), the IN pins from `uo_out[0]`, and JMP
+PIN = `uo_out[4]` (write-ready). Read-valid (`uo_out[5]`) is tested by copying
+the pins to the OSR and jumping on bit 5 with `out pc, 1`, into the two-entry
+table at addresses 0 and 1. The dispatch `pull` never blocks, because it
+follows a TX-level test (`mov x, status`, EXECCTRL.STATUS_N = 1). The HALT
+`pull` is the only instruction that can stop the clock.
+
+The port never lets an operation that decides on a sample change the window.
+In a frame that changes the window, read-valid and write-ready depend
+combinationally on `ui_in[7:6]`, and the sample comes too soon after the
+change. In such frames the protocol defines ready and valid as low (the
+window-change bubble). `cycle()` therefore reports them as 0 and samples only
+IRQ and FAULT, which are registered. WR never changes the window. A read in a
+new window uses RDB. Reset and deselection halt the clock: `rst_n` and `ena`
+change only while the clock is stopped low, and `ui_in = 0` while they are
+active.
+
+`LockstepEmulator` (a `ProtocolEmulator`) moves word transfers into the
+program. `write_word` is one CYC (the FAULT state before the word), eight WR
+and one CYC (the state after it). `read_word` in window 0, and in window 3
+after `levels()` showed a word that only the host can remove, is RD or RDB
+followed by CYC. The driver puts the words of a transaction with one
+`sm.put(array('I', ...))` call, a single write loop in C, in chunks of at
+most 4 words. Each chunk goes in only when it fits in the TX FIFO, so a put
+never blocks. Everything else (partial transfers, read pauses, `try_*`
+probes) runs ProtocolEmulator's own per-cycle code on `cycle()`. `idle(n)`,
+`run(n)` and `free_run(n)` let at least `n` clocks pass.
+
+Minimum project clocks per host call, measured on the model with no CPU time
+between FIFO accesses: `cycle()` 3, a command or a TX word write 21,
+`read_word(0)` in window 0 13, `set_window(1)` followed by `read_word(0)`
+18, and `read_status()` or `levels()` 39. On a board, the MicroPython code between FIFO accesses adds
+to this; that time was not measured.
+
+### Rate
+
+The project clock is f_sys / 6 (clock divider 1):
+
+| RP2 system clock | Project clock | Note |
+|---|---|---|
+| 150 MHz | 25 MHz | RP2350 (demo board v3) at its rated clock |
+| 144 MHz | 24 MHz | `machine.freq(144000000)`: USB-LS P = 8 per [extension-study.md](extension-study.md) section 3 |
+| 125 MHz | 20.83 MHz | RP2040 at MicroPython's default clock |
+
+A slower integer PIO clock divider scales every interval in the timing table
+below. 10BASE-T timing (40 MHz) is out of reach.
+
+### Timing
+
+`host/pio/timing.py` derives the margins from the program's schedule
+(the path check's slots) and from the chip's post-route timing. The chip
+values come from `tools/sta` on the p018 layout at 15 ns (Slurm job
+24089033, [timing-closure.md](timing-closure.md) section 10.5). That run's
+SDC puts every I/O delay at X = 3 ns (20% of the period), and its slacks
+include the 0.25 ns clock uncertainty:
+
+| Chip requirement at the project boundary | slow | typ | fast |
+|---|---:|---:|---:|
+| `ui_in` set-up before `clk`: 15 − X − slack(setup, input to register) | 9.210354 ns | 5.824290 ns | 3.851867 ns |
+| `ui_in` hold after `clk`: X − slack(hold, input to register), worst over all inputs | 1.740091 ns | 1.151163 ns | 0.845512 ns |
+| `clk` to `uo_out`: 15 − X − slack(setup, register to output) | 6.055209 ns | 3.949203 ns | 2.722324 ns |
+
+Outside the chip, the analysis takes two figures from Tiny Tapeout's GPIO
+page ("Multiplexer measurements"), which describes the sky130 pads: the
+"worst round trip latency" through the pads and multiplexer, 20 ns, and the
+"Delay variance between different IO pins", "less than 2ns". Both were
+measured on a single Tiny Tapeout 3.5 die at about 22 °C, and the page gives
+them for reference only. No figures are published for the IHP pads. Each
+row below therefore combines these room-temperature figures of one sky130
+die with the chip's timing at the row's corner: the slow rows are not a
+slow-corner analysis of the whole path. The set-up and hold margins charge the
+2 ns for every delay difference between `clk` and `ui_in`; the RP2's
+outputs and the board add to it. The RP2's pad delays
+and the board traces are not in the sampling margin either: it is what
+remains for them. At the RP2's pins, `ui_in` changes 3 system clocks before
+and 3 after each rising edge, and `uo_out` must be valid 6 system clocks after
+the previous rising edge.
+
+| f_sys | Corner | Set-up at pins | Set-up margin (2 ns skew) | Hold margin (2 ns skew) | Sampling window | Sampling margin (20 ns round trip) |
+|---|---|---:|---:|---:|---:|---:|
+| 150 MHz | slow | 20.000 ns | 8.790 ns | 16.260 ns | 40.000 ns | 13.945 ns |
+| 150 MHz | typ | 20.000 ns | 12.176 ns | 16.849 ns | 40.000 ns | 16.051 ns |
+| 150 MHz | fast | 20.000 ns | 14.148 ns | 17.154 ns | 40.000 ns | 17.278 ns |
+| 144 MHz | slow | 20.833 ns | 9.623 ns | 17.093 ns | 41.667 ns | 15.611 ns |
+| 125 MHz | slow | 24.000 ns | 12.790 ns | 20.260 ns | 48.000 ns | 21.945 ns |
+
+The sampling instant rests on the modelled synchroniser latency. If the real
+synchroniser captures the pads one system clock earlier, the window shrinks
+by 6.667 ns at 150 MHz, to 33.333 ns, which leaves 7.278 ns at the slow
+corner. If it captures one clock later, the sample comes one system clock
+(6.667 ns at 150 MHz) after the RP2 raises `clk`. The value is then still
+from before the edge only if the fastest path from the RP2's `clk` pin
+through the pads, the multiplexer and the chip back to the RP2's input is
+longer than one system clock. That is an assumption, not a result: Tiny
+Tapeout publishes the worst round trip, not a minimum. The chip's share is
+at least t_co_min = hold slack (register to output) − X = 0.914381 ns at the
+fast corner, so the minimum round trip through the pads and multiplexer,
+the RP2's pad delays and the board together must exceed
+1000/150 − 0.914381 ns, about 5.75 ns, at 150 MHz.
+
+At 150 MHz and the slow corner, set-up still holds with up to 10.789646 ns of
+skew between `clk` and `ui_in`. The sampling margin stays non-negative before
+RP2 pad and board delays while f_sys is at most 6000 / 26.055209 MHz, which
+lies between 230 and 231 MHz. The arithmetic in this section was checked with
+AXLE (Lean 4, `lean-4.28.0`, `okay: true`).
+
+The sampling argument needs one fact about the RTL: within a window, uo_out
+must not depend combinationally on the other `ui_in` bits. `python3 -m
+pio.uo_cone` (Yosys, bit-level, the SRAM macro as a black box) shows that
+`uo_out[3:0]`, `uo_out[6]` and `uo_out[7]` come from registers only. Only
+`uo_out[4]` and `uo_out[5]` depend combinationally on inputs, namely
+`ui_in[6]`, `ui_in[7]`, `ena` and `rst_n` (job 24409054, core sha256
+26a873db…). A frame that keeps the window therefore has registered outputs
+only.
+
+A frame that changes the window does have a combinational path, from
+`ui_in[7:6]` to `uo_out[5:4]`, and its sample is not used for a decision
+(see [Frame and operations](#frame-and-operations)). RDB is the case where a
+decision follows soonest: its first RD sample comes 9 system clocks after
+`ui_in` changes at the RP2's pins, 60 ns at 150 MHz. Against it stand the
+20 ns round trip and at most 4.682413 ns inside the chip at the slow corner
+(15 − 2 × 3 − 4.317587 ns, from the input-to-output setup slack of
+`ui_in[7]` → `uo_out[5]` in [timing-closure.md](timing-closure.md) section
+10.5), 24.682413 ns in all, which leaves 35.317587 ns for RP2 pad and board
+delays.
+
+### Pin maps
+
+`check_pin_map` accepts a map when `ui_in` (8 GPIOs) and `uo_out` (6 to 8)
+are contiguous runs and `clk`, `ui_in` and `uo_out` fit one 32-GPIO PIO
+window.
+
+| Board | clk | ui_in | uo_out | reset | Status |
+|---|---|---|---|---|---|
+| Demo board v3 (RP2350B), `PIN_MAP_DB3` | GPIO 16 | GPIO 17..24 | GPIO 33..40 | `rst_n` GPIO 14 through the SDK (`tt.reset_project`), outside the window | window GPIO 16..47 (GPIOBASE 16) |
+| Pico / Pico 2 + FPGA, `pico.PIN_MAP` and `PIN_MAP_CMOD_A7_HOST` | GP16 | GP0..7 | GP8..15 | GP17 (`rst_n`) | window GPIO 0..31 |
+| Pico + Urbana, `PIN_MAP_URBANA_HOST` | GP16 | GP0..7 | GP8..13 (uo_out[5:0]) | GP17 (`rst`) | IRQ and FAULT not visible |
+| TT04 to TT06 boards (RP2040) | GPIO 0 | GPIO 9..12, 17..20 | GPIO 5..8, 13..16 | | not supported: `ui_in` is split, so one OUT group cannot drive it |
+| Demo board v3 alpha map (`GPIOMapTTDBv3Alpha`) | GPIO 21 | GPIO 12..19 | GPIO 30..37 | | not supported: no 32-GPIO window holds both groups |
+
+The DB v3 numbers were checked against `src/ttboard/pins/gpio_map_dbv3.py`
+(`GPIOMapTTDBv3`) at the reviewed SDK commit `d485c7a`. Assumed and not
+tested:
+
+- MicroPython v1.26 or later on the RP2350B. It needs `rp2.PIO.gpio_base`
+  (the backend calls `PIO(n).gpio_base(Pin(16))`) and the 9-field program
+  list; `build_program` handles both list layouts.
+- The `ttboard` SDK releases `clk`, `ui_in` and `uo_out` to the PIO once the
+  project is selected in `ASIC_RP_CONTROL` mode and its clock is stopped
+  (`demo_board_backend`).
+- The two-cycle input synchroniser described in the RP2040 datasheet, with
+  the capture phase modelled in `host/pio/sim.py`. The input-sync bypass is
+  not used. If the capture is one system clock later, the minimum round trip
+  of [Timing](#timing) is assumed as well.
+- The program counter continuing at 0 after address 31 (`rd`).
+- PUSH IfFull without autopush (`push iffull noblock` at address 25) doing
+  nothing below the push threshold, as the datasheet describes and
+  `host/pio/sim.py` models it. rp2040js 1.4.0 differs: it applies IfFull
+  only with autopush, and pushes on every fetch frame.
+
+```python
+from machine import Pin
+from pe_host.ports.pio_lockstep import connect_lockstep
+from pe_host.ports import pico
+
+pe = connect_lockstep()                                  # demo board v3 via the SDK
+
+rst_n = Pin(17, Pin.OUT, value=1)                        # Pico + Cmod A7 host build
+ena = Pin(18, Pin.OUT, value=1)
+pe = connect_lockstep(pico.PIN_MAP_CMOD_A7_HOST,
+                      reset=lambda active: rst_n.value(0 if active else 1),
+                      ena=ena.value)
+```
+
+### Limits
+
+- **Host throughput is set by the CPU.** The program itself needs 3 clocks
+  for `cycle()` and 13 to 39 for a word transfer or a status read; the
+  MicroPython code between FIFO accesses was not measured.
+- **Blocked handshakes.** A WR or RD whose handshake never completes, for
+  example a TX write to a full queue of a halted engine, holds the program.
+  The port's watchdog (`watchdog_us`, 2 s by default) then re-initialises
+  the state machine, which pauses the clock once, and raises `HostTimeout`.
+  After that, `port.count_exact` is False.
+- **The clock halts during reset and deselection.** In simulation, with the
+  450-clock CPU model, each halt lasted about 5 µs.
+- **No software peers.** `env` is refused, because bit-banged peers need
+  host-supplied edges. Attach real peripherals to uio.
+- **One self-test check assumes host-supplied edges.** "timestamp advances
+  once per host clock" compares `pe.cycles` between host calls with the
+  chip's timestamp. On a free clock, edges also pass between host calls, so
+  the check can differ by a few clocks: by 1 in the RTL run, and by 0 to 8
+  in the model runs so far, depending on the modelled CPU time. The other 72
+  checks pass. A separate test shows that two timestamp snapshots differ by exactly
+  the rising edges between them.
+- **Scenario timing that the host sets in host cycles.** `run_flagship` starts
+  the UART sender 96 cycles after `pe.cycles`. On this port the simulations
+  start it 96 clocks after the chip's current edge instead
+  (`pio.scenarios.ChipTimedUartSource`).
+- **Not portable to every board.** The program uses a whole PIO block, and
+  the driver needs MicroPython's `rp2` and `array` modules.
+- **Not measured.** Pad-level timing on silicon, the IHP pads, RP2 pad delays
+  and board traces are all unmeasured.
+
+### Lockstep verification
+
+All runs used the snapshot `dd7dae3` (the RTL of the design of record, core
+sha256 `26a873db…`), with this port's files added. Simulations used cocotb
+2.0.1 and Icarus Verilog 13.0, the CI builds. The unit tests ran in job
+24409858, where the existing host suite also passed unchanged
+(`test_host_*.py`: 72 tests, of which the two Icarus replays of
+`test_host_rtl.py` were skipped because no Icarus was on the path).
+
+An independent review then listed three places where the interpreter
+departed from the datasheet: the delay of OUT/MOV EXEC, PULL with autopull
+enabled, and side-set priority over OUT/SET. Checking the datasheet text for
+them found a fourth, the autopull timing (first row below). None of them is
+reachable by the lockstep program, which uses no autopull, no EXEC and no
+pin shared by side-set and OUT/SET. After the corrections, job 24415035 ran every host test
+module with MicroPython 1.29, mpy-cross, the `rp2.py` and `adafruit_pioasm`
+oracles and Icarus 13.0 on the path: 141 tests (72 existing, 69 for this
+port), none skipped, all pass. In the same job `make upy-check` reported no
+problem in 19 files (the driver is now on its module list, with `array` on
+the allow-list) and `make mpy` built both architectures. Job 24415288
+repeated all of it after docstring-only edits, with the same results. A
+CI-like run (Python 3.11, `PATH=/usr/bin:/bin`, no `PE_HOST_*` variables,
+`python3 -m unittest discover -s host/tests` from the repository root) ran
+the 141 tests with the 12 that need MicroPython, Icarus or an oracle
+skipped, and passed (job 24415386). Job 24415056
+repeated every cocotb run of the table, and the README's FPGA command, with
+the same edge counts and results as job 24409857.
+
+| Check | What it shows | Result |
+|---|---|---|
+| `host/tests/test_pio_sim.py` | The PIO interpreter (`host/pio/sim.py`) against the datasheet rules: side-set at issue and while stalled, delays after completion, output priority (side-set over OUT, SET and MOV on the same pin; the highest-numbered state machine), JMP conditions (X-- always decrements), WAIT on GPIO, PIN and IRQ, IN/OUT shift directions and counts, autopush, autopull as the datasheet's pseudocode gives it (an OUT on an empty OSR refills and stalls; other cycles refill in the background), PULL as a no-op on a full OSR while autopull is on, PUSH/PULL IfFull/IfEmpty/noblock (PULL noblock copies X), MOV invert/reverse/STATUS, OUT PC/ISR/EXEC (OUT and MOV EXEC ignore their own delay), SET, IRQ with REL, FIFO join, wrap, forced instructions, the two-cycle synchroniser and its bypass, RP2350 IN_COUNT and MOV PINDIRS. Not modelled (the module docstring lists them): the RP2350's IRQ PREV/NEXT modes and MOV to/from the RX FIFO registers (both raise `PioError`), fractional clock dividers, OUT_STICKY and INLINE_OUT_EN, system interrupts and DREQ. | PASS (32 tests; job 24409858). Corrected after the review: autopull timing, the PULL fence, the EXEC delay and side-set priority; each new test fails on the uncorrected rule. PASS (38 tests; job 24415035) |
+| rp2040js 1.4.0 differential (the review's harness, in the work directory) | `host/pio/sim.py` against rp2040js's PIO state machine, instruction by instruction, on random programs, leaving out the classes rp2040js does not model as the datasheet does (WAIT, IRQ, EXEC, MOV PINDIRS, 32-bit OUT, IfFull/IfEmpty, side-set pins shared with OUT/SET); and the lockstep program itself on random operation streams. | Autopull off: 2,000 programs, 99,623 instructions, 0 differences. Autopull on: rp2040js refills the OSR at the start of an OUT and has no PULL fence, so most programs differ, each first in the OSR, its count, the TX level or an OUT stall. Lockstep program, with rp2040js given the datasheet's IfFull: 100 streams, 40,000 instructions, 0 differences (job 24415035) |
+| `host/tests/test_pio_asm.py` | The CPython `asm_pio` against the datasheet encodings. The lockstep program assembled by MicroPython's own `rp2.py` (v1.24.1, v1.25.0, v1.26.0 and master, fetched 2026-09-30) gives the same 32 words and configuration fields, and `adafruit_pioasm` 1.3.8 assembles the disassembly to the same words. The path check (`host/pio/pathcheck.py`) covers all 32 reachable (instruction, slot) states: the clock waveform holds on every path, `ui_in` is driven only at slot 3 and `uo_out` read only at slot 2, every `jmp y--` falls through to its target, and only the two expected `pull`s block. The path check fails on a broken program. | PASS (9 tests; jobs 24409858 and 24415035) |
+| `host/tests/test_pio_lockstep.py` | The MicroPython driver, unchanged, on stand-ins for `rp2`/`machine`/`time` whose state machine is the interpreter, with the reference model at the pins and a modelled CPU cost of 12 or 450 system clocks per FIFO access. Covered: the self-test (all 73 checks, or 72 with the timestamp check of Limits, depending on the modelled CPU time); the flagship scenario with pad-level peers and with `peers="external"`; `uart_stream` and `uart_bridge`, plus the control run without host service (fault 4); the acceptance oracle of `test_host_harness_equivalence.py` on its operation list and 10 random programs; the watchdog restart; the Y-wrap reconstruction; pin maps, including an RP2040 Pico at 125 MHz and the 6-bit Urbana map. Every run checks that the clock period is 6 system clocks at every rising edge outside reset halts, that `ui_in` never changes within 3 system clocks of a rising edge, and that `port.count` equals the edge count at every sample. | PASS (17 tests; jobs 24409858 and 24415035) |
+| `host/tests/test_pio_micropython.py` | `upy_check` on the driver. Differential replay: the self-test and `peers="external"` runs are recorded call by call in CPython and replayed under the MicroPython 1.29 unix port, from source and from `mpy-cross` output; every call and the verdict match. MicroPython's own `rp2.asm_pio` (the same four versions), running under MicroPython, assembles the program to the recorded words. | PASS (5 tests; jobs 24409858 and 24415035) |
+| `host/pio/cocotb`, RTL | The interpreter drives `clk` and `ui_in` of the RTL at 6.667 ns per system clock and reads `uo_out` through the modelled synchroniser. The driver and library run unchanged in a bridge thread, with a CPU cost of 450 system clocks per FIFO access. Pad-level peers act on uio, and the reference model checks `uo_out`, `uio_out` and `uio_oe` at every rising edge after the first reset. | flagship PASS (83,653 rising edges; 83,043 compared, 0 mismatches); uart_bridge PASS (52,009 edges); uart_stream PASS (38,664 edges); self-test 72 of 73, as in Limits (147,905 edges); all in job 24409857, and again in job 24415056. Every rising-edge interval is 6 system clocks except the reset halts (2 per reset, 756 and 758 system clocks), and no `ui_in` change falls within 3 system clocks of an edge. |
+| `host/pio/cocotb` on the FPGA host-clock builds (`fpga/sim`, `FPGA_CLOCK=host`) | The same module on `tb_fpga_pins.v`: the board top, shell, design and FPGA SRAM stand-in, with the testbench's pad and pin checker active. The PIO reads all 8 `uo_out` bits of the testbench; the 6-bit Urbana map was tested on the model only. | Cmod A7: flagship, uart_bridge and uart_stream PASS, self-test 72 of 73. Urbana: flagship and uart_bridge PASS. Same edge counts as on the RTL and 0 mismatches (jobs 24409857 and 24415056). |
+| `host/pio/uo_cone.py` | Combinational fan-in of every output (see Timing). | uo_out[5:4] from ui_in[7:6], ena, rst_n only (job 24409054) |
+
+Clock traces (one line per change of `clk` or `ui_in`) and excerpts around a
+window-3 read in the middle of each run are in the work directory, not in the
+repository.
 
 ## Verification of the library
 
