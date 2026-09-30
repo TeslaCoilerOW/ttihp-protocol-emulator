@@ -49,8 +49,7 @@ jobs:
       - name: Install pinned opam packages
         shell: bash
         run: |
-          # One package per word of scripts/opam-deps.txt, so no quotes.
-          # shellcheck disable=SC2046
+          # shellcheck disable=SC2046  # one package per word is intended
           opam install --yes $(grep -v '^#' scripts/opam-deps.txt)
           opam list --installed --columns=name,version hardcaml yojson digestif dune zarith base ppxlib
 
@@ -82,3 +81,55 @@ jobs:
         with:
           name: regenerated-rtl
           path: src/protocol_emulator_core.v
+
+  # hardcaml/test in its own job, so that a failing test cannot be read as
+  # "the committed RTL is stale" (the regen job above checks only that). It
+  # runs the Cyclesim and unit tests, line_test, and the waveform expect tests
+  # in hardcaml/test/expect (a changed waveform fails here and prints the
+  # diff; accept an intended change with `dune promote`). The tests need the
+  # '#test ' packages of scripts/opam-deps.txt, which only this job installs
+  # (cryptokit, under hardcaml_waveterm, needs zlib), so its opam cache key
+  # has its own '-tests' suffix. dune skips the expect library when those
+  # packages are missing, so the job checks that they are installed.
+  # line_sys_test needs a config from configs/, outside the dune project.
+  hardcaml-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Install system packages
+        shell: bash
+        run: sudo apt-get update && sudo apt-get install -y libgmp-dev pkg-config zlib1g-dev
+
+      - name: Restore opam switch
+        uses: actions/cache@v6
+        with:
+          path: _opam
+          key: opam-${{ runner.os }}-${{ runner.arch }}-ocaml-${{ env.OCAML_COMPILER }}-${{ hashFiles('scripts/opam-deps.txt') }}-tests
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: ${{ env.OCAML_COMPILER }}
+          cache: false
+          opam-pin: false
+
+      - name: Install pinned opam packages (generator and tests)
+        shell: bash
+        run: |
+          # shellcheck disable=SC2046
+          opam install --yes $(grep -v '^#' scripts/opam-deps.txt) $(sed -n 's/^#test //p' scripts/opam-deps.txt)
+          test_pkgs=$(sed -n 's/^#test \([^.]*\)\..*/\1/p' scripts/opam-deps.txt)
+          for pkg in $test_pkgs; do
+            opam list --installed --check "$pkg" || { echo "::error::$pkg is not installed; the expect tests would be skipped"; exit 1; }
+          done
+          # shellcheck disable=SC2086
+          opam list --installed --columns=name,version $test_pkgs
+
+      - name: Hardcaml tests
+        shell: bash
+        run: |
+          opam exec -- dune test --root hardcaml
+          (cd hardcaml && opam exec -- dune build --root . ./test/line_sys_test.exe)
+          hardcaml/_build/default/test/line_sys_test.exe configs/variants/diet8_rec16.json

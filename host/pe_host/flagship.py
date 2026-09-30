@@ -12,8 +12,10 @@ I2C target in lockstep with the host-supplied clock (model backend, or an RP2
 whose uio GPIOs are wired to the chip's uio pins: nothing else attached).
 peers="external": real peripherals are wired to uio; the engines free-run
 (PWM clock when the port supports it) and the host reports what it reads back.
-Engine 1's bounded idle wait (fault 3) is expected in that mode; the host
-clears it after STOP to read the sticky host fault from uo[7].
+Engine 1 runs uart-rx-idle, whose start-bit wait has no bound, so an idle
+UART line does not fault it. A scenario that uses the bounded uart-rx image
+for engine 1 instead ends in fault 3 on an idle line; that fault is accepted,
+and the host clears it after STOP to read the sticky host fault from uo[7].
 
 The host sequence equals test/scenarios.py flagship(): reset (4 cycles), per
 image an ISA-version read and SELECT/BEGIN/OWN/words/COMMIT, TX prefill,
@@ -226,15 +228,19 @@ def run_flagship(pe, scenario_path="firmware/flagship-scenario.json", firmware_d
 def _check_external_faults(pe, result, report):
     """Fault check for peers="external".
 
-    The uart-rx image bounds its idle and start-bit waits at twelve bit
-    periods (docs/firmware.md), so engine 1 ends in fault 3 whenever the UART
-    line stays idle that long, which with real peripherals is always the case
-    before STOP. That fault is expected; any other engine fault fails.
-    uo[7] is the OR of the sticky host fault and every engine fault, so it
-    says nothing about the host fault while engine 1 is faulted: CLEAR engine
-    1 (halted by the STOP before this check, and CLEAR is accepted for a
-    halted engine whatever the host fault) and read the pin again.
-    result.fault_report keeps the report from before the CLEAR.
+    The flagship's engine 1 runs uart-rx-idle, which waits for a start bit
+    with no bound, so with an idle UART line no engine faults and the host
+    fault is read from uo[7] directly. The bounded uart-rx image
+    (docs/firmware.md) limits its idle and start-bit waits to twelve bit
+    periods, so a scenario that puts it on engine 1 ends in fault 3 whenever
+    the line stays idle that long. Engine 1's fault 3 is therefore accepted;
+    any other engine fault fails. uo[7] is the OR of the sticky host fault
+    and every engine fault, so it says nothing about the host fault while
+    engine 1 is faulted: in that case CLEAR engine 1 (halted by the STOP
+    before this check, and CLEAR is accepted for a halted engine whatever the
+    host fault) and read the pin again. result.fault_report keeps the report
+    from before the CLEAR; result.fault_report_after_clear stays None when
+    nothing was cleared.
     """
     unexpected = [s for s in report.faulted if not (s.engine == 1 and s.fault == 3)]
     result.expect("unexpected faults", [repr(s) for s in unexpected], [])

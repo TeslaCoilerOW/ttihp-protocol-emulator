@@ -17,7 +17,6 @@
    asserted and at every edge while asserted; for async_sync_release the two
    synchronizer flops keep clocking while the chip-wide net holds the other
    registers). Exit 1 on any failure. *)
-[@@@warning "-32-69-26-27-35"]
 open Hardcaml
 open Line_fw
 module O = Variant_options
@@ -42,7 +41,7 @@ type sys = {
   sim : Cyclesim.t_port_list;
   mutable t : int;
   outs : int array; oes : int array;
-  mutable env : int -> (int -> int) -> (int -> int) -> int;  (* t, out k, oe k -> uio_in *)
+  env : int -> (int -> int) -> (int -> int) -> int;  (* t, out k, oe k -> uio_in *)
   mutable faulted_at : int;  (* first cycle with uo_out[7] (fault) high, -1 if none *)
   mutable rst_n : int;
 }
@@ -228,8 +227,8 @@ and d8 = (0x111, [0x10;0x20;0x30;0x40;0x50;0x60;0x70;0x80])
 and z0 = (0x3F0, []) and f4 = (0x001, [0xA5;0x5A;0xC3;0x3C]) and o1 = (0x555, [0x00])
 and y1 = (0x120, [0x5A])
 
-type can_obs = { staged : int; nw : int; n : int; txd : int -> int; code : int; got : int list;
-                 bus : can_bus; faulted : int; feed : int; drain_route : bool; t_start : int;
+type can_obs = { staged : int; n : int; txd : int -> int; code : int; got : int list;
+                 bus : can_bus; faulted : int; feed : int; drain_route : bool;
                  sy : sys }
 
 (* TX words go straight to engine 0 when they fit its queue, else through one
@@ -257,13 +256,12 @@ let can_session ?(rev=3) ?rx_drain ?until ~ours ~theirs () =
   if mask <> 0 then start s mask;
   let staged = prefill s feed words in
   idle s 50; start s 1;
-  let t_start = s.t in
   idle s (match until with Some u -> u | None -> span);
   let n = s.t in
   let txd t = if t < 0 || t >= n then 1 else (s.outs.(t) lor lnot s.oes.(t)) land 1 in
   let code, got = if until <> None then 0, [] else
       let c = fault_code s 0 in c, drain s (if drain_route then 1 else 0) in
-  { staged; nw; n; txd; code; got; bus; faulted = s.faulted_at; feed; drain_route; t_start; sy = s }
+  { staged; n; txd; code; got; bus; faulted = s.faulted_at; feed; drain_route; sy = s }
 
 (* our frames on TXD, sampled mid-bit from each SOF the bus saw (bus time = TXD + 5) *)
 let our_frames o ours =
@@ -355,7 +353,7 @@ let ext_regs sim =
   List.sort_uniq compare (List.concat_map (fun (is : Cyclesim.Traced.internal_signal) ->
       List.filter_map (fun name ->
           if List.exists (fun p -> starts p name) ext_prefixes then
-            Option.map (fun r -> name) (Cyclesim.lookup_reg_by_name sim name) else None) is.mangled_names)
+            Option.map (fun _ -> name) (Cyclesim.lookup_reg_by_name sim name) else None) is.mangled_names)
       tr.internal_signals)
 let reset_mid_frame () =
   (* run the TX of can_a to about bit 40 of the frame, then assert rst_n for 2 cycles *)

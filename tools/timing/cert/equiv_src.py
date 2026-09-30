@@ -39,9 +39,12 @@ Usage: equiv_src.py --src SRC_DIR --rtl RTL_DIR --models MODELS_DIR --out DIR [-
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 REG = re.compile(r"^    reg (\[[^\]]*\] )?(\w+)(\[[^\]]*\])?;$", re.M)
@@ -194,7 +197,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"equiv_src: {len(registers(gold))} registers, {n} anonymous ones renamed; script {out / 'equiv.ys'}")
     if not args.run:
         return 0
+    t0 = time.time()
     rc = subprocess.call(["yosys", "-ql", "equiv.log", "equiv.ys"], cwd=out)
+    if args.method == "abc" and rc != 0:
+        _record(out, args, "ERROR (yosys)", time.time() - t0)
     if args.method == "abc" and rc == 0:
         with open(out / "abc.log", "w") as f:
             cmd = (f"read_aiger miter.aig; print_stats; strash; bmc3 -v -F {args.bmc_only}" if args.bmc_only
@@ -207,15 +213,26 @@ def main(argv: list[str] | None = None) -> int:
             cex = "was asserted in frame" in text
             print(f"equiv_src: {'COUNTEREXAMPLE (not equivalent)' if cex else 'no counterexample'} "
                   f"(ABC bmc3, {args.bmc_only} frames)")
+            _record(out, args, "COUNTEREXAMPLE" if cex else "NO COUNTEREXAMPLE", time.time() - t0)
             return 1 if cex else 0
         proved = rc == 0 and ("Networks are equivalent" in text or "Property proved" in text)
         print(f"equiv_src: {'EQUIVALENT' if proved else 'NOT PROVED'} (ABC dprove)")
+        _record(out, args, "EQUIVALENT" if proved else "NOT PROVED", time.time() - t0)
         return 0 if proved else 1
     log = (out / "equiv.log").read_text(errors="replace")
     status = [line for line in log.splitlines() if "Found" in line and "$equiv" in line]
     print("\n".join(status[-3:]))
     print(f"equiv_src: yosys exit {rc}: {'EQUIVALENT' if rc == 0 else 'NOT PROVED'}")
     return rc
+
+
+def _record(out: Path, args: argparse.Namespace, result: str, seconds: float) -> None:
+    """result.json next to the logs, read by ledger.py record."""
+    (out / "result.json").write_text(json.dumps({
+        "method": args.method, "result": result, "negative_control": bool(args.gate),
+        # the netlist's last path components only (no local directories)
+        "gate": "/".join(Path(args.gate).parts[-4:]) if args.gate else "processor_fv.v", "seconds": round(seconds),
+        "slurm_job": os.environ.get("SLURM_JOB_ID")}, indent=1) + "\n")
 
 
 if __name__ == "__main__":

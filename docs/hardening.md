@@ -443,4 +443,5 @@ and gdstk, both in the SIF.
   eight 64x16 macros (section 5), and the pin check on the final LEF.
 * `gl_test` with the behavioural models (test owner).
 * TT's acceptance of an 8x4 SRAM project on the actual shuttle. This is a
-  policy question (task 0.4), not a flow question.
+  policy question (task 0.4), not a flow question. (Since answered: 8x4
+  confirmed by the organizers, 2026-09-28.)

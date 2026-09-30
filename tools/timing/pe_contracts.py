@@ -57,7 +57,7 @@ I2C_MODES: dict[str, dict[str, tuple[float | None, float | None]]] = {
 
 # Pin roles from docs/firmware.md "Executable example contracts".
 ROLES = {
-    "uart-tx": {"tx": 0}, "uart-rx": {"rx": 1},
+    "uart-tx": {"tx": 0}, "uart-rx": {"rx": 1}, "uart-rx-idle": {"rx": 1},
     "spi-controller": {"sck": 2, "mosi": 3, "miso": 4, "cs": 5},
     "spi-target": {"sck": 2, "mosi": 3, "miso": 4, "cs": 5},
     "i2c": {"scl": 6, "sda": 7},
@@ -395,6 +395,102 @@ def uart_rx_checks(ctx: Ctx, clocks: list[float]) -> list[dict]:
                      f"idle/start WAITPIN LIMIT {limits} = {periods} x {n_bit}-cycle bit periods; "
                      f"declared: \"{note2}\""))
     out.append(check("uart-rx-rate", "INFO", "baud = clock/" + str(n_bit) + ": "
+                     + ", ".join(f"{f / 1e6:g}MHz {f / n_bit:.0f} Bd" for f in clocks)))
+    return out
+
+
+def uart_rx_idle_checks(ctx: Ctx, clocks: list[float]) -> list[dict]:
+    """uart-rx-idle: the start bit is found by a data-dependent IN/XOR/JZ poll
+    (a soft branch boundary of the analysis) instead of a bounded WAITPIN."""
+    an, p = ctx.an, ctx.p
+    pin = ROLES["uart-rx-idle"]["rx"]
+    n_bit, _ = parse_int(r"(\d+) clocks per bit", p.notes)
+    poll_decl, _ = parse_int(r"poll period (\d+) clocks", p.notes)
+    window = next((re.search(r"sampled (\d+)n\+(\d+)\.\.(\d+)n\+(\d+) clocks", n) for n in p.notes
+                   if re.search(r"sampled (\d+)n\+(\d+)\.\.(\d+)n\+(\d+) clocks", n)), None)
+    tol_decl, _ = parse_int(r"baud tolerance \+-(\d+)%", p.notes)
+    if None in (n_bit, poll_decl, window, tol_decl):
+        return [check("uart-rx-idle-declaration", "FAIL", "notes must declare 'N clocks per bit', 'poll period "
+                      "P clocks', 'sampled Nn+a..Nn+b clocks' and 'baud tolerance +-T%'")]
+    lo, hi = int(window.group(2)), int(window.group(4))
+    out = []
+
+    def samples(v: T.Variant) -> list[tuple]:
+        return [e for e in v.events if e[EK] == "sample" and e[EPIN] == pin]
+
+    # Poll loops: soft branch boundaries with a variant that samples the pin once and returns.
+    loops, frames = {}, []
+    for node in an.iter_nodes():
+        if node.kind != T.BLOCK_BRANCH:
+            continue
+        for vi, v in enumerate(node.variants):
+            got = samples(v)
+            if v.kind == "boundary" and v.end[2] == node.bpc and len(got) == 1:
+                loops.setdefault(node.bpc, set()).add((v.t_end, v.t_end - got[0][ET], got[0][EPC]))
+            elif len(got) == 9:
+                frames.append((node, vi, v, got))
+    bounded = [i.text(p.label_at) for i in p.ins if i.op in (T.WAITPIN, T.WAITEVENT, T.LIMIT)]
+    start_loops = {node.bpc for node, _, _, _ in frames}
+    ok = not bounded and bool(frames) and start_loops <= set(loops)
+    out.append(check("uart-rx-idle-unbounded-wait", "PASS" if ok else "FAIL",
+                     ("no WAITPIN, WAITEVENT or LIMIT in the image, so fault 3 is unreachable; the idle and "
+                      "start-bit waits are data-dependent loops without a counter: "
+                      + "; ".join(f"JZ at pc{b} samples pin{pin} at pc{sorted(x)[0][2]} every "
+                                  f"{sorted({t for t, _, _ in x})} clocks" for b, x in sorted(loops.items())))
+                     if ok else f"bounded waits {bounded}; start-bit loops {sorted(start_loops)}, poll loops "
+                     f"{sorted(loops)}"))
+    periods = {t for b in start_loops for t, _, _ in loops.get(b, ())}
+    leads = {lead for b in start_loops for _, lead, _ in loops.get(b, ())}
+    ok = periods == {poll_decl} and len(leads) == 1
+    out.append(check("uart-rx-idle-poll-period", "PASS" if ok else "FAIL",
+                     f"start-bit poll period {sorted(periods)} clocks (detection latency "
+                     f"0..{max(periods, default=1) - 1}); declared: \"poll period {poll_decl} clocks\""))
+    if not ok or not frames:
+        return out
+    poll, lead = poll_decl, leads.pop()
+    # Offsets of the 9 frame samples from the poll sample that saw the start bit, then
+    # their positions in the bit relative to the first edge that registered it (+0..poll-1).
+    offsets = sorted({tuple(e[ET] + lead for e in got) for _, _, _, got in frames})
+    ok_center = window.group(1) == window.group(3) == str(n_bit) and abs((lo + hi + 1) / 2 - n_bit / 2) <= 0.5
+    eps_hi, eps_lo, rows = INF, -INF, []
+    seen: dict[str, set] = {"data": set(), "stop": set()}
+    for offs in offsets:
+        for m, o in enumerate(offs, start=1):
+            pos_lo, pos_hi = o - m * n_bit, o + poll - 1 - m * n_bit
+            seen["stop" if m == 9 else "data"].add((pos_lo, pos_hi))
+            ok_center = ok_center and (pos_lo, pos_hi) == (lo, hi)
+            eps_hi = min(eps_hi, o / (m * n_bit) - 1)
+            eps_lo = max(eps_lo, (o + poll) / ((m + 1) * n_bit) - 1)
+            rows.append(f"bit{m}: +{pos_lo}..{pos_hi + 1} of {n_bit}")
+    spans = {k: ", ".join(f"{a}..{b}" for a, b in sorted(v)) for k, v in seen.items()}
+    out.append(check("uart-rx-idle-center-sampling", "PASS" if ok_center else "FAIL",
+                     f"data bits sampled {spans['data']} and the stop bit {spans['stop']} clocks into the bit, "
+                     f"counted from the first edge that registered the start bit (one more from the line edge; "
+                     f"centre {n_bit / 2:g}); the first data sample is {offsets[0][0]} clocks after the poll sample "
+                     f"that saw the start bit; declared: \"{window.group(0)}\"", sample_positions=rows))
+    fast, slow = 1 / (1 + eps_lo) - 1, 1 / (1 + eps_hi) - 1
+    need = tol_decl / 100
+    ok = fast >= need - 1e-12 and slow <= -need + 1e-12
+    out.append(check("uart-rx-idle-baud-tolerance", "PASS" if ok else "FAIL",
+                     f"all 9 samples stay inside their bit for a transmitter bit period within {eps_lo * 100:+.3f}% .. "
+                     f"{eps_hi * 100:+.3f}% of {n_bit} clocks, i.e. a baud error of {slow * 100:+.3f}% .. "
+                     f"{fast * 100:+.3f}% (includes the 0..{poll - 1}-clock poll latency and the 1-clock asynchronous "
+                     f"edge uncertainty); declared: +-{tol_decl}%", eps_min=eps_lo, eps_max=eps_hi))
+    # Re-arm: first poll sample after the stop-bit sample, from the poll sample that saw the start bit.
+    poll_pcs = {pc for b in start_loops for _, _, pc in loops[b]}
+    q = ctx.query("rx-idle-poll-sample", lambda e: e[EK] == "sample" and e[EPC] in poll_pcs)
+    arm = max(offs[-1] for offs in offsets) + max(
+        q.after(node, vi, v.events.index(got[-1]))[1] for node, vi, v, got in frames)
+    frame = 10 * n_bit
+    margin = frame - (arm + poll - 1 + 1)
+    out.append(check("uart-rx-idle-rearm", "PASS" if margin >= 0 else "FAIL",
+                     f"the poll samples the line again {fc(arm)} clocks after the poll sample that saw the start bit "
+                     f"({fc(arm + poll - 1)} after the registered start edge at the latest); the next start edge "
+                     f"(1 stop bit, no idle) is {frame} clocks after the previous one: margin {fc(margin)} clocks; "
+                     f"back-to-back traffic keeps the 0..{poll - 1}-clock detection latency for a transmitter bit "
+                     f"period down to {((arm + poll) / frame - 1) * 100:+.3f}% of {n_bit} clocks",
+                     rearm_cycles=arm))
+    out.append(check("uart-rx-idle-rate", "INFO", "baud = clock/" + str(n_bit) + ": "
                      + ", ".join(f"{f / 1e6:g}MHz {f / n_bit:.0f} Bd" for f in clocks)))
     return out
 
@@ -854,7 +950,7 @@ def event_checks(ctx: Ctx, clocks: list[float]) -> list[dict]:
 
 
 FAMILY_CHECKS = {
-    "uart-tx": uart_tx_checks, "uart-rx": uart_rx_checks,
+    "uart-tx": uart_tx_checks, "uart-rx": uart_rx_checks, "uart-rx-idle": uart_rx_idle_checks,
     "spi-controller": spi_controller_checks, "spi-target": spi_target_checks,
     "i2c-controller": i2c_controller_checks, "i2c-target": i2c_target_checks,
     "jtag": jtag_checks, "waveform": waveform_checks, "event-transmitter": event_checks,
@@ -1055,3 +1151,10 @@ def render_markdown(report: dict[str, Any]) -> str:
             lines.append(f"- pc{lp['header_pc']} `{lp['header']}` via {', '.join(lp['via'])}: {per}")
         lines += ["", "### Edge schedules", "", "```", r["schedule_text"], "```"]
     return "\n".join(lines) + "\n"
+
+
+# SWD, WS2812B, PS/2 and 1-Wire images: their checks live in pe_contracts_ext.py.
+import pe_contracts_ext as _ext  # noqa: E402
+
+ROLES.update(_ext.ROLES)
+FAMILY_CHECKS.update(_ext.FAMILY_CHECKS)

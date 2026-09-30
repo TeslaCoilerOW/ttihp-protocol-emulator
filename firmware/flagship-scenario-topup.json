@@ -16,7 +16,7 @@
   "also_valid_fifo_words": [4, 8, 32],
   "images": [
     {"engine": 0, "source": "uart-tx.source.json"},
-    {"engine": 1, "source": "uart-rx.source.json"},
+    {"engine": 1, "source": "uart-rx-idle.source.json"},
     {"engine": 2, "source": "spi-controller-mode0.source.json"},
     {"engine": 3, "source": "i2c-write.source.json"}
   ],

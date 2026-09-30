@@ -58,7 +58,8 @@ async def _flagship(dut, kind: str, skew: str) -> None:
         assert image["engine"] == entry["engine"]
         images[image["name"]] = image
     bit_cycles = uart_bit_cycles(images["uart-tx"])
-    assert bit_cycles == uart_bit_cycles(images["uart-rx"]) == stimulus["uart_bit_cycles"]
+    receiver = next(image for image in images.values() if image["engine"] == 1)  # uart-rx-idle
+    assert bit_cycles == uart_bit_cycles(receiver) == stimulus["uart_bit_cycles"]
     baud = images["uart-tx"]["clock_hz"] / bit_cycles
     board.set(uart_prescale=bit_cycles // 8)
     sink = UartSink(dut.pad0, baud=baud)

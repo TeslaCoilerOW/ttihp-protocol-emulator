@@ -33,7 +33,15 @@ composition with the timing-isolation proof.
 
 Negative controls: ``--mutant`` applies one of pe_validate's deliberately
 wrong analyzers, ``--schedule-mutant`` perturbs one predicted item. Both
-emit certificates that must fail.
+emit certificates that must fail. A wrong analyzer can predict a schedule
+that contradicts itself (e.g. a pad event whose "before" state is not the
+state it predicted); such nodes cannot be written as certificates, so they
+are listed in the manifest under ``not_generated`` and skipped, and the
+control is taken from the other nodes the mutation changes.
+
+``preflight`` runs everything ``campaign.sh prepare`` and ``ci_prove.sh``
+emit for an image, in memory, and reports whether the image can be
+certified and how many CI runs it needs.
 """
 
 from __future__ import annotations
@@ -55,8 +63,14 @@ if str(TIMING) not in sys.path:
 
 import pe_timing as T  # noqa: E402
 
-GEN_VERSION = "1.0"
-SCHEDULE_MUTANTS = ("pad-late", "pad-early", "pad-level", "issue-late", "post-limit")
+GEN_VERSION = "1.1"   # 1.1: soft branch nodes; output for other images unchanged
+# pe_validate MUTANTS used as negative controls (campaign.sh and ci_prove.sh
+# use the same lists; test_gen_cert checks that).
+ANALYZER_MUTANTS = ("wait-n-cycles", "xfer-late-edge", "count-n-iterations", "open-drain-as-push-pull",
+                    "halt-keeps-pins", "set-two-cycles")
+# branch-late applies to soft branch nodes only, so it emits nothing for an
+# image without them.
+SCHEDULE_MUTANTS = ("pad-late", "pad-early", "pad-level", "issue-late", "post-limit", "branch-late")
 P0, P1, PZ = T.P0, T.P1, T.PZ
 
 
@@ -117,6 +131,7 @@ class NodeCert:
     chunk: int | None = None      # chunk index when a long segment is split
     chunk_start: int = 0          # segment step of the chunk's step 0
     group: int = 0                # state group at the chunk start
+    invalid: str | None = None    # build(tolerant=True): why no certificate could be written
 
     @property
     def depth(self) -> int:
@@ -132,8 +147,12 @@ def state_desc(st: Any, pc: int, tx_unknown: bool = False) -> dict[str, Any]:
             "vk": st.vk, "vb": st.vb & st.vk, "dk": st.dk, "db": st.db & st.dk}
 
 
-def build(an: Any, TT: types.ModuleType) -> list[NodeCert]:
-    """One NodeCert per boundary-graph node of an exact analysis."""
+def build(an: Any, TT: types.ModuleType, tolerant: bool = False) -> list[NodeCert]:
+    """One NodeCert per boundary-graph node of an exact analysis.
+
+    ``tolerant`` (negative controls from a deliberately wrong analyzer): a
+    node whose predicted schedule cannot be written as a certificate is kept
+    with ``invalid`` set and no variants, instead of aborting the image."""
     if not an.is_exact():
         raise SystemExit(f"gen_cert: {an.p.name}: analysis is not exact (widened or budget-cut)")
     index = {key: i for i, key in enumerate(an.order)}
@@ -141,88 +160,114 @@ def build(an: Any, TT: types.ModuleType) -> list[NodeCert]:
     certs = []
     for key in an.order:
         node = an.nodes[key]
-        if node.kind == TT.BLOCK_BRANCH:
-            raise SystemExit(f"gen_cert: {an.p.name}: soft branch boundaries are not supported")
+        # A soft branch node (a data-dependent JZ/LOOP inside a boundary-free
+        # loop) has no stall: its anchor is the edge on which the branch
+        # issues. Its certificate starts one step earlier, in the arrival
+        # state (PC = the branch, which is attempted at step 0), so the
+        # predecessor's post is this certificate's precondition as it is, and
+        # the branch step itself is proved. Every analyzer offset +t is step t.
+        shift = 1 if node.kind == TT.BLOCK_BRANCH else 0
         if node.kind == "start":
             start = TT.START_STATE
             pre = state_desc(start, 0)
+        elif shift:
+            start = node.state
+            pre = state_desc(node.state, node.bpc)
         else:
             ins = an.p.ins[node.bpc]
             start = node.state._replace(pc=node.bpc + 1)
             pre = state_desc(node.state, node.bpc + 1, tx_unknown=ins.op == TT.PULL)
             if ins.op == TT.PULL:
                 start = start._replace(regs=(None,) + tuple(start.regs[1:]))
-        init_pads = an.pads(start)
         nc = NodeCert(index[key], TT.node_label(an, node), node.kind, node.bpc, pre, start=start)
-        for vi, v in enumerate(node.variants):
-            kind = v.kind
-            if kind not in ("boundary", "halt", "fault"):
-                raise SystemExit(f"gen_cert: {an.p.name}: variant end {v.end} not supported")
-            t_end = v.t_end
-            horizon = t_end - 1 if kind == "boundary" else t_end
-            attempts: dict[int, int] = {}
-            pads = {p: [(0, init_pads[p])] for p in range(8) if (own >> p) & 1}
-            changes: dict[int, set] = {p: set() for p in pads}
-            samples, strict = [], []
-            n_pad = n_known = 0
-            for e in v.events:
-                t, k = e[TT.ET], e[TT.EK]
-                if k in ("issue", "arrive"):
-                    if t - 1 in attempts:
-                        raise SystemExit(f"gen_cert: two issue attempts at +{t}")
-                    attempts[t - 1] = e[TT.EPC]
-                elif k == "pad":
-                    p = e[TT.EPIN]
-                    before, after = e[TT.EBEFORE], e[TT.EAFTER]
-                    cur = pads[p][-1][1]
-                    if cur != before:
-                        raise SystemExit(f"gen_cert: pad timeline mismatch pin{p} +{t}: {cur} vs {before}")
-                    if pads[p][-1][0] == t:
-                        pads[p][-1] = (t, after)
-                    else:
-                        pads[p].append((t, after))
-                    changes[p].add(t)
-                    n_pad += 1
-                    if before & after == 0:
-                        n_known += 1
-                elif k == "sample":
-                    ins = an.p.ins[e[TT.EPC]]
-                    msb = (ins.c & 1) if ins.op == TT.IN else (ins.c >> 2) & 1
-                    samples.append((t, e[TT.EPIN], msb))
-                elif k == "inter" and e[TT.ECAUSE] == "push_strict":
-                    strict.append(t - 1)
-            if len(strict) > an.p.arch.fifo_words:
-                raise SystemExit("gen_cert: more strict PUSHes in one segment than RX FIFO words")
-            if kind == "boundary":
-                post = {"kind": "boundary", **state_desc(v.exit_state, v.end[2])}
-            elif kind == "halt":
-                post = {"kind": "halt"}
-            else:
-                post = {"kind": "fault", "code": v.end[2]}
-            vc = VariantCert(vi, kind, t_end, horizon, attempts, pads, changes, samples, strict,
-                             post, index.get(v.succ) if v.succ is not None else None, n_pad, n_known)
-            nc.variants.append(vc)
+        try:
+            init_pads = an.pads(start)
+            for vi, v in enumerate(node.variants):
+                kind = v.kind
+                if kind not in ("boundary", "halt", "fault"):
+                    raise SystemExit(f"gen_cert: {an.p.name}: variant end {v.end} not supported")
+                t_end = v.t_end
+                horizon = (t_end - 1 if kind == "boundary" else t_end) + shift
+                attempts: dict[int, int] = {0: node.bpc} if shift else {}
+                pads = {p: [(0, init_pads[p])] for p in range(8) if (own >> p) & 1}
+                changes: dict[int, set] = {p: set() for p in pads}
+                samples, strict = [], []
+                n_pad = n_known = 0
+                for e in v.events:
+                    t, k = e[TT.ET] + shift, e[TT.EK]
+                    if k in ("issue", "arrive"):
+                        if t - 1 in attempts:
+                            raise SystemExit(f"gen_cert: two issue attempts at +{t}")
+                        attempts[t - 1] = e[TT.EPC]
+                    elif k == "pad":
+                        p = e[TT.EPIN]
+                        before, after = e[TT.EBEFORE], e[TT.EAFTER]
+                        cur = pads[p][-1][1]
+                        if cur != before:
+                            raise SystemExit(f"gen_cert: pad timeline mismatch pin{p} +{t}: {cur} vs {before}")
+                        if pads[p][-1][0] == t:
+                            pads[p][-1] = (t, after)
+                        else:
+                            pads[p].append((t, after))
+                        changes[p].add(t)
+                        n_pad += 1
+                        if before & after == 0:
+                            n_known += 1
+                    elif k == "sample":
+                        ins = an.p.ins[e[TT.EPC]]
+                        msb = (ins.c & 1) if ins.op == TT.IN else (ins.c >> 2) & 1
+                        samples.append((t, e[TT.EPIN], msb))
+                    elif k == "inter" and e[TT.ECAUSE] == "push_strict":
+                        strict.append(t - 1)
+                if len(strict) > an.p.arch.fifo_words:
+                    raise SystemExit("gen_cert: more strict PUSHes in one segment than RX FIFO words")
+                if kind == "boundary":
+                    post = {"kind": "boundary", **state_desc(v.exit_state, v.end[2])}
+                elif kind == "halt":
+                    post = {"kind": "halt"}
+                else:
+                    post = {"kind": "fault", "code": v.end[2]}
+                vc = VariantCert(vi, kind, t_end, horizon, attempts, pads, changes, samples, strict,
+                                 post, index.get(v.succ) if v.succ is not None else None, n_pad, n_known)
+                nc.variants.append(vc)
+        except (SystemExit, Exception) as exc:     # noqa: BLE001 (tolerant: any failure of a mutated analysis)
+            if not tolerant:
+                raise
+            nc.variants, nc.invalid = [], str(exc) or type(exc).__name__
         certs.append(nc)
-    check_chain(certs)
+    check_chain(certs, tolerant)
     return certs
 
 
-def check_chain(certs: list[NodeCert]) -> None:
+def check_chain(certs: list[NodeCert], tolerant: bool = False) -> None:
     """Every boundary post must hand over exactly the successor's precondition,
     given the boundary lemmas: the completion advances the PC by one, clears
     the blocked count and leaves every other register alone, except that a
-    PULL loads tx (free in the successor)."""
+    PULL loads tx (free in the successor). A soft branch successor starts in
+    the arrival state itself, so there the post must equal its precondition.
+    ``tolerant``: a broken link marks its node invalid instead of aborting
+    (invalid nodes are skipped on both ends)."""
     for nc in certs:
+        if nc.invalid:
+            continue
         for v in nc.variants:
-            if v.post["kind"] != "boundary":
+            if v.post["kind"] != "boundary" or certs[v.succ].invalid:
                 continue
             succ = certs[v.succ].pre
             post = {k: val for k, val in v.post.items() if k != "kind"}
-            want = dict(post, pc=post["pc"] + 1)
-            if succ["regs"][0] is None:
-                want["regs"] = [None] + list(post["regs"][1:])
+            if certs[v.succ].kind == T.BLOCK_BRANCH:
+                # soft boundary: no completion step; the successor starts in the arrival state
+                want = post
+            else:
+                want = dict(post, pc=post["pc"] + 1)
+                if succ["regs"][0] is None:
+                    want["regs"] = [None] + list(post["regs"][1:])
             if want != succ:
-                raise SystemExit(f"gen_cert: chain broken n{nc.index} v{v.index} -> n{v.succ}: {want} vs {succ}")
+                msg = f"gen_cert: chain broken n{nc.index} v{v.index} -> n{v.succ}: {want} vs {succ}"
+                if not tolerant:
+                    raise SystemExit(msg)
+                nc.variants, nc.invalid = [], msg
+                break
 
 
 # ----------------------------------------------------------------------------
@@ -413,7 +458,17 @@ def mutate_schedule(nc: NodeCert, kind: str) -> bool:
     """Perturb one predicted item of the node's first applicable variant.
 
     ``issue-late`` changes every variant: ``flow`` only needs some variant to
-    match, so a single mutated variant would leave the others to match."""
+    match, so a single mutated variant would leave the others to match.
+    ``branch-late`` (soft branch nodes only): the data-dependent branch
+    attempted at step 0 is predicted to resolve one cycle later, so every
+    later issue slot of every variant moves by one step."""
+    if kind == "branch-late":
+        if nc.kind != T.BLOCK_BRANCH or nc.chunk:      # the branch is at step 0 of the node or chunk 0
+            return False
+        for v in nc.variants:
+            v.attempts = {(c + 1 if c >= 1 else c): pc for c, pc in v.attempts.items()}
+            v.horizon += 1
+        return True
     if kind == "issue-late":
         changed = False
         for v in nc.variants:
@@ -448,7 +503,7 @@ def mutate_schedule(nc: NodeCert, kind: str) -> bool:
                     if kind == "pad-level" and val in (P0, P1):
                         tl[i] = (s, P1 if val == P0 else P0)
                         return True
-        elif kind == "post-limit" and v.post["kind"] == "boundary":
+        elif kind == "post-limit" and v.post["kind"] in ("boundary", "cut"):
             v.post["limit"] = (v.post["limit"] + 1) & 0xFFFFFF
             return True
     return False
@@ -618,6 +673,137 @@ def image_tag(path: Path) -> str:
     return path.name.replace(".image.json", "")
 
 
+def module_name(tag: str, nc: NodeCert, suffix: str = "") -> str:
+    module = f"cert_{tag.replace('-', '_')}_n{nc.index}"
+    if nc.chunk is not None:
+        module += f"_c{nc.chunk}" + (f"g{nc.group}" if nc.group else "")
+    return module + suffix
+
+
+# ----------------------------------------------------------------------------
+# Obligation digests (ledger.py): what exactly a campaign proved
+# ----------------------------------------------------------------------------
+
+def normalize_sby(text: str) -> str:
+    """An sby file without its solver choice and with [files] reduced to base
+    names: the proof obligation, independent of engines and of where the
+    RTL, the models and this directory were on the machine that ran it."""
+    out, section = [], ""
+    for line in text.splitlines():
+        if line.startswith("["):
+            section = line.strip()
+            if section == "[engines]":
+                continue
+        elif section == "[engines]":
+            continue
+        elif section == "[files]" and line.strip():
+            line = Path(line.strip()).name
+        out.append(line)
+    return "\n".join(out).strip() + "\n"
+
+
+def _sha(data: str | bytes) -> str:
+    return hashlib.sha256(data.encode() if isinstance(data, str) else data).hexdigest()
+
+
+def obligation_line(module: str, sv_text: str, sby_text_: str) -> str:
+    return f"{module}\t{_sha(sv_text)}\t{_sha(normalize_sby(sby_text_))}\n"
+
+
+def digest_lines(lines: list[str], includes: dict[str, str | None] | None = None) -> str:
+    """One digest over obligation lines and the sha256 of the harness includes."""
+    extra = [f"include\t{k}\t{v}\n" for k, v in sorted((includes or {}).items())]
+    return _sha("".join(sorted(lines + extra)))
+
+
+def obligations(img_path: Path, chunk: int, includes: dict[str, str | None] | None = None) -> dict[str, Any]:
+    """Digests of the certificates ``emit`` writes for one image: ``whole``
+    over the whole-segment certificates, ``chunks`` over the chunk
+    certificates of segments longer than ``chunk`` steps (``emit --chunk``,
+    as campaign.sh keeps them). Each certificate contributes its module name,
+    its harness and its normalized sby file; ``includes`` (name -> sha256 of
+    cert_dut.vh, cert_env.vh) are part of both digests."""
+    image = json.loads(img_path.read_text())
+    an = T.Analysis(T.Program.from_image(img_path))
+    certs = build(an, T)
+    tag = image_tag(img_path)
+    here, rtl, models = Path("cert"), Path("rtl"), Path("models")
+
+    def line(nc: NodeCert) -> str:
+        module = module_name(tag, nc)
+        return obligation_line(module, sv_node(image, nc, module),
+                               sby_text(f"{module}.sv", module, nc.depth, [], rtl, models, here))
+
+    whole = [line(nc) for nc in certs]
+    parts = [ch for nc in certs for ch in split(an, T, nc, chunk) if ch.chunk is not None] if chunk else []
+    return {"segments": len(certs), "chunk_certificates": len(parts),
+            "whole_sha256": digest_lines(whole, includes),
+            "chunks_sha256": digest_lines([line(ch) for ch in parts], includes)}
+
+
+def certificates(img_path: Path, TT: types.ModuleType, *, mutant: str | None = None,
+                 schedule_mutant: str | None = None, rtl_mutant: str | None = None,
+                 nodes: set[int] | None = None, chunk: int = 0, chunk_controls: bool = False,
+                 pick_one: bool = False) -> tuple[list[NodeCert], dict[str, Any] | None]:
+    """The certificates ``emit`` writes for one image (TT: ``analyzer(mutant)``).
+
+    ``chunk_controls`` (with ``schedule_mutant`` and ``chunk``): perturb the
+    chunk certificates of the segments longer than ``chunk`` steps instead of
+    whole-segment certificates; the chunk chains are what prove those segments.
+
+    With ``mutant`` the second value records the nodes the wrong analysis
+    could not turn into certificates (None when there are none); the image is
+    then not rejected, the control comes from the remaining nodes."""
+    rejected = None
+    if mutant:
+        try:
+            an = TT.Analysis(TT.Program.from_image(img_path))
+            certs = build(an, TT, tolerant=True)
+        except (SystemExit, Exception) as exc:      # noqa: BLE001 (the mutated analysis itself failed)
+            return [], {"nodes": None, "reason": str(exc) or type(exc).__name__}
+        bad = [nc for nc in certs if nc.invalid]
+        if bad:
+            rejected = {"nodes": [nc.index for nc in bad], "reason": bad[0].invalid}
+        certs = [nc for nc in certs if not nc.invalid]
+    else:
+        an = TT.Analysis(TT.Program.from_image(img_path))
+        certs = build(an, TT)
+    selected = certs if nodes is None else [c for c in certs if c.index in nodes]
+    if chunk_controls:
+        if not (schedule_mutant and chunk):
+            raise SystemExit("gen_cert: --chunk-controls needs --schedule-mutant and --chunk")
+        selected = [ch for nc in selected for ch in split(an, TT, nc, chunk) if ch.chunk is not None]
+    emitted = []
+    for nc in selected:
+        if schedule_mutant:
+            if not mutate_schedule(nc, schedule_mutant):
+                continue
+            nc.mutation = schedule_mutant
+        elif mutant:
+            nc.mutation = mutant
+        elif rtl_mutant:
+            nc.mutation = rtl_mutant
+        emitted.append(nc)
+    if mutant:
+        # A pe_validate mutant changes the analysis, not every segment:
+        # keep only nodes whose certificate differs from the real one.
+        # Keep nodes with the same precondition as the real certificate but a
+        # different segment claim: those must fail on their own. (A node whose
+        # precondition also differs can be self-consistent; the mutant is then
+        # caught by its predecessor's postcondition.)
+        real = {c.index: c for c in build(T.Analysis(T.Program.from_image(img_path)), T)}
+        emitted = [c for c in emitted if c.index in real and c.pre == real[c.index].pre
+                   and _differs(c, real[c.index])]
+    if chunk and not (mutant or schedule_mutant):
+        emitted = [ch for nc in emitted for ch in split(an, TT, nc, chunk)]
+        for ch in emitted:
+            ch.mutation = rtl_mutant
+    if pick_one and emitted:
+        # One negative control per image: the cheapest node the mutation reaches.
+        emitted = [min(emitted, key=lambda c: (c.depth, -sum(v.pad_events for v in c.variants)))]
+    return emitted, rejected
+
+
 def emit(args: argparse.Namespace) -> int:
     out = Path(args.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -628,12 +814,10 @@ def emit(args: argparse.Namespace) -> int:
         if e not in ENGINES:
             raise SystemExit(f"gen_cert: unknown engine {e}")
     TT = analyzer(args.mutant)
-    manifest = []
+    nodes = {int(n) for n in args.nodes.split(",")} if args.nodes else None
+    manifest, not_generated = [], []
     for img_path in [Path(p) for p in args.images]:
         image = json.loads(img_path.read_text())
-        program = TT.Program.from_image(img_path)
-        an = TT.Analysis(program)
-        certs = build(an, TT)
         tag = image_tag(img_path)
         suffix = ""
         if args.mutant:
@@ -642,43 +826,18 @@ def emit(args: argparse.Namespace) -> int:
             suffix = "_neg_" + args.schedule_mutant.replace("-", "_")
         if args.rtl_mutant:
             suffix = "_" + args.rtl_mutant
-        selected = certs
-        if args.nodes:
-            wanted = {int(n) for n in args.nodes.split(",")}
-            selected = [c for c in certs if c.index in wanted]
-        emitted = []
-        for nc in selected:
-            if args.schedule_mutant:
-                if not mutate_schedule(nc, args.schedule_mutant):
-                    continue
-                nc.mutation = args.schedule_mutant
-            elif args.mutant:
-                nc.mutation = args.mutant
-            elif args.rtl_mutant:
-                nc.mutation = args.rtl_mutant
-            emitted.append(nc)
-        if args.mutant:
-            # A pe_validate mutant changes the analysis, not every segment:
-            # keep only nodes whose certificate differs from the real one.
-            # Keep nodes with the same precondition as the real certificate but a
-            # different segment claim: those must fail on their own. (A node whose
-            # precondition also differs can be self-consistent; the mutant is then
-            # caught by its predecessor's postcondition.)
-            real = {c.index: c for c in build(T.Analysis(T.Program.from_image(img_path)), T)}
-            emitted = [c for c in emitted if c.index in real and c.pre == real[c.index].pre
-                       and _differs(c, real[c.index])]
-        if args.chunk and not (args.mutant or args.schedule_mutant):
-            emitted = [ch for nc in emitted for ch in split(an, TT, nc, args.chunk)]
-            for ch in emitted:
-                ch.mutation = args.rtl_mutant
-        if args.pick_one and emitted:
-            # One negative control per image: the cheapest node the mutation reaches.
-            emitted = [min(emitted, key=lambda c: (c.depth, -sum(v.pad_events for v in c.variants)))]
+        emitted, rejected = certificates(img_path, TT, mutant=args.mutant, schedule_mutant=args.schedule_mutant,
+                                         rtl_mutant=args.rtl_mutant, nodes=nodes, chunk=args.chunk,
+                                         chunk_controls=args.chunk_controls, pick_one=args.pick_one)
+        if rejected:
+            where = "the analysis" if rejected["nodes"] is None else \
+                "node(s) " + ",".join(f"n{i}" for i in rejected["nodes"])
+            print(f"gen_cert: {tag}: {args.mutant}: {where} not generated ({rejected['reason']}); "
+                  f"{'control from another node' if emitted else 'no control for this image'}", file=sys.stderr)
+            not_generated.append({"image": tag, "mutation": args.mutant, **rejected,
+                                  "control_emitted": bool(emitted)})
         for nc in emitted:
-            module = f"cert_{tag.replace('-', '_')}_n{nc.index}"
-            if nc.chunk is not None:
-                module += f"_c{nc.chunk}" + (f"g{nc.group}" if nc.group else "")
-            module += suffix
+            module = module_name(tag, nc, suffix)
             sv_name = f"{module}.sv"
             (out / sv_name).write_text(sv_node(image, nc, module))
             (out / f"{module}.sby").write_text(
@@ -699,12 +858,78 @@ def emit(args: argparse.Namespace) -> int:
                 "image_sha256": hashlib.sha256(img_path.read_bytes()).hexdigest(),
             })
     mpath = out / (args.manifest or "manifest.json")
-    old = json.loads(mpath.read_text()) if mpath.exists() and args.append else []
-    mpath.write_text(json.dumps({"generator": GEN_VERSION, "pe_timing": T.TOOL_VERSION,
-                                 "certificates": (old["certificates"] if old else []) + manifest},
-                                indent=1) + "\n")
-    print(f"gen_cert: {len(manifest)} certificate(s) in {out}")
+    old = json.loads(mpath.read_text()) if mpath.exists() and args.append else {}
+    data = {"generator": GEN_VERSION, "pe_timing": T.TOOL_VERSION,
+            "certificates": old.get("certificates", []) + manifest}
+    if old.get("not_generated") or not_generated:
+        data["not_generated"] = old.get("not_generated", []) + not_generated
+    mpath.write_text(json.dumps(data, indent=1) + "\n")
+    print(f"gen_cert: {len(manifest)} certificate(s) in {out}"
+          + (f"; {len(not_generated)} image(s) with nodes not generated" if not_generated else ""))
     return 0
+
+
+def preflight_image(img_path: Path, chunk: int, mutants: dict[str, types.ModuleType]) -> dict[str, Any]:
+    """Everything campaign.sh prepare and ci_prove.sh emit for one image, in
+    memory: the whole-segment certificates, the chunk chains (with the
+    cycle-level re-derivation of every variant), one negative control per
+    analyzer mutant (``mutants``: name -> ``analyzer(name)``) and per schedule
+    mutant (on a whole segment, and on a chunk of a long segment), and their
+    harness text. ``ok`` is False when the real
+    certificates cannot be generated; ``ci_runs`` is what ci_prove.sh runs."""
+    rec: dict[str, Any] = {"image": image_tag(img_path), "ok": True, "reason": None}
+    try:
+        image = json.loads(img_path.read_text())
+        an = T.Analysis(T.Program.from_image(img_path))
+        certs = build(an, T)
+        parts = []
+        for nc in certs:
+            if nc.depth > chunk + 2:
+                parts += split(an, T, nc, chunk)            # runs rtl_trace on every variant
+            else:
+                for v in nc.variants:
+                    rtl_trace(an, T, nc, v)
+        negs, not_generated = [], []
+        for m, TT in mutants.items():
+            e, rej = certificates(img_path, TT, mutant=m, pick_one=True)
+            negs += e
+            if rej:
+                not_generated.append({"mutation": m, **rej, "control_emitted": bool(e)})
+        for m in SCHEDULE_MUTANTS:
+            negs += certificates(img_path, T, schedule_mutant=m, pick_one=True)[0]
+            if parts:
+                negs += certificates(img_path, T, schedule_mutant=m, chunk=chunk, chunk_controls=True,
+                                     pick_one=True)[0]
+        for nc in certs + parts + negs:
+            sv_node(image, nc, "preflight")
+    except (SystemExit, Exception) as exc:              # noqa: BLE001 (report, do not crash the caller)
+        rec.update(ok=False, reason=str(exc) or type(exc).__name__)
+        return rec
+    short = [nc for nc in certs if nc.depth <= chunk + 2]
+    shallow = [nc for nc in negs if nc.depth <= chunk + 2]
+    rec.update(segments=len(certs), chunk=chunk, chunk_certificates=len(parts), negatives=len(negs),
+               shallow_negatives=len(shallow), not_generated=not_generated,
+               ci_runs=2 * len(short) + 2 * len(parts) + len(shallow))
+    return rec
+
+
+def preflight(args: argparse.Namespace) -> int:
+    mutants = {m: analyzer(m) for m in ANALYZER_MUTANTS}
+    rows = [preflight_image(Path(p), args.chunk, mutants) for p in args.images]
+    for r in rows:
+        if not r["ok"]:
+            print(f"{r['image']}: REFUSED: {r['reason']}")
+            continue
+        print(f"{r['image']}: ok: {r['segments']} segments, {r['chunk_certificates']} chunk certificates "
+              f"(chunk {r['chunk']}), {r['negatives']} negative controls ({r['shallow_negatives']} at most "
+              f"{r['chunk'] + 2} deep), {r['ci_runs']} CI runs")
+        for n in r["not_generated"]:
+            where = "analysis failed" if n["nodes"] is None else "node(s) " + ",".join(f"n{i}" for i in n["nodes"])
+            print(f"  {n['mutation']}: {where} not generated ({n['reason']}); "
+                  f"{'control from another node' if n['control_emitted'] else 'no control'}")
+    if args.json:
+        Path(args.json).write_text(json.dumps(rows, indent=1) + "\n")
+    return 0 if all(r["ok"] for r in rows) else 1
 
 
 def crosscheck(args: argparse.Namespace) -> int:
@@ -791,6 +1016,8 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--schedule-mutant", choices=SCHEDULE_MUTANTS)
     e.add_argument("--rtl-mutant", help="name of the RTL mutant --rtl points at (rtl_mutants.py): the "
                    "certificates are real, the netlist is wrong, so each run is a negative control")
+    e.add_argument("--chunk-controls", action="store_true",
+                   help="with --schedule-mutant and --chunk: perturb chunk certificates of the long segments")
     e.add_argument("--pick-one", action="store_true",
                    help="with a mutant: emit only the cheapest affected node per image")
     e.add_argument("--manifest", help="manifest file name (default manifest.json)")
@@ -799,11 +1026,16 @@ def main(argv: list[str] | None = None) -> int:
     le.add_argument("--out", required=True)
     le.add_argument("--rtl", required=True)
     le.add_argument("--models", required=True)
+    pf = sub.add_parser("preflight", help="emit everything in memory: can the image be certified, CI runs")
+    pf.add_argument("images", nargs="+")
+    pf.add_argument("--chunk", type=int, default=96, help="chunk size of campaign.sh / ci_prove.sh")
+    pf.add_argument("--json", help="write the per-image rows to this file")
     cc = sub.add_parser("crosscheck", help="cycle-level re-derivation of every schedule")
     cc.add_argument("images", nargs="+")
     cc.add_argument("--mutant", help="check a pe_validate mutant instead (must report a difference)")
     args = ap.parse_args(argv)
-    return {"emit": emit, "emit-lemmas": emit_lemmas, "crosscheck": crosscheck}[args.cmd](args)
+    return {"emit": emit, "emit-lemmas": emit_lemmas, "crosscheck": crosscheck,
+            "preflight": preflight}[args.cmd](args)
 
 
 if __name__ == "__main__":

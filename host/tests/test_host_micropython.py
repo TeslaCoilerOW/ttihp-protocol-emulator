@@ -64,8 +64,8 @@ def external_verdict(result):
 def record(kind):
     env = None
     if kind == "external":
-        # SPI and I2C targets on the pads, UART line idle: engine 1's expected
-        # fault 3 is cleared after STOP to read the host fault.
+        # SPI and I2C targets on the pads, UART line idle: engine 1
+        # (uart-rx-idle) is still waiting at STOP, so no engine faults.
         from pe_host.flagship import FlagshipPeers
         from pe_host.image import load_scenario
         from pe_host.peers import Environment
@@ -105,7 +105,7 @@ class MicroPythonReplayTest(unittest.TestCase):
     KINDS = ("selftest", "flagship", "flagship:40", "external")
 
     def test_external_recording_passes(self):
-        self.assertEqual(self.recordings["external"][2], "True host_fault=False faults=1:3")
+        self.assertEqual(self.recordings["external"][2], "True host_fault=False faults=")
 
     @classmethod
     def setUpClass(cls):

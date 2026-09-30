@@ -1,0 +1,101 @@
+{
+  "//": "Configuration of tools/evidence/check_consistency.py; see tools/evidence/README.md.",
+  "repo_url": "https://github.com/TeslaCoilerOW/ttihp-protocol-emulator",
+  "markdown_roots": ["README.md", "docs"],
+  "markdown_exclude": ["docs/notes/"],
+  "strict_docs": [
+    "README.md",
+    "docs/architecture.md",
+    "docs/bug-ledger.md",
+    "docs/equivalence.md",
+    "docs/formal-depth.md",
+    "docs/limitations.md",
+    "docs/results.md",
+    "docs/verification-campaign.md"
+  ],
+  "path_roots": [
+    ".github", "src", "docs", "tools", "formal", "formal_eq", "formal_depth",
+    "test", "test_ext", "campaigns", "firmware", "hardcaml", "host", "fpga",
+    "demo", "scripts", "configs", "variants6x4", "models", "macros", "examples"
+  ],
+  "path_root_files": ["info.yaml", "Makefile", "README.md", "LICENSE"],
+  "generated_paths": [
+    "build/", "formal/build/", "formal_depth/build/", "hardcaml/_build/",
+    "test/sim_build", "test/results.xml", "test/gate_level_netlist.v",
+    "test/output/", "test_ext/sim_build", "test_ext/results.xml",
+    "fpga/build/", "src/config_merged.json", "src/user_config.json", "runs/"
+  ],
+  "history_markers": [
+    "(?i)\\bsuperseded\\b",
+    "\\bResolved\\b",
+    "\\bObsolete\\b",
+    "(?i)\\bkept as history\\b",
+    "(?i)\\bhistor(?:y|ical)\\b",
+    "(?i)\\bas first written\\b",
+    "(?i)\\bfirst (?:analy[sz]ed|written|version|round)\\b",
+    "(?i)\\bpreviously\\b",
+    "(?i)\\buntil `?[0-9a-f]{7}",
+    "(?i)\\bthis (?:row|item|line|paragraph|section|page|sentence) (?:read|said)\\b",
+    "(?i)\\bbefore the fix\\b",
+    "(?i)\\b(?:removed|deleted) in `?[0-9a-f]{7}",
+    "(?i)\\bat the time\\b"
+  ],
+  "banned_phrases": [
+    {"pattern": "(?i)not completed physical sign-?off",
+     "reason": "the 8x4 design passed the official gds, precheck and gl_test actions (docs/results.md R85)"},
+    {"pattern": "(?i)had not yet run on GitHub",
+     "reason": "the equivalence workflow has run on GitHub (docs/results.md R93)"},
+    {"pattern": "(?i)Known firmware findings are open",
+     "reason": "BL-2 is fixed and BL-3 is fixed in part (docs/bug-ledger.md)"},
+    {"pattern": "(?i)its log was not read, because the run was still in progress",
+     "reason": "run 36298635436 has finished; its gl_test log is recorded in docs/results.md R85"},
+    {"pattern": "(?i)\\|\\s*Status at `c118027`\\s*\\|",
+     "reason": "the bug-ledger statuses are kept current; say which commit they were checked at"}
+  ],
+  "ci_claims": {
+    "around_patterns": [
+      "(?i)\\bnot (?:yet )?(?:run )?in (?:GitHub )?CI\\b",
+      "(?i)\\b(?:has|had|have) not (?:yet )?run on GitHub\\b",
+      "(?i)\\bnot (?:yet )?run on GitHub\\b",
+      "(?i)\\bnot run by (?:the )?CI\\b",
+      "(?i)\\bcluster[- ]only\\b"
+    ],
+    "after_patterns": [
+      "(?i)\\b(?:CI|it|the workflow|GitHub) does not run\\b",
+      "(?i)\\bnot run in CI:"
+    ],
+    "aliases": {
+      "pe_timing": ["tools/timing/pe_timing.py"],
+      "timing certificates": ["tools/timing/cert/"],
+      "the certificates": ["tools/timing/cert/"],
+      "the host tests": ["host/tests"],
+      "host tests": ["host/tests"],
+      "the peers": ["test_ext/"],
+      "equivalence check": ["formal_eq/"],
+      "dune test": ["hardcaml/"],
+      "the Hardcaml tests": ["hardcaml/"],
+      "the campaigns": ["campaigns/"],
+      "the FPGA flow": ["fpga/scripts/", "fpga/vivado/"]
+    }
+  },
+  "timing_report": "tools/timing/report/checks.json",
+  "bug_ledger": "docs/bug-ledger.md",
+  "results_doc": "docs/results.md",
+  "certificates": {
+    "summary": "tools/timing/cert/results/summary.json",
+    "firmware_dir": "firmware",
+    "certified_commit": "24f31f0",
+    "enforce": false,
+    "hash_keys": ["bytecode_sha256", "image_bytecode_sha256", "image_sha256"],
+    "headline_pattern": "(?i)\\b{segments} of (?:the )?{segments}\\b|\\ball {segments} segments\\b",
+    "qualification_pattern": "(?i)\\bawait(?:s|ing)? re-?certification\\b|\\bre-?certification (?:is )?pending\\b"
+  },
+  "status_runs": {
+    "current_marker": "(?i)\\(current\\)",
+    "design_paths": ["src", "info.yaml"],
+    "variant_design_paths": {
+      "(?i)6x4|6×4|gds_6x4|diet4": ["variants6x4", "src/project.v", "src/sram_pdn_cfg.tcl"]
+    },
+    "progress_pattern": "(?i)\\b(?:in progress|still running)\\b"
+  }
+}

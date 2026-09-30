@@ -1,0 +1,37 @@
+name: consistency
+# Fail-closed check that the evidence documents agree with the repository
+# (tools/evidence/README.md): bug-ledger statuses against git history, stale
+# phrases, pe_timing counts, certificate coverage of the committed firmware,
+# links and paths, "not in CI" claims and runs cited as the current status.
+# Python standard library only. It reads the checkout and changes nothing;
+# no other workflow depends on it.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: consistency-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: evidence consistency
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+        with:
+          # The ledger and certificate checks resolve commits in history.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Unit tests of the checker
+        run: python3 -m unittest discover -s tools/evidence -p 'test_*.py' -v
+
+      - name: Consistency check
+        run: python3 tools/evidence/check_consistency.py --format github --summary "$GITHUB_STEP_SUMMARY"

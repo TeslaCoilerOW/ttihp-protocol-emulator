@@ -1,0 +1,63 @@
+{
+  "schema_version": "protocol-emulator.firmware-image.v1",
+  "isa_version": 2,
+  "name": "onewire-master",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 3,
+  "owned_pins": 128,
+  "open_drain": 128,
+  "clock_hz": 50000000,
+  "source_sha256": "e8028b897ae2389d9962250366f3a6e09adb630ed274ebf9df1eb5688e2fa6ce",
+  "bytecode_sha256": "6a64c6accba939fda5cabc297903764c645491db386a3bd9989742f4f745624f",
+  "words": [
+    33554560, 50331776, 100663296, 302120960, 419561480, 436338703, 33554432,
+    67133862, 33554560, 67112361, 318832640, 151453697, 436273166, 486539360,
+    67130360, 167772167, 33554432, 67109162, 134676480, 67109262, 151453696,
+    67111412, 33554560, 67109361, 184549392, 419495960, 117440512, 83886082
+  ],
+  "labels": { "op": 2, "present": 14, "touch": 15, "slot": 16 },
+  "timing": [
+    { "pc": 0, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 1, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 2, "minimum_cycles": 1, "blocking": "tx_fifo_unbounded" },
+    { "pc": 3, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 4, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 5, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 6, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 7, "minimum_cycles": 24999, "blocking": "none" },
+    { "pc": 8, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 9, "minimum_cycles": 3498, "blocking": "none" },
+    { "pc": 10, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 11, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 12, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 13, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 14, "minimum_cycles": 21497, "blocking": "none" },
+    { "pc": 15, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 16, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 17, "minimum_cycles": 299, "blocking": "none" },
+    { "pc": 18, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 19, "minimum_cycles": 399, "blocking": "none" },
+    { "pc": 20, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 21, "minimum_cycles": 2549, "blocking": "none" },
+    { "pc": 22, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 23, "minimum_cycles": 498, "blocking": "none" },
+    { "pc": 24, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 25, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 26, "minimum_cycles": 1, "blocking": "rx_fifo_unbounded" },
+    { "pc": 27, "minimum_cycles": 1, "blocking": "none" }
+  ],
+  "notes": [
+    "1-Wire bus master (Maxim AN126 operations, standard speed) on DQ pin7, open-drain; external pull-up required. TX word: bits 7..0 a byte; bit 8 set: reset and presence detect first. The byte is sent LSB first in 8 time slots that also sample DQ; RX word: the 8 sampled bits (the byte itself for a write, the slave's data when the byte is 0xFF).",
+    "Reset at 50000000 Hz: DQ low 25000 clocks (500 us); presence sampled 3500 clocks (70 us) after release; first slot 25000 clocks (500 us) after release. No presence pulse: fault 96.",
+    "Time slot at 50000000 Hz: DQ low at 0; a 1 bit releases DQ at 300 clocks (6 us); DQ sampled 700 clocks (14 us) after the fall; a 0 bit releases DQ at 3250 clocks (65 us); next slot at 3750 clocks (75 us).",
+    "DQ is released at every holding point (PULL, PUSH). The host checks CRCs. Scope: standard speed only; no overdrive, strong pull-up (parasite power) or alarm-presence handling."
+  ]
+}

@@ -54,7 +54,8 @@ input-only firmware can own zero pins while observing other engines' pins.
 | Firmware | Pins | Framing and behavior |
 |---|---|---|
 | `uart-tx` | TX0 | 8N1, LSB first, exact bit period `2*half_period`, low-byte TX words |
-| `uart-rx` | RX1 | 8N1, centered sampling, low-byte RX words, framing fault64 |
+| `uart-rx` | RX1 | 8N1, centered sampling, low-byte RX words, framing fault64; idle and start-bit waits bounded at twelve bit periods (fault 3) |
+| `uart-rx-idle` | RX1 | 8N1 at 64 clocks per bit, low-byte RX words, framing fault64; idle and start-bit waits polled with no bound (no fault 3); engine 1 of the flagship scenario; a source file, not a built-in |
 | `spi-controller` | SCK2/MOSI3/MISO4/CSn5 | modes0–3, MSB first, eight bits per CS assertion, queued full duplex |
 | `spi-target` | same mapping | modes0–3, one byte per CS assertion, MISO released between frames |
 | `i2c-write` | SCL6/SDA7 | address+W and one byte from TX; ACK checks; STOP; an address or data NACK ends with STOP and fault65 |
@@ -65,6 +66,12 @@ input-only firmware can own zero pins while observing other engines' pins.
 | `jtag` | TCK0/TDI1/TDO2/TMS3 | reset TAP, enter Shift-DR, stream LSB-first eight-bit scan chunks |
 | `waveform` | OUT0 | sixteen pulses plus timestamp in RX queue |
 | `event-transmitter` | OUT0 | mailbox-triggered pulse |
+| `swd-read` | SWCLK0/SWDIO1 | Arm SWD host: JTAG-to-SWD switch and line reset on request, read transactions (DPIDR, CTRL/STAT, ...) with turnaround, ACK and data parity check; faults 80/81/82 |
+| `ws2812` | DOUT2 | WS2812B pixels (GRB, MSB first) with the WS2812B datasheet bit times; a flagged word ends the frame with a 300 µs reset |
+| `ws2812b-v5` | DOUT2 | the same program with the WS2812B-V5 bit times |
+| `ps2-device` | CLK4/DATA5 | PS/2 device-to-host frames (start, 8 data bits, odd parity, stop) at 12.5 kHz; idle check, abort and retransmission on host inhibit |
+| `ps2-host` | CLK4/DATA5 | PS/2 host: host-to-device command with request to send and acknowledge, then N response frames read back |
+| `onewire-master` | DQ7 | 1-Wire master: reset and presence detect, byte write/read in time slots (Read ROM and other ROM commands built by the host); fault 96 |
 
 The examples use programmable instructions and ordinary FIFOs. No protocol is
 hardwired into the processor. SPI controller scalar expansion supports all
@@ -89,8 +96,16 @@ includes a few instruction cycles of center offset; continuous traffic requires
 `half_period >= 8` and RX queue service. The receiver uses strict PUSH: FIFO
 saturation preserves the received word in the inspectable receive register and
 halts with sticky fault4. Later physical UART characters cannot be recovered
-without peer flow control. RX idle/start waits are bounded
-at twelve bit periods; use a custom LIMIT for longer idle intervals.
+without peer flow control. The idle and start-bit waits of `uart-rx` are
+bounded at twelve bit periods (fault 3); use a custom LIMIT for longer idle
+intervals, or `uart-rx-idle`, whose waits have no bound. `uart-rx-idle`
+waits for the idle line and each start bit in a three-cycle `IN`/`XOR`/`JZ`
+polling loop (0 to 2 cycles of detection latency). It samples frame bit n
+(start bit 0, stop bit 9) 64n + 31 to 64n + 33 cycles after the first clock
+edge that registers the start bit's falling edge (the middle of a 64-cycle
+bit is 32), and declares a baud tolerance of ±2%
+([info.md](info.md), "Example: UART TX, SPI and I2C at the same time"). It
+is written for 64 clocks per bit and a 32-bit datapath.
 
 The JTAG fixture demonstrates TAP navigation and scanning; device-specific IR
 programming, scan-length discovery, and update/exit sequences require a program
@@ -291,3 +306,249 @@ pins against independent peers (`test/README.md`). These are digital
 simulation observations, not recorded FPGA or ASIC operation. The monorepo's
 earlier native-simulation evidence for the same firmware (jobs 22625902 and
 22626932) is summarized in its own status records and is not repeated here.
+
+## SWD, WS2812B, PS/2 and 1-Wire images
+
+Six images add four protocol families with no RTL change: they run on the
+design of record exactly as the images above do. Each is an explicit source
+file (`firmware/<name>.source.json`, not an OCaml built-in) assembled by the
+OCaml assembler; assembling a source twice gives the same image bytes:
+
+```bash
+dune exec bin/assemble.exe -- --source ../firmware/swd-read.source.json --output /tmp/swd-read.image.json
+```
+
+`scripts/gen_variants.sh` does not reassemble them for the variants, and the
+tests below skip a design whose engine count, data width, FIFO depth or
+issue mode differs from the design of record.
+
+| Image | Engine, pins | Words of 64 | Protocol subset | Timing at 50 MHz | Cited document |
+|---|---|---:|---|---|---|
+| `swd-read` | 0: SWCLK0, SWDIO1, push-pull | 60 | JTAG-to-SWD switch and line reset (on request), any read transaction, ACK and parity checks | SWCLK 1.5625 MHz | Arm ADIv5 (IHI 0031) and ADIv5.1 Supplement (DSA09-PRDC-008772) |
+| `ws2812` | 1: DOUT2, push-pull | 22 | GRB pixels, reset (latch) | T0H 0.40, T1H 0.80, T0L 0.86, T1L 0.46 µs, reset 300 µs | Worldsemi WS2812B datasheet |
+| `ws2812b-v5` | 1: DOUT2, push-pull | 22 | same | T0H 0.30, T1H 0.64, T0L 0.96, T1L 0.62 µs, reset 300 µs | Worldsemi WS2812B-V5 datasheet V1.0 |
+| `ps2-device` | 2: CLK4, DATA5, open-drain | 45 | device-to-host frames, host inhibit | 12.5 kHz, 40 µs low and high | A. Chapweske, "The PS/2 Mouse/Keyboard Protocol" (2003) |
+| `ps2-host` | 2: CLK4, DATA5, open-drain | 49 | host-to-device command, acknowledge, response frames | device-clocked | same |
+| `onewire-master` | 3: DQ7, open-drain | 28 | reset, presence, byte write and read (Read ROM and other ROM commands) | 75 µs slots, 500 µs reset | Maxim AN126 (rev. 052802), DS18B20 datasheet (rev. 042208) |
+
+The four families use disjoint pins and engines, so one image of each can run
+at the same time. The TT pads are 3.3 V: the 5 V buses (PS/2, and a WS2812B at
+VDD = 5 V) need level shifting, and every open-drain line needs an external
+pull-up.
+<!-- ENTRANT: authoring record (time and tools) for the SWD, WS2812B, PS/2 and 1-Wire images, in your own words. -->
+
+### SWD (`swd-read`)
+
+A TX word holds a request header in bits 7..0 (Start, APnDP, RnW, A[2:3],
+Parity, Stop, Park, sent LSB first; the host computes the parity) and a
+connect flag in bit 8. With the flag set, the image first sends 56 SWCLK cycles
+with SWDIO high, the JTAG-to-SWD select sequence 0xE79E (LSB first) and 56
+more cycles high (ADIv5.1 Supplement 6.2.1 and 8.3.6: at least 50, then the
+line reset). Every request then sends 8 idle cycles (SWDIO low) and the
+header, whose last bit (Park, 1 in a valid header) is driven before SWDIO is
+released for one turnaround cycle (erratum 2.6), reads ACK[0:2], and after ACK OK reads RDATA[0:31] and the parity bit, clocks
+one more turnaround cycle and 8 idle cycles (9 SWCLK rising edges after the
+parity bit; 8.2 asks for 8), checks even parity and pushes the data word.
+`0x1A5` connects and reads DPIDR; `0x0A5` and `0x08D` read DPIDR and CTRL/STAT
+without a new line reset.
+
+- SWDIO changes only while SWCLK is low, 16 clocks before and after each
+  SWCLK rising edge; the image samples ACK, data and parity at SWCLK rising
+  edges from the pad value 2 clocks earlier. A target must therefore put a bit
+  on the pad less than 30 clocks (600 ns at 50 MHz) after the SWCLK rise that
+  launched it. `test_swd_target_delay` checks both sides of that limit in
+  simulation: a target delay of 29 clocks reads DPIDR, 30 clocks shifts every
+  bit by one sample.
+- Connect and DPIDR read take 6220 clocks (124.4 µs) from the TX word to the
+  RX push; a read without connect 2112 clocks (42.24 µs).
+- Errors: an ACK other than OK pushes the three ACK bits (4 OK, 2 WAIT,
+  1 FAULT, 7 no response) and faults 80; a data parity error pushes the data
+  word and faults 81; a header with RnW = 0 faults 82 before any SWCLK edge.
+  Faults release both pins.
+- Not supported: write transactions (so no AP access, which needs a SELECT
+  write), WAIT retry, the ADIv5.2 dormant-state wake-up, multi-drop
+  TARGETSEL. SWCLK is not free-running: it stops low between requests, with
+  SWDIO driven high (8.3.2).
+
+### WS2812B (`ws2812`, `ws2812b-v5`)
+
+A TX word is `G<<24 | R<<16 | B<<8 | L`. Each of the 24 bits (MSB first)
+starts with a rising edge; `OUT` writes the bit at T0H, so a 0 falls there, and
+a `SET` pulls the line low at T1H. The last bit of a pixel is unrolled so the
+bit period stays exact across the pixel boundary while the next word is
+queued. A nonzero `L` ends the frame with a reset low time.
+
+| | T0H | T1H | T0L | T1L | bit | reset | clock range meeting every limit |
+|---|---|---|---|---|---|---|---|
+| `ws2812`, clocks | 20 | 40 | 43 | 23 | 63 | ≥ 15004 | |
+| at 50 MHz | 400 ns | 800 ns | 860 ns | 460 ns | 1.26 µs | 300.08 µs | 43.00 to 61.43 MHz |
+| WS2812B datasheet | 250-550 ns | 650-950 ns | 700-1000 ns | 300-600 ns | 0.65-1.85 µs | > 50 µs | |
+| `ws2812b-v5`, clocks | 15 | 32 | 48 | 31 | 63 | ≥ 15004 | |
+| at 50 MHz | 300 ns | 640 ns | 960 ns | 620 ns | 1.26 µs | 300.08 µs | 48.00 to 53.45 MHz |
+| WS2812B-V5 datasheet V1.0 | 220-380 ns | 580-1000 ns | 580-1000 ns | 580-1000 ns | | > 280 µs | |
+
+Two images are needed: the T1L windows of the two datasheets (300-600 ns and
+580-1000 ns) overlap only between 580 and 600 ns, one clock at 50 MHz, so no
+single bit period meets both tables with margin. The reset after a latch word
+is 15025 clocks (300.50 µs; 15033 for `ws2812b-v5`).
+
+- One TX word is consumed every 1512 clocks (30.24 µs); the TX FIFO holds 8.
+  DOUT is low while `PULL` waits, so a late word stretches the last bit's
+  low time: by more than 7 clocks it leaves the WS2812B T0L/T1L window (2
+  clocks for the V5 T0L window), and beyond the reset time the LEDs latch
+  early. The host must keep the FIFO from running empty inside a frame.
+- The WS2812B datasheet gives VIH = 0.7 VDD (3.5 V at 5 V), above the 3.3 V
+  pad level; the WS2812B-V5 datasheet gives VIH ≥ 2.7 V.
+
+### PS/2 device to host (`ps2-device`)
+
+A TX word is a byte, sent as start 0, 8 data bits LSB first, odd parity and
+stop 1. Before each frame the image waits for CLK high and DATA high and then
+samples CLK 56 times, 50 clocks apart (55 µs from first to last sample); any
+low sample restarts the wait. Within a frame, at 50 MHz:
+
+| | clocks | at 50 MHz | Chapweske |
+|---|---:|---|---|
+| DATA change to CLK fall | 1000 | 20 µs | 5-25 µs |
+| CLK low | 2000 | 40 µs | 30-50 µs |
+| CLK rise to DATA change | 1000 | 20 µs | ≥ 5 µs |
+| CLK high | 2000 | 40 µs | 30-50 µs |
+| clock period | 4000 | 80 µs (12.5 kHz) | 10-16.7 kHz |
+| CLK high before the start bit | ≥ 2750 | ≥ 55 µs | ≥ 50 µs |
+
+Every limit holds for clocks from 40 to 55 MHz. The image samples CLK 2 clocks
+before each of its 11 CLK falls (the pad value 4 clocks before the fall). If
+the host holds CLK low, the image releases both lines and sends the whole frame
+again after the idle check; there is no check after the 11th clock, so a host
+that inhibits after each byte does not get it twice. The waits for CLK and
+DATA high are bounded by LIMIT 16777215 (335.5 ms at 50 MHz): a longer
+inhibit or request to send ends in fault 3. The idle check samples the line: a
+low pulse shorter than 1 µs between two samples can be missed (a host inhibit
+lasts at least 100 µs).
+
+Not supported: receiving host-to-device commands in the same image. The only
+TX-queue test of the design-of-record ISA is `PULL`, which blocks, so one
+engine cannot wait for a queued byte and a host request to send at the same
+time. (The line-unit extension's `LSTAT` bit 3, "TX queue has data", would
+allow it; that variant is not the design of record.)
+
+### PS/2 host (`ps2-host`)
+
+A TX word holds a command byte in bits 7..0 and the number of response frames
+to read in bits 11..8. The image holds CLK low for 6000 clocks (120 µs; at
+least 100 µs), pulls DATA low, releases CLK 250 clocks later, waits until it
+sees CLK high, and then puts each of the 10 bits (8 data bits, odd parity,
+stop) on DATA one clock after it sees the device pull CLK low; the device
+reads it on the rising edge. It then waits for the acknowledge (DATA low), one
+more clock pulse and DATA high, releases both lines and reads the response
+frames: DATA is sampled one clock after each of the 11 CLK falls is seen, and
+each frame is pushed as received (bit 0 start, bits 8..1 data, bit 9 parity,
+bit 10 stop); the TT host checks the framing. `0x2FF` sends Reset (0xFF) and
+reads two frames (the test's device answers 0xFA, 0xAA).
+
+- Waits during the command are bounded by LIMIT 800000 (16 ms; a device must
+  start clocking within 15 ms of the host pulling CLK low), waits for response
+  frames by LIMIT 1100000 (22 ms; a response is due within 20 ms). No device,
+  no acknowledge or no answer ends in fault 3. Responses use strict `PUSH`:
+  more than 8 unread frames end in fault 4.
+- Not supported: holding the device inhibited between commands. Frames the
+  device sends on its own (key presses) while the image waits for a command
+  are not read.
+- The first version of this image waited for the device's first CLK fall
+  directly after releasing CLK. The input synchronizer still showed the
+  image's own inhibit for 3 clocks, so that wait ended at once and every bit
+  went out one device clock early, while CLK was high. pe_timing cannot see
+  this (the CLK level after the release is set outside the chip); the
+  `Ps2Device` peer reported it ("host changed DATA while CLK was high"). The
+  image now waits for CLK high after the release.
+
+### 1-Wire (`onewire-master`)
+
+A TX word holds a byte in bits 7..0; bit 8 asks for a reset and presence
+detect first. The byte is sent LSB first in 8 time slots that also sample DQ,
+and the 8 samples are pushed: a written byte comes back unchanged, and
+`0x0FF` reads a byte from the slave. Read ROM is `0x133` followed by eight
+`0x0FF` words; the RX words are 0x33, the family code, the 48-bit serial
+number and the CRC-8, which the TT host checks. No presence pulse faults 96.
+
+| step | AN126 Table 1 | image, clocks | at 50 MHz | DS18B20 limit |
+|---|---|---:|---|---|
+| reset low | 480 µs | 25000 | 500 µs | tRSTL 480-960 µs |
+| presence sample after release | 70 µs | 3500 | 70 µs (pad value 69.96 µs) | 60-75 µs: low for every presence pulse (tPDHIGH 15-60, tPDLOW 60-240 µs) |
+| release to the first slot | 480 µs | 25000 | 500 µs | tRSTH ≥ 480 µs |
+| write 1: DQ released | 6 µs | 300 | 6 µs | tLOW1 1-15 µs |
+| sample after the fall | 15 µs | 700 | 14 µs (pad value 13.96 µs) | tRDV ≤ 15 µs |
+| write 0: DQ released | 60 µs | 3250 | 65 µs | tLOW0 60-120 µs |
+| slot | 70 µs | 3750 | 75 µs | tSLOT 60-120 µs |
+| recovery | 10 µs | 500 | 10 µs | tREC ≥ 1 µs |
+
+The image follows AN126 except where an AN126 value lies on a DS18B20 limit
+(reset low, reset high time, write-0 low time, sample point): there it keeps
+a margin, so every limit holds for clocks from 46.64 to 52.08 MHz. A byte
+takes 30006 clocks (600.12 µs), a reset and a byte 80005 clocks (1600.1 µs).
+DQ is released at every holding point and by fault 96. Not supported:
+overdrive speed, the strong pull-up of parasite-powered slaves, Search ROM
+(it needs bit-level read-read-write steps, not byte slots) and the extended
+presence pulse of the DS2404/DS1994.
+
+### Verification of these images
+
+- **Timing contracts.** `tools/timing/pe_contracts_ext.py` (registered by
+  `pe_contracts.py`) rebuilds each image's pin waveform from pe_timing's
+  boundary graph and checks it against the image's notes and the cited
+  limits: SWD bit sequence at every SWCLK rise on every request path,
+  SWCLK phases, host set-up and hold, turnaround placement, sample points and
+  the target delay budget; WS2812B bit times, pixel boundary and reset times;
+  PS/2 frame timing, idle window, inhibit checks and abort paths; PS/2 host
+  request to send, bit and sample placement, handshake and timeouts; 1-Wire
+  reset, presence, slot and recovery times and open-drain use. A clock range
+  is derived for each. `pe_timing.py report --firmware firmware` runs them
+  with the other images; no check of the six images fails.
+  `tools/timing/test_pe_contracts_ext.py` holds negative controls: changing
+  one instruction (or declaring an out-of-spec value) makes the named check
+  fail.
+- **Pin-level tests.** `test/test_protocols_ext.py` runs each image in
+  lockstep with the reference model and checks the pins with peers written
+  from the cited documents, independently of the images and of
+  `tools/timing`: an ADIv5 SW-DP target (JTAG-to-SWD detection, line reset,
+  reset state, protocol-error and lockout rules, turnaround, contention and
+  set-up checks), WS2812B decoders for both datasheet tables (each rejects the
+  other image's waveform), a PS/2 host decoder that can inhibit, a PS/2
+  device that clocks in commands and answers, and a DS18B20-like 1-Wire slave
+  (reset and presence timing, write-slot sampling window, read slots, Read ROM
+  with CRC-8), run at the slave-timing corners. `test_four_engines` runs the
+  SWD, WS2812B, PS/2 device and 1-Wire images at the same time on the four
+  engines and checks that the WS2812B and PS/2 clock counts equal those of the
+  single-engine runs. The module is not in `COCOTB_TEST_MODULES`, so neither
+  `make` nor the gate-level test runs it. CI runs it on RTL in its own job,
+  `protocols-ext`, of [`test.yaml`](../.github/workflows/test.yaml); to run it
+  locally:
+
+  ```sh
+  cd test
+  make COCOTB_TEST_MODULES=test_protocols_ext
+  ```
+
+  Its 22 tests take about seven minutes with cocotb 2.0.1 and Icarus
+  Verilog 13.0.
+- **Ground truth for the static schedules.** pe_timing's validator traced the
+  reference model through every scenario of `test_protocols_ext.py` and
+  through its random-traffic stress suite on the six images (8 seeds of
+  60000 clocks each): all 747 engine runs matched, including all 16552 pad
+  changes, every issue attempt and the one LIMIT timeout.
+- **Timing certificates.** The campaign on `6a3ea08` certified these six
+  images and `uart-rx-idle` (results.md R42c;
+  [timing-certificates.md](timing-certificates.md) section 8). Their
+  longest segments between boundaries are much longer than those of the
+  earlier images, so they are proved as chains of 96-step chunks: 80005 clocks (`onewire-master`), 16514 (`ws2812`,
+  `ws2812b-v5`), 6290 (`ps2-host`), 6220 (`swd-read`) and 4000
+  (`ps2-device`), most of it spent in `WAIT` and `XFER` countdowns. No
+  third-party peer was added for these protocols. Nothing here has run on
+  hardware.
+
+**Evidence.** Design of record at `24f31f0`, cocotb 2.0.1 and Icarus Verilog
+13.0, Slurm job ids: RTL lockstep run of all 22 tests (24170373; an earlier
+run of the first 19 tests: 24169435 to 24169439); validator trace and stress
+runs (24170374); `tools/timing` and `tools/timing/cert` unit tests and the
+pe_timing report over `firmware/` (24170375); reference-model runs of every
+scenario (24169388, 24170172).

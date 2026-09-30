@@ -1,0 +1,58 @@
+{
+  "schema_version": "protocol-emulator.firmware-image.v1",
+  "isa_version": 2,
+  "name": "ws2812",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 1,
+  "owned_pins": 4,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "source_sha256": "8f4f886c1bb710cd78e7d5b7e2602028242deba18d6449baf724b5428a0154ad",
+  "bytecode_sha256": "38ed7e1453be13948070819a1d12a737baeea982a743c0db094408fa6b2a5269",
+  "words": [
+    33554432, 50331652, 67123864, 100663296, 167772182, 33554436, 67108882,
+    134348801, 67108882, 33554432, 67108884, 184549381, 33554436, 67108882,
+    134348801, 67108882, 33554432, 67108881, 419430424, 436207619, 67123864,
+    83886083
+  ],
+  "labels": { "pixel": 3, "bit": 5 },
+  "timing": [
+    { "pc": 0, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 1, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 2, "minimum_cycles": 15001, "blocking": "none" },
+    { "pc": 3, "minimum_cycles": 1, "blocking": "tx_fifo_unbounded" },
+    { "pc": 4, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 5, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 6, "minimum_cycles": 19, "blocking": "none" },
+    { "pc": 7, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 8, "minimum_cycles": 19, "blocking": "none" },
+    { "pc": 9, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 10, "minimum_cycles": 21, "blocking": "none" },
+    { "pc": 11, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 12, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 13, "minimum_cycles": 19, "blocking": "none" },
+    { "pc": 14, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 15, "minimum_cycles": 19, "blocking": "none" },
+    { "pc": 16, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 17, "minimum_cycles": 18, "blocking": "none" },
+    { "pc": 18, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 19, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 20, "minimum_cycles": 15001, "blocking": "none" },
+    { "pc": 21, "minimum_cycles": 1, "blocking": "none" }
+  ],
+  "notes": [
+    "WS2812B data output on DOUT pin2, push-pull; timing from the Worldsemi WS2812B datasheet (T0H 0.4 us, T1H 0.8 us, T0L 0.85 us, T1L 0.45 us, each +-150 ns; RES above 50 us). TX word: G<<24 | R<<16 | B<<8 | L: 24 bits GRB, MSB first; a nonzero low byte L ends the frame with a reset (latch) low time.",
+    "Bit timing at 50000000 Hz: T0H 20, T1H 40, T0L 43, T1L 23 clocks (0.4, 0.8, 0.86, 0.46 us); bit period 63 clocks (1.26 us), also across pixel boundaries while the TX FIFO has data.",
+    "Reset low time: 15004 clocks (300.08 us) after START and 15025 clocks (300.5 us) after a word with a nonzero low byte.",
+    "Holding point: DOUT low while PULL waits. Keep the TX FIFO non-empty during a frame: an empty FIFO stretches the low time of the last bit sent, and a gap longer than the reset time latches early.",
+    "3.3 V output: this datasheet gives VIH = 0.7 VDD (3.5 V at VDD = 5 V), so a 5 V LED needs a level shifter. The WS2812B-V5 revision has other bit windows: see ws2812b-v5."
+  ]
+}

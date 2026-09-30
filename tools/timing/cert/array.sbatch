@@ -11,5 +11,6 @@ HERE=${CERT_TOOL:?set CERT_TOOL to tools/timing/cert}
 B=${BUNDLE:-1}
 first=$((SLURM_ARRAY_TASK_ID * B + 1))
 last=$((first + B - 1))
+# shellcheck disable=SC2016  # $0 and $@ belong to the inner bash
 sed -n "${first},${last}p" "$TASKS" | grep -v '^\s*$' |
   xargs -P "${PAR:-1}" -L 1 bash -c '"$0"/run_one.sh "$@"' "$HERE"

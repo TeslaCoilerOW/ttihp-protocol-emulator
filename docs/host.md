@@ -447,19 +447,22 @@ pullups=0xFF)` combines peers as a wired-AND. Attach an environment with
   block: the UART bytes seen on pin 0, the SPI MOSI bytes, the I2C bytes and a
   single STOP, engine 2's RX words, empty route queues and no faults.
   `peers="external"` lets the engines free-run with real peripherals and
-  reports what the host reads back. In that mode the `uart-rx` engine (engine
-  1) normally ends in fault 3: its idle and start-bit waits are bounded at
-  twelve bit periods ([firmware.md](firmware.md)), and with the default
-  200,000 free-run cycles the UART line is idle for longer than that before
-  STOP. That fault is expected (a run without it passes too); any other
-  engine fault fails the run. uo[7] is the OR of the sticky host fault and every
-  engine fault, so it says nothing about the host fault while engine 1 is
-  faulted. After STOP, `run_flagship` therefore CLEARs engine 1 (CLEAR is
-  accepted for a halted engine whatever the host fault) and reads the fault
-  state again. `result.fault_report` is the report from before the CLEAR,
-  `result.fault_report_after_clear` the one after it, and
-  `result.host_fault` the host fault read from uo[7] with no engine faulted.
-  A host fault fails the run. On a port without uo[7] (the Urbana build)
+  reports what the host reads back. Engine 1 runs `uart-rx-idle`, whose
+  start-bit wait has no bound, so an idle UART line does not fault it, and
+  with no engine faulted `run_flagship` reads the sticky host fault from
+  uo[7] directly. Any engine fault fails the run, with one exception kept for
+  a scenario that puts the bounded `uart-rx` image on engine 1: its idle and
+  start-bit waits are bounded at twelve bit periods
+  ([firmware.md](firmware.md)), so it ends in fault 3 when the line stays
+  idle that long, and that fault is accepted. uo[7] is the OR of the sticky
+  host fault and every engine fault, so it says nothing about the host fault
+  while engine 1 is faulted. In that case `run_flagship` CLEARs engine 1
+  after STOP (CLEAR is accepted for a halted engine whatever the host fault)
+  and reads the fault state again. `result.fault_report` is the report from
+  before any CLEAR, `result.fault_report_after_clear` the one after it (None
+  when nothing was cleared), and `result.host_fault` the host fault read
+  from uo[7] with no engine faulted. A host fault fails the run. On a port
+  without uo[7] (the Urbana build)
   the host fault cannot be read. The run then passes on the engine faults
   alone, and `result.notes` records that the host fault was not checked.
 
@@ -512,15 +515,18 @@ same pad against each other. A test in
    mpremote cp -r host/build/mpy/pe_host :   # or: mpremote cp -r host/pe_host :
    mpremote mkdir :firmware
    mpremote cp firmware/flagship-scenario.json firmware/uart-tx.image.json \
-       firmware/uart-rx.image.json firmware/spi-controller-mode0.image.json \
+       firmware/uart-rx-idle.image.json firmware/uart-rx-idle.source.json \
+       firmware/spi-controller-mode0.image.json \
        firmware/i2c-write.image.json :firmware/
    ```
 
    The `.mpy` version must match the board's MicroPython. Check it with
    `import sys; sys.implementation._mpy`. If you are unsure, copy the `.py`
-   sources. Copying the `.source.json` files as well lets `FirmwareImage`
-   also verify `source_sha256`. Without them it verifies the bytecode only
-   and reports `source_verified=False`.
+   sources. Engine 1 of the scenario is `uart-rx-idle`, so its image must
+   be on the board. Copying the `.source.json` files as well (the list above
+   copies the one for `uart-rx-idle`) lets `FirmwareImage` also verify
+   `source_sha256`. Without them it verifies the bytecode only and reports
+   `source_verified=False`.
 3. **Run the bring-up self-test with nothing attached.** Put all DIP switches
    off, then run `mpremote run host/examples/selftest_demo.py`. It selects the
    project through `tt.shuttle`, takes the clock (`clock_project_stop`, then
@@ -536,18 +542,22 @@ same pad against each other. A test in
    under manual clocking. It then PWM-clocks the chip
    (`tt.clock_project_PWM`), stops, and drains engine 2's RX. The example
    firmware counts time in system clocks, so the peripheral rates scale with
-   `F`. The unchanged `uart-tx`/`uart-rx` images use 64 clocks per bit, so
-   F = 7.3728 MHz gives 115200 baud (7372800 / 64 = 115200). Or reassemble
-   the firmware with `--half-period` ([firmware.md](firmware.md)).
-   Engine 1 ends in its expected fault 3 (see [Scenarios](#scenarios)), which
-   `run_flagship` clears after STOP so it can read the host fault. Because of
-   that bounded wait, engine 1 only receives characters whose start bit
-   comes within twelve bit periods of START or of the previous character's
-   stop bit. The UART-to-SPI route therefore carries data only if the sender
-   is already transmitting back to back when START is issued; characters
-   typed by hand are not received. This has not been tried on hardware. For
-   longer gaps, reassemble `uart-rx` with a larger LIMIT
-   ([firmware.md](firmware.md)).
+   `F`. The `uart-tx` and `uart-rx-idle` images use 64 clocks per bit, so
+   F = 7.3728 MHz gives 115200 baud (7372800 / 64 = 115200), and F = 64 times
+   the baud rate gives any other rate. `uart-tx` can also be reassembled with
+   `--half-period` ([firmware.md](firmware.md)); `uart-rx-idle` is written
+   for 64 clocks per bit and is not a built-in, so that option does not apply
+   to it. Engine 1 runs `uart-rx-idle`, which waits for each start bit in a
+   polling loop with no bound, so it does not fault while the line is idle and
+   receives characters whenever they arrive after START, including characters
+   typed by hand. The route forwards the first 8 to the SPI engine; later ones
+   wait in engine 1's RX queue, and when that queue is full the next one halts
+   engine 1 with fault 4. `flagship_demo.main` free-runs for the default
+   200,000 cycles (about 27 ms at 7.3728 MHz). To type by hand, call
+   `run_flagship` with a larger `free_run_cycles`, for example 73,728,000
+   (10 s at 7.3728 MHz). This has not been tried on hardware. The bounded
+   `uart-rx` image, which faults with code 3 after twelve idle bit periods,
+   is still in `firmware/` for runs that must detect a stuck line.
 6. **Capture the pads.** Attach a logic analyzer to uio[7:0], or record from
    the RP2 with `peers.PadCapture` during a software-peer run.
 
@@ -585,17 +595,17 @@ installs in CI.
 
 | Check | What it shows | Result |
 |---|---|---|
-| `host/tests/test_host_commands.py` | Every command and READ_SELECT against the model's internal state. Also: rejections, TX/RX timeouts, read pauses, strict-overflow held RX, all 19 committed images loaded, a self-test that fails on a model with an injected host-port bug, and raw SELECT/READ_SELECT under a high FAULT pin (the library's selection stays equal to the model's, and `fault_report()` still works). | PASS (job 23778831) |
+| `host/tests/test_host_commands.py` | Every command and READ_SELECT against the model's internal state. Also: rejections, TX/RX timeouts, read pauses, strict-overflow held RX, every committed image loaded (19 at the time of job 23778831, 26 since `e64cd6b`), a self-test that fails on a model with an injected host-port bug, and raw SELECT/READ_SELECT under a high FAULT pin (the library's selection stays equal to the model's, and `fault_report()` still works). | PASS (job 23778831; with the 26 images, job 24302122) |
 | `test_host_transfers.py` | Abandoned partial command, program, TX, RX and status transfers (1 to 7 nibbles) have no side effect. A window change abandons the RX reservation. Every window change is a bubble with ready and valid low. Read-valid comes two cycles and write-ready one cycle after the change. | PASS (23778831) |
 | `test_host_image.py` | SHA-256 and structure checks, architecture binding and ISA requirement, including tampered images. | PASS (23778831) |
 | `test_host_harness_equivalence.py` | An operation list covering every command, accepted and rejected, gives cycle-identical ui/uio/rst/ena/uo and identical returned values on the library and on `test/harness.py`. The harness driver returns nothing for commands, so an acceptance oracle (`tests/acceptance.py`) checks `command()`'s results separately. It wraps the model's own command decoder and compares each result with the model's accept/reject decision. It also checks that the library's `selected` and `read_selected` equal the model's after every operation. The oracle runs on the operation list and on 30 random programs, each on a full port and on a 6-bit uo port. A mutant with the old SELECT/READ_SELECT rule is caught. | PASS (23778831) |
-| `test_host_flagship.py` | The flagship scenario with pe_host peers. The pad waveform is decoded by `test/model/scoreboards.py` (`uart_decode` on pins 0 and 1, `spi_decode` MOSI and MISO, `i2c_decode`, `assert_open_drain`) and by `test/peers.py`'s `UartMonitor`. Also covered: I2C clock stretching, NACK reported as fault 65, and the contention interlock. With the `test/` peers, the whole flagship waveform (over 7,000 cycles) equals `test/scenarios.py` `flagship()` on the harness, cycle for cycle. `peers="external"`, with SPI and I2C targets on the pads and an idle UART line, has four tests. (1) Engine 1's fault 3 is expected: the run passes, and after the CLEAR, no fault and no host fault remain. (2) A host fault injected right after reset is still detected. (3) An extra engine fault (no I2C target, so fault 65) fails the run. (4) On a 6-bit uo port the run passes, with the host fault reported as not checked. | PASS (23778831) |
+| `test_host_flagship.py` | The flagship scenario with pe_host peers. The pad waveform is decoded by `test/model/scoreboards.py` (`uart_decode` on pins 0 and 1, `spi_decode` MOSI and MISO, `i2c_decode`, `assert_open_drain`) and by `test/peers.py`'s `UartMonitor`. Also covered: I2C clock stretching, NACK reported as fault 65, and the contention interlock. With the `test/` peers, the whole flagship waveform (over 7,000 cycles) equals `test/scenarios.py` `flagship()` on the harness, cycle for cycle. `peers="external"`, with SPI and I2C targets on the pads and an idle UART line, has four tests. (1) Engine 1 (`uart-rx-idle` since `e64cd6b`) does not fault on the idle line: the run passes with no engine fault and no host fault, and nothing is cleared. (2) A host fault injected right after reset is still detected. (3) An extra engine fault (no I2C target, so fault 65) fails the run. (4) On a 6-bit uo port the run passes, with the host fault reported as not checked. (Until `e64cd6b` engine 1 ran the bounded `uart-rx`, test (1) expected its fault 3 and a CLEAR, and (3) and (4) expected fault 3 as well.) | PASS (23778831; with `uart-rx-idle`, 24302122) |
 | `test_host_ports.py` | `DemoBoardPort` (fast and slow) and `PicoPort` (fast and slow) against SDK/GPIO fakes. For the self-test and the flagship scenario, their rising-edge sequence equals `ModelPort`'s. `PIN_MAP_CMOD_A7_HOST`: the self-test minus `trigger`, then `deselect()` through the ena GPIO, gives the same edges as `ModelPort`, ena included. `PIN_MAP_URBANA_HOST`: active-high reset, uo_out[5:0] only, program load, TX/RX traffic, and SELECT/READ_SELECT acceptance without uo[7]. | PASS (23778831) |
-| `test_host_rtl.py` | The library's exact stimulus for the self-test (3,324 cycles) and the flagship scenario (7,827 cycles), rendered as a self-checking testbench and run on the RTL, once with Icarus 14 and once with Icarus 13.0 (the CI build). | PASS on both (23778831) |
+| `test_host_rtl.py` | The library's exact stimulus for the self-test (3,324 cycles) and the flagship scenario (7,827 cycles with `uart-rx`; 7,842 with `uart-rx-idle` since `e64cd6b`), rendered as a self-checking testbench and run on the RTL, once with Icarus 14 and once with Icarus 13.0 (the CI build). | PASS on both (23778831; with `uart-rx-idle`, 24302122) |
 | `test_host_makefile.py` | `make -C host rtl-cocotb-paths` from the repository root (also with a bogus `$PWD`), `make rtl-cocotb-paths` in `host/` and `make paths` in `host/tests/rtl_cocotb/` all resolve the same testbench, RTL, model and scenario. Command-line overrides work, and a stale `PE_HOST_SCENARIO` in the environment is ignored. | PASS (23778831) |
-| `tests/rtl_cocotb` | The library drives the RTL live through cocotb 2.0.1 (`CocotbPort`, bridge thread), lockstep with the model before and after every edge. The self-test and the flagship scenario both pass, with 0 mismatches. In a fresh export of `73536f0` plus this `host/`, all three documented entry points ran on Icarus 13.0, each giving 2 of 2: `make -C host rtl-cocotb` from the repository root, `cd host && make rtl-cocotb` and `make` in `host/tests/rtl_cocotb/`. So did the first form with a stale `PE_HOST_SCENARIO` in the environment, and the first form on Icarus 14. | PASS, 2 of 2 in each of the 5 runs (23778831) |
-| `test_host_micropython.py` | `tools/upy_check.py` subset check. The self-test, the flagship scenario (with and without I2C stretching) and the `peers="external"` flagship run replayed under the MicroPython 1.29 unix port, from `.py` sources and from `mpy-cross` `.mpy` files. Every ui byte and peer drive matched the CPython run, and so did the verdict (for `external`: pass, host fault False, faults `1:3`). Also checks the pure-Python SHA-256. | PASS (23778831) |
-| `peers="external"` with the default 200,000 free-run cycles (`external_default.py` in the work directory) | SPI and I2C targets on the pads and an idle UART line, on a full port and on a 6-bit uo port. | PASS on both: 201,581 host cycles each. Faults `[(1, 3)]`, none after the CLEAR. Host fault False on the full port and not checked on the 6-bit port. I2C bytes `84 5a` (23778831) |
+| `tests/rtl_cocotb` | The library drives the RTL live through cocotb 2.0.1 (`CocotbPort`, bridge thread), lockstep with the model before and after every edge. The self-test and the flagship scenario both pass, with 0 mismatches. In a fresh export of `73536f0` plus this `host/`, all three documented entry points ran on Icarus 13.0, each giving 2 of 2: `make -C host rtl-cocotb` from the repository root, `cd host && make rtl-cocotb` and `make` in `host/tests/rtl_cocotb/`. So did the first form with a stale `PE_HOST_SCENARIO` in the environment, and the first form on Icarus 14. With `uart-rx-idle` on engine 1 (since `e64cd6b`), the first form on Icarus 13.0 gives 2 of 2 again. | PASS, 2 of 2 in each of the 5 runs (23778831); 2 of 2 (24302122) |
+| `test_host_micropython.py` | `tools/upy_check.py` subset check. The self-test, the flagship scenario (with and without I2C stretching) and the `peers="external"` flagship run replayed under the MicroPython 1.29 unix port, from `.py` sources and from `mpy-cross` `.mpy` files. Every ui byte and peer drive matched the CPython run, and so did the verdict (for `external`: pass, host fault False, and no engine fault with `uart-rx-idle`; faults `1:3` with `uart-rx` until `e64cd6b`). Also checks the pure-Python SHA-256. | PASS (23778831; with `uart-rx-idle`, 24302122) |
+| `peers="external"` with the default 200,000 free-run cycles (`external_default.py` in the work directory) | SPI and I2C targets on the pads and an idle UART line, on a full port and on a 6-bit uo port. | With `uart-rx-idle` (since `e64cd6b`): PASS on both, 201,599 host cycles each, no engine fault and nothing cleared; host fault False on the full port and not checked on the 6-bit port; I2C bytes `84 5a` (24302122). Until `e64cd6b`, with `uart-rx`: PASS on both, 201,581 host cycles each, faults `[(1, 3)]`, none after the CLEAR (23778831) |
 | `tools/fuzz_host.py`, seeds 0 to 59,999 | Random host-operation programs, run on the harness driver, the CPython library and the MicroPython library (three-way differential). | 60,000 of 60,000 PASS: 114.4 M cycles, 4.38 M ops (jobs 23755318, 23755319) |
 | `tools/fuzz_host.py --rtl`, seeds 100,000 to 102,999 and 200,000 to 239,999 | The same three-way differential, and each seed's stimulus also replayed on the RTL with Icarus 14, checking every public output after every edge. | 43,000 of 43,000 PASS: 81.7 M RTL cycles (jobs 23756016, 23756557) |
 | `tools/fuzz_host.py --rtl`, seeds 300,000 to 399,999, on the current code (SELECT/READ_SELECT acceptance rule, generalized `PicoPort`) | The three-way differential plus the Icarus 14 RTL replay of every seed. | 100,000 of 100,000 PASS: 190.5 M cycles, 7.30 M ops, 100,000 MicroPython and 100,000 RTL replays (jobs 23767497, 23767986, 23767987, 23767988) |
@@ -606,8 +616,12 @@ MicroPython 1.29, mpy-cross and Icarus 14 available; `test_host_rtl.py` then
 ran again on Icarus 13.0 and passed. A CI-like run (Python 3.11,
 `PATH=/usr/bin:/bin`, no `PE_HOST_*` variables, `python3 -m unittest
 discover -s host/tests` from the repository root) ran 69 tests with 6
-skipped: the four MicroPython replay tests and the two Icarus replays. The
-host tests are not in CI yet. If `python3 -m unittest discover -s
+skipped: the four MicroPython replay tests and the two Icarus replays. Job
+24302122 repeated both runs on the tree with `uart-rx-idle` as the flagship's
+engine 1 (since `e64cd6b`): 69 of 69 pass with MicroPython 1.29, mpy-cross
+and Icarus 14, `test_host_rtl.py` passes on Icarus 13.0, and the CI-like run
+passes with the same 6 skipped. The host tests are not in CI yet. If
+`python3 -m unittest discover -s
 host/tests` is added to `.github/workflows/test.yaml` after its Icarus 13.0
 install step, the two Icarus replays run as well, and they pass on that
 build.

@@ -197,8 +197,11 @@ v2 image, and `test/harness.py` accepts only ISA 1 or 2 images.
   unchanged.
 - **Scalar JTAG** needs a 1-bit SHR and is rejected.
 
-`scripts/gen_variants.sh` writes the 19 committed images for each variant to
-`build/variants/<name>/firmware/`:
+`scripts/gen_variants.sh` writes the 19 built-in images for each variant, and
+`uart-rx-idle` (reassembled from `firmware/uart-rx-idle.source.json`) for each
+variant with a 32-bit datapath, to `build/variants/<name>/firmware/`. The SWD,
+WS2812B, PS/2 and 1-Wire images of `firmware/` are not reassembled
+([test/README.md](../test/README.md)). For the built-in images:
 - For `base`, `rstreg`, `cn` and `cn_s2` they are byte-identical to `firmware/`.
 - For `diet4` and `diet2` every instruction word and `bytecode_sha256` is
   unchanged. The architecture binds `fifo_words` 4 or 2, so the source and

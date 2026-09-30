@@ -169,7 +169,7 @@ Ethernet frame per session.
 | `hardcaml/lib/engine.ml` | The unit, built only with the option (`?line`); `?line_mutation` is used only by the formal generator and `line_test.exe` |
 | `hardcaml/lib/processor.ml`, `refinement_config.ml`, `variant_options.ml` | Pass the option through; READ_SELECT 7; the debug export `dbg_queue_status_read` (LSTAT issue, formal only) |
 | `hardcaml/lib/isa.ml`, `assembler.ml`, `bin/assemble.ml` | LTIM, LCFG, CRC, LSTAT and the XFER line/CRC bits, for targets with the option |
-| `hardcaml/test/line_fw.ml`, `line_test.ml`, `line_sys_test.ml` | Engine-level and whole-chip checks ported from the study (executables, not part of `dune test`) |
+| `hardcaml/test/line_fw.ml`, `line_test.ml`, `line_sys_test.ml` | Engine-level and whole-chip checks ported from the study (executables). Since `4c0753c`, `dune test` also runs `line_test`; `line_sys_test` takes a config and is run separately (`hardcaml/test/README.md`) |
 | `configs/variants/diet8.json`, `diet8_rec16.json` | The two new variants |
 | `test/model/line_unit.py`, `test/model/variant.py` | Reference model of the unit (`LineReference`), selected only with the option |
 | `test/line_support.py`, `line_scenarios.py`, `line_demos.py`, `line_random.py` | Encoders, independent references, scenarios, random generator |
@@ -213,7 +213,7 @@ its previous value and the operand sweep's case list is identical to `HEAD`'s
 | `formal/run.sh --list` | the same 16 jobs; the 15 line jobs appear only with `--variant diet8_rec16` | local run |
 | Quick formal jobs of `scripts/reproduce.sh` on the design of record (12 jobs: `reset_safety`, `engine_safety`, `processor_invariants_prove`, `processor_inductive_prove`, `processor_inductive_cover`, `timing_isolation_prove_k0`..`k3`, `timing_isolation_cover`, both negative controls) | 12/12 meet their expectations | 24122038, 24125085 |
 | Default cocotb suite (`make`, no variables) | 102/102; per-test status and simulated time equal to a control run of git `HEAD`'s `test/` and `src/` (102/102) | 24121511, 24122075, 24134620 (final tree); control 24121512 |
-| `dune test` in `hardcaml/` (the seven Hardcaml tests, including the `variant_test` quick suite) | PASS | 24122140 |
+| `dune test` in `hardcaml/` (at the time the seven Hardcaml tests, including the `variant_test` quick suite; since `4c0753c` it also runs `line_test`, and the waveform expect tests when their packages are installed) | PASS | 24122140 |
 | Second round: the design of record with the new `formal/run.sh` (`--list`, RTL generation, the 12 quick jobs) | `--list` gives the same 16 jobs (the 46 line jobs appear only with `--variant diet8_rec16`); 7 of 7 formal RTL files identical to the previous round's `HEAD` generation; 12/12 meet their expectations | 24307355 |
 | Second round: the workflows with the base design selection (`main` 24f31f0 plus the workflow changes of section 12.2, local emulation) | `test`: 102/102 with the same names and results as unmodified 24f31f0; `formal`: the same 16 jobs in the same order, 16/16 meet their expectations; `regen`: no difference in `src/` | 24309463, 24309631, 24300291 (section 12.3) |
 

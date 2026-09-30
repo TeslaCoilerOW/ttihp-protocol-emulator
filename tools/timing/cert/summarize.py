@@ -64,6 +64,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--lemmas", help="directory of boundary_lemmas result files")
     ap.add_argument("--engine-evidence", help="JSON list of negative-control failures found by an engine "
                     "whose sby run did not finish (e.g. ABC bmc3 before the witness replay)")
+    ap.add_argument("--neg-not-run", help="file listing negative controls deliberately not run "
+                    "(deeper than campaign.sh's CERT_NEG_MAX): status NOT_RUN, undecided")
     ap.add_argument("--rtl-mutants", action="append", default=[],
                     help="manifest of certificates run against an RTL mutant (rtl_mutants.py)")
     ap.add_argument("--out-md", required=True)
@@ -72,7 +74,10 @@ def main(argv: list[str] | None = None) -> int:
     runs = load_results(args.results + ([args.lemmas] if args.lemmas else []))
     nodes = json.loads(Path(args.nodes).read_text())["certificates"]
     chunks = json.loads(Path(args.chunks).read_text())["certificates"] if args.chunks else []
-    negs = json.loads(Path(args.neg).read_text())["certificates"] if args.neg else []
+    neg_manifest = json.loads(Path(args.neg).read_text()) if args.neg else {}
+    negs = neg_manifest.get("certificates", [])
+    # Nodes a wrong analyzer's schedule could not be written for (gen_cert emit --mutant).
+    not_generated = neg_manifest.get("not_generated", [])
 
     by_node: dict[tuple[str, int], list] = defaultdict(list)
     for c in chunks:
@@ -145,12 +150,16 @@ def main(argv: list[str] | None = None) -> int:
                "|---|---|---:|---:|---|---|---:|---|---|"]
         extra = {e["certificate"]: e for e in json.loads(Path(args.engine_evidence).read_text())} \
             if args.engine_evidence else {}
+        skipped = set(Path(args.neg_not_run).read_text().split()) \
+            if args.neg_not_run and Path(args.neg_not_run).exists() else set()
         for c in sorted(negs, key=lambda c: (c["mutation"], c["image"], c["node"])):
             b = best(runs.get((c["certificate"], "bmc"), []), "FAIL") or {}
             if b.get("status") != "FAIL" and c["certificate"] in extra:
                 e = extra[c["certificate"]]
                 b = {"status": "FAIL", "failed_assertions": [f"engine log: frame {e['frame']}"],
                      "seconds": int(e["abc_seconds"]), "winner": e["engine"] + " FAIL", "slurm_job": e["slurm_job"]}
+            if not b and c["certificate"] in skipped:
+                b = {"status": "NOT_RUN", "failed_assertions": [f"not run: {c['depth'] - 2} steps"]}
             met = b.get("status") == "FAIL"
             neg_rows.append({**c, "status": b.get("status"), "met": met,
                              "failed": b.get("failed_assertions"), "seconds": b.get("seconds"),
@@ -159,6 +168,14 @@ def main(argv: list[str] | None = None) -> int:
                       f"{b.get('status', 'not run')}{' (expected)' if met else ''} | "
                       f"{', '.join((b.get('failed_assertions') or [])[:3])} | {fmt_s(b.get('seconds'))} | "
                       f"{solver(b) if b else '-'} | {b.get('slurm_job', '-')} |")
+    if not_generated:
+        md += ["", "Negative controls not generated (the wrong analyzer's schedule contradicts itself on these "
+               "nodes, so no certificate can be written for them):", "",
+               "| mutation | image | nodes | reason | control from another node |", "|---|---|---|---|---|"]
+        for n in not_generated:
+            nodes = "whole analysis" if n.get("nodes") is None else ", ".join(f"n{i}" for i in n["nodes"])
+            md.append(f"| {n['mutation']} | `{n['image']}` | {nodes} | {n['reason']} | "
+                      f"{'yes' if n.get('control_emitted') else 'no'} |")
     lemma_rows = []
     if args.lemmas:
         md += ["", "| lemma task | outcome | s | solver | Slurm job |", "|---|---|---:|---|---|"]
@@ -200,6 +217,8 @@ def main(argv: list[str] | None = None) -> int:
         "negatives": [{k: r.get(k) for k in ("certificate", "image", "node", "mutation", "status", "met",
                                              "failed", "seconds", "slurm_job")} for r in neg_rows],
         "lemmas": lemma_rows}
+    if not_generated:
+        out["negatives_not_generated"] = not_generated
     Path(args.out_md).write_text("\n".join(md) + "\n")
     Path(args.out_json).write_text(json.dumps(out, indent=1) + "\n")
     print("\n".join(md))

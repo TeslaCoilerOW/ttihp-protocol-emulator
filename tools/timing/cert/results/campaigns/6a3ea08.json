@@ -1,0 +1,3771 @@
+{
+ "campaign": {
+  "id": "6a3ea08",
+  "rev": "6a3ea08a01eac08e5e4fbb417bc5f6dc61a59d4d",
+  "recorded": "2026-09-29",
+  "work": "c-6a3ea08b",
+  "rtl": {
+   "processor_fv.v": "2a039bae6eb78c2d7183048a6702e7b86e713c0b97abb26b61d2f98152bdef05",
+   "src/project.v": "2aacfd24f6b1468954660f0d91ece5a328eabdfb352dff06bc301a62ab70f4e3",
+   "src/protocol_emulator_core.v": "26a873db82935fe6bc79214ca1e084294d270fd5adc3cc2aab28c1adfe0d7697"
+  },
+  "models": {
+   "RM_IHPSG13_1P_core_behavioral.v": "5aa61ac427a9c7253f5bcfbc4bf0717a6ffb28db514b1d5cad0ecb52a11d5790",
+   "RM_IHPSG13_1P_64x16_c2.v": "63a682d02cc35a69cb06468c8813ec114dfa8abed505bd1d7cafc84b7a6ed806"
+  },
+  "harness": {
+   "cert_dut.vh": "809a03777c88e3c07b765486686943aacd7949b178d03fa944b668ad82336292",
+   "cert_env.vh": "21a4ffd2cb2c46ffe5670153e31d90d64ca110544f635e9b7c8dcc91a9226427",
+   "boundary_lemmas.sv": "7b79f24ae4764601251b4145e2a84f783ebf0e2d36d6923683bb5620b2b80399",
+   "sram_lemma.sv": "802f292f3085ec1e145f3e876e0aa3bc5ad3362660e9ef79c28eadadcc6dcd43"
+  },
+  "tools": {
+   "gen_cert": "1.1",
+   "pe_timing": "1.0"
+  },
+  "chunk": 96,
+  "short": 200,
+  "images": [
+   "onewire-master",
+   "ps2-device",
+   "ps2-host",
+   "swd-read",
+   "uart-rx-idle",
+   "ws2812",
+   "ws2812b-v5"
+  ],
+  "lemmas_ok": true,
+  "equivalence": {
+   "method": "abc",
+   "result": "EQUIVALENT",
+   "negative_control": false,
+   "gate": "processor_fv.v",
+   "seconds": 36,
+   "slurm_job": "24303018"
+  },
+  "equivalence_negative": {
+   "method": "abc",
+   "result": "COUNTEREXAMPLE",
+   "negative_control": true,
+   "gate": "rtl_sync_3flop/fbuild/rtl/processor_fv.v",
+   "seconds": 36,
+   "slurm_job": "24303019"
+  },
+  "problems": [],
+  "slurm_jobs": [
+   "24303012",
+   "24303013",
+   "24303014",
+   "24303015",
+   "24303016",
+   "24303017",
+   "24303018",
+   "24303019",
+   "24333946"
+  ]
+ },
+ "records": [
+  {
+   "image": "onewire-master",
+   "image_sha256": "d73670ee05618ee6631bce9fc8457e22222c9c4fc583ed9306efaba31109d009",
+   "bytecode_sha256": "6a64c6accba939fda5cabc297903764c645491db386a3bd9989742f4f745624f",
+   "campaign": "6a3ea08",
+   "rev": "6a3ea08a01eac08e5e4fbb417bc5f6dc61a59d4d",
+   "engine_index": 3,
+   "segments": 6,
+   "variants": 12,
+   "pad_events": 156,
+   "known_level_edges": 60,
+   "issue_attempts": 532,
+   "samples": 54,
+   "longest": 80004,
+   "proved": 6,
+   "whole": 3,
+   "split": "3/3",
+   "covers": 6,
+   "negatives": 13,
+   "negatives_failed": 7,
+   "negatives_undecided": [
+    "cert_onewire_master_n1_neg_count_n_iterations",
+    "cert_onewire_master_n1_neg_issue_late",
+    "cert_onewire_master_n1_neg_pad_early",
+    "cert_onewire_master_n1_neg_pad_late",
+    "cert_onewire_master_n1_neg_pad_level",
+    "cert_onewire_master_n1_neg_wait_n_cycles"
+   ],
+   "negatives_not_generated": [],
+   "obligations": {
+    "chunk": 96,
+    "whole_sha256": "1d5ec9b4c6fb5fb8598f9a9498d2f183eb210199ee03d762546ed618749b373b",
+    "chunks_sha256": "691f7d2089fcc551d514c1e9124247cc53772b3efca9116f28ed14ba82036d59"
+   },
+   "max_seconds": 118,
+   "total_seconds": 96908,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303012",
+    "24303013"
+   ],
+   "cover_jobs": [
+    "24303014"
+   ],
+   "certified": true,
+   "problems": []
+  },
+  {
+   "image": "ps2-device",
+   "image_sha256": "e3f9eade4f3c3d646f938e502b20dd61260c796c96aa0ce2f5c6bfb251ebff13",
+   "bytecode_sha256": "5de03a656554df479d2010aaeb7111b16491bcb49b31467214b26faed858f5f2",
+   "campaign": "6a3ea08",
+   "rev": "6a3ea08a01eac08e5e4fbb417bc5f6dc61a59d4d",
+   "engine_index": 2,
+   "segments": 18,
+   "variants": 31,
+   "pad_events": 46,
+   "known_level_edges": 22,
+   "issue_attempts": 1201,
+   "samples": 236,
+   "longest": 4000,
+   "proved": 18,
+   "whole": 5,
+   "split": "13/13",
+   "covers": 18,
+   "negatives": 16,
+   "negatives_failed": 10,
+   "negatives_undecided": [
+    "cert_ps2_device_n16_neg_branch_late",
+    "cert_ps2_device_n16_neg_issue_late",
+    "cert_ps2_device_n16_neg_pad_early",
+    "cert_ps2_device_n16_neg_pad_late",
+    "cert_ps2_device_n16_neg_pad_level",
+    "cert_ps2_device_n16_neg_wait_n_cycles"
+   ],
+   "negatives_not_generated": [
+    {
+     "mutation": "open-drain-as-push-pull",
+     "nodes": [
+      3,
+      7
+     ],
+     "reason": "gen_cert: pad timeline mismatch pin5 +2806: 4 vs 2",
+     "control_emitted": true
+    }
+   ],
+   "obligations": {
+    "chunk": 96,
+    "whole_sha256": "bbda27e21f88c4cf079c8daf26f7cec16f390ed089c380ee9a39adb69753d089",
+    "chunks_sha256": "6da198ac0d9ae08d4b6fae14aa8d5630119d92bef52d3815af9909873d3b3157"
+   },
+   "max_seconds": 118,
+   "total_seconds": 15297,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303012",
+    "24303013"
+   ],
+   "cover_jobs": [
+    "24303014",
+    "24333946"
+   ],
+   "certified": true,
+   "problems": []
+  },
+  {
+   "image": "ps2-host",
+   "image_sha256": "742cc4316227fd6c1cffb392677d54fe6eac6fb8d6f322f5560c1829e4b1b4f3",
+   "bytecode_sha256": "84071ac08cc1731fffe571e474308c20a392e77ff451a0138ac318ff63c8ffaa",
+   "campaign": "6a3ea08",
+   "rev": "6a3ea08a01eac08e5e4fbb417bc5f6dc61a59d4d",
+   "engine_index": 2,
+   "segments": 50,
+   "variants": 52,
+   "pad_events": 18,
+   "known_level_edges": 6,
+   "issue_attempts": 208,
+   "samples": 11,
+   "longest": 6289,
+   "proved": 50,
+   "whole": 48,
+   "split": "2/2",
+   "covers": 50,
+   "negatives": 13,
+   "negatives_failed": 7,
+   "negatives_undecided": [
+    "cert_ps2_host_n1_neg_issue_late",
+    "cert_ps2_host_n1_neg_pad_early",
+    "cert_ps2_host_n1_neg_pad_late",
+    "cert_ps2_host_n1_neg_pad_level",
+    "cert_ps2_host_n1_neg_set_two_cycles",
+    "cert_ps2_host_n1_neg_wait_n_cycles"
+   ],
+   "negatives_not_generated": [],
+   "obligations": {
+    "chunk": 96,
+    "whole_sha256": "9f33394a4f5942fb64cbb0b5c4d8753ecd76c66abc342f5fb9c86e40ae817ca3",
+    "chunks_sha256": "cf2598d3b784f6239bf2746f9bb547942187f0ba74484f5a72fcaaf7eb55f538"
+   },
+   "max_seconds": 34,
+   "total_seconds": 3870,
+   "solvers": [
+    "bitwuzla",
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303012",
+    "24303013"
+   ],
+   "cover_jobs": [
+    "24303014"
+   ],
+   "certified": true,
+   "problems": []
+  },
+  {
+   "image": "swd-read",
+   "image_sha256": "9df6386ebb024b16f4ea0790ac0f9d08360950856986759d8a4c6c89e7ab1406",
+   "bytecode_sha256": "92b404ee691f4bca6a18e31224efd4ede334b8ca6858c6f8c5226d738b5e8f66",
+   "campaign": "6a3ea08",
+   "rev": "6a3ea08a01eac08e5e4fbb417bc5f6dc61a59d4d",
+   "engine_index": 0,
+   "segments": 6,
+   "variants": 18,
+   "pad_events": 2864,
+   "known_level_edges": 2768,
+   "issue_attempts": 1188,
+   "samples": 300,
+   "longest": 6219,
+   "proved": 6,
+   "whole": 4,
+   "split": "2/2",
+   "covers": 6,
+   "negatives": 13,
+   "negatives_failed": 11,
+   "negatives_undecided": [
+    "cert_swd_read_n1_neg_count_n_iterations",
+    "cert_swd_read_n1_neg_xfer_late_edge"
+   ],
+   "negatives_not_generated": [],
+   "obligations": {
+    "chunk": 96,
+    "whole_sha256": "5dc3e672f1e50bdb3bc2f1334fe27e5e97b9580fbd04522e9e45ec273d480bf4",
+    "chunks_sha256": "2c50589f1bedd6a49e07079fe154b7d515ee4b80ffd9136907fd932d04a98c19"
+   },
+   "max_seconds": 96,
+   "total_seconds": 6641,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303012",
+    "24303013"
+   ],
+   "cover_jobs": [
+    "24303014"
+   ],
+   "certified": true,
+   "problems": []
+  },
+  {
+   "image": "uart-rx-idle",
+   "image_sha256": "edf05fc9b683b6d063cf7a84050152021487d400d9b6a890fd2591c4ad5b12d2",
+   "bytecode_sha256": "fe9231c5125c33f76739e0f80f38a6ccec344aaf6ec3846ed8e710a8d36c31cd",
+   "campaign": "6a3ea08",
+   "rev": "6a3ea08a01eac08e5e4fbb417bc5f6dc61a59d4d",
+   "engine_index": 1,
+   "segments": 5,
+   "variants": 9,
+   "pad_events": 0,
+   "known_level_edges": 0,
+   "issue_attempts": 98,
+   "samples": 24,
+   "longest": 606,
+   "proved": 5,
+   "whole": 5,
+   "split": "2/2",
+   "covers": 5,
+   "negatives": 8,
+   "negatives_failed": 8,
+   "negatives_undecided": [],
+   "negatives_not_generated": [],
+   "obligations": {
+    "chunk": 96,
+    "whole_sha256": "ec4c877a16e8927c14a13019fcb5e243349ba81b0e8c3baf10dda795b1bc60b6",
+    "chunks_sha256": "b9268311e4b7a0f9bde92caa9c6da5a006201e40c5a2ec496f0813168a443695"
+   },
+   "max_seconds": 152,
+   "total_seconds": 293,
+   "solvers": [
+    "bmc3",
+    "yices"
+   ],
+   "jobs": [
+    "24303012",
+    "24303017"
+   ],
+   "cover_jobs": [
+    "24303014",
+    "24333946"
+   ],
+   "certified": true,
+   "problems": []
+  },
+  {
+   "image": "ws2812",
+   "image_sha256": "61157a3dc1e351088d2c6b77b8164f2300986f1f182f7f4f61d209ea0ac0c5df",
+   "bytecode_sha256": "38ed7e1453be13948070819a1d12a737baeea982a743c0db094408fa6b2a5269",
+   "campaign": "6a3ea08",
+   "rev": "6a3ea08a01eac08e5e4fbb417bc5f6dc61a59d4d",
+   "engine_index": 1,
+   "segments": 3,
+   "variants": 5,
+   "pad_events": 289,
+   "known_level_edges": 97,
+   "issue_attempts": 692,
+   "samples": 0,
+   "longest": 16513,
+   "proved": 3,
+   "whole": 0,
+   "split": "3/3",
+   "covers": 3,
+   "negatives": 13,
+   "negatives_failed": 5,
+   "negatives_undecided": [
+    "cert_ws2812_n1_neg_count_n_iterations",
+    "cert_ws2812_n0_neg_issue_late",
+    "cert_ws2812_n0_neg_pad_early",
+    "cert_ws2812_n0_neg_pad_late",
+    "cert_ws2812_n0_neg_pad_level",
+    "cert_ws2812_n0_neg_post_limit",
+    "cert_ws2812_n0_neg_set_two_cycles",
+    "cert_ws2812_n0_neg_wait_n_cycles"
+   ],
+   "negatives_not_generated": [],
+   "obligations": {
+    "chunk": 96,
+    "whole_sha256": "cbce47fd56d4687cd4a09044ba4bc4c2b894dcae6bf1ceae62149fb080af4f04",
+    "chunks_sha256": "3b50622a0a97dc8bd5b2545f771ed1bda406ed3ad14a86decd05944c36d56b1e"
+   },
+   "max_seconds": 34,
+   "total_seconds": 11177,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ],
+   "cover_jobs": [
+    "24303014",
+    "24333946"
+   ],
+   "certified": true,
+   "problems": []
+  },
+  {
+   "image": "ws2812b-v5",
+   "image_sha256": "bf7ce0d70b515e3d8f84ba326511ecd893d551ee7b1b6ff95d814e08a07ce7b1",
+   "bytecode_sha256": "b6bfeb760b6e24eac7951e8a229e298870978e21ace61a8fc009238e29c0b4d1",
+   "campaign": "6a3ea08",
+   "rev": "6a3ea08a01eac08e5e4fbb417bc5f6dc61a59d4d",
+   "engine_index": 1,
+   "segments": 3,
+   "variants": 5,
+   "pad_events": 289,
+   "known_level_edges": 97,
+   "issue_attempts": 692,
+   "samples": 0,
+   "longest": 16513,
+   "proved": 3,
+   "whole": 0,
+   "split": "3/3",
+   "covers": 3,
+   "negatives": 13,
+   "negatives_failed": 5,
+   "negatives_undecided": [
+    "cert_ws2812b_v5_n1_neg_count_n_iterations",
+    "cert_ws2812b_v5_n0_neg_issue_late",
+    "cert_ws2812b_v5_n0_neg_pad_early",
+    "cert_ws2812b_v5_n0_neg_pad_late",
+    "cert_ws2812b_v5_n0_neg_pad_level",
+    "cert_ws2812b_v5_n0_neg_post_limit",
+    "cert_ws2812b_v5_n0_neg_set_two_cycles",
+    "cert_ws2812b_v5_n0_neg_wait_n_cycles"
+   ],
+   "negatives_not_generated": [],
+   "obligations": {
+    "chunk": 96,
+    "whole_sha256": "78b64c3d8b5c8d3d2d001b6f75da6d19e2b8e8a0784d7fc855e05163852714b2",
+    "chunks_sha256": "abe893d69c84f2a0711460062c0e4e0e3932b458091dd62b3e95efed9a6da14b"
+   },
+   "max_seconds": 33,
+   "total_seconds": 11514,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ],
+   "cover_jobs": [
+    "24303014",
+    "24333946"
+   ],
+   "certified": true,
+   "problems": []
+  }
+ ],
+ "images": [
+  {
+   "image": "onewire-master",
+   "engine_index": 3,
+   "segments": 6,
+   "variants": 12,
+   "pad_events": 156,
+   "known_level_edges": 60,
+   "issue_attempts": 532,
+   "samples": 54,
+   "longest": 80004,
+   "proved": 6,
+   "whole": 3,
+   "split": "3/3",
+   "covers": 6,
+   "max_seconds": 118,
+   "total_seconds": 96908,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303012",
+    "24303013"
+   ],
+   "cover_jobs": [
+    "24303014"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "engine_index": 2,
+   "segments": 18,
+   "variants": 31,
+   "pad_events": 46,
+   "known_level_edges": 22,
+   "issue_attempts": 1201,
+   "samples": 236,
+   "longest": 4000,
+   "proved": 18,
+   "whole": 5,
+   "split": "13/13",
+   "covers": 18,
+   "max_seconds": 118,
+   "total_seconds": 15297,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303012",
+    "24303013"
+   ],
+   "cover_jobs": [
+    "24303014",
+    "24333946"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "engine_index": 2,
+   "segments": 50,
+   "variants": 52,
+   "pad_events": 18,
+   "known_level_edges": 6,
+   "issue_attempts": 208,
+   "samples": 11,
+   "longest": 6289,
+   "proved": 50,
+   "whole": 48,
+   "split": "2/2",
+   "covers": 50,
+   "max_seconds": 34,
+   "total_seconds": 3870,
+   "solvers": [
+    "bitwuzla",
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303012",
+    "24303013"
+   ],
+   "cover_jobs": [
+    "24303014"
+   ]
+  },
+  {
+   "image": "swd-read",
+   "engine_index": 0,
+   "segments": 6,
+   "variants": 18,
+   "pad_events": 2864,
+   "known_level_edges": 2768,
+   "issue_attempts": 1188,
+   "samples": 300,
+   "longest": 6219,
+   "proved": 6,
+   "whole": 4,
+   "split": "2/2",
+   "covers": 6,
+   "max_seconds": 96,
+   "total_seconds": 6641,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303012",
+    "24303013"
+   ],
+   "cover_jobs": [
+    "24303014"
+   ]
+  },
+  {
+   "image": "uart-rx-idle",
+   "engine_index": 1,
+   "segments": 5,
+   "variants": 9,
+   "pad_events": 0,
+   "known_level_edges": 0,
+   "issue_attempts": 98,
+   "samples": 24,
+   "longest": 606,
+   "proved": 5,
+   "whole": 5,
+   "split": "2/2",
+   "covers": 5,
+   "max_seconds": 152,
+   "total_seconds": 293,
+   "solvers": [
+    "bmc3",
+    "yices"
+   ],
+   "jobs": [
+    "24303012",
+    "24303017"
+   ],
+   "cover_jobs": [
+    "24303014",
+    "24333946"
+   ]
+  },
+  {
+   "image": "ws2812",
+   "engine_index": 1,
+   "segments": 3,
+   "variants": 5,
+   "pad_events": 289,
+   "known_level_edges": 97,
+   "issue_attempts": 692,
+   "samples": 0,
+   "longest": 16513,
+   "proved": 3,
+   "whole": 0,
+   "split": "3/3",
+   "covers": 3,
+   "max_seconds": 34,
+   "total_seconds": 11177,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ],
+   "cover_jobs": [
+    "24303014",
+    "24333946"
+   ]
+  },
+  {
+   "image": "ws2812b-v5",
+   "engine_index": 1,
+   "segments": 3,
+   "variants": 5,
+   "pad_events": 289,
+   "known_level_edges": 97,
+   "issue_attempts": 692,
+   "samples": 0,
+   "longest": 16513,
+   "proved": 3,
+   "whole": 0,
+   "split": "3/3",
+   "covers": 3,
+   "max_seconds": 33,
+   "total_seconds": 11514,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ],
+   "cover_jobs": [
+    "24303014",
+    "24333946"
+   ]
+  }
+ ],
+ "totals": {
+  "segments": 91,
+  "variants": 132,
+  "pad_events": 3662,
+  "known_level_edges": 3050,
+  "issue_attempts": 4611,
+  "samples": 625,
+  "proved": 91,
+  "whole": 65,
+  "covers": 91,
+  "split": "28/28"
+ },
+ "rtl_mutants": [],
+ "nodes": [
+  {
+   "image": "onewire-master",
+   "node": 0,
+   "label": "START",
+   "depth": 4,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "onewire-master",
+   "node": 1,
+   "label": "pc2 PULL",
+   "depth": 80006,
+   "variants": 3,
+   "pad_events": 52,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 32518,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "onewire-master",
+   "node": 2,
+   "label": "pc26 PUSH",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "onewire-master",
+   "node": 3,
+   "label": "pc26 PUSH",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 3,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "onewire-master",
+   "node": 4,
+   "label": "pc2 PULL",
+   "depth": 80006,
+   "variants": 3,
+   "pad_events": 52,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 30915,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "onewire-master",
+   "node": 5,
+   "label": "pc2 PULL",
+   "depth": 80006,
+   "variants": 3,
+   "pad_events": 52,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 33464,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 0,
+   "label": "START",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 3,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 1,
+   "label": "pc1 PULL",
+   "depth": 43,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 9,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 2,
+   "label": "pc22 WAITPIN pin4==1 [repeat=55]",
+   "depth": 2,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 3,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 3,
+   "label": "pc23 WAITPIN pin5==1 [repeat=55]",
+   "depth": 3806,
+   "variants": 2,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 1498,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 4,
+   "label": "pc37 JZ rx, 18 <retry> [repeat=10]",
+   "depth": 4002,
+   "variants": 2,
+   "pad_events": 4,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 1471,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 5,
+   "label": "pc22 WAITPIN pin4==1 [repeat=55]",
+   "depth": 2,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 3,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 6,
+   "label": "pc37 JZ rx, 18 <retry> [repeat=9]",
+   "depth": 4002,
+   "variants": 2,
+   "pad_events": 4,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 1469,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 7,
+   "label": "pc23 WAITPIN pin5==1 [repeat=55]",
+   "depth": 3806,
+   "variants": 2,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 1275,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 8,
+   "label": "pc37 JZ rx, 18 <retry> [repeat=8]",
+   "depth": 4002,
+   "variants": 2,
+   "pad_events": 4,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 930,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 9,
+   "label": "pc37 JZ rx, 18 <retry> [repeat=7]",
+   "depth": 4002,
+   "variants": 2,
+   "pad_events": 4,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 943,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 10,
+   "label": "pc37 JZ rx, 18 <retry> [repeat=6]",
+   "depth": 4002,
+   "variants": 2,
+   "pad_events": 4,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 945,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 11,
+   "label": "pc37 JZ rx, 18 <retry> [repeat=5]",
+   "depth": 4002,
+   "variants": 2,
+   "pad_events": 4,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 1066,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 12,
+   "label": "pc37 JZ rx, 18 <retry> [repeat=4]",
+   "depth": 4002,
+   "variants": 2,
+   "pad_events": 4,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 1070,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 13,
+   "label": "pc37 JZ rx, 18 <retry> [repeat=3]",
+   "depth": 4002,
+   "variants": 2,
+   "pad_events": 4,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 1073,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 14,
+   "label": "pc37 JZ rx, 18 <retry> [repeat=2]",
+   "depth": 4002,
+   "variants": 2,
+   "pad_events": 4,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 1272,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 15,
+   "label": "pc37 JZ rx, 18 <retry> [repeat=1]",
+   "depth": 4002,
+   "variants": 2,
+   "pad_events": 4,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 1255,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 16,
+   "label": "pc37 JZ rx, 18 <retry>",
+   "depth": 3005,
+   "variants": 2,
+   "pad_events": 4,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 1002,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-device",
+   "node": 17,
+   "label": "pc1 PULL",
+   "depth": 43,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 10,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 0,
+   "label": "START",
+   "depth": 2,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 3,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 1,
+   "label": "pc0 PULL",
+   "depth": 6291,
+   "variants": 1,
+   "pad_events": 3,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 1843,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 2,
+   "label": "pc23 WAITPIN pin4==1",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 3,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 3,
+   "label": "pc25 WAITPIN pin4==0 [repeat=9]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 3,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 4,
+   "label": "pc27 WAITPIN pin4==1 [repeat=9]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 3,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 5,
+   "label": "pc25 WAITPIN pin4==0 [repeat=8]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "bitwuzla"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 6,
+   "label": "pc27 WAITPIN pin4==1 [repeat=8]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 7,
+   "label": "pc25 WAITPIN pin4==0 [repeat=7]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 8,
+   "label": "pc27 WAITPIN pin4==1 [repeat=7]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 9,
+   "label": "pc25 WAITPIN pin4==0 [repeat=6]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 10,
+   "label": "pc27 WAITPIN pin4==1 [repeat=6]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 11,
+   "label": "pc25 WAITPIN pin4==0 [repeat=5]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 3,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 12,
+   "label": "pc27 WAITPIN pin4==1 [repeat=5]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 3,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 13,
+   "label": "pc25 WAITPIN pin4==0 [repeat=4]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 14,
+   "label": "pc27 WAITPIN pin4==1 [repeat=4]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 5,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 15,
+   "label": "pc25 WAITPIN pin4==0 [repeat=3]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 16,
+   "label": "pc27 WAITPIN pin4==1 [repeat=3]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 17,
+   "label": "pc25 WAITPIN pin4==0 [repeat=2]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 18,
+   "label": "pc27 WAITPIN pin4==1 [repeat=2]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 19,
+   "label": "pc25 WAITPIN pin4==0 [repeat=1]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 20,
+   "label": "pc27 WAITPIN pin4==1 [repeat=1]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 5,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 21,
+   "label": "pc25 WAITPIN pin4==0",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 5,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 22,
+   "label": "pc27 WAITPIN pin4==1",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 5,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 23,
+   "label": "pc29 WAITPIN pin5==0",
+   "depth": 2,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 24,
+   "label": "pc30 WAITPIN pin4==0",
+   "depth": 2,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 25,
+   "label": "pc31 WAITPIN pin4==1",
+   "depth": 2,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 7,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 26,
+   "label": "pc32 WAITPIN pin5==1",
+   "depth": 10,
+   "variants": 2,
+   "pad_events": 2,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 7,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 27,
+   "label": "pc41 WAITPIN pin4==0 [repeat=10]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 28,
+   "label": "pc0 PULL",
+   "depth": 6291,
+   "variants": 1,
+   "pad_events": 3,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 1787,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 29,
+   "label": "pc43 WAITPIN pin4==1 [repeat=10]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 30,
+   "label": "pc41 WAITPIN pin4==0 [repeat=9]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 5,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 31,
+   "label": "pc43 WAITPIN pin4==1 [repeat=9]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 32,
+   "label": "pc41 WAITPIN pin4==0 [repeat=8]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 33,
+   "label": "pc43 WAITPIN pin4==1 [repeat=8]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 7,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 34,
+   "label": "pc41 WAITPIN pin4==0 [repeat=7]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 35,
+   "label": "pc43 WAITPIN pin4==1 [repeat=7]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 36,
+   "label": "pc41 WAITPIN pin4==0 [repeat=6]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 37,
+   "label": "pc43 WAITPIN pin4==1 [repeat=6]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 7,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 38,
+   "label": "pc41 WAITPIN pin4==0 [repeat=5]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 39,
+   "label": "pc43 WAITPIN pin4==1 [repeat=5]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 40,
+   "label": "pc41 WAITPIN pin4==0 [repeat=4]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 7,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 41,
+   "label": "pc43 WAITPIN pin4==1 [repeat=4]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 7,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 42,
+   "label": "pc41 WAITPIN pin4==0 [repeat=3]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 43,
+   "label": "pc43 WAITPIN pin4==1 [repeat=3]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 44,
+   "label": "pc41 WAITPIN pin4==0 [repeat=2]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 45,
+   "label": "pc43 WAITPIN pin4==1 [repeat=2]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 6,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 46,
+   "label": "pc41 WAITPIN pin4==0 [repeat=1]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 47,
+   "label": "pc43 WAITPIN pin4==1 [repeat=1]",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 48,
+   "label": "pc41 WAITPIN pin4==0",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "ps2-host",
+   "node": 49,
+   "label": "pc43 WAITPIN pin4==1",
+   "depth": 9,
+   "variants": 2,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 5,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "swd-read",
+   "node": 0,
+   "label": "START",
+   "depth": 5,
+   "variants": 1,
+   "pad_events": 2,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "swd-read",
+   "node": 1,
+   "label": "pc3 PULL",
+   "depth": 6221,
+   "variants": 7,
+   "pad_events": 1428,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 3370,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "swd-read",
+   "node": 2,
+   "label": "pc33 PUSH",
+   "depth": 36,
+   "variants": 1,
+   "pad_events": 3,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 9,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "swd-read",
+   "node": 3,
+   "label": "pc53 PUSH",
+   "depth": 3,
+   "variants": 1,
+   "pad_events": 2,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "swd-read",
+   "node": 4,
+   "label": "pc56 PUSH",
+   "depth": 4,
+   "variants": 1,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "swd-read",
+   "node": 5,
+   "label": "pc3 PULL",
+   "depth": 6221,
+   "variants": 7,
+   "pad_events": 1428,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 3250,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "uart-rx-idle",
+   "node": 0,
+   "label": "START",
+   "depth": 5,
+   "variants": 1,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "uart-rx-idle",
+   "node": 1,
+   "label": "pc3 JZ rx, 2 <idle> [repeat=7]",
+   "depth": 7,
+   "variants": 2,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 4,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "uart-rx-idle",
+   "node": 2,
+   "label": "pc20 JZ rx, 18 <poll> [repeat=7]",
+   "depth": 608,
+   "variants": 2,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 152,
+   "solvers": [
+    "bmc3"
+   ],
+   "jobs": [
+    "24303017"
+   ]
+  },
+  {
+   "image": "uart-rx-idle",
+   "node": 3,
+   "label": "pc14 JZ rx, 23 <framing_error> [repeat=7]",
+   "depth": 8,
+   "variants": 2,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": false,
+   "chunks_ok": false,
+   "cover_ok": true,
+   "seconds": 3,
+   "solvers": [
+    "yices"
+   ],
+   "jobs": [
+    "24303012"
+   ]
+  },
+  {
+   "image": "uart-rx-idle",
+   "node": 4,
+   "label": "pc20 JZ rx, 18 <poll> [repeat=7]",
+   "depth": 608,
+   "variants": 2,
+   "pad_events": 0,
+   "proved": true,
+   "whole_ok": true,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 130,
+   "solvers": [
+    "bmc3"
+   ],
+   "jobs": [
+    "24303017"
+   ]
+  },
+  {
+   "image": "ws2812",
+   "node": 0,
+   "label": "START",
+   "depth": 15005,
+   "variants": 1,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 3365,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ws2812",
+   "node": 1,
+   "label": "pc3 PULL",
+   "depth": 16515,
+   "variants": 2,
+   "pad_events": 144,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 3876,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ws2812",
+   "node": 2,
+   "label": "pc3 PULL",
+   "depth": 16515,
+   "variants": 2,
+   "pad_events": 144,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 3936,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ws2812b-v5",
+   "node": 0,
+   "label": "START",
+   "depth": 15005,
+   "variants": 1,
+   "pad_events": 1,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 3655,
+   "solvers": [
+    "boolector",
+    "yices"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ws2812b-v5",
+   "node": 1,
+   "label": "pc3 PULL",
+   "depth": 16515,
+   "variants": 2,
+   "pad_events": 144,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 3808,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  },
+  {
+   "image": "ws2812b-v5",
+   "node": 2,
+   "label": "pc3 PULL",
+   "depth": 16515,
+   "variants": 2,
+   "pad_events": 144,
+   "proved": true,
+   "whole_ok": false,
+   "has_chunks": true,
+   "chunks_ok": true,
+   "cover_ok": true,
+   "seconds": 4051,
+   "solvers": [
+    "boolector"
+   ],
+   "jobs": [
+    "24303013"
+   ]
+  }
+ ],
+ "negatives": [
+  {
+   "certificate": "cert_ps2_device_n4_c0_neg_branch_late",
+   "image": "ps2-device",
+   "node": 4,
+   "mutation": "branch-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 4,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_device_n16_neg_branch_late",
+   "image": "ps2-device",
+   "node": 16,
+   "mutation": "branch-late",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 3004 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_uart_rx_idle_n1_neg_branch_late",
+   "image": "uart-rx-idle",
+   "node": 1,
+   "mutation": "branch-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 4,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_uart_rx_idle_n2_c0_neg_branch_late",
+   "image": "uart-rx-idle",
+   "node": 2,
+   "mutation": "branch-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 4,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_onewire_master_n1_neg_count_n_iterations",
+   "image": "onewire-master",
+   "node": 1,
+   "mutation": "count-n-iterations",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 76254 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ps2_device_n1_neg_count_n_iterations",
+   "image": "ps2-device",
+   "node": 1,
+   "mutation": "count-n-iterations",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 16,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_host_n2_neg_count_n_iterations",
+   "image": "ps2-host",
+   "node": 2,
+   "mutation": "count-n-iterations",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 4,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_swd_read_n1_neg_count_n_iterations",
+   "image": "swd-read",
+   "node": 1,
+   "mutation": "count-n-iterations",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 6216 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_uart_rx_idle_n0_neg_count_n_iterations",
+   "image": "uart-rx-idle",
+   "node": 0,
+   "mutation": "count-n-iterations",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 6,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ws2812_n1_neg_count_n_iterations",
+   "image": "ws2812",
+   "node": 1,
+   "mutation": "count-n-iterations",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 16450 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ws2812b_v5_n1_neg_count_n_iterations",
+   "image": "ws2812b-v5",
+   "node": 1,
+   "mutation": "count-n-iterations",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 16450 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_onewire_master_n1_neg_issue_late",
+   "image": "onewire-master",
+   "node": 1,
+   "mutation": "issue-late",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 80005 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ps2_device_n3_c0_neg_issue_late",
+   "image": "ps2-device",
+   "node": 3,
+   "mutation": "issue-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 25,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_device_n16_neg_issue_late",
+   "image": "ps2-device",
+   "node": 16,
+   "mutation": "issue-late",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 3004 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ps2_host_n1_neg_issue_late",
+   "image": "ps2-host",
+   "node": 1,
+   "mutation": "issue-late",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 6290 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_swd_read_n1_c5g1_neg_issue_late",
+   "image": "swd-read",
+   "node": 1,
+   "mutation": "issue-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 51,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_swd_read_n2_neg_issue_late",
+   "image": "swd-read",
+   "node": 2,
+   "mutation": "issue-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 17,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_uart_rx_idle_n2_neg_issue_late",
+   "image": "uart-rx-idle",
+   "node": 2,
+   "mutation": "issue-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 10,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_uart_rx_idle_n2_c0_neg_issue_late",
+   "image": "uart-rx-idle",
+   "node": 2,
+   "mutation": "issue-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 22,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ws2812_n0_neg_issue_late",
+   "image": "ws2812",
+   "node": 0,
+   "mutation": "issue-late",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15004 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ws2812_n1_c0_neg_issue_late",
+   "image": "ws2812",
+   "node": 1,
+   "mutation": "issue-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 13,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ws2812b_v5_n0_neg_issue_late",
+   "image": "ws2812b-v5",
+   "node": 0,
+   "mutation": "issue-late",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15004 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ws2812b_v5_n1_c0_neg_issue_late",
+   "image": "ws2812b-v5",
+   "node": 1,
+   "mutation": "issue-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 11,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_onewire_master_n2_neg_open_drain_as_push_pull",
+   "image": "onewire-master",
+   "node": 2,
+   "mutation": "open-drain-as-push-pull",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p7"
+   ],
+   "seconds": 5,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_device_n17_neg_open_drain_as_push_pull",
+   "image": "ps2-device",
+   "node": 17,
+   "mutation": "open-drain-as-push-pull",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p5"
+   ],
+   "seconds": 4,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_host_n23_neg_open_drain_as_push_pull",
+   "image": "ps2-host",
+   "node": 23,
+   "mutation": "open-drain-as-push-pull",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p5"
+   ],
+   "seconds": 4,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_onewire_master_n1_neg_pad_early",
+   "image": "onewire-master",
+   "node": 1,
+   "mutation": "pad-early",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 80004 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_onewire_master_n1_c0_neg_pad_early",
+   "image": "onewire-master",
+   "node": 1,
+   "mutation": "pad-early",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p7"
+   ],
+   "seconds": 9,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_device_n4_c0_neg_pad_early",
+   "image": "ps2-device",
+   "node": 4,
+   "mutation": "pad-early",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v1_p4"
+   ],
+   "seconds": 6,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_device_n16_neg_pad_early",
+   "image": "ps2-device",
+   "node": 16,
+   "mutation": "pad-early",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 3003 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ps2_host_n1_neg_pad_early",
+   "image": "ps2-host",
+   "node": 1,
+   "mutation": "pad-early",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 6289 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ps2_host_n1_c65_neg_pad_early",
+   "image": "ps2-host",
+   "node": 1,
+   "mutation": "pad-early",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p4"
+   ],
+   "seconds": 31,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_swd_read_n0_neg_pad_early",
+   "image": "swd-read",
+   "node": 0,
+   "mutation": "pad-early",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p0"
+   ],
+   "seconds": 6,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_swd_read_n1_c0_neg_pad_early",
+   "image": "swd-read",
+   "node": 1,
+   "mutation": "pad-early",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p0"
+   ],
+   "seconds": 21,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ws2812_n0_neg_pad_early",
+   "image": "ws2812",
+   "node": 0,
+   "mutation": "pad-early",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15003 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ws2812_n1_c0_neg_pad_early",
+   "image": "ws2812",
+   "node": 1,
+   "mutation": "pad-early",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p2"
+   ],
+   "seconds": 6,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ws2812b_v5_n0_neg_pad_early",
+   "image": "ws2812b-v5",
+   "node": 0,
+   "mutation": "pad-early",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15003 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ws2812b_v5_n1_c0_neg_pad_early",
+   "image": "ws2812b-v5",
+   "node": 1,
+   "mutation": "pad-early",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p2"
+   ],
+   "seconds": 5,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_onewire_master_n1_neg_pad_late",
+   "image": "onewire-master",
+   "node": 1,
+   "mutation": "pad-late",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 80004 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_onewire_master_n1_c0_neg_pad_late",
+   "image": "onewire-master",
+   "node": 1,
+   "mutation": "pad-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "edge_v0_p7",
+    "pad_v0_p7"
+   ],
+   "seconds": 9,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_device_n4_c0_neg_pad_late",
+   "image": "ps2-device",
+   "node": 4,
+   "mutation": "pad-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "edge_v1_p4",
+    "pad_v1_p4"
+   ],
+   "seconds": 7,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_device_n16_neg_pad_late",
+   "image": "ps2-device",
+   "node": 16,
+   "mutation": "pad-late",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 3003 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ps2_host_n1_neg_pad_late",
+   "image": "ps2-host",
+   "node": 1,
+   "mutation": "pad-late",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 6289 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ps2_host_n1_c0_neg_pad_late",
+   "image": "ps2-host",
+   "node": 1,
+   "mutation": "pad-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "edge_v0_p4",
+    "pad_v0_p4"
+   ],
+   "seconds": 38,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_swd_read_n1_c0_neg_pad_late",
+   "image": "swd-read",
+   "node": 1,
+   "mutation": "pad-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "edge_v0_p0",
+    "pad_v0_p0"
+   ],
+   "seconds": 32,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_swd_read_n4_neg_pad_late",
+   "image": "swd-read",
+   "node": 4,
+   "mutation": "pad-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "edge_v0_p1",
+    "pad_v0_p1"
+   ],
+   "seconds": 7,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ws2812_n0_neg_pad_late",
+   "image": "ws2812",
+   "node": 0,
+   "mutation": "pad-late",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15003 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ws2812_n1_c0_neg_pad_late",
+   "image": "ws2812",
+   "node": 1,
+   "mutation": "pad-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "edge_v0_p2",
+    "pad_v0_p2"
+   ],
+   "seconds": 7,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ws2812b_v5_n0_neg_pad_late",
+   "image": "ws2812b-v5",
+   "node": 0,
+   "mutation": "pad-late",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15003 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ws2812b_v5_n1_c0_neg_pad_late",
+   "image": "ws2812b-v5",
+   "node": 1,
+   "mutation": "pad-late",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "edge_v0_p2",
+    "pad_v0_p2"
+   ],
+   "seconds": 8,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_onewire_master_n1_neg_pad_level",
+   "image": "onewire-master",
+   "node": 1,
+   "mutation": "pad-level",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 80004 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_onewire_master_n1_c0_neg_pad_level",
+   "image": "onewire-master",
+   "node": 1,
+   "mutation": "pad-level",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p7"
+   ],
+   "seconds": 6,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_device_n4_c0_neg_pad_level",
+   "image": "ps2-device",
+   "node": 4,
+   "mutation": "pad-level",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v1_p4"
+   ],
+   "seconds": 6,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_device_n16_neg_pad_level",
+   "image": "ps2-device",
+   "node": 16,
+   "mutation": "pad-level",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 3003 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ps2_host_n1_neg_pad_level",
+   "image": "ps2-host",
+   "node": 1,
+   "mutation": "pad-level",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 6289 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ps2_host_n1_c0_neg_pad_level",
+   "image": "ps2-host",
+   "node": 1,
+   "mutation": "pad-level",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p4"
+   ],
+   "seconds": 25,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_swd_read_n1_c0_neg_pad_level",
+   "image": "swd-read",
+   "node": 1,
+   "mutation": "pad-level",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p0"
+   ],
+   "seconds": 21,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_swd_read_n4_neg_pad_level",
+   "image": "swd-read",
+   "node": 4,
+   "mutation": "pad-level",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p1"
+   ],
+   "seconds": 5,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ws2812_n0_neg_pad_level",
+   "image": "ws2812",
+   "node": 0,
+   "mutation": "pad-level",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15003 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ws2812_n1_c0_neg_pad_level",
+   "image": "ws2812",
+   "node": 1,
+   "mutation": "pad-level",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p2"
+   ],
+   "seconds": 5,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ws2812b_v5_n0_neg_pad_level",
+   "image": "ws2812b-v5",
+   "node": 0,
+   "mutation": "pad-level",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15003 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ws2812b_v5_n1_c0_neg_pad_level",
+   "image": "ws2812b-v5",
+   "node": 1,
+   "mutation": "pad-level",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "pad_v0_p2"
+   ],
+   "seconds": 4,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_onewire_master_n1_c833_neg_post_limit",
+   "image": "onewire-master",
+   "node": 1,
+   "mutation": "post-limit",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 24,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_onewire_master_n2_neg_post_limit",
+   "image": "onewire-master",
+   "node": 2,
+   "mutation": "post-limit",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 4,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_device_n2_neg_post_limit",
+   "image": "ps2-device",
+   "node": 2,
+   "mutation": "post-limit",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 3,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_device_n16_c31_neg_post_limit",
+   "image": "ps2-device",
+   "node": 16,
+   "mutation": "post-limit",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 18,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_host_n0_neg_post_limit",
+   "image": "ps2-host",
+   "node": 0,
+   "mutation": "post-limit",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 5,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_host_n1_c65_neg_post_limit",
+   "image": "ps2-host",
+   "node": 1,
+   "mutation": "post-limit",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 32,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_swd_read_n1_c64_neg_post_limit",
+   "image": "swd-read",
+   "node": 1,
+   "mutation": "post-limit",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 52,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_swd_read_n4_neg_post_limit",
+   "image": "swd-read",
+   "node": 4,
+   "mutation": "post-limit",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 5,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_uart_rx_idle_n0_neg_post_limit",
+   "image": "uart-rx-idle",
+   "node": 0,
+   "mutation": "post-limit",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 6,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_uart_rx_idle_n2_c6_neg_post_limit",
+   "image": "uart-rx-idle",
+   "node": 2,
+   "mutation": "post-limit",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 21,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ws2812_n0_neg_post_limit",
+   "image": "ws2812",
+   "node": 0,
+   "mutation": "post-limit",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15003 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ws2812_n1_c172_neg_post_limit",
+   "image": "ws2812",
+   "node": 1,
+   "mutation": "post-limit",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 5,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ws2812b_v5_n0_neg_post_limit",
+   "image": "ws2812b-v5",
+   "node": 0,
+   "mutation": "post-limit",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15003 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ws2812b_v5_n1_c172_neg_post_limit",
+   "image": "ws2812b-v5",
+   "node": 1,
+   "mutation": "post-limit",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "post_v0"
+   ],
+   "seconds": 5,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_onewire_master_n0_neg_set_two_cycles",
+   "image": "onewire-master",
+   "node": 0,
+   "mutation": "set-two-cycles",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 5,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_device_n1_neg_set_two_cycles",
+   "image": "ps2-device",
+   "node": 1,
+   "mutation": "set-two-cycles",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 24,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ps2_host_n1_neg_set_two_cycles",
+   "image": "ps2-host",
+   "node": 1,
+   "mutation": "set-two-cycles",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 6290 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_swd_read_n4_neg_set_two_cycles",
+   "image": "swd-read",
+   "node": 4,
+   "mutation": "set-two-cycles",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 5,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ws2812_n0_neg_set_two_cycles",
+   "image": "ws2812",
+   "node": 0,
+   "mutation": "set-two-cycles",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15004 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ws2812b_v5_n0_neg_set_two_cycles",
+   "image": "ws2812b-v5",
+   "node": 0,
+   "mutation": "set-two-cycles",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15004 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_onewire_master_n1_neg_wait_n_cycles",
+   "image": "onewire-master",
+   "node": 1,
+   "mutation": "wait-n-cycles",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 79969 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ps2_device_n16_neg_wait_n_cycles",
+   "image": "ps2-device",
+   "node": 16,
+   "mutation": "wait-n-cycles",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 3001 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ps2_host_n1_neg_wait_n_cycles",
+   "image": "ps2-host",
+   "node": 1,
+   "mutation": "wait-n-cycles",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 6287 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_uart_rx_idle_n2_neg_wait_n_cycles",
+   "image": "uart-rx-idle",
+   "node": 2,
+   "mutation": "wait-n-cycles",
+   "status": "FAIL",
+   "met": true,
+   "failed": [
+    "flow"
+   ],
+   "seconds": 11,
+   "slurm_job": "24303015"
+  },
+  {
+   "certificate": "cert_ws2812_n0_neg_wait_n_cycles",
+   "image": "ws2812",
+   "node": 0,
+   "mutation": "wait-n-cycles",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15002 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_ws2812b_v5_n0_neg_wait_n_cycles",
+   "image": "ws2812b-v5",
+   "node": 0,
+   "mutation": "wait-n-cycles",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 15002 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  },
+  {
+   "certificate": "cert_swd_read_n1_neg_xfer_late_edge",
+   "image": "swd-read",
+   "node": 1,
+   "mutation": "xfer-late-edge",
+   "status": "NOT_RUN",
+   "met": false,
+   "failed": [
+    "not run: 6219 steps"
+   ],
+   "seconds": null,
+   "slurm_job": null
+  }
+ ],
+ "lemmas": [
+  {
+   "harness": "boundary_lemmas",
+   "task": "k0",
+   "status": "PASS",
+   "met": true,
+   "seconds": 7,
+   "covers": 0,
+   "slurm_job": "24303016"
+  },
+  {
+   "harness": "boundary_lemmas",
+   "task": "k1",
+   "status": "PASS",
+   "met": true,
+   "seconds": 6,
+   "covers": 0,
+   "slurm_job": "24303016"
+  },
+  {
+   "harness": "boundary_lemmas",
+   "task": "k2",
+   "status": "PASS",
+   "met": true,
+   "seconds": 6,
+   "covers": 0,
+   "slurm_job": "24303016"
+  },
+  {
+   "harness": "boundary_lemmas",
+   "task": "k3",
+   "status": "PASS",
+   "met": true,
+   "seconds": 6,
+   "covers": 0,
+   "slurm_job": "24303016"
+  },
+  {
+   "harness": "boundary_lemmas",
+   "task": "cover_k0",
+   "status": "PASS",
+   "met": true,
+   "seconds": 14,
+   "covers": 8,
+   "slurm_job": "24303016"
+  },
+  {
+   "harness": "boundary_lemmas",
+   "task": "cover_k1",
+   "status": "PASS",
+   "met": true,
+   "seconds": 13,
+   "covers": 8,
+   "slurm_job": "24303016"
+  },
+  {
+   "harness": "boundary_lemmas",
+   "task": "cover_k2",
+   "status": "PASS",
+   "met": true,
+   "seconds": 10,
+   "covers": 8,
+   "slurm_job": "24303016"
+  },
+  {
+   "harness": "boundary_lemmas",
+   "task": "cover_k3",
+   "status": "PASS",
+   "met": true,
+   "seconds": 14,
+   "covers": 8,
+   "slurm_job": "24303016"
+  },
+  {
+   "harness": "boundary_lemmas",
+   "task": "neg",
+   "status": "FAIL",
+   "met": true,
+   "seconds": 5,
+   "covers": 0,
+   "slurm_job": "24303016"
+  },
+  {
+   "harness": "sram_lemma",
+   "task": "prove",
+   "status": "PASS",
+   "met": true,
+   "seconds": 3,
+   "covers": 0,
+   "slurm_job": "24303016"
+  },
+  {
+   "harness": "sram_lemma",
+   "task": "cover",
+   "status": "PASS",
+   "met": true,
+   "seconds": 0,
+   "covers": 1,
+   "slurm_job": "24303016"
+  },
+  {
+   "harness": "sram_lemma",
+   "task": "neg",
+   "status": "FAIL",
+   "met": true,
+   "seconds": 1,
+   "covers": 0,
+   "slurm_job": "24303016"
+  }
+ ],
+ "negatives_not_generated": [
+  {
+   "image": "ps2-device",
+   "mutation": "open-drain-as-push-pull",
+   "nodes": [
+    3,
+    7
+   ],
+   "reason": "gen_cert: pad timeline mismatch pin5 +2806: 4 vs 2",
+   "control_emitted": true
+  }
+ ]
+}

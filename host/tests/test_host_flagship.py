@@ -11,8 +11,8 @@
    the whole ui/uio waveform must equal a test/harness.py ModelHarness run of
    scenarios.flagship cycle for cycle.
 3. peers="external" with SPI and I2C targets on the pads and an idle UART
-   line: engine 1's expected fault 3, a real host fault, an unexpected engine
-   fault, and a port without uo[7].
+   line: engine 1 (uart-rx-idle) waits with no fault, a real host fault, an
+   unexpected engine fault, and a port without uo[7].
 """
 
 import json
@@ -113,8 +113,9 @@ class NarrowModelPort(ModelPort):
 
 class ExternalPeersTest(unittest.TestCase):
     """peers="external" as on real hardware: an SPI target and an I2C target
-    on the pads (pad-level pe_host peers), nothing sending on the UART line,
-    so the uart-rx engine reaches its bounded idle wait (fault 3)."""
+    on the pads (pad-level pe_host peers) and nothing sending on the UART
+    line. Engine 1 runs uart-rx-idle, whose start-bit wait has no bound, so
+    it is still waiting at STOP and no engine faults."""
 
     def external(self, port_class=ModelPort, i2c=True, inject=None, cycles=3000):
         peers = FlagshipPeers(SCENARIO)
@@ -130,13 +131,13 @@ class ExternalPeersTest(unittest.TestCase):
     def faults(report):
         return [(s.engine, s.fault) for s in report.faulted]
 
-    def test_idle_uart_receiver_fault_is_expected(self):
+    def test_idle_uart_receiver_does_not_fault(self):
         pe, peers, result = self.external()
         self.assertTrue(result.passed, result.summary())
-        self.assertEqual(self.faults(result.fault_report), [(1, 3)])
-        self.assertTrue(result.fault_report.fault_pin)
-        self.assertIsNone(result.fault_report.host_fault, "masked by the engine 1 fault")
-        self.assertTrue(result.fault_report_after_clear.ok, result.summary())
+        self.assertEqual(self.faults(result.fault_report), [])
+        self.assertFalse(result.fault_report.fault_pin)
+        self.assertIs(result.fault_report.host_fault, False)
+        self.assertIsNone(result.fault_report_after_clear, "no fault, so nothing is cleared")
         self.assertIs(result.host_fault, False)
         self.assertEqual(peers.i2c.received, EXPECTED["i2c_write_words"])
         self.assertEqual(peers.i2c.stops, 1)
@@ -158,7 +159,7 @@ class ExternalPeersTest(unittest.TestCase):
         """No I2C target: the address byte is not acknowledged (fault 65)."""
         _, _, result = self.external(i2c=False)
         self.assertFalse(result.passed)
-        self.assertEqual(sorted(self.faults(result.fault_report)), [(1, 3), (3, 65)])
+        self.assertEqual(sorted(self.faults(result.fault_report)), [(3, 65)])
         self.assertTrue(any(m.startswith("unexpected faults") for m in result.mismatches),
                         result.summary())
         self.assertIsNone(result.fault_report_after_clear, "nothing is cleared")
@@ -168,11 +169,12 @@ class ExternalPeersTest(unittest.TestCase):
         fault is reported as not checked instead of failing the run."""
         _, _, result = self.external(port_class=NarrowModelPort)
         self.assertTrue(result.passed, result.summary())
-        self.assertEqual(self.faults(result.fault_report), [(1, 3)])
+        self.assertEqual(self.faults(result.fault_report), [])
         self.assertIsNone(result.fault_report.fault_pin)
         self.assertIsNone(result.host_fault)
         self.assertTrue(any("not checked" in n for n in result.notes), result.summary())
-        self.assertEqual(repr(result.fault_report_after_clear),
+        self.assertIsNone(result.fault_report_after_clear)
+        self.assertEqual(repr(result.fault_report),
                          "<FaultReport no engine faults; host fault unknown "
                          "(uo[7] not wired to this host)>")
 

@@ -328,7 +328,7 @@ to the SPI engine without host service.
 | Engine | Firmware | Pins | OWN owned / open-drain | Words |
 |-------:|-------------------------|-------------------------------------|---------------|------:|
 | 0 | `uart-tx` | TX on 0 | 0x01 / 0x00 | 12 |
-| 1 | `uart-rx` | RX on 1 (input only) | 0x00 / 0x00 | 18 |
+| 1 | `uart-rx-idle` | RX on 1 (input only) | 0x00 / 0x00 | 24 |
 | 2 | `spi-controller-mode0` | SCK 2, MOSI 3, MISO 4 (input), CS_N 5 | 0x2C / 0x00 | 11 |
 | 3 | `i2c-write` | SCL 6, SDA 7 (open-drain) | 0xC0 / 0xC0 | 60 |
 
@@ -344,7 +344,7 @@ Host sequence:
 | 2 | 0 | `0x00000000`, `0x01000000` | SELECT 0, BEGIN |
 | 3 | 1 | 12 words from `uart-tx.image.json` | program engine 0 |
 | 4 | 0 | `0x03000001`, `0x0200000C` | OWN pin 0, COMMIT 12 |
-| 5 | 0, 1, 0 | `0x00000001`, `0x01000000`, 18 words, `0x03000000`, `0x02000012` | engine 1: `uart-rx`, owns no pins |
+| 5 | 0, 1, 0 | `0x00000001`, `0x01000000`, 24 words, `0x03000000`, `0x02000018` | engine 1: `uart-rx-idle`, owns no pins |
 | 6 | 0, 1, 0 | `0x00000002`, `0x01000000`, 11 words, `0x0300002C`, `0x0200000B` | engine 2: `spi-controller-mode0` |
 | 7 | 0, 1, 0 | `0x00000003`, `0x01000000`, 60 words, `0x0300C0C0`, `0x0200003C` | engine 3: `i2c-write`, pins 6 and 7 open-drain |
 | 8 | 0, 2 | `0x00000000`, then `0x43 0x4F 0x4E 0x43 0x55 0x52 0x52 0x45` | engine 0 TX: "CONCURRE" |
@@ -366,13 +366,26 @@ What happens next:
   engine 2's SPI responses. `SELECT 2`, then read window 3 eight times to
   collect them. READ_SELECT 2
   shows queue levels, and READ_SELECT 0 shows each engine's status.
-- `uart-rx` sets `LIMIT` to 12 bit periods (768 cycles). If the line is not
-  idle, or no start bit arrives, within that time, it faults with code 3. When
-  the transfer is done, send STOP `0x0500000F`, or use a receiver with a longer
-  `LIMIT`.
+- `uart-rx-idle` waits for each start bit in a three-cycle polling loop
+  (`IN`, `XOR`, `JZ`) with no bound, so the UART line can stay idle for any
+  time and engine 1 does not fault while it waits. The loop adds 0 to 2 cycles
+  of detection latency. Each data bit and the stop bit are sampled 31 to 33
+  cycles into the bit, counted from the first clock edge that registers the
+  start bit's falling edge (the middle of a 64-cycle bit is 32). Every sample
+  stays inside its bit while the sender's baud rate is within ±2% of nominal.
+  A low stop bit faults with code 64. When the transfer is done, send STOP
+  `0x0500000F`.
+- The route moves 8 bytes. Later bytes wait in engine 1's RX queue; when it
+  is full, the next byte halts engine 1 with fault code 4.
+- The bounded receiver `uart-rx` (18 words) is still in `firmware/`. It sets
+  `LIMIT` to 12 bit periods (768 cycles) and faults with code 3 if the line is
+  not idle, or no start bit arrives, within that time. It suits a test that
+  must detect a stuck line.
 
 The same scenario runs in simulation as `test/test_flagship.py`, with UART,
-SPI and I2C peer models on the pins.
+SPI and I2C peer models on the pins. The same file tests `uart-rx-idle` on its
+own: idle stretches of 100,000 cycles, back-to-back frames at -2%, 0 and +2%
+baud error, a line held low across START, and a framing error.
 
 ## How to test
 
@@ -526,14 +539,16 @@ gives 434 clocks per bit, which is 115,207 baud at 50 MHz.
 - The host port is synchronous and its inputs are not synchronized, so the host
   must share the chip clock.
 - UART has no flow-control wire. When engine 1's RX queue is full, the strict
-  `PUSH` halts `uart-rx` with fault code 4. It keeps that byte in `rx`, where
-  READ_SELECT 6 reads it. Read it before `CLEAR` and `START`, because `START`
+  `PUSH` halts `uart-rx-idle` (or `uart-rx`) with fault code 4. It keeps that
+  byte in `rx`, where READ_SELECT 6 reads it. Read it before `CLEAR` and `START`, because `START`
   resets the datapath registers. Bytes that arrive after the fault are lost, so the
   sender must not send faster than the host or the mover drains the queue.
 - `WAITPIN` and `WAITEVENT` are bounded. They fault with code 3 after `LIMIT`
   blocked cycles. `LIMIT` defaults to 65535 cycles (about 1.3 ms at 50 MHz),
   and the maximum is 16,777,215. `uart-rx` waits at most 12 bit periods for an
-  idle line or a start bit. `PULL` and a blocking `PUSH` wait with no limit.
+  idle line or a start bit. `uart-rx-idle`, the flagship's receiver, polls
+  for them with `IN`, `XOR` and `JZ` instead, so its waits have no limit.
+  `PULL` and a blocking `PUSH` wait with no limit.
 - Mailboxes are single pending bits, so repeated events coalesce.
 - Inputs are sampled through a two-flip-flop synchronizer. Pulses must satisfy
   that sampled-input contract; asynchronous pulse capture is not supported. SPI

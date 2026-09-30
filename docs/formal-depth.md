@@ -219,11 +219,11 @@ depth-2 induction failed on a blocked-cycle counter at `0xffffff`, whose
 | Harness | Method | Result (time, Slurm id) |
 |---|---|---|
 | unmodified `formal/engine_safety.sv` | IC3 (suprove) | **PASS**, unbounded, 98 s (23752067_11) |
-| unmodified | abc pdr, rIC3 IC3 | not converged: still running when this was written (23752067_8, _9). pdr was at frame 6 after 77 min. |
+| unmodified | abc pdr, rIC3 IC3 | not converged: both reached the 41,400 s limit without a verdict (23752067_8, _9; the Slurm record of _9 also shows an out-of-memory event). When this page was first written they were still running, and pdr was at frame 6 after 77 min. |
 | unmodified | avy | tool crash (segfault, rc 139); not a result |
 | `engine_safety_inductive` = original assertions + 3 invariants (`faulted ⇒ ¬running`, `¬running ⇒ no transfer in flight`, `blocked_cycles < effective limit`) | k-induction, depth 2, 4 and 8, each with yices, bitwuzla and boolector | **PASS** in all 9 runs, about 10 s each (23757443_0 to _8) |
 | same | rIC3 IC3 | **PASS**, 10 s (23757443_10) |
-| same | suprove, abc pdr | suprove UNKNOWN after 4926 s (23767637_1). pdr was still running at frame 919 after 53 min (23767637_0). |
+| same | suprove, abc pdr | suprove UNKNOWN after 4926 s (23767637_1). abc pdr ended in an error after 16,366 s, out of memory (23767637_0); when this page was first written it was at frame 919 after 53 min. |
 
 ### New properties
 
@@ -286,7 +286,7 @@ with `*`, which includes model generation.
 |---|---:|---:|---:|---:|---:|---:|---:|
 | rIC3 BMC | | | | | | 1226* | 2643* |
 | smtbmc bitwuzla | 107 | 478 | 1199 | 2238 | 4438 | 7038* | |
-| smtbmc boolector | 162 | 1014 | 3650 | | | | |
+| smtbmc boolector | 162 | 1014 | 3650 | 10043 | (out of memory after step 45, 13173 s) | | |
 | abc bmc3 | 326 | 2397 | | | | | |
 | smtbmc yices | 1057 | 5376 | | | | | |
 | smtbmc z3 | step 3 after 3571 s; cancelled | | | | | | |
@@ -300,7 +300,7 @@ with `*`, which includes model generation.
 | rIC3 BMC | | | | 278* | | 3000* |
 | smtbmc bitwuzla | 8 | 58 | 150 | 348* | | |
 | smtbmc boolector | 9 | 115 | 327 | 700* | | |
-| smtbmc yices | (d=40: 407, d=50: 1714; still running) | | | | | |
+| smtbmc yices | 2 | 117 | 950 | 16162* | | |
 | smtbmc z3 | (d=10: 245; step 17 after 4867 s; cancelled) | | | | | |
 
 `engine_safety` (one engine, free instruction stream):
@@ -342,15 +342,19 @@ with `*`, which includes model generation.
 
 - **SRAM data integrity (`program_load.sv`, `spec_word_*`) is bounded
   only.** It is checked by BMC to depth 48 from reset, with four engines
-  passing, and by the from-reset witness. Its k-induction proof would need
-  the macro array contents, and no port exposes them, so the `prove` task
-  runs without it (`-DFD_NO_WORD`). IC3 has not settled it either:
+  passing, by BMC to depth 96 with rIC3 (13,703 s, 23767782_0), and by the
+  from-reset witness. At depth 96, abc bmc3 and btormc reached the
+  41,400 s limit (23767782_1, _2). Its k-induction proof would need the
+  macro array contents, and no port exposes them, so the `prove` task runs
+  without it (`-DFD_NO_WORD`). IC3 has not settled it either:
   - suprove gave up and returned UNKNOWN after 5312 s (23756749_17);
-  - abc pdr was still running at frame 41 after about 2 hours (23756749_15);
-  - rIC3 was still running (23756749_16). BMC 96 with rIC3, abc bmc3 and btormc was still
-  running (23767782). One way to get an unbounded proof is to prove the
-  vendor model's read/write behaviour once at macro level, then use it as an
-  abstraction.
+  - abc pdr and rIC3 reached the 41,400 s limit without a verdict
+    (23756749_15, _16; the Slurm record of _16 also shows an out-of-memory
+    event). When this page was first written, pdr was at frame 41 after
+    about 2 hours.
+
+  One way to get an unbounded proof is to prove the vendor model's
+  read/write behaviour once at macro level, then use it as an abstraction.
 - **Some witnesses exist only from an arbitrary valid state.** Two engines
   driving pins at once, and two tagged words pulled in order, need more host
   traffic than the from-reset cover depth (60 to 64) allows: two full program
@@ -363,23 +367,43 @@ with `*`, which includes model generation.
   lost, duplicated, corrupted or reordered. Eventual delivery depends on
   host service and destination space, as `docs/architecture.md` says. The
   grant bound is conditional on continuous eligibility.
-- **The debug and fd netlists are not checked against `src/`.** Like
-  `formal/`, every processor-level result here is about
+- **Only `processor_fv.v` is checked against `src/`.** Like `formal/`,
+  every processor-level result here is about
   `Processor.create_refinement ~debug:true` plus observation ports, not the
-  committed `src/protocol_emulator_core.v`. Their equivalence is argued from
-  the generator (debug outputs and names only), not checked. A sequential
-  equivalence job (for example ABC `dsec`/`scorr` on a miter of the two
-  netlists) is the missing link.
+  committed `src/protocol_emulator_core.v`.
+  - `processor_fv.v`, which the `timing_isolation` runs read, is checked.
+    The copy these runs generated at `73536f0` is byte-identical (sha256
+    `2a039bae…`) to the one generated at `c118027`, which
+    `tools/timing/cert/equiv_src.py` proved sequentially equivalent to the
+    committed `src/project.v` and `src/protocol_emulator_core.v` on the chip
+    ports (ABC `dprove`, Slurm job 23987598;
+    [timing-certificates.md](timing-certificates.md), section 6). The
+    `formal` workflow generates the same file on `24f31f0` ([results.md](results.md)
+    R95). This check came after this page was first written.
+  - `processor_debug.v` and `protocol_processor_fd`, which the other
+    processor-level runs read, are not checked. Their equivalence is argued
+    from the generator (debug outputs and names only). The same kind of
+    sequential equivalence job is the missing link.
 - **The host is modelled as synchronous.** The host-port proofs assume the
   documented synchronous host (inputs change between edges). Nothing is said
   about metastability, gate-level behaviour, timing closure or the physical
   macros.
-- **Some runs had not finished when this was written.** They are recorded,
-  not claimed:
-  - boolector on `timing_isolation` BMC 60;
-  - abc bmc3 and btormc on `timing_isolation` BMC 100;
-  - yices on `processor_invariants` BMC 64;
-  - abc pdr and rIC3 on the unmodified `engine_safety`;
+- **Runs that finished after this page was written.** As first written,
+  this item listed runs that were still running, recorded but not claimed.
+  All of them have ended. The outcomes below are from each task's result
+  file in the work area (`deep/`, `deep2/`, `props2/`, `props6/`,
+  `engind2/`, `results/<task>.json`). `formal_depth/results/summary.tsv`
+  does not contain these rows. None failed an assertion.
+
+  | Run | Outcome |
+  |---|---|
+  | boolector, `timing_isolation` BMC 60 | ERROR after 13,173 s, out of memory, at step 45 (23752066_1) |
+  | abc bmc3 and btormc, `timing_isolation` BMC 100 | both reached the 41,400 s limit (23757105_1, _2); rIC3 had passed BMC 100 (above) |
+  | yices, `processor_invariants` BMC 64 | **PASS**, 16,162 s (23752066_8) |
+  | abc pdr and rIC3, unmodified `engine_safety` | both reached the 41,400 s limit (23752067_8, _9) |
+  | abc pdr and rIC3, program-load data integrity, unbounded | both reached the 41,400 s limit (23756749_15, _16) |
+  | rIC3, abc bmc3 and btormc, program-load data integrity BMC 96 | rIC3 **PASS**, 13,703 s (23767782_0); abc bmc3 and btormc reached the 41,400 s limit (_1, _2) |
+  | abc pdr, `engine_safety_inductive` | ERROR after 16,366 s, out of memory (23767637_0) |
 
   The z3 runs, and yices on the timing-isolation miter, were cancelled as
   too slow. Their partial curves are in the work area

@@ -71,6 +71,53 @@ jobs:
             test/results.xml
             test/output/*
 
+  # The SWD, WS2812B, PS/2 and 1-Wire images (test/test_protocols_ext.py), RTL
+  # only. They are not in COCOTB_TEST_MODULES, so neither the job above nor the
+  # gate-level test of the gds workflow runs them. About 7 minutes.
+  protocols-ext:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Install iverilog
+        shell: bash
+        run: |
+          wget -q https://github.com/TinyTapeout/iverilog/releases/download/v13.0/iverilog_13.0-1_amd64.deb
+          sudo apt-get update -y
+          sudo apt-get install -y ./iverilog_13.0-1_amd64.deb
+
+      - name: Setup python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Python packages
+        shell: bash
+        run: pip install -r test/requirements.txt
+
+      - name: Run test_protocols_ext (RTL)
+        run: |
+          cd test
+          make clean
+          make COCOTB_TEST_MODULES=test_protocols_ext
+          test -f results.xml
+          ! grep failure results.xml
+
+      - name: Test Summary
+        uses: test-summary/action@v2.4
+        with:
+          paths: "test/results.xml"
+        if: always()
+
+      - name: upload test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-protocols-ext
+          path: |
+            test/results.xml
+
   lint:
     runs-on: ubuntu-24.04
     steps:

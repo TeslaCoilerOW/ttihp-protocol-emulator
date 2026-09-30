@@ -6,12 +6,21 @@
 #   NAME     certificate module name (NAME.sby)
 #   TASK     bmc | cover
 #   ENGINE   optional: run only these solvers (bitwuzla, boolector, yices,
-#            bmc3, ric3; several joined with '+'); default: the file's portfolio
+#            bmc3, ric3; several joined with '+'); default: the file's portfolio.
+#            With bmc3 or ric3 a counterexample is replayed with Yosys sim
+#            (sby option vcd_sim), not smtbmc, which runs out of memory on
+#            traces of several hundred steps.
 #
 # Environment: SBY_TIMEOUT (seconds, default 86400), CERT_RESULTS (directory
 # for the result JSON, default CERTDIR/results), SLURM_JOB_ID and
 # SLURM_ARRAY_* are recorded when present. The sby work directory keeps the
 # log and traces; copied sources are deleted afterwards to save inodes.
+# CERT_PRUNE_PASSED=1 (campaign.sh certify sets it): a run that PASSED and is
+# not a negative control keeps only NAME.TASK.log (sby's output, with the
+# engine summary and the DONE line) and its result file; its work directory
+# (about 17 files) is deleted. A campaign of the seven images added after
+# 24f31f0 has 10,781 runs, whose work directories would take about 183,000
+# inodes (17 per run).
 set -uo pipefail
 CERTDIR=$1 NAME=$2 TASK=$3 ENGINE=${4:-}
 RESULTS=${CERT_RESULTS:-$CERTDIR/results}
@@ -31,7 +40,11 @@ if [ -n "$ENGINE" ]; then
     line="$line$l\n"
   done
   SBY=$CERTDIR/work/$TAG.sby
-  awk -v line="$line" -v task="$TASK" '
+  opt=""
+  case "+$ENGINE+" in *+bmc3+*|*+ric3+*) opt="vcd_sim on\n" ;; esac
+  awk -v line="$line" -v task="$TASK" -v opt="$opt" '
+    /^\[/ && inopt { printf "%s", opt; inopt = 0 }
+    /^\[options\]/ { print; inopt = 1; next }
     /^\[engines\]/ { print; printf "%s", line; skip = 1; next }
     /^\[/ { skip = 0 }
     skip && $0 ~ "^" task ":" { next }
@@ -70,4 +83,8 @@ print(f"{name}.{task}.{engine}: {status} (rc={rc}) in {seconds}s", " ".join(sort
 PY
 # Keep the log, the engine logs and traces; drop the copied sources.
 rm -rf "$WORK/src" 2>/dev/null; find "$WORK/model" -type f ! -name "*.log" -delete 2>/dev/null
+if [ "${CERT_PRUNE_PASSED:-0}" = 1 ] && grep -q 'DONE (PASS' "$WORK.log" && ! grep -q 'expect fail' "$SBY"; then
+  rm -rf "$WORK"
+  [ -z "$ENGINE" ] || rm -f "$SBY"
+fi
 exit 0

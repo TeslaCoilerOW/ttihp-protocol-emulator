@@ -1,0 +1,53 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "onewire-master",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 3,
+  "owned_pins": 128,
+  "open_drain": 128,
+  "clock_hz": 50000000,
+  "instructions": [
+    { "mnemonic": "SET", "imm": 128 },
+    { "mnemonic": "DIR", "imm": 128 },
+    { "mnemonic": "PULL", "label": "op" },
+    { "mnemonic": "MOV", "a": 2 },
+    { "mnemonic": "SHR", "a": 2, "c": 8 },
+    { "mnemonic": "JZ", "a": 2, "target": "touch" },
+    { "mnemonic": "SET" },
+    { "mnemonic": "WAIT", "imm": 24998 },
+    { "mnemonic": "SET", "imm": 128 },
+    { "mnemonic": "WAIT", "imm": 3497 },
+    { "mnemonic": "LOAD", "a": 1 },
+    { "mnemonic": "IN", "a": 7, "c": 1 },
+    { "mnemonic": "JZ", "a": 1, "target": "present" },
+    { "mnemonic": "FAULT", "imm": 96 },
+    { "mnemonic": "WAIT", "imm": 21496, "label": "present" },
+    { "mnemonic": "COUNT", "imm": 7, "label": "touch" },
+    { "mnemonic": "SET", "label": "slot" },
+    { "mnemonic": "WAIT", "imm": 298 },
+    { "mnemonic": "OUT", "a": 7 },
+    { "mnemonic": "WAIT", "imm": 398 },
+    { "mnemonic": "IN", "a": 7 },
+    { "mnemonic": "WAIT", "imm": 2548 },
+    { "mnemonic": "SET", "imm": 128 },
+    { "mnemonic": "WAIT", "imm": 497 },
+    { "mnemonic": "LOOP", "target": "slot" },
+    { "mnemonic": "SHR", "a": 1, "c": 24 },
+    { "mnemonic": "PUSH" },
+    { "mnemonic": "JMP", "target": "op" }
+  ],
+  "notes": [
+    "1-Wire bus master (Maxim AN126 operations, standard speed) on DQ pin7, open-drain; external pull-up required. TX word: bits 7..0 a byte; bit 8 set: reset and presence detect first. The byte is sent LSB first in 8 time slots that also sample DQ; RX word: the 8 sampled bits (the byte itself for a write, the slave's data when the byte is 0xFF).",
+    "Reset at 50000000 Hz: DQ low 25000 clocks (500 us); presence sampled 3500 clocks (70 us) after release; first slot 25000 clocks (500 us) after release. No presence pulse: fault 96.",
+    "Time slot at 50000000 Hz: DQ low at 0; a 1 bit releases DQ at 300 clocks (6 us); DQ sampled 700 clocks (14 us) after the fall; a 0 bit releases DQ at 3250 clocks (65 us); next slot at 3750 clocks (75 us).",
+    "DQ is released at every holding point (PULL, PUSH). The host checks CRCs. Scope: standard speed only; no overdrive, strong pull-up (parasite power) or alarm-presence handling."
+  ]
+}

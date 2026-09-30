@@ -258,7 +258,8 @@ async def flagship(h: Harness) -> dict[str, Any]:
     assert h.model.routes[1] is None, "route should be exhausted after its word count"
     assert list(h.engine(2).rx) == expected["engine2_rx_words"]
     assert_open_drain(h.samples, 0xC0)
-    # Freeze everything (the idle UART receiver would otherwise time out), then drain.
+    # Freeze everything, then drain. Engine 1 (uart-rx-idle) would keep waiting
+    # without a fault; the bounded uart-rx used before would time out here.
     await h.command(STOP, scenario["start_mask"])
     await h.command(SELECT, 2)
     got = [await h.read(3) for _ in range(total)]

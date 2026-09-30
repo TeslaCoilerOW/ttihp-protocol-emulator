@@ -21,7 +21,8 @@ behavioral peers.
 | `scenarios.py` | directed scenarios shared by the tests (runnable on the model alone) |
 | `test_smoke.py` | reset/deselect, ISA version, loader (BEGIN/OWN/COMMIT/START/STOP), status registers, host-fault rejections, checker self-test |
 | `test_protocols.py` | `uart-tx` (decoded from pin 0), `uart-rx` (pin 1 driven, RX FIFO read; idle timeout and framing faults), `spi-controller-mode0..3` against the SPI target, `i2c-write`/`i2c-read`/NACK against the open-drain target |
-| `test_flagship.py` | `../firmware/flagship-scenario.json`: four engines concurrently (UART TX, UART RX, SPI, I2C) plus the autonomous UART-RX to SPI-TX route |
+| `test_flagship.py` | `../firmware/flagship-scenario.json`: four engines concurrently (UART TX, UART RX with `uart-rx-idle`, SPI, I2C) plus the autonomous UART-RX to SPI-TX route; and 5 RTL-only tests of `uart-rx-idle` alone on engine 1 (idle stretches of `PE_UART_IDLE_CYCLES`, default 100,000 cycles; sparse frames at every poll phase, a break across START and a framing error; back-to-back frames at -2%, 0 and +2% baud error), which record the reference model's sample points while the DUT is checked in lockstep on its outputs; skipped at gate level |
+| `test_protocols_ext.py` | the SWD, WS2812B, PS/2 and 1-Wire images (`../docs/firmware.md`) against peers written here from the cited specifications, 22 tests. Not in the default list or the gate-level test: run `make COCOTB_TEST_MODULES=test_protocols_ext` (RTL, about 7 minutes); CI runs it in the `protocols-ext` job of `../.github/workflows/test.yaml`. It loads `../firmware/` directly and skips a design whose engine count, data width, queue depth or issue mode differs from the design of record |
 | `test_legacy.py` | lockstep replay of the 25 monorepo differential workloads (`model/verification.py`): queues, DMA congestion, SPI mode matrix, strict push, input triggers, JTAG, waveform, I2C target, UART overflow, ... |
 | `test_random.py`, `random_gen.py` | constrained-random lockstep differential test with functional coverage and a minimizer |
 | `test_directed.py` | directed tests written from the mutation campaign's survivor analysis (full-capacity image, OWN overlap, operand check, ROUTE counts above 4095, FLUSH of a routed engine, COUNT/LOOP, 40,003 completed instructions, blocked count after ALU/TIME, LIMIT 0x2108, SHR into bit 15, odd XFER half-period, far jump targets, XFER next to driven pins) |
@@ -47,9 +48,12 @@ make
 The RTL run compiles `../src/project.v`, `../src/protocol_emulator_core.v` and the
 IHP SRAM behavioral models `../models/RM_IHPSG13_1P_64x16_c2.v` +
 `../models/RM_IHPSG13_1P_core_behavioral.v` with `-DFUNCTIONAL`. The full suite
-takes about 3.5 to 6 minutes (102 tests; about 221 s of test time for
-`make clean; make` with Icarus 13.0 on a cluster node, of which the
-gap-closure modules take 27 s and the test_kill_* modules 132 s).
+has 107 tests. In job 24303859, `make clean; make` with Icarus 13.0 on a
+cluster node, while other `scripts/reproduce.sh` steps ran in parallel,
+took 373 s, with 368 s of test time; the five `uart-rx-idle` tests of `test_flagship.py`, added in
+`e64cd6b`, took 105 s of it. For the 102-test suite before that commit it
+took about 221 s of test time, of which the gap-closure modules took 27 s
+and the test_kill_* modules 132 s.
 
 Useful variables:
 
@@ -78,7 +82,9 @@ workload down: 8 of the 25 legacy replays (`GL_SUBSET` in `test_legacy.py`; the
 other 17 are reported as SKIP) and 2 random cases (override with `PE_LEGACY=all`
 and `PE_RANDOM_ITERS`). Of the gap-closure modules, the tests that need more than
 8,000 cycles and the time-warp tests (which need the RTL register names) are
-reported as SKIP; 14 of their 27 tests run. A quick pre-hardening check
+reported as SKIP; 14 of their 27 tests run. The 5 `uart-rx-idle` tests of
+`test_flagship.py` are reported as SKIP too, so 46 of the 107 tests run at
+gate level. A quick pre-hardening check
 is possible with a Yosys netlist (`synth -flatten`, `dfflibmap`/`abc` to the
 `sg13cmos5l_stdcell` liberty, SRAM macro read as a blackbox).
 
@@ -257,8 +263,16 @@ For any other name:
 - **Firmware images.** The images reassembled for the variant
   (`../build/variants/<name>/firmware`) when present, else `../firmware/`;
   `PE_FIRMWARE=dir` overrides. A variant image must target the variant's
-  architecture. Every image in `../firmware/` is valid on every variant (shift
-  counts are all 24, targets at most 54).
+  architecture. `../scripts/gen_variants.sh` writes the 19 built-in images
+  and `uart-rx-idle`, the flagship's engine 1, which it reassembles from
+  `../firmware/uart-rx-idle.source.json` with the variant's architecture
+  (every current variant has the 32-bit datapath it needs; `test_flagship`
+  passes 6 of 6 with it under `PE_VARIANT=diet4` and `diet8_rec16`, job
+  24303859). These 20 images are valid on every variant (shift counts are
+  all 24, targets at most 54).
+  The SWD, WS2812B, PS/2 and 1-Wire images are not reassembled:
+  `test_protocols_ext.py` loads them from `../firmware/` and skips other
+  designs (`ps2-host` shifts by 21, which the byte-lane variants reject).
 - **Model.** `model/variant.py` subclasses the verbatim reference: queue depth,
   counters, saturating PC, byte-lane faults, ISA version, and the reset
   styles, modelled with the two synchronizer flops explicitly.
@@ -325,7 +339,7 @@ they are skipped (they are not in the default list either):
 | `model/line_unit.py` | the reference model of the unit (`LineReference`) |
 
 ```sh
-make PE_VARIANT=diet8_rec16                                        # 102 + 25 tests
+make PE_VARIANT=diet8_rec16                                        # 107 + 25 tests
 make PE_VARIANT=diet8_rec16 COCOTB_TEST_MODULES=test_line_unit     # directed tests only
 ```
 

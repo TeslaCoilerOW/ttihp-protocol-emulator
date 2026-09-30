@@ -28,9 +28,16 @@ MUTANTS = {
     "rtl_wait_plus1": ("WAIT n holds for n+1 extra cycles instead of n",
                        "engine.ml", "4,finish @ [timer <-- imm24];",
                        "4,finish @ [timer <-- imm24 +:. 1];"),
+    # The design of record's XFER path (no line unit); since 76a81f5 engine.ml also
+    # has the line unit's copy, so the site includes the "| None ->" branch.
     "rtl_xfer_short_tick": ("after the first XFER transition every half period is one cycle short",
-                            "engine.ml", "[xtick <-- xperiod.value; xremaining <-- xremaining.value -:. 1;",
-                            "[xtick <-- xperiod.value -:. 1; xremaining <-- xremaining.value -:. 1;"),
+                            "engine.ml",
+                            ("    | None ->\n  [if_ (xtick.value >:. 1) [xtick <-- xtick.value -:. 1]\n"
+                             "    [xtick <-- xperiod.value; xremaining <-- xremaining.value -:. 1;",
+                             "[xtick <-- xperiod.value; xremaining <-- xremaining.value -:. 1;"),
+                            ("    | None ->\n  [if_ (xtick.value >:. 1) [xtick <-- xtick.value -:. 1]\n"
+                             "    [xtick <-- xperiod.value -:. 1; xremaining <-- xremaining.value -:. 1;",
+                             "[xtick <-- xperiod.value -:. 1; xremaining <-- xremaining.value -:. 1;")),
     "rtl_od_drive_high": ("open-drain pins are not masked in uio_out; uio_out then shows 1 only while "
                           "uio_oe is 0, so no pad changes (a control the certificates must NOT flag)",
                           "processor.ml", "e.pin_values &: owners.(k).value &: ~:(drains.(k).value)",
@@ -52,13 +59,22 @@ def build(snap: Path, out: Path, name: str) -> Path:
         shutil.rmtree(tree)
     tree.mkdir(parents=True)
     for part in ("formal", "hardcaml/lib", "hardcaml/bin", "configs"):
-        shutil.copytree(snap / part, tree / part)
+        # Not formal/build: after a generation in SNAP_DIR it is a link to the
+        # real design's RTL, and the mutant must be built into its own tree.
+        shutil.copytree(snap / part, tree / part, ignore=shutil.ignore_patterns("build", "_build"))
     shutil.copy(snap / "hardcaml" / "dune-project", tree / "hardcaml" / "dune-project")
     src = tree / "hardcaml" / "lib" / fname
     text = src.read_text()
-    if text.count(old) != 1:
-        raise SystemExit(f"rtl_mutants: {name}: substitution site found {text.count(old)} times")
-    src.write_text(text.replace(old, new))
+    # A site is one string, or alternatives (for older snapshots): the first
+    # alternative that occurs exactly once is used.
+    olds, news = (old, new) if isinstance(old, tuple) else ((old,), (new,))
+    for o, n in zip(olds, news):
+        if text.count(o) == 1:
+            src.write_text(text.replace(o, n))
+            break
+    else:
+        raise SystemExit(f"rtl_mutants: {name}: substitution site found "
+                         f"{[text.count(o) for o in olds]} times")
     env = dict(os.environ, FORMAL_WORK=str(out / name / "fbuild"))
     subprocess.run([str(tree / "formal" / "run.sh"), "--generate-only"], cwd=tree, env=env, check=True)
     rtl = out / name / "fbuild" / "rtl"
