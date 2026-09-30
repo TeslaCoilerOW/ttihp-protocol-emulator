@@ -320,6 +320,52 @@ nodes, more than the default `SBY_TIMEOUT` of 1,500 s; run it with
 `SBY_TIMEOUT=3600`. Results:
 `docs/extension.md` section 6.4.
 
+## Instruction-level specification
+
+`formal/isa/` is an instruction-level specification of the design of record in
+the style of riscv-formal's per-instruction checks. It was written from
+`docs/isa.md` without reading `hardcaml/lib`, the generated RTL's logic or the
+reference model (the earlier harnesses `engine_safety.sv` and
+`processor_inductive.sv`, which also state instruction semantics, were read
+for the port conventions; docs/isa-spec.md section 1), and is checked against `processor_fv.v` through the observation ports above.
+[`docs/isa-spec.md`](../docs/isa-spec.md) has the method, the results per
+instruction and the disagreements it found.
+
+| File | Content |
+|---|---|
+| `isa/isa_insn.sv`, `isa/isa_insn.vh` | One module per instruction (opcodes 0..29 and the invalid opcodes 30..255): the architectural state after an issue edge as a function of the state before it and the image word at PC |
+| `isa/isa_cmd.sv` | One property module per state-changing host command (SELECT, BEGIN, COMMIT, OWN, START, STOP, ROUTE, CLEAR, EVENT, FLUSH, TRIGGER) |
+| `isa/isa_spec.sv` | The harness: observation-port abstraction, symbolic program image, the invariant V, the checks selected by the parameter `CHECK`, covers (`-DISA_COVER`) |
+| `isa/isa.sby`, `isa/gen_sby.py` | The sby tasks; `gen_sby.py` writes `isa.sby` and lists the jobs and groups for `run.sh` |
+| `isa/mutate_isa.py` | One seeded defect of engine 0 per negative control, located structurally in `processor_fv.v` |
+
+Method. Engine `k`, image address `A` and the word `W` that engine `k`'s
+instruction SRAM holds at `A` are symbolic (`anyconst`): a read of `A`
+returns `W` and `A` is not written. Each one-step job assumes the invariant V
+in its first state and asserts V together with its own properties; `sby prove`
+(k-induction, depth 3) then shows that V holds in every reachable state and
+that the properties hold on every edge out of one. `isa_reset` (BMC, one reset
+edge from an arbitrary state) shows that reset lands in V. Clocked assertions
+report one step after the step they sample, so a one-step check needs depth 3.
+Five checks are bounded: the TX and RX queue data (`isa_queue_tx` depth 21,
+`isa_queue_rx` depth 16, from a FLUSH of engine `k`) and the XFER pin and data
+schedule for small transfers (three `isa_xfer_e2e*` jobs). Each took up to
+about 1,600 s; unless `SBY_TIMEOUT` is set, `run.sh` gives them the limits of
+`formal/isa/gen_sby.py --timeouts` instead of 1500 s.
+
+Jobs, registered in `run.sh` for the design of record only (not with
+`--variant`): 53 checks `isa_<name>`, 51 covers `isa_<name>_cover` and 49
+negative controls `isa_<name>_neg`, 153 jobs. A negative control meets its
+expectation only if one of the assertions that fired names it in a
+`target of:` comment. `run.sh` generates the mutants with the rest of the RTL.
+
+CI-sized groups (in `--list`; `run.sh GROUP` runs the group's jobs in turn):
+`isa_ci_insn_a`, `isa_ci_insn_b` (the instruction checks), `isa_ci_other`
+(PC bound, WAIT hold, halted engines, pins, V, reset and the command checks),
+`isa_ci_cover` and `isa_ci_neg`. They contain every one-step job; the bounded
+`isa_queue_*` and `isa_xfer_e2e*` jobs and their covers and negative controls
+are not in a group. Measured wall times are in `docs/isa-spec.md`.
+
 ## Limits
 
 - The timing-isolation result holds for the environment above. Engine K's

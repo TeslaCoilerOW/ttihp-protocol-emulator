@@ -11,6 +11,8 @@
 #                    the variant's harness settings (README.md, "Design variants");
 #                    a variant with options.line_unit also gets the line_* jobs
 #                    (README.md, "Line unit")
+#   GROUP            a job group from --list (isa_ci_*: README.md,
+#                    "Instruction-level specification") runs its jobs in turn
 #
 # Environment:
 #   FORMAL_VARIANT same as --variant
@@ -22,7 +24,9 @@
 #   DUNE_JOBS      dune parallelism (default 2)
 #   OCAML_ENV      shell file to source when dune is not on PATH (as in
 #                  scripts/generate.sh; scripts/ocaml-env.local.sh is also tried)
-#   SBY_TIMEOUT    per-job wall-clock limit in seconds (default 1500)
+#   SBY_TIMEOUT    per-job wall-clock limit in seconds (default 1500; unset, the
+#                  long bounded isa_* jobs use their limits from
+#                  formal/isa/gen_sby.py --timeouts)
 #
 # Exit status is non-zero if any job's outcome differs from its expectation:
 # proofs/BMC/covers must PASS, negative controls must FAIL (sby 'expect fail').
@@ -49,6 +53,7 @@ else
   CONFIG=${FORMAL_CONFIG:-$REPO/configs/instruction-sram-32.json}
 fi
 case "$CONFIG" in /*) ;; *) CONFIG=$PWD/$CONFIG ;; esac
+SBY_TIMEOUT_SET=${SBY_TIMEOUT:+1}
 SBY_TIMEOUT=${SBY_TIMEOUT:-1500}
 
 # job name -> "sby-file task"
@@ -99,20 +104,39 @@ then
   )
 fi
 
+# Instruction-level specification jobs (formal/isa, docs/isa-spec.md), design
+# of record only; formal/isa/gen_sby.py lists them and the CI-sized groups.
+declare -A GROUP_JOBS=() JOB_TIMEOUT=()
+GROUP_NAMES=()
+if [ -z "$VARIANT" ]; then
+  while IFS= read -r j; do JOBS+=("$j"); done < <(python3 "$FORMAL/isa/gen_sby.py" --jobs)
+  while IFS=: read -r g members; do
+    GROUP_NAMES+=("$g"); GROUP_JOBS[$g]=$members
+  done < <(python3 "$FORMAL/isa/gen_sby.py" --groups)
+  while IFS=: read -r j t; do JOB_TIMEOUT[$j]=$t; done < <(python3 "$FORMAL/isa/gen_sby.py" --timeouts)
+fi
+
 generate=1
 selected=()
 for arg in "$@"; do
   case "$arg" in
     --no-generate) generate=0 ;;
     --generate-only) generate=2 ;;
-    --list) for j in "${JOBS[@]}"; do echo "${j%%:*}"; done; exit 0 ;;
-    -h|--help) sed -n '2,29p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    --list) for j in "${JOBS[@]}"; do echo "${j%%:*}"; done
+            for g in ${GROUP_NAMES[@]+"${GROUP_NAMES[@]}"}; do echo "$g"; done; exit 0 ;;
+    -h|--help) sed -n '2,33p' "${BASH_SOURCE[0]}"; exit 0 ;;
     -*) echo "run.sh: unknown option $arg" >&2; exit 2 ;;
-    *) selected+=("$arg") ;;
+    *) if [ -n "${GROUP_JOBS[$arg]+x}" ]; then
+         for j in ${GROUP_JOBS[$arg]}; do selected+=("$j"); done
+       else
+         selected+=("$arg")
+       fi ;;
   esac
 done
 if [ ${#selected[@]} -eq 0 ]; then
-  for j in "${JOBS[@]}"; do selected+=("${j%%:*}"); done
+  # With no job named: the design's own jobs. The isa_* jobs (formal/isa) run
+  # by name or by group (isa_ci_*, see --list).
+  for j in "${JOBS[@]}"; do [[ ${j%%:*} == isa_* ]] || selected+=("${j%%:*}"); done
 fi
 lookup() {
   local j
@@ -200,6 +224,12 @@ PY
   "$exe/fvgen/generate_fv.exe" --config "$CONFIG" --output "$RTL/processor_fv.v" \
       > "$RTL/processor_fv.attribution.txt"
   python3 "$FORMAL/mutate.py" sram-host-stall 0 "$RTL/processor_fv.v" "$RTL/processor_fv_mutant.v"
+  if [ -z "$VARIANT" ]; then
+    # isa_*_neg: one seeded defect per negative control (formal/isa/mutate_isa.py).
+    # If the RTL no longer has the structure it edits, only those jobs fail.
+    python3 "$FORMAL/isa/mutate_isa.py" "$RTL/processor_fv.v" "$RTL" \
+      || echo "run.sh: formal/isa/mutate_isa.py failed; the isa_*_neg jobs will fail" >&2
+  fi
   # The harness parameters below assume this architecture (a variant's
   # fifo_words and options are applied to derived .sby files instead).
   python3 - "$RTL/architecture.json" "$VARIANT" <<'PY'
@@ -242,15 +272,33 @@ for name in "${selected[@]}"; do
   echo "=== $name ($file $task)"
   start=$(date +%s)
   set +e
-  (cd "$SBYDIR" && timeout "$SBY_TIMEOUT" sby -f -d "$workdir" "$file" "$task") > "$BUILD/sby/$name.log" 2>&1
+  limit=$SBY_TIMEOUT
+  if [ -z "$SBY_TIMEOUT_SET" ] && [ -n "${JOB_TIMEOUT[$name]:-}" ]; then limit=${JOB_TIMEOUT[$name]}; fi
+  (cd "$SBYDIR" && timeout "$limit" sby -f -d "$workdir" "$file" "$task") > "$BUILD/sby/$name.log" 2>&1
   rc=$?
   set -e
   seconds=$(( $(date +%s) - start ))
   status=$(sed -n 's/.*DONE (\([A-Z]*\), rc=.*/\1/p' "$BUILD/sby/$name.log" | tail -n 1)
   [ -n "$status" ] || status=$([ $rc -eq 124 ] && echo TIMEOUT || echo ERROR)
+  # An isa_*_neg negative control counts only if one of the assertions that
+  # fired names the job in a "target of:" comment (formal/isa/*.sv).
+  if [ $rc -eq 0 ] && [[ $name == isa_*_neg ]]; then
+    hit=""
+    while IFS= read -r loc; do
+      if sed -n "${loc#*:}p" "$FORMAL/isa/${loc%%:*}" | grep -q "target of:.*\b$name\b"; then
+        hit=$loc; break
+      fi
+    done < <(sed -n 's/.*Assert failed in [^:]*: \([A-Za-z0-9_]*\.sv\):\([0-9]*\)\..*/\1:\2/p' \
+               "$BUILD/sby/$name.log" | sort -u)
+    if [ -z "$hit" ]; then
+      echo "run.sh: $name failed, but not on an assertion that names it" >&2
+      rc=1
+    else
+      echo "  negative control fired its target assertion at $hit"
+    fi
   # A line-unit negative control (line_*_neg*) counts only if the assertion it
   # targets fired: that assertion's line names the job ("target of: <job>").
-  if [ $rc -eq 0 ] && [[ $name == line_* ]] && [[ $name == *_neg* ]]; then
+  elif [ $rc -eq 0 ] && [[ $name == line_* ]] && [[ $name == *_neg* ]]; then
     fired=$(sed -n 's/.*Assert failed in [^:]*: \([A-Za-z0-9_]*\.sv\):\([0-9]*\)\..*/\1:\2/p' \
       "$BUILD/sby/$name.log" | head -n 1)
     if [ -z "$fired" ] || ! sed -n "${fired#*:}p" "$FORMAL/${fired%%:*}" | grep -q "target of:.*\b$name\b"; then
