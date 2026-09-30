@@ -1,7 +1,7 @@
 """Job table for formal_depth/portfolio.py.
 
 Paths use placeholders expanded by path():
-  {SNAP}   an export of the committed tree (git archive 73536f0)
+  {SNAP}   an export of the committed tree under test (git archive FD_REV)
   {RTL}    {SNAP}'s formal/run.sh --generate-only output (processor_fv.v, ...)
   {FDRTL}  generate_fd output (processor_fd.v and its mutants)
   {FD}     this directory (formal_depth/)

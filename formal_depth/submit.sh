@@ -5,6 +5,8 @@
 # on mit_preemptable or mit_normal (whichever starts first; --requeue).
 # FD_PARTITION / FD_TIME override the partition list and time limit (e.g.
 # FD_PARTITION=mit_quicktest FD_TIME=15 with plan --timeout 840 for smoke runs).
+# FD_ARRAY_LIMIT caps the running tasks of each array (sbatch --array=...%N);
+# FD_JOB_PREFIX replaces the job-name prefix pe-x-formal-depth.
 set -euo pipefail
 FD=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 WORK=$1; shift
@@ -22,7 +24,8 @@ for tsv in "$WORK"/tasks-*.tsv; do
   part=${FD_PARTITION:-mit_preemptable,mit_normal}
   tlimit=${FD_TIME:-11:55:00}
   id=$(sbatch --parsable -p "$part" --requeue -c 2 --mem=$mem -t "$tlimit" \
-       -J "pe-x-formal-depth-$label-$cls" --array=0-$((n-1)) \
+       -J "${FD_JOB_PREFIX:-pe-x-formal-depth}-$label-$cls" \
+       --array=0-$((n-1))${FD_ARRAY_LIMIT:+%$FD_ARRAY_LIMIT} \
        -o "$WORK/logs/%x.%A_%a.out" --export=ALL,FD_DIR="$FD" \
        "$FD/array.sbatch" "$WORK" "$cls")
   echo "$cls: $n tasks -> array job $id"

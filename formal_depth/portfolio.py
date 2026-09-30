@@ -4,8 +4,9 @@
 Every job in jobs.py is expanded into one sby task per engine, so that a Slurm
 array can run the whole portfolio in parallel (one solver per array task).
 
-  portfolio.py plan WORK [--only REGEX] [--class CLS]
-      write WORK/tasks-<CLS>.tsv and WORK/sby/<task>.sby
+  portfolio.py plan WORK [--only REGEX] [--task REGEX] [--class CLS]
+      write WORK/tasks-<CLS>.tsv and WORK/sby/<task>.sby (--only matches
+      job names, --task whole task names, JOB@ENGINE)
   portfolio.py run WORK CLS INDEX
       run line INDEX of WORK/tasks-<CLS>.tsv (what the Slurm array calls);
       writes WORK/results/<task>.json
@@ -13,9 +14,10 @@ array can run the whole portfolio in parallel (one solver per array task).
       one row per task (status, wall time, deepest step, expectation met),
       plus per-step timestamps (depth vs time) for BMC/induction runs
 
-Environment (defaults in jobs.py): FD_SNAP (exported 73536f0 tree),
-FD_RTL (its formal/run.sh --generate-only output), FD_FDRTL (generate_fd
-output), SBY_BIN (directory holding sby).
+Environment (defaults in jobs.py): FD_SNAP (the git-archive export of the
+revision under test), FD_RTL (its formal/run.sh --generate-only output),
+FD_FDRTL (generate_fd output, with the commit in FD_FDRTL/REVISION), SBY_BIN
+(directory holding sby).
 """
 import argparse
 import json
@@ -35,7 +37,7 @@ def slug(engine):
     return re.sub(r"[^A-Za-z0-9]+", "-", engine).strip("-")
 
 
-def expand(only=None, cls=None, engine_re=None):
+def expand(only=None, cls=None, engine_re=None, task_re=None):
     tasks = []
     for job in J.JOBS:
         if only and not re.search(only, job["name"]):
@@ -45,7 +47,10 @@ def expand(only=None, cls=None, engine_re=None):
         for engine in job["engines"]:
             if engine_re and not re.search(engine_re, engine):
                 continue
-            tasks.append((f"{job['name']}@{slug(engine)}", job, engine))
+            name = f"{job['name']}@{slug(engine)}"
+            if task_re and not re.search(task_re, name):
+                continue
+            tasks.append((name, job, engine))
     return tasks
 
 
@@ -67,7 +72,7 @@ def sby_text(job, engine):
 def cmd_plan(args):
     os.makedirs(os.path.join(args.work, "sby"), exist_ok=True)
     classes = {}
-    for name, job, engine in expand(args.only, args.cls, args.engine):
+    for name, job, engine in expand(args.only, args.cls, args.engine, args.task):
         with open(os.path.join(args.work, "sby", name + ".sby"), "w") as f:
             f.write(sby_text(job, engine))
         classes.setdefault(job.get("cls", "light"), []).append(
@@ -161,8 +166,10 @@ def cmd_run(args):
         status = "TIMEOUT" if rc in (124, 137) else "ERROR"
     met = (status == "PASS") if expect == "PASS" else (status == "FAIL" and rc == 0)
     failed = failed_labels(log, os.path.join(workdir, "src"))
+    revision = os.path.join(J.ROOTS["FDRTL"], "REVISION")
     result = {
         "task": name, "job": job, "engine": engine, "mode": mode, "depth": int(depth),
+        "revision": open(revision).read().strip() if os.path.exists(revision) else None,
         "expect": expect, "status": status, "rc": rc, "expectation_met": met,
         "wall_s": round(wall, 1), "timeout_s": int(timeout),
         "slurm_job": os.environ.get("SLURM_ARRAY_JOB_ID", os.environ.get("SLURM_JOB_ID")),
@@ -201,7 +208,7 @@ def cmd_summarize(args):
                     latest[r["task"]] = r
     rows = [latest[k] for k in sorted(latest)]
     head = ["task", "status", "expect", "met", "wall_s", "deepest_step", "slurm", "partition",
-            "failed_assertions", "run", "engine_verdict"]
+            "failed_assertions", "run", "engine_verdict", "revision"]
     lines = ["\t".join(head)]
     curves = {}
     for r in rows:
@@ -224,7 +231,8 @@ def cmd_summarize(args):
         lines.append("\t".join(str(x) for x in [
             r["task"], r["status"], r["expect"], "yes" if r["expectation_met"] else "no",
             r["wall_s"], deepest, slurm, r.get("partition"),
-            "; ".join(r.get("failed_assertions", [])), os.path.basename(r["_work"]), verdict]))
+            "; ".join(r.get("failed_assertions", [])), os.path.basename(r["_work"]), verdict,
+            (r.get("revision") or "")[:7]]))
         if base or ind or frames:
             curves[r["task"]] = {"base_step_start_s": base, "induction_step_start_s": ind,
                                  "abc_frame_s": frames, "status": r["status"], "wall_s": r["wall_s"]}
@@ -281,6 +289,7 @@ def main():
     a = sub.add_parser("plan"); a.add_argument("work"); a.add_argument("--only")
     a.add_argument("--class", dest="cls")
     a.add_argument("--engine", help="only engines matching this regex")
+    a.add_argument("--task", help="only tasks (JOB@ENGINE) matching this regex")
     a.add_argument("--timeout", type=int, help="override every task's timeout (s)")
     b = sub.add_parser("run"); b.add_argument("work"); b.add_argument("cls")
     b.add_argument("index", type=int)

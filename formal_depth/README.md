@@ -17,8 +17,11 @@ Results, bounds, run times, Slurm job ids and what is still unproven are in
 modified. The last section of that document lists what should move into
 `formal/` and CI.
 
-Everything here runs against a committed revision (`FD_REV`, default
-`73536f0`), exported with `git archive`. It never reads the working tree.
+Everything here runs against a committed revision, exported with
+`git archive`; it never reads the working tree. `FD_REV` selects the revision
+(default `HEAD`). `generate` records the resolved commit in `rtl/REVISION`,
+and every result file names it. The first campaign ran at `73536f0`, the
+second at `56f4b20`.
 
 ## Layout
 
@@ -27,7 +30,8 @@ Everything here runs against a committed revision (`FD_REV`, default
 | `gen/generate_fd.ml` | Observation generator. It elaborates exactly `Processor.create_refinement ~debug:true` (the circuit `formal/` proves) and adds output ports only. The new ports are the `fv_*` engine registers (as in `formal/gen/generate_fv.ml`), the host-port registers, the SRAM data-in pins, the FIFO heads and pointers, and the FIFO storage arrays (named for `expose_fifo_mem.py`). The result is `protocol_processor_fd`. |
 | `gen/expose_fifo_mem.py` | Adds flat output ports that read the eight FIFO storage arrays. |
 | `gen/make_dut_include.py` | Writes `harness/fd_dut.vh`, which declares one wire per DUT port and the instance. |
-| `gen/mutants.py` | Builds the 13 negative-control netlists from a private copy of `hardcaml/lib`. Each one makes one or two exact source substitutions, and every substitution must match exactly once. |
+| `gen/mutants.py` | Builds the 13 negative-control netlists from a private copy of `hardcaml/lib`. Each one makes one or two exact source substitutions, and every substitution must match exactly once. A substitution can list alternatives for older revisions (newest first). Where a timing knob that the design of record leaves off keeps a second copy of a source line, the pattern includes enough context to select the copy that is elaborated. A mutant netlist equal to `processor_fd.v` is an error. |
+| `gen/mutant_cones.py` | Reports, for each mutant, which next-state functions and outputs differ from `processor_fd.v`. It compares structural hashes of the combinational cone of every state-element input and every output, with state elements as leaves. `generate` writes the report to `rtl/mutant_cones.txt`. |
 | `gen/make_engine_inductive.py` | Copies `formal/engine_safety.sv` with every assertion unchanged, renames the module and splices in `harness/engine_safety_strengthen.vh`. |
 | `harness/*.sv` | The property harnesses (see below). |
 | `harness/fd_invariants.vh` | Common state invariants that every processor harness asserts as induction strengthening. With `-DFD_FROM_ANY` they are assumed on the first cycle instead. |
@@ -35,8 +39,8 @@ Everything here runs against a committed revision (`FD_REV`, default
 | `portfolio.py` | Expands jobs into one sby file per (job, engine), runs one task (`run`), and summarizes (`summarize`), including per-step start times (depth vs. time) and the labels of any failed assertions. |
 | `submit.sh`, `array.sbatch` | One Slurm array per resource class on `mit_preemptable,mit_normal` with `--requeue`. `light` is 2 CPUs / 8 GB and `heavy` is 2 CPUs / 32 GB. |
 | `run_parallel.sh` | Runs a whole task list inside one allocation. Use it for `mit_quicktest` smoke runs, where a large array hits the per-user submit limit. |
-| `run.sh` | The top-level driver: `generate`, `submit`, `local`, `summarize`. |
-| `results/` | Committed summaries: `summary.tsv` (one row per job and engine; a later rerun of a task supersedes the earlier one; `engine_verdict` is the solver's own verdict before sby's witness replay) and `depth_curves.json` (per-step start times) from the runs quoted in the docs. |
+| `run.sh` | The top-level driver: `generate`, `submit`, `local`, `summarize`, `cones`. |
+| `results/` | Committed summaries of the runs quoted in the docs. `summary.tsv` and `depth_curves.json` are from the first campaign (`73536f0`). `56f4b20/` holds the same files for the second campaign, plus `mutant_cones.txt`. In `summary.tsv` there is one row per job and engine, and a later rerun of a task supersedes the earlier one. `engine_verdict` is the solver's own verdict before sby's witness replay, and `revision` (second campaign only) is the commit that was checked. `depth_curves.json` holds the per-step start times. |
 
 ## Running
 
@@ -46,7 +50,12 @@ formal_depth/run.sh submit /path/to/work          # the whole portfolio on Slurm
 formal_depth/run.sh submit /path/to/work --only '^host_' --engine 'yices|pdr'
 FD_PARALLEL=8 formal_depth/run.sh local /path/to/work --only '^neg_'   # without Slurm
 formal_depth/run.sh summarize /path/to/work --tsv summary.tsv --curves curves.json
+formal_depth/run.sh cones                         # the logic each mutant changes (also run by generate)
 ```
+
+`FD_ARRAY_LIMIT=N` caps the running tasks of each Slurm array, and
+`portfolio.py plan --task REGEX` selects tasks by their full `JOB@ENGINE`
+name.
 
 `generate` needs the OCaml toolchain (`OCAML_ENV` points at a shell file that
 puts `dune` on `PATH`) and OSS CAD Suite 2026-07-29 (yosys 0.67, sby, yices,
@@ -89,7 +98,10 @@ deletes its copied sources and model files to save inodes.
   depth is one less than the sby `depth`.
 - **Mutants** run with `-DFD_SPEC_ONLY`, which drops every `link_*`
   strengthening assertion. A negative control counts only if a `spec_*`
-  claim fails. The summary records which assertion fired.
+  claim fails. The summary records which assertion fired. `mutant_cones.txt`
+  shows that each mutant changes only the fan-out of its substitution. The
+  `fd_host_*` ports of `host_early_commit` and `host_live_read` are constant 0 there (`generate_fd
+  --lenient`), which the `-DFD_SPEC_ONLY` runs do not read.
 - **rIC3 in BMC mode** reports "unknown" (exit 30) when it reaches the bound
   without a counterexample. sby maps that to PASS. A toy counter confirmed
   the mapping and that the bound is honoured: depth 30 gives PASS, and depth

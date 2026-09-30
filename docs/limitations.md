@@ -225,10 +225,11 @@ processor, under these assumptions:
   unbounded proof has finished: IC3 ended without a verdict
   ([formal-depth.md](formal-depth.md), "What is still unproven").
 
-**Revision.** The `formal_depth/` results are for `73536f0`. `c118027`,
-`131e793`, `d76f1cc` and every later commit up to `24f31f0` have the same
-`src/protocol_emulator_core.v`, but those jobs have not been re-run on
-them.
+**Revision.** Resolved at `56f4b20`: every `formal_depth/` job was rerun on
+`56f4b20`, on netlists byte-identical to those of `73536f0`, and reproduced
+every earlier result (results.md R97). Until then this item read: "The
+`formal_depth/` results are for `73536f0` ... those jobs have not been re-run
+on them."
 
 ## 4. What simulation evidence does not cover
 

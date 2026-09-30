@@ -8,22 +8,27 @@
 #                                          --class light|heavy --timeout S)
 #   formal_depth/run.sh local WORK [ARGS]  plan + run here, 4 tasks at a time
 #   formal_depth/run.sh summarize WORK     results table (and depth curves)
+#   formal_depth/run.sh cones [NAME ...]   the logic each mutant netlist changes
+#                                          (gen/mutant_cones.py)
 #
 # Environment:
 #   FD_ROOT   work area (default $PE_WORK/formal-depth)
-#   FD_REV    committed revision to verify (default 73536f0)
+#   FD_REV    committed revision to verify (default HEAD, the current commit)
 #   OCAML_ENV shell file that puts dune/opam on PATH (default $FD_ROOT/ocaml-env.sh)
 #
-# `generate` exports FD_REV with git archive into $FD_ROOT/snap (never the
-# working tree), runs its formal/run.sh --generate-only (processor_fv.v,
-# processor_debug.v, engine.v, fifo.v -> $FD_ROOT/fbuild/rtl), builds
-# gen/generate_fd.ml in a private dune workspace and writes processor_fd.v, the
-# negative-control mutants and engine_safety_inductive.sv to $FD_ROOT/rtl.
+# `generate` resolves FD_REV to a commit, exports it with git archive into
+# $FD_ROOT/snap (never the working tree), runs its formal/run.sh
+# --generate-only (processor_fv.v, processor_debug.v, engine.v, fifo.v ->
+# $FD_ROOT/fbuild/rtl), builds gen/generate_fd.ml in a private dune workspace
+# and writes processor_fd.v, the negative-control mutants,
+# engine_safety_inductive.sv and mutant_cones.txt (the logic each mutant
+# changes) to $FD_ROOT/rtl. The commit is recorded in $FD_ROOT/rtl/REVISION,
+# and portfolio.py copies it into every result.
 set -euo pipefail
 FD=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO=$(dirname "$FD")
 ROOT=${FD_ROOT:-${PE_WORK:?set PE_WORK or FD_ROOT}/formal-depth}
-REV=${FD_REV:-73536f0}
+REV=${FD_REV:-HEAD}
 OCAML_ENV=${OCAML_ENV:-$ROOT/ocaml-env.sh}
 export FD_SNAP=$ROOT/snap FD_RTL=$ROOT/fbuild/rtl FD_FDRTL=$ROOT/rtl
 export PATH=${OSS_CAD_SUITE:?set OSS_CAD_SUITE to the OSS CAD Suite root}/bin:$OSS_CAD_SUITE/py3bin:$PATH
@@ -31,8 +36,10 @@ export PATH=${OSS_CAD_SUITE:?set OSS_CAD_SUITE to the OSS CAD Suite root}/bin:$O
 cmd=${1:-}; shift || true
 case $cmd in
   generate)
+    commit=$(git -C "$REPO" rev-parse --verify "$REV^{commit}")
     rm -rf "$FD_SNAP"; mkdir -p "$FD_SNAP" "$FD_FDRTL"
-    git -C "$REPO" archive "$REV" | tar -x -C "$FD_SNAP"
+    git -C "$REPO" archive "$commit" | tar -x -C "$FD_SNAP"
+    echo "$commit" > "$FD_FDRTL/REVISION"
     (cd "$FD_SNAP" && FORMAL_WORK=$ROOT/fbuild OCAML_ENV=$OCAML_ENV formal/run.sh --generate-only)
     (
       # shellcheck disable=SC1090
@@ -52,9 +59,10 @@ case $cmd in
       python3 "$FD/gen/mutants.py" "$FD_SNAP" "$ROOT" "$FD_FDRTL"
       rm -rf "$ROOT/mut"
     )
+    python3 "$FD/gen/mutant_cones.py" "$FD_SNAP/models" "$FD_FDRTL" > "$FD_FDRTL/mutant_cones.txt"
     python3 "$FD/gen/make_engine_inductive.py" "$FD_SNAP/formal/engine_safety.sv" \
       "$FD_FDRTL/engine_safety_inductive.sv"
-    echo "run.sh: netlists in $FD_RTL and $FD_FDRTL"
+    echo "run.sh: netlists of $commit in $FD_RTL and $FD_FDRTL"
     ;;
   submit)
     work=$1; shift
@@ -72,6 +80,9 @@ case $cmd in
   summarize)
     python3 "$FD/portfolio.py" summarize "$@"
     ;;
+  cones)
+    python3 "$FD/gen/mutant_cones.py" "$FD_SNAP/models" "$FD_FDRTL" "$@"
+    ;;
   *)
-    sed -n '2,22p' "${BASH_SOURCE[0]}"; exit 2 ;;
+    sed -n '2,26p' "${BASH_SOURCE[0]}"; exit 2 ;;
 esac

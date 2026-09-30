@@ -110,7 +110,7 @@ For each layer, a deliberately wrong input shows that the check can fail.
 |---|---|---|---|
 | Lockstep checker | A bug injected into the reference model | Caught in 64 of 64 seeds; the minimizer reduces the case to one host operation | R21 |
 | Timing isolation | Window exemption removed (`neg_pull`); mutated netlist (`neg_mutant`) | Both give a counterexample, on every CI run | [`formal.yaml`](../.github/workflows/formal.yaml) (R30) |
-| `formal_depth/` harnesses | 13 mutants | Each caught on its named assertion | R39 |
+| `formal_depth/` harnesses | 13 mutants | Each caught on its named assertion, at `73536f0` and again at `56f4b20` | R39, R97 |
 | `pe_timing` | 7 deliberately wrong analyzers | 7 of 7 caught | R41b |
 | Timing certificates | Certificates from wrong analyzers and from perturbed predictions (one edge early or late, a flipped level, a wrong successor state) | 132 of 132 fail, and 52 of 52 chunk-level ones | R42b; [timing-certificates.md](timing-certificates.md) sections 5 and 6 |
 | Timing certificates | 5 RTL timing bugs | 3 caught. Of the other 2, one changes no pad and the other changes only data-dependent levels, which the certificates do not pin down | R42b; [timing-certificates.md](timing-certificates.md) section 6 |
@@ -242,7 +242,7 @@ most likely to raise are these.
   written from them and kills them ([mutation-push.md](mutation-push.md)
   section 8).
 - **The evidence spans revisions.** The random campaign, the peers and
-  `formal_depth/` ran at `73536f0`, the certificates at `24f31f0` (earlier
+  `formal_depth/` ran at `73536f0` (and again at `56f4b20`, R97), the certificates at `24f31f0` (earlier
   at `c118027`), the `pe_timing` validation of run r8 on the images of
   `fb79f31`, the `pe_timing` report on the 26 images of `e64cd6b`, and the
   mutation push with the test suite of `aa07868`. The RTL (`src/project.v`,

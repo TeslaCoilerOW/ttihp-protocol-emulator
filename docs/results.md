@@ -431,10 +431,13 @@ and of all 16 in job 23974811.
 | | `timing_isolation_neg_pull` | negative control; must FAIL | smtbmc yices | 5 |
 | | `timing_isolation_neg_mutant` | negative control; must FAIL | smtbmc yices | 7 |
 
-**`formal_depth/` (cluster; see [formal-depth.md](formal-depth.md)).** These
-ran against `73536f0`. The machine-readable results are in
-[`formal_depth/results/summary.tsv`](../formal_depth/results/summary.tsv).
-The rows below were checked against that file.
+**`formal_depth/` (cluster; see [formal-depth.md](formal-depth.md)).** R31 to
+R39 ran against `73536f0`, and R97 reran every job on `56f4b20`. The
+machine-readable results are in
+[`formal_depth/results/summary.tsv`](../formal_depth/results/summary.tsv) and
+[`formal_depth/results/56f4b20/summary.tsv`](../formal_depth/results/56f4b20/summary.tsv).
+The rows below were checked against those files (R97 against
+`formal_depth/results/56f4b20/summary.tsv`).
 
 | # | Claim | Status | Engines that passed (Slurm id) |
 |---|---|---|---|
@@ -448,6 +451,7 @@ The rows below were checked against that file.
 | R37 | Round-robin grant bound, from every register state | unbounded | boolector, yices, bitwuzla, abc pdr, suprove, rIC3 (23756749_36 to _41) |
 | R38 | Fault stickiness and output-enable release; pin ownership and open-drain safety | unbounded | 6 engines each (23756749_48 to _53; _54 to _59) |
 | R39 | 13 mutant negative controls, all caught on the named assertion | — | `neg_*` rows of `summary.tsv` (23756748, 23756749, 23756999, 23760775) |
+| R97 | `formal_depth/` second campaign, on `56f4b20`. Six mutant substitution sites, broken since `c377d97` (one) and `131e793` (five), were repaired. Every job of `formal_depth/jobs.py` (56 jobs, 192 sby tasks) then ran again on netlists that are byte-identical to the `73536f0` ones. Every result of R31 to R39 was reproduced: the same unbounded proofs with at least the same engines; the same BMC depths (timing isolation 100, `processor_invariants` 128, `processor_inductive` 96, `engine_safety` 128, program-load data integrity 96); the same cover steps; and each of the 13 negative controls failing on its named claim at the same step. 191 tasks finished. One bitwuzla cross-check of a control was cancelled after 8 h 34 min; yices had already failed that control at the named step | as R31 to R39 | Arrays 24426336 and 24426337 (41,400 s limit), and 24426338 and 24426339 (24 long-tail tasks, 14,400 s limit). Generation 24425593, repeated with the final scripts in 24427432. On `73536f0` the updated `mutants.py` reproduces the 13 mutant netlists byte for byte (24425594). Files: [`formal_depth/results/56f4b20/summary.tsv`](../formal_depth/results/56f4b20/summary.tsv) and [`mutant_cones.txt`](../formal_depth/results/56f4b20/mutant_cones.txt); [formal-depth.md](formal-depth.md), "Results at `56f4b20`" |
 
 Reproduce: `formal_depth/run.sh generate`, then
 `formal_depth/run.sh submit <work dir>` on a cluster, or
