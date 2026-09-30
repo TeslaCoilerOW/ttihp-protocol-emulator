@@ -4,11 +4,33 @@
 #   equiv_neg  NEGATIVE CONTROL, must FAIL: the crc_tap mutant (feedback from bit 1)
 #   e2e        engine: CRC after a driven line XFER of 1..10 bits equals the reference
 #   e2e_neg    NEGATIVE CONTROL, must FAIL: the same with the crc_tap mutant engine
+#   tx_prove   engine: CRC after a driven line XFER of 1..32 bits, any valid LTIM
+#              and legal LCFG, equals the reference (unbounded, k-induction)
+#   tx_cover   non-vacuity covers of the same (pair, stuffing runs 1-3, P = 2, ...)
+#   tx_neg     NEGATIVE CONTROL, must FAIL: crc_tap mutant, bounded
+#   rx_prove   engine: CRC after a sampling line XFER (free input pins) equals the
+#              reference over the bits shifted into rx (unbounded, k-induction)
+#   rx_cover   non-vacuity covers of the same (SE0 end, drive and sample, ...)
+#   rx_neg     NEGATIVE CONTROL, must FAIL: crc_tap mutant, bounded
+#   rx_se0_stuff  cover: SE0 in a trailing stuff cell (the case rx_prove excludes;
+#              LSTAT reports 1 data bit remaining although all were received)
+#   tx_bmc, rx_bmc  bounded, from reset, P <= 2 (no fraction or delay), N <= 6, any
+#              legal LCFG: the CRC also equals the closed-form reference, and the
+#              XFER completes within the bound
 [tasks]
 equiv equiv_group
 equiv_neg equiv_group
 e2e e2e_group
 e2e_neg e2e_group
+tx_prove line_group prove_group
+tx_cover line_group cover_group
+tx_neg line_group neg_group
+rx_prove line_group prove_group rx_group
+rx_cover line_group cover_group rx_group
+rx_neg line_group neg_group rx_group
+rx_se0_stuff line_group rx_group
+tx_bmc line_group bmc_group
+rx_bmc line_group bmc_group rx_group
 
 [options]
 equiv_group: mode prove
@@ -17,24 +39,57 @@ e2e_group: mode bmc
 e2e_group: depth 42
 equiv_neg: expect fail
 e2e_neg: expect fail
+prove_group: mode prove
+prove_group: depth 4
+cover_group: mode cover
+cover_group: depth 60
+bmc_group: mode bmc
+tx_bmc: depth 58
+rx_bmc: depth 60
+rx_se0_stuff: mode cover
+rx_se0_stuff: depth 24
+neg_group: mode bmc
+neg_group: depth 20
+neg_group: expect fail
 
 [engines]
 equiv_group: smtbmc yices
 e2e_group: smtbmc bitwuzla
+line_group: smtbmc yices
 
 [script]
 equiv: read_verilog crc_step.v
 equiv_neg: read_verilog crc_step_crc_tap.v
 e2e: read_verilog engine_line.v
 e2e_neg: read_verilog engine_line_crc_tap.v
-read -formal line_crc.sv
+prove_group: read_verilog engine_line.v
+cover_group: read_verilog engine_line.v
+rx_se0_stuff: read_verilog engine_line.v
+bmc_group: read_verilog engine_line.v
+neg_group: read_verilog engine_line_crc_tap.v
+prove_group: proc
+prove_group: expose protocol_engine_line/w:tx
+~line_group: read -formal line_crc.sv
+prove_group: read -formal line_crc.sv
+cover_group: read -formal -DNO_LEMMAS -DCRC_COVER line_crc.sv
+neg_group: read -formal -DNO_LEMMAS line_crc.sv
+rx_se0_stuff: read -formal -DNO_LEMMAS -DSE0_STUFF_COVER line_crc.sv
+tx_bmc: read -formal -DNO_LEMMAS -DCRC_CLOSED -DCRC_BOUNDED=6 -DCRC_LIMIT=57 line_crc.sv
+rx_bmc: read -formal -DNO_LEMMAS -DCRC_CLOSED -DCRC_BOUNDED=6 -DCRC_LIMIT=59 line_crc.sv
 equiv_group: prep -top line_crc_equiv
 e2e_group: prep -top line_crc_e2e
+rx_group: chparam -set SAMPLE 1 line_crc_line
+line_group: prep -top line_crc_line
 
 [files]
 equiv: build/rtl/crc_step.v
 equiv_neg: build/rtl/crc_step_crc_tap.v
 e2e: build/rtl/engine_line.v
 e2e_neg: build/rtl/engine_line_crc_tap.v
+prove_group: build/rtl/engine_line.v
+cover_group: build/rtl/engine_line.v
+rx_se0_stuff: build/rtl/engine_line.v
+bmc_group: build/rtl/engine_line.v
+neg_group: build/rtl/engine_line_crc_tap.v
 line_crc.sv
 line_ref.vh

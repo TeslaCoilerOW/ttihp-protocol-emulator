@@ -6,17 +6,34 @@
 #   neg_nrzi        NEGATIVE CONTROL, must FAIL: nrzi_decode mutant
 #   neg_destuff     NEGATIVE CONTROL, must FAIL: rx_destuff_run mutant
 #   neg_manchester  NEGATIVE CONTROL, must FAIL: manchester_halves mutant
+#   prove           the same claim, unbounded (module line_codec_line): any valid
+#                   LTIM P, Q (D = 0), N = 1..32
+#   cover           non-vacuity covers of line_codec_line
+#   prove_neg_nrzi, prove_neg_destuff, prove_neg_manchester
+#                   NEGATIVE CONTROLS of line_codec_line, must FAIL (bounded)
 [tasks]
-bmc
-bmc_p2
-neg_nrzi neg
-neg_destuff neg
-neg_manchester neg
+bmc base_group
+bmc_p2 base_group
+neg_nrzi neg base_group
+neg_destuff neg base_group
+neg_manchester neg base_group
+prove line_group
+cover line_group
+prove_neg_nrzi line_neg line_group
+prove_neg_destuff line_neg line_group
+prove_neg_manchester line_neg line_group
 
 [options]
-mode bmc
-depth 46
+base_group: mode bmc
+base_group: depth 46
 neg: expect fail
+prove: mode prove
+prove: depth 4
+cover: mode cover
+cover: depth 40
+line_neg: mode bmc
+line_neg: depth 30
+line_neg: expect fail
 
 [engines]
 smtbmc yices
@@ -27,9 +44,21 @@ bmc_p2: read_verilog engine_line.v
 neg_nrzi: read_verilog engine_line_nrzi_decode.v
 neg_destuff: read_verilog engine_line_rx_destuff_run.v
 neg_manchester: read_verilog engine_line_manchester_halves.v
-~bmc_p2: read -formal line_codec.sv
+prove: read_verilog engine_line.v
+cover: read_verilog engine_line.v
+prove_neg_nrzi: read_verilog engine_line_nrzi_decode.v
+prove_neg_destuff: read_verilog engine_line_rx_destuff_run.v
+prove_neg_manchester: read_verilog engine_line_manchester_halves.v
+prove: proc
+prove: expose protocol_engine_line/w:transfer_tick protocol_engine_line/w:transfer_period protocol_engine_line/w:tx
+bmc: read -formal line_codec.sv
+neg: read -formal line_codec.sv
 bmc_p2: read -formal -DCODEC_P2 line_codec.sv
-prep -top line_codec
+base_group: prep -top line_codec
+prove: read -formal line_codec.sv
+cover: read -formal -DNO_LEMMAS -DCODEC_COVER line_codec.sv
+line_neg: read -formal -DNO_LEMMAS -DCODEC_BOUNDED=3 line_codec.sv
+line_group: prep -top line_codec_line
 
 [files]
 bmc: build/rtl/engine_line.v
@@ -37,4 +66,10 @@ bmc_p2: build/rtl/engine_line.v
 neg_nrzi: build/rtl/engine_line_nrzi_decode.v
 neg_destuff: build/rtl/engine_line_rx_destuff_run.v
 neg_manchester: build/rtl/engine_line_manchester_halves.v
+prove: build/rtl/engine_line.v
+cover: build/rtl/engine_line.v
+prove_neg_nrzi: build/rtl/engine_line_nrzi_decode.v
+prove_neg_destuff: build/rtl/engine_line_rx_destuff_run.v
+prove_neg_manchester: build/rtl/engine_line_manchester_halves.v
 line_codec.sv
+line_ref.vh

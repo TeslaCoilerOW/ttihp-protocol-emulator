@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Formal verification driver. See formal/README.md.
 #
-# Usage: formal/run.sh [--variant NAME] [--no-generate | --generate-only] [--list] [JOB ...]
+# Usage: formal/run.sh [--variant NAME] [--no-generate | --generate-only] [--list]
+#                     [--ci] [--parallel N] [JOB ...]
 #   JOB              one or more job names from --list (default: every job)
 #   --no-generate    reuse formal/build/rtl (e.g. a CI artifact) instead of
 #                    regenerating it from hardcaml/
@@ -11,6 +12,11 @@
 #                    the variant's harness settings (README.md, "Design variants");
 #                    a variant with options.line_unit also gets the line_* jobs
 #                    (README.md, "Line unit")
+#   --ci             with a line-unit variant: the line-unit CI subset (every
+#                    line_* job except the long bounded checks, README.md,
+#                    "Line unit"); with --list, list it
+#   --parallel N     run up to N jobs at a time (default 1); reports are printed
+#                    as jobs finish, the summary table is in job order
 #
 # Environment:
 #   FORMAL_VARIANT same as --variant
@@ -23,6 +29,7 @@
 #   OCAML_ENV      shell file to source when dune is not on PATH (as in
 #                  scripts/generate.sh; scripts/ocaml-env.local.sh is also tried)
 #   SBY_TIMEOUT    per-job wall-clock limit in seconds (default 1500)
+#   FORMAL_PARALLEL same as --parallel
 #
 # Exit status is non-zero if any job's outcome differs from its expectation:
 # proofs/BMC/covers must PASS, negative controls must FAIL (sby 'expect fail').
@@ -96,21 +103,77 @@ then
     "line_reset_neg:line_engine.sby reset_neg"
     "line_decode_bmc:line_engine.sby decode"
     "line_decode_neg:line_engine.sby decode_neg"
+    "line_pins_prove:line_engine.sby pins_prove"
+    "line_reset_prove:line_engine.sby reset_prove"
+    "line_decode_prove:line_engine.sby decode_prove"
+    "line_tick_prove:line_tick.sby prove"
+    "line_tick_cover:line_tick.sby cover"
+    "line_tick_neg:line_tick.sby neg"
+    "line_crc_tx_prove:line_crc.sby tx_prove"
+    "line_crc_tx_cover:line_crc.sby tx_cover"
+    "line_crc_tx_neg:line_crc.sby tx_neg"
+    "line_crc_tx_bmc:line_crc.sby tx_bmc"
+    "line_crc_rx_prove:line_crc.sby rx_prove"
+    "line_crc_rx_cover:line_crc.sby rx_cover"
+    "line_crc_rx_neg:line_crc.sby rx_neg"
+    "line_crc_rx_bmc:line_crc.sby rx_bmc"
+    "line_crc_rx_se0_stuff_cover:line_crc.sby rx_se0_stuff"
+    "line_codec_prove:line_codec.sby prove"
+    "line_codec_cover:line_codec.sby cover"
+    "line_codec_prove_neg_nrzi:line_codec.sby prove_neg_nrzi"
+    "line_codec_prove_neg_destuff:line_codec.sby prove_neg_destuff"
+    "line_codec_prove_neg_manchester:line_codec.sby prove_neg_manchester"
+    "line_tx_prove:line_tx.sby prove"
+    "line_tx_cover:line_tx.sby cover"
+    "line_tx_neg_stuff:line_tx.sby neg_stuff"
+    "line_tx_neg_manchester:line_tx.sby neg_manchester"
+    "line_rx_prove:line_rx.sby prove"
+    "line_rx_cover:line_rx.sby cover"
+    "line_rx_neg_nrzi:line_rx.sby neg_nrzi"
+    "line_rx_neg_destuff:line_rx.sby neg_destuff"
+    "line_arb_prove:line_arb.sby prove"
+    "line_arb_cover:line_arb.sby cover"
+    "line_arb_neg:line_arb.sby neg"
   )
 fi
+# The line-unit CI subset (--ci): every line_* job except these long bounded
+# checks (README.md, "Line unit", has their run times).
+CI_EXCLUDE=" line_crc_e2e line_codec_bmc line_crc_tx_bmc line_crc_rx_bmc "
 
 generate=1
 selected=()
-for arg in "$@"; do
-  case "$arg" in
+list=0
+ci=0
+parallel=${FORMAL_PARALLEL:-1}
+while [ $# -gt 0 ]; do
+  case "$1" in
     --no-generate) generate=0 ;;
     --generate-only) generate=2 ;;
-    --list) for j in "${JOBS[@]}"; do echo "${j%%:*}"; done; exit 0 ;;
-    -h|--help) sed -n '2,29p' "${BASH_SOURCE[0]}"; exit 0 ;;
-    -*) echo "run.sh: unknown option $arg" >&2; exit 2 ;;
-    *) selected+=("$arg") ;;
+    --list) list=1 ;;
+    --ci) ci=1 ;;
+    --parallel) [ $# -ge 2 ] || { echo "run.sh: --parallel needs a number" >&2; exit 2; }
+                parallel=$2; shift ;;
+    --parallel=*) parallel=${1#--parallel=} ;;
+    -h|--help) sed -n '2,35p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -*) echo "run.sh: unknown option $1" >&2; exit 2 ;;
+    *) selected+=("$1") ;;
   esac
+  shift
 done
+case "$parallel" in ''|*[!0-9]*|0) echo "run.sh: --parallel needs a positive number" >&2; exit 2 ;; esac
+if [ $ci = 1 ]; then
+  [ -n "$LINE_UNIT" ] || { echo "run.sh: --ci needs a line-unit variant (--variant)" >&2; exit 2; }
+  [ ${#selected[@]} -eq 0 ] || { echo "run.sh: --ci takes no job names" >&2; exit 2; }
+  for j in "${JOBS[@]}"; do
+    name=${j%%:*}
+    [[ $name == line_* ]] && [[ $CI_EXCLUDE != *" $name "* ]] && selected+=("$name")
+  done
+fi
+if [ $list = 1 ]; then
+  if [ $ci = 1 ]; then printf '%s\n' "${selected[@]}"
+  else for j in "${JOBS[@]}"; do echo "${j%%:*}"; done; fi
+  exit 0
+fi
 if [ ${#selected[@]} -eq 0 ]; then
   for j in "${JOBS[@]}"; do selected+=("${j%%:*}"); done
 fi
@@ -181,7 +244,8 @@ PY
       "$exe/fvvariant/generate_blocks.exe" --config "$CONFIG" --target crc_step --output "$RTL/crc_step.v"
       "$exe/fvvariant/generate_blocks.exe" --config "$CONFIG" --target crc_step --mutation crc_tap \
           --output "$RTL/crc_step_crc_tap.v"
-      for m in crc_tap nrzi_decode rx_destuff_run manchester_halves pin_leak start_keeps_crc ltim_overflow; do
+      for m in crc_tap nrzi_decode rx_destuff_run manchester_halves pin_leak start_keeps_crc ltim_overflow \
+               stuff_run fraction_carry arbitration_off; do
         "$exe/fvvariant/generate_blocks.exe" --config "$CONFIG" --target engine_line --mutation "$m" \
             --output "$RTL/engine_line_$m.v"
       done
@@ -235,8 +299,10 @@ fi
 
 SUMMARY=$BUILD/summary.tsv
 printf 'job\tsby\ttask\tstatus\texpected_met\tseconds\n' > "$SUMMARY"
-failures=0
-for name in "${selected[@]}"; do
+# run_job NAME: run one job, print its report, write its summary row to
+# $BUILD/sby/NAME.row; the return status says whether its expectation was met.
+run_job() {
+  local name=$1 file task workdir start rc seconds status fired met
   read -r file task <<<"$(lookup "$name")"
   workdir=$BUILD/sby/$name
   echo "=== $name ($file $task)"
@@ -272,14 +338,52 @@ for name in "${selected[@]}"; do
       echo "  negative control fired the pin assertion at $fired"
     fi
   fi
-  if [ $rc -eq 0 ]; then met=yes; else met=no; failures=$((failures + 1)); fi
+  if [ $rc -eq 0 ]; then met=yes; else met=no; fi
   grep -E "summary: (engine|successful|  failed|  reached)|DONE" "$BUILD/sby/$name.log" \
     | sed 's/^SBY [0-9:]* \[[^]]*\] /  /' || true
-  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$name" "$file" "$task" "$status" "$met" "$seconds" >> "$SUMMARY"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$name" "$file" "$task" "$status" "$met" "$seconds" > "$BUILD/sby/$name.row"
   echo "--- $name: $status (expectation met: $met) in ${seconds}s"
-done
+  [ $met = yes ]
+}
+failures=0
+wall=$(date +%s)
+if [ "$parallel" -le 1 ]; then
+  for name in "${selected[@]}"; do
+    run_job "$name" || failures=$((failures + 1))
+    cat "$BUILD/sby/$name.row" >> "$SUMMARY"
+  done
+else
+  # Up to $parallel jobs at a time; each report is printed when its job ends.
+  declare -A pid_of=()
+  finish_one() {
+    local p name
+    wait -n || true
+    for name in "${!pid_of[@]}"; do
+      p=${pid_of[$name]}
+      if ! kill -0 "$p" 2>/dev/null; then
+        wait "$p" 2>/dev/null || true
+        cat "$BUILD/sby/$name.report"
+        unset "pid_of[$name]"
+      fi
+    done
+  }
+  for name in "${selected[@]}"; do
+    while [ ${#pid_of[@]} -ge "$parallel" ]; do finish_one; done
+    rm -f "$BUILD/sby/$name.row"
+    ( run_job "$name" || true ) > "$BUILD/sby/$name.report" 2>&1 &
+    pid_of[$name]=$!
+  done
+  while [ ${#pid_of[@]} -gt 0 ]; do finish_one; done
+  for name in "${selected[@]}"; do
+    if [ -f "$BUILD/sby/$name.row" ]; then cat "$BUILD/sby/$name.row" >> "$SUMMARY"
+    else printf '%s\t-\t-\tERROR\tno\t-\n' "$name" >> "$SUMMARY"; fi
+    [ "$(cut -f5 "$BUILD/sby/$name.row" 2>/dev/null)" = yes ] || failures=$((failures + 1))
+  done
+fi
+wall=$(( $(date +%s) - wall ))
 echo
 column -t -s $'\t' "$SUMMARY" 2>/dev/null || cat "$SUMMARY"
+echo "run.sh: ${#selected[@]} job(s) in ${wall}s wall-clock (--parallel $parallel)"
 if [ $failures -ne 0 ]; then
   echo "run.sh: $failures job(s) did not meet their expectation" >&2
   exit 1

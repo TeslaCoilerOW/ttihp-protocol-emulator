@@ -1,0 +1,38 @@
+# Line unit (docs/isa.md "Ticker"; formal/line_tick.sv): the ticker fires on
+# the schedule T(k) of the ISA formula, arbitrary instruction streams.
+# Variants with options.line_unit only.
+#   prove  unbounded (k-induction with the tick-counter and accumulator lemmas)
+#   cover  non-vacuity: carries, a tick during WAIT
+#   neg    NEGATIVE CONTROL, must FAIL: fraction_carry mutant (the carry never
+#          lengthens a tick), bounded, without the lemmas
+[tasks]
+prove
+cover
+neg
+
+[options]
+prove: mode prove
+prove: depth 4
+cover: mode cover
+cover: depth 30
+neg: mode bmc
+neg: depth 24
+neg: expect fail
+
+[engines]
+smtbmc yices
+
+[script]
+~neg: read_verilog engine_line.v
+neg: read_verilog engine_line_fraction_carry.v
+prove: proc
+prove: expose protocol_engine_line/w:transfer_tick protocol_engine_line/w:transfer_period
+prove: read -formal line_tick.sv
+cover: read -formal -DNO_LEMMAS -DTICK_COVER line_tick.sv
+neg: read -formal -DNO_LEMMAS line_tick.sv
+prep -top line_tick
+
+[files]
+~neg: build/rtl/engine_line.v
+neg: build/rtl/engine_line_fraction_carry.v
+line_tick.sv

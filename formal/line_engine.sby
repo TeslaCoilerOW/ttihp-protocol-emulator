@@ -5,19 +5,25 @@
 #   reset / reset_neg     zero after reset and START; NEGATIVE CONTROL start_keeps_crc must FAIL
 #   decode / decode_neg   invalid encodings fault 1 and change nothing, valid ones complete;
 #                         NEGATIVE CONTROL ltim_overflow must FAIL
+#   pins_prove, reset_prove, decode_prove
+#                         the same assertions, unbounded (k-induction)
 [tasks]
-pins pins_group
-pins_neg pins_group
-reset reset_group
-reset_neg reset_group
-decode decode_group
-decode_neg decode_group
+pins pins_group bmc_group bmc20
+pins_neg pins_group bmc_group bmc20
+reset reset_group bmc_group bmc16
+reset_neg reset_group bmc_group bmc16
+decode decode_group bmc_group bmc16
+decode_neg decode_group bmc_group bmc16
+pins_prove pins_group prove_group
+reset_prove reset_group prove_group
+decode_prove decode_group prove_group
 
 [options]
-mode bmc
-pins_group: depth 20
-reset_group: depth 16
-decode_group: depth 16
+bmc_group: mode bmc
+prove_group: mode prove
+bmc20: depth 20
+bmc16: depth 16
+prove_group: depth 4
 pins_neg: expect fail
 reset_neg: expect fail
 decode_neg: expect fail
@@ -32,6 +38,7 @@ reset: read_verilog engine_line.v
 reset_neg: read_verilog engine_line_start_keeps_crc.v
 decode: read_verilog engine_line.v
 decode_neg: read_verilog engine_line_ltim_overflow.v
+prove_group: read_verilog engine_line.v
 pins_group: read -formal -DP_PINS line_engine.sv
 reset_group: read -formal -DP_RESET line_engine.sv
 decode_group: read -formal -DP_DECODE line_engine.sv
@@ -44,4 +51,5 @@ reset: build/rtl/engine_line.v
 reset_neg: build/rtl/engine_line_start_keeps_crc.v
 decode: build/rtl/engine_line.v
 decode_neg: build/rtl/engine_line_ltim_overflow.v
+prove_group: build/rtl/engine_line.v
 line_engine.sv

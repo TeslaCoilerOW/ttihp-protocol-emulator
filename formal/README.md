@@ -289,36 +289,102 @@ the variant `diet8_rec16`) gets:
   through the debug export `dbg_queue_status_read`, ends the window: LSTAT
   reads the TX-data and RX-space flags of engine K's queues, which the two
   copies may disagree on. `engine_safety` checks the engine with the unit.
-- **15 line-unit jobs**, registered in `run.sh` only for such a variant. They
+- **46 line-unit jobs**, registered in `run.sh` only for such a variant. They
   run on `engine_line.v` (the production engine with the unit plus observation
   ports, `gen/variant/generate_blocks.ml --target engine_line`) and
-  `crc_step.v` (the unit's CRC step function, `--target crc_step`):
+  `crc_step.v` (the unit's CRC step function, `--target crc_step`).
+
+```sh
+SBY_TIMEOUT=3600 formal/run.sh --variant diet8_rec16        # all 62 jobs
+formal/run.sh --variant diet8_rec16 --ci --parallel 4       # the CI subset: 42 line-unit jobs
+formal/run.sh --variant diet8_rec16 --ci --list             # its job names
+```
+
+`--ci` selects every line-unit job except the four long bounded checks
+(`line_crc_e2e`, `line_codec_bmc`, `line_crc_tx_bmc`, `line_crc_rx_bmc`);
+`--parallel N` runs up to N jobs at a time (reports as jobs finish, the
+summary table in job order). Without `--parallel` jobs run one after another,
+as before. The CI subset took 526 s and 411 s wall-clock in two runs with
+`--parallel 4` on 4-CPU Slurm allocations (jobs 24307354 and 24309392, all
+42 expectations met in each); its longest job is `line_codec_prove` (481 s
+and 370 s).
+
+**Methods.** A `*_prove` job is a k-induction proof. Besides its claims, the
+harness asserts lemmas (source lines marked `// L`) that make the claims
+inductive: the state of the fixed program, and equalities between engine
+registers and the harness's reference model. The lemmas are proved together
+with the claims; they are not claims about the ISA. Where a lemma or a
+reference needs a register without an observation port (`transfer_tick`,
+`transfer_period`, `tx`), the `.sby` script adds the port with Yosys `expose`
+after `proc`, which changes no logic. The reference models are written from
+`docs/isa.md`, not from `engine.ml`: the tick schedule (`line_tick.sv`), the
+encoder (`line_tx.sv`), the decoder (`line_rx.sv`), the arbitration monitor
+(`line_arb.sv`) and the CRC fold (`line_crc.sv` with `line_ref.vh`, whose
+step is written from the published generator polynomials). `line_tx`,
+`line_rx` and `line_arb` take the tick cycles from the engine's tick counter;
+`line_tick` proves that these cycles are the ISA's T(k). Covers and negative
+controls run without the lemmas (`-DNO_LEMMAS`); the negative controls are
+bounded.
 
 | Job | Harness | Method | Claim |
 |---|---|---|---|
-| `line_crc_equiv` | `line_crc.sv` | prove | The CRC step equals a reference written from the published generator polynomials (`line_ref.vh`) for every state, bit, preset and bit order |
+| `line_crc_equiv` | `line_crc.sv` | prove | The CRC step equals the reference (`line_ref.vh`) for every state, bit, preset and bit order |
 | `line_crc_e2e` | `line_crc.sv` | BMC 42, bitwuzla | A driven CRC line XFER of 1..10 bits at P = 1 (any data, initial value, preset, bit order, line code; stuffing off or runs of 4..8; pair off) leaves the reference CRC over the data bits |
+| `line_crc_tx_prove` | `line_crc.sv` (`line_crc_line`) | k-induction | A driven line XFER of 1..32 bits, any valid LTIM (P 1..255, any fraction and delay), any legal LCFG (pair, every stuffing run length, NRZ/NRZI/Manchester), any preset, initial value and bit order: from the CRC set on, the CRC register is the reference step folded over the data bits done so far in shift order; after the XFER, over all N |
+| `line_crc_rx_prove` | `line_crc.sv` (`line_crc_line`, SAMPLE=1) | k-induction | A sampling line XFER (sample only, or drive and sample) with free input pins, same operand ranges without Manchester: the CRC register is the reference fold over the data bits shifted into rx, in arrival order; rx shifts exactly once per data bit |
+| `line_crc_tx_bmc`, `line_crc_rx_bmc` | `line_crc.sv` | BMC 58 / 60 | The same from reset with P <= 2 (no fraction or delay) and N <= 6, any legal LCFG, also against the closed form over DATA (or rx) as in `line_crc_e2e`, and the XFER completes by cycle 57 (59) |
 | `line_codec_bmc`, `line_codec_bmc_p2` | `line_codec.sv` | BMC 46 | Engine B sampling engine A's pins receives A's N data bits (1..8 at P = 1, 1..4 at P = 2; no fraction; complements for Manchester), without stuff error or SE0, with an equal CRC; any legal LCFG except stuffing with Manchester; B uses A's LCFG with NRZ for Manchester and the arbitration bit cleared |
-| `line_pins_bmc` | `line_engine.sv -DP_PINS` | BMC 20 | Outside SET and OUT the engine changes only the two pins named by PINS |
-| `line_reset_bmc` | `line_engine.sv -DP_RESET` | BMC 16 | Every line-unit register is 0 after reset and after START |
-| `line_decode_bmc` | `line_engine.sv -DP_DECODE` | BMC 16 | Invalid line-unit encodings fault with code 1 and change no line-unit configuration, flag or CRC; valid ones complete or start |
+| `line_codec_prove` | `line_codec.sv` (`line_codec_line`) | k-induction | The same claim for any valid LTIM with delay 0 (P 1..255, any fraction), N 1..32 |
+| `line_tx_prove` | `line_tx.sv` | k-induction | A driven line XFER (any valid LTIM, any legal LCFG, N 1..32): from its first cell the data pin carries the level of the ISA's cell sequence (stuff bit when the run of equal bits or of 1s reached the run length; NRZ, NRZI, Manchester halves), the pair pin its complement, LSTAT's line level equals it, and the XFER completes when the last cell (with a trailing stuff bit when due) has been sent |
+| `line_rx_prove` | `line_rx.sv` | k-induction | A sample-only line XFER, free input pins (any valid LTIM, legal LCFG without Manchester, N 1..32): rx equals the ISA decoder's shift register (NRZ/NRZI, destuffing), the stuff-error and SE0 flags and LSTAT's bits-remaining count equal the reference's, and the XFER completes when the reference ends (one case excluded, below) |
+| `line_arb_prove` | `line_arb.sv` | k-induction | A drive-and-sample line XFER with the monitor on, free input pins: the lost flag is set at the first mid-bit sample (after the XFER's first bit boundary, not on SE0) that reads 0 while the current cell bit is 1 and stays set, and every cell driven afterwards is a 1 |
+| `line_tick_prove` | `line_tick.sv` | k-induction | Arbitrary instruction streams and host commands: the phase register toggles exactly at the ISA's T(0) = c0 + (D or P), T(k+1) = T(k) + P + carry(k), and LSTAT's ticker-running flag follows LTIM, classic XFER, START and reset |
+| `line_pins_bmc`, `line_pins_prove` | `line_engine.sv -DP_PINS` | BMC 20; k-induction | Outside SET and OUT the engine changes only the two pins named by PINS |
+| `line_reset_bmc`, `line_reset_prove` | `line_engine.sv -DP_RESET` | BMC 16; k-induction | Every line-unit register is 0 after reset and after START |
+| `line_decode_bmc`, `line_decode_prove` | `line_engine.sv -DP_DECODE` | BMC 16; k-induction | Invalid line-unit encodings fault with code 1 and change no line-unit configuration, flag or CRC; valid ones complete or start |
 
-Each has a negative control on a mutant generated with `--mutation`
-(`Line_unit.mutation`): `line_crc_equiv_neg` and `line_crc_e2e_neg`
-(`crc_tap`), `line_codec_neg_nrzi` (`nrzi_decode`), `line_codec_neg_destuff`
-(`rx_destuff_run`), `line_codec_neg_manchester` (`manchester_halves`),
-`line_pins_neg` (`pin_leak`), `line_reset_neg` (`start_keeps_crc`) and
-`line_decode_neg` (`ltim_overflow`). Not covered by these jobs: other P and
-fractions, longer transfers, stuffing runs 1..3 and the pair in the CRC
-property, the CRC of sampled bits against the reference (only B's CRC equals
-A's), Manchester with stuffing, arbitration and SE0 on a shared bus; the
-cocotb tests cover these by simulation (`docs/extension.md` section 6.3). A
-line-unit negative control meets its
-expectation only if the assertion that names it in a `target of:` comment
-fired. `line_codec_bmc` took 1,588 s and 2,336 s with yices on two cluster
-nodes, more than the default `SBY_TIMEOUT` of 1,500 s; run it with
-`SBY_TIMEOUT=3600`. Results:
-`docs/extension.md` section 6.4.
+Covers (`line_tick_cover`, `line_crc_tx_cover`, `line_crc_rx_cover`,
+`line_codec_cover`, `line_tx_cover`, `line_rx_cover`, `line_arb_cover`)
+reach, from reset, the end of an XFER with the features each proof covers
+(fractions, delays, P = 2, the pair, stuffing runs of 1 to 3, both stuffing
+polarities with NRZI, 20 bits or more, SE0 end, stuff errors, arbitration
+lost). `line_crc_rx_se0_stuff_cover` reaches the excluded case below.
+
+**Negative controls.** Each is a seeded defect generated with `--mutation`
+(`Line_unit.mutation`); it meets its expectation only if the assertion whose
+source line names it (`target of:`) fired. Every line-unit property has at
+least one; the `*_prove` jobs of `line_pins`, `line_reset` and `line_decode`
+check the same assertions as their BMC jobs and share their controls.
+
+| Control | Defect | Claim that fires |
+|---|---|---|
+| `line_crc_equiv_neg`, `line_crc_e2e_neg`, `line_crc_tx_neg`, `line_crc_rx_neg` | `crc_tap` (reflected feedback from bit 1) | CRC against the reference |
+| `line_codec_neg_nrzi`, `line_codec_prove_neg_nrzi`, `line_rx_neg_nrzi` | `nrzi_decode` | received bits |
+| `line_codec_neg_destuff`, `line_codec_prove_neg_destuff`, `line_rx_neg_destuff` | `rx_destuff_run` | received bits / flags |
+| `line_codec_neg_manchester`, `line_codec_prove_neg_manchester`, `line_tx_neg_manchester` | `manchester_halves` | received bits / pin level |
+| `line_tx_neg_stuff` | `stuff_run` (TX and RX stuff one bit late; the codec claims cannot see it) | pin level / completion |
+| `line_arb_neg` | `arbitration_off` | lost flag |
+| `line_tick_neg` | `fraction_carry` (the carry never lengthens a tick) | tick schedule |
+| `line_pins_neg` | `pin_leak` | pin locality |
+| `line_reset_neg` | `start_keeps_crc` | zero after START |
+| `line_decode_neg` | `ltim_overflow` | invalid LTIM faults |
+
+**Not covered.** Fixed programs: the CRC, codec, TX, RX and arbitration jobs
+run one XFER after START with free operands (`line_tick`, `line_pins`,
+`line_reset` and `line_decode` take arbitrary instruction streams).
+`line_codec_prove` uses LTIM delay 0 (with a delay, B's first mid-bit tick
+may precede A's first cell in this two-program set-up), a direct wire, B with
+A's LCFG (NRZ for Manchester, arbitration off) and no stuffing with
+Manchester. The receiver of a drive-and-sample XFER, whose stuffing follows
+the sampled bits, is checked only for the arbitration monitor and the CRC.
+The classic XFER's CRC feed is not in formal. `line_rx_prove` (claim R3)
+and `line_crc_rx_prove` (claim C1) exclude one case from their bit-count
+claims, the end on SE0 in the cell of a trailing stuff bit: the engine then reports 1 data bit remaining although all
+N were received (and fed to the CRC); `docs/isa.md` says "data bits remaining
+at SE0". `line_crc_rx_se0_stuff_cover` reaches it from reset. All are
+engine-level properties; the whole-chip properties are the existing jobs.
+
+Results: `docs/extension.md` section 6.4.
 
 ## Limits
 

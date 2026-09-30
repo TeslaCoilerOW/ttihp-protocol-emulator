@@ -1,0 +1,38 @@
+# Line unit (docs/isa.md "Arbitration"; formal/line_arb.sv): the arbitration
+# monitor of a drive-and-sample line XFER. Variants with options.line_unit only.
+#   prove  unbounded (k-induction): any valid LTIM, legal LCFG with the monitor
+#          on (no Manchester), N 1..32, free input pins
+#   cover  non-vacuity covers
+#   neg    NEGATIVE CONTROL, must FAIL: arbitration_off mutant (the monitor
+#          never sets the lost flag), bounded
+[tasks]
+prove
+cover
+neg
+
+[options]
+prove: mode prove
+prove: depth 4
+cover: mode cover
+cover: depth 40
+neg: mode bmc
+neg: depth 30
+neg: expect fail
+
+[engines]
+smtbmc yices
+
+[script]
+~neg: read_verilog engine_line.v
+neg: read_verilog engine_line_arbitration_off.v
+proc
+expose protocol_engine_line/w:transfer_tick protocol_engine_line/w:transfer_period
+prove: read -formal line_arb.sv
+cover: read -formal -DNO_LEMMAS -DARB_COVER line_arb.sv
+neg: read -formal -DNO_LEMMAS -DARB_BOUNDED=3 line_arb.sv
+prep -top line_arb
+
+[files]
+~neg: build/rtl/engine_line.v
+neg: build/rtl/engine_line_arbitration_off.v
+line_arb.sv

@@ -1,0 +1,44 @@
+# Line unit (docs/isa.md "Line XFER", "Stuffing"; formal/line_rx.sv): a
+# sampling line XFER decodes its input pins as the ISA prescribes. Variants
+# with options.line_unit only.
+#   prove        unbounded (k-induction): any valid LTIM, legal LCFG (no
+#                Manchester), N 1..32, free input pins
+#   cover        non-vacuity covers
+#   neg_nrzi     NEGATIVE CONTROL, must FAIL: nrzi_decode mutant
+#   neg_destuff  NEGATIVE CONTROL, must FAIL: rx_destuff_run mutant
+[tasks]
+prove
+cover
+neg_nrzi neg
+neg_destuff neg
+
+[options]
+prove: mode prove
+prove: depth 4
+cover: mode cover
+cover: depth 40
+neg: mode bmc
+neg: depth 30
+neg: expect fail
+
+[engines]
+smtbmc yices
+
+[script]
+prove: read_verilog engine_line.v
+cover: read_verilog engine_line.v
+neg_nrzi: read_verilog engine_line_nrzi_decode.v
+neg_destuff: read_verilog engine_line_rx_destuff_run.v
+proc
+expose protocol_engine_line/w:transfer_tick protocol_engine_line/w:transfer_period
+prove: read -formal line_rx.sv
+cover: read -formal -DNO_LEMMAS -DRX_COVER line_rx.sv
+neg: read -formal -DNO_LEMMAS -DRX_BOUNDED=3 line_rx.sv
+prep -top line_rx
+
+[files]
+prove: build/rtl/engine_line.v
+cover: build/rtl/engine_line.v
+neg_nrzi: build/rtl/engine_line_nrzi_decode.v
+neg_destuff: build/rtl/engine_line_rx_destuff_run.v
+line_rx.sv
