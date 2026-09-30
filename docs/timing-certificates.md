@@ -1,5 +1,7 @@
 # Timing certificates: the static schedule proved on the RTL
 
+A worked example, one small program end to end: [timing-certificates-tutorial.md](timing-certificates-tutorial.md).
+
 [`timing-analysis.md`](timing-analysis.md) describes `pe_timing`, a static
 analyzer that predicts, for every firmware image, the clock edge on which each
 owned pad of the engine changes, as an offset from the last synchronization

@@ -196,8 +196,9 @@ most likely to raise are these.
   (BMC 48) in `formal_depth/`.
 - **The certificates check timing and known levels, not data values.** A
   data pin is certified only as a set such as "0 or 1". One RTL bug of that
-  kind passes all its certificates. The certificates cover the 19 images
-  of `24f31f0` (R42b); the 7 images added in `e64cd6b` have none yet.
+  kind passes all its certificates. The certificates cover all 26
+  committed images: the 19 of `24f31f0` (R42b) and the 7 added in `e64cd6b`
+  (R42c).
 - **Proofs run on debug netlists.** Most processor proofs read
   `processor_fv.v`, `processor_debug.v` or the `formal_depth/` netlist: the
   same generator with observation ports added. `processor_fv.v` was proved

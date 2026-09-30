@@ -73,6 +73,8 @@ synchronize through flags: IRQ flags in PIO [3.2.7], event mailboxes here.
 | Scale and host | Up to 30 GPIOs, attached to the microcontroller's bus fabric [3.1] | 8 pins at 50 MHz; a synchronous nibble port to an external host |
 | Timing evidence | Cycle rules in the datasheet [3.2.2] | Per-image certificates, the isolation proof and netlist equivalence ([verification.md](verification.md)) |
 
+The per-image certificates, worked through on one small program: [timing-certificates-tutorial.md](timing-certificates-tutorial.md).
+
 ## Compared with other public entries
 
 Checked on 2026-09-28 at the head of each repository: loom at `3832179`

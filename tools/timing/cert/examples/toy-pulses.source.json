@@ -1,0 +1,30 @@
+{
+  "schema_version": "protocol-emulator.firmware-source.v1",
+  "name": "toy-pulses",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 0,
+  "owned_pins": 1,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "instructions": [
+    { "mnemonic": "DIR", "imm": 1 },
+    { "mnemonic": "PULL", "label": "next" },
+    { "mnemonic": "COUNT", "imm": 2 },
+    { "mnemonic": "SET", "imm": 1, "label": "pulse" },
+    { "mnemonic": "WAIT", "imm": 2 },
+    { "mnemonic": "SET" },
+    { "mnemonic": "LOOP", "target": "pulse" },
+    { "mnemonic": "JMP", "target": "next" }
+  ],
+  "notes": [
+    "Tutorial example for docs/timing-certificates-tutorial.md, not a protocol image: pin0 driven low; each TX word starts a burst of three high pulses on pin0."
+  ]
+}

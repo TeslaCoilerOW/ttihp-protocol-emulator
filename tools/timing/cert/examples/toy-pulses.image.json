@@ -1,0 +1,38 @@
+{
+  "schema_version": "protocol-emulator.firmware-image.v1",
+  "isa_version": 2,
+  "name": "toy-pulses",
+  "architecture": {
+    "schema_version": "protocol-emulator.architecture.v1",
+    "engine_count": 4,
+    "data_width": 32,
+    "program_words": 64,
+    "fifo_words": 8,
+    "issue": "fused",
+    "prefetch": false
+  },
+  "engine": 0,
+  "owned_pins": 1,
+  "open_drain": 0,
+  "clock_hz": 50000000,
+  "source_sha256": "f7ee2a4ad9f0983778eb0c35ff9b4475761ab725d59a19eb3fa1e1fed3e13d94",
+  "bytecode_sha256": "5e3cb073a9f9ae5296a91cbb4284e76695807dee7acd2b3bfb0298e39efc88ae",
+  "words": [
+    50331649, 100663296, 167772162, 33554433, 67108866, 33554432, 184549379,
+    83886081
+  ],
+  "labels": { "next": 1, "pulse": 3 },
+  "timing": [
+    { "pc": 0, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 1, "minimum_cycles": 1, "blocking": "tx_fifo_unbounded" },
+    { "pc": 2, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 3, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 4, "minimum_cycles": 3, "blocking": "none" },
+    { "pc": 5, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 6, "minimum_cycles": 1, "blocking": "none" },
+    { "pc": 7, "minimum_cycles": 1, "blocking": "none" }
+  ],
+  "notes": [
+    "Tutorial example for docs/timing-certificates-tutorial.md, not a protocol image: pin0 driven low; each TX word starts a burst of three high pulses on pin0."
+  ]
+}
