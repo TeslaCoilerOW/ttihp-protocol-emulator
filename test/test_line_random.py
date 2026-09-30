@@ -8,8 +8,13 @@ Environment:
   PE_LINE_RANDOM_ITERS    number of cases (default 16 RTL, 1 gate level)
   PE_LINE_RANDOM_FIRST    first case index (default 0)
   PE_LINE_RANDOM_CYCLES   cycles per case after START (default 6000)
+  PE_LINE_RANDOM_REPORT   1: log the per-bin line-unit coverage table
 Case k uses seed (base + k). The functional coverage of the run (events of
-model/line_unit.py) is logged at the end.
+model/line_unit.py and the bins of model/line_coverage.py) is logged at the
+end. The line-coverage observer also classifies every line-unit instruction
+issue as valid or invalid from the contract text (docs/isa.md); the test fails
+if that disagrees with the fault the DUT and the model produced. The larger
+generator of the random campaign is campaigns/random/line_gen.py.
 """
 
 from __future__ import annotations
@@ -23,6 +28,7 @@ import cocotb
 from harness import CocotbHarness, env_int
 from line_random import make_case, run_case
 from line_support import SKIP_REASON, line_unit_enabled
+from model.line_coverage import LineCoverage, all_bins, anomalies, holes, notes, report
 
 SKIP = not line_unit_enabled()
 if SKIP:
@@ -45,6 +51,8 @@ async def test_line_random_lockstep(dut):
     first = env_int("PE_LINE_RANDOM_FIRST", 0)
     cycles = env_int("PE_LINE_RANDOM_CYCLES", 6000)
     h = CocotbHarness(dut)
+    lcov = LineCoverage()
+    h.observers.append(lcov)
     await h.start()
     total: Counter[str] = Counter()
     start_cycle = h.cycle
@@ -58,3 +66,12 @@ async def test_line_random_lockstep(dut):
                   h.cycle - start_cycle)
     for name, count in sorted(total.items()):
         dut._log.info("  coverage %-32s %d", name, count)
+    bins = dict(lcov.bins)
+    dut._log.info("line-unit bins (model/line_coverage.py): %d of %d hit; holes: %s",
+                  sum(1 for b in all_bins() if bins.get(b)), len(all_bins()), holes(bins))
+    for key, value in notes(bins).items():
+        dut._log.info("  %s: %d", key, value)
+    if os.environ.get("PE_LINE_RANDOM_REPORT") == "1":
+        dut._log.info("%s", report(bins, iterations))
+    odd = anomalies(bins)
+    assert not odd, f"line-unit decode check disagrees with the DUT and the model: {odd} {lcov.examples}"

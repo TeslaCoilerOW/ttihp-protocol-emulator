@@ -23,7 +23,8 @@ snapshot's `test/` directory and does not modify them.
 | `report.py`, `report_job.sh` | per-campaign table, merged coverage tables and the xcov table (Markdown), run as a Slurm job |
 | `manifest.py` | locked update of the shared campaign manifest |
 | `collect.py` | assembles `campaigns.json`, `coverage-all.json` and `report.md` for `results/` from a campaign root's summaries (cluster paths replaced by `<work dir>`) |
-| `results/` | `campaigns.json` (per-campaign totals, holes, xcov bins, job ids), `coverage-all.json` (merged coverage of every campaign), `report.md` (generated tables) of the 73536f0 base campaign; `results/diet4/` the same files for design variant `diet4` at c118027 |
+| `line_gen.py` | line-unit cases (`VCAMP_VARIANT=line`, `line-dense`, `line-faulty`; design variants with the line unit only): line-unit programs mixed with the upstream instruction mix, a pad environment (`LineEnvironment`) and upstream host traffic; the seeded model defects of the line-unit negative controls (`INJECT=line-crc`, `line-carry`). See "Line-unit campaigns" |
+| `results/` | `campaigns.json` (per-campaign totals, holes, xcov bins, job ids), `coverage-all.json` (merged coverage of every campaign), `report.md` (generated tables) of the 73536f0 base campaign; `results/diet4/` the same files for design variant `diet4` at c118027; `results/diet8_rec16/` for the line-unit variant `diet8_rec16` (with `lcov`, the line-unit bins, and `rtl-defect-*.diff`, the RTL copies of two negative controls) |
 
 Array tasks count against the per-user submit limit (448 jobs on
 `mit_preemptable`), so a task is 8 CPUs running 8 single-CPU simulators rather
@@ -88,6 +89,87 @@ export RC_ROOT SNAP COMMIT=<full sha> DESIGN_VARIANT=diet4 PARTITION=mit_preempt
 submit.sh d4-rtl-default default rtl 2048 0 32 64 2000 900 00:45:00 8 6G 12
 RC_ROOT=... LABELS="d4-rtl-default ..." DEFAULT_LABEL=d4-rtl-default NEGCTL=d4-negctl-xor GL_PAIRS='{...}' report_job.sh
 collect.py $RC_ROOT results/diet4 --commit <full sha> --netlist <netlist> --negctl d4-negctl-xor --labels ...
+```
+
+## Line-unit campaigns
+
+For a design variant with the line unit (`diet8_rec16`, docs/extension.md) the
+driver also runs line-unit cases. `VCAMP_VARIANT=line` makes every case with
+`line_gen.make_line_case(seed, index, config, cycles)`: engines get line-unit
+programs (LTIM with edge values of P, Q and D; LCFG with every line code,
+stuffing polarity and run length, pair, arbitration monitor, SE0 end and
+initial level; CRC set/read/preset; LSTAT; line XFERs of 1 to 32 bits that
+drive, sample or both, with and without the CRC bit; classic XFERs with the
+CRC bit; invalid encodings) mixed with the upstream instruction mix, or (15%)
+upstream programs; the pads are driven by `LineEnvironment` (toggling pads,
+delayed copies, inversions and wired-AND of other pads, SE0 episodes, and line
+transmitters that send stuffed NRZ/NRZI frames with a pair pin and an SE0
+end); the host traffic is `random_gen.host_op` (including ROUTE for the mover
+and reloads) plus line-program reloads and the generation-2 additions of
+`random_gen.extend_case`. `line-dense` draws longer programs with more line
+XFERs and fewer host idles; `line-faulty` raises the rate of invalid encodings.
+A line case is a `random_gen.Case` with an `env` field (`LineCase`); a failing
+one is saved as JSON and replays with `PE_REPLAY` through this driver.
+
+On such a variant the driver attaches `test/model/line_coverage.py`
+(`VCAMP_LCOV=1`, the default; `LCOV=0` in `submit.sh` turns it off): the
+line-unit bins and a decode check that classifies every line-unit instruction
+issue as valid or invalid from the text of docs/isa.md and counts a
+disagreement with the fault that the DUT and the model produced. The result
+JSON then has `lcov`; `merge.py` adds the hole list `lcov` and `report.py` a
+per-bin table (both need the snapshot's `test/` on `PYTHONPATH`, which
+`report_job.sh` sets from `SNAP`).
+
+Negative controls: `INJECT=line-crc` (the model's LSB-first CRC step takes its
+feedback from bit 1) and `INJECT=line-carry` (the model's ticker ignores the
+fraction) seed a defect into the model; `EXPECT_FAIL=1` marks a campaign whose
+`SIMVVP` simulates an RTL copy with a seeded defect (failures expected, no case
+files saved). `report_job.sh` writes `negctl-<label>-detection.json` for the
+labels in `MORE_NEGCTL`, and `collect.py --more-negctl` adds them to
+`campaigns.json`.
+
+`SIM_BIN=<dir>` in the environment of `build.sh`, `submit.sh` and
+`upstream_run.sh` puts that iverilog/vvp first on `PATH` (the Icarus 13.0 of the
+Tiny Tapeout actions for `results/diet8_rec16/`).
+
+The commands of `results/diet8_rec16/` (branch `eval/diet8-rec16` at
+f9e0bf9, whose `src/` carries the variant core; docs/extension.md section 12).
+`results/diet8_rec16/campaigns.json` records each campaign's configuration and
+Slurm array.
+
+```sh
+export RC_ROOT SNAP COMMIT=<full sha> DESIGN_VARIANT=diet8_rec16 SIM_BIN=<icarus 13 bin>
+export PARTITION=mit_preemptable,mit_normal NL=<netlist of the official gds action>
+PE_VARIANT=diet8_rec16 PE_CORE=$SNAP/src/protocol_emulator_core.v build.sh rtl $SNAP $RC_ROOT/build/rtl
+PE_VARIANT=diet8_rec16 build.sh gl $SNAP $RC_ROOT/build/gl $NL
+# label variant mode nseeds offset seeds/task cases cycles timeout time cpus mem throttle
+submit.sh r16-rtl-line line rtl 4096 0 64 64 6000 1500 02:00:00 8 8G 20
+submit.sh r16-rtl-line-dense line-dense rtl 256 $((0x300000)) 32 64 6000 1500 02:00:00 8 8G 4
+submit.sh r16-rtl-line-faulty line-faulty rtl 256 $((0x400000)) 32 64 6000 1500 02:00:00 8 8G 4
+submit.sh r16-rtl-line-long line rtl 256 $((0x100000)) 32 16 50000 3600 02:00:00 8 8G 4
+submit.sh r16-rtl-default default rtl 4096 0 64 64 2000 900 01:30:00 8 6G 12
+XCOV=1 submit.sh r16-rtl-xcov-default default rtl 1024 $((0x1000)) 64 64 2000 900 01:30:00 8 6G 4
+submit.sh r16-rtl-long default rtl 256 $((0x100000)) 16 64 20000 3600 02:00:00 8 8G 8
+XCOV=1 submit.sh r16-rtl-xcov-dense dense rtl 256 $((0x300100)) 32 64 8000 2400 02:30:00 8 8G 4
+XCOV=1 submit.sh r16-rtl-xcov-faulty faulty rtl 256 $((0x400100)) 32 64 8000 2400 02:30:00 8 8G 4
+XCOV=1 submit.sh r16-rtl-xcov-hostile hostile rtl 256 $((0x500000)) 32 64 8000 2400 02:30:00 8 8G 4
+XCOV=1 submit.sh r16-rtl-xcov-deselect deselect rtl 256 $((0x600000)) 32 64 2000 1500 02:00:00 8 8G 2
+NETLIST=$NL submit.sh r16-gl-line line gl 128 0 16 8 6000 3600 02:00:00 8 8G 1
+NETLIST=$NL submit.sh r16-gl-line-extended line gl 256 128 32 16 6000 3600 02:00:00 8 8G 4
+NETLIST=$NL submit.sh r16-gl-default default gl 64 0 16 8 2000 3600 01:30:00 8 8G 1
+NETLIST=$NL submit.sh r16-gl-extended default gl 256 64 32 32 2000 3600 02:00:00 8 8G 4
+NETLIST=$NL submit.sh r16-gl-hostile hostile gl 64 $((0x500000)) 16 16 8000 5400 03:00:00 8 8G 2
+NETLIST=$NL submit.sh r16-gl-deselect deselect gl 64 $((0x600000)) 16 16 2000 3600 02:00:00 8 8G 1
+# negative controls: two model defects, two RTL copies with a seeded defect, the base campaign's xor
+INJECT=line-crc submit.sh r16-negctl-model-crc line rtl 64 0 16 16 6000 1500 01:00:00 8 8G 1
+SIMVVP=<crc defect build>/sim.vvp EXPECT_FAIL=1 submit.sh r16-negctl-rtl-crc line rtl 64 0 16 16 6000 1500 01:00:00 8 8G 1
+SIMVVP=<carry defect build>/sim.vvp EXPECT_FAIL=1 submit.sh r16-negctl-rtl-carry line rtl 64 0 16 16 6000 1500 01:00:00 8 8G 1
+INJECT=xor submit.sh r16-negctl-xor default rtl 64 0 16 64 2000 900 01:00:00 8 6G 1
+# merge and collect
+SNAP=$SNAP LABELS="r16-rtl-line ... r16-gl-deselect" DEFAULT_LABEL=r16-rtl-default NEGCTL=r16-negctl-xor \
+  MORE_NEGCTL="r16-negctl-model-crc r16-negctl-rtl-crc r16-negctl-rtl-carry" GL_PAIRS='{...}' report_job.sh
+PYTHONPATH=$SNAP/test collect.py $RC_ROOT results/diet8_rec16 --commit <full sha> --netlist $NL --labels ... \
+  --negctl r16-negctl-xor --more-negctl r16-negctl-model-crc r16-negctl-rtl-crc r16-negctl-rtl-carry
 ```
 
 ## Reproducing

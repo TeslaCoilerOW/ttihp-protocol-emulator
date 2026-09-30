@@ -1,0 +1,7 @@
+--- a/src/protocol_emulator_core.v
++++ b/src/protocol_emulator_core.v
+@@ -17470,3 +17470,3 @@
+     end
+-    assign _7144 = 16'b1000010000001000;
++    assign _7144 = 16'b1000010000001001;
+     assign _7143 = 16'b0100110011010001;

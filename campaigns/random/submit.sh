@@ -24,6 +24,10 @@
 #   MANIFEST=<file>         manifest that records the job (default $PE_WORK/vcamp/manifest.json)
 #   JOB_PREFIX=<prefix>     Slurm job-name prefix (default pe-vcamp)
 #   PARTITION=<list>        Slurm partition list (default mit_preemptable)
+#   SIM_BIN=<dir>           iverilog/vvp directory the tasks put first on PATH (the one build.sh used)
+#   LCOV=0                  skip the line-unit bins (collected by default on line-unit variants)
+#   INJECT=line-carry|line-crc  line-unit model defects (negative controls, like INJECT=xor)
+#   EXPECT_FAIL=1           negative control with a defect in the RTL copy that SIMVVP simulates
 set -euo pipefail
 LABEL=$1 VARIANT=$2 MODE=$3 NSEEDS=$4 OFFSET=$5 PER=$6 ITERS=$7 CYCLES=$8 TMO=$9
 TTIME=${10} CPUS=${11} MEM=${12} THROTTLE=${13}
@@ -62,6 +66,10 @@ XCOV=${XCOV:-0}
 DESIGN_VARIANT=${DESIGN_VARIANT:-}
 GENERATION=${GENERATION:-}
 EOF
+# Optional settings, written only when set (configs of earlier campaigns keep their form).
+if [ -n "${SIM_BIN:-}" ]; then echo "SIM_BIN=$SIM_BIN" >>"$R/configs/$LABEL.env"; fi
+if [ -n "${LCOV:-}" ]; then echo "LCOV=$LCOV" >>"$R/configs/$LABEL.env"; fi
+if [ -n "${EXPECT_FAIL:-}" ]; then echo "EXPECT_FAIL=$EXPECT_FAIL" >>"$R/configs/$LABEL.env"; fi
 NTASKS=$(((NSEEDS + PER - 1) / PER))
 JOB=$(sbatch --parsable -J "$JOB_PREFIX-$LABEL" -p "$PARTITION" --requeue -c "$CPUS" --mem="$MEM" -t "$TTIME" \
   ${DEPENDENCY:+--dependency=$DEPENDENCY} --array="0-$((NTASKS - 1))%$THROTTLE" -o "$R/logs/$LABEL/%a.out" \
@@ -69,5 +77,6 @@ JOB=$(sbatch --parsable -J "$JOB_PREFIX-$LABEL" -p "$PARTITION" --requeue -c "$C
 python3 "$R/scripts/manifest.py" "$MANIFEST" job "$JOB_PREFIX-$LABEL" "$JOB" "partition=$PARTITION" \
   "seeds=$((OFFSET + 1))..$((OFFSET + NSEEDS))" "cases_per_seed=$ITERS" "host_cycles=$CYCLES" \
   "variant=$VARIANT" "mode=$MODE" "tasks=$NTASKS" "seeds_per_task=$PER" "cpus_per_task=$CPUS" "dependency=${DEPENDENCY:-}" "inject=${INJECT:-}" "xcov=${XCOV:-0}" \
-  "design_variant=${DESIGN_VARIANT:-base}" "generation=${GENERATION:-snapshot default}" "commit=$COMMIT"
+  "design_variant=${DESIGN_VARIANT:-base}" "generation=${GENERATION:-snapshot default}" "commit=$COMMIT" \
+  ${SIM_BIN:+"sim_bin=$SIM_BIN"} ${EXPECT_FAIL:+"expect_fail=$EXPECT_FAIL"} "simvvp=$SIMVVP"
 echo "$JOB"

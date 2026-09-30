@@ -6,6 +6,8 @@
 #   DEFAULT_LABEL  campaign of the unmodified generator (holes reported separately)
 #   NEGCTL         negative-control campaign (empty: none)
 #   GL_PAIRS       JSON {gl campaign: rtl campaign with the same seeds} for the cycle cross-check
+#   MORE_NEGCTL    further negative-control campaigns (summaries/negctl-<label>-detection.json)
+#   SNAP           snapshot whose test/ holds model/line_coverage.py (campaigns with line-unit bins)
 set -e
 export PE_WORK="${PE_WORK:?set PE_WORK to the cluster work directory}"
 export R=${RC_ROOT:-$PE_WORK/vcamp/random}
@@ -16,6 +18,7 @@ export NEGCTL=${NEGCTL-negctl-xor}
 export GL_PAIRS=${GL_PAIRS:-'{"gl-default": "rtl-default", "gl-extended": "rtl-default", "gl-hostile": "rtl-hostile", "gl-deselect": "rtl-xcov-deselect"}'}
 cd $R/scripts
 mkdir -p $R/summaries
+if [ -n "${SNAP:-}" ]; then export PYTHONPATH=$SNAP/test${PYTHONPATH:+:$PYTHONPATH}; fi
 # shellcheck disable=SC2086
 python3 -B report.py $R $LABELS --default-label "$DEFAULT_LABEL" \
   --summary-dir $R/summaries > $R/summaries/report.md
@@ -65,4 +68,18 @@ if NEGCTL:
     json.dump(out, open(f"{R}/summaries/negctl-detection.json", "w"), indent=1)
     print(out)
 PY
+for label in ${MORE_NEGCTL:-}; do
+  python3 -B merge.py $R/$label --json $R/summaries/$label.json > /dev/null
+  NEG=$label python3 -B - <<'PY'
+import json, glob, os
+R, NEG = os.environ["R"], os.environ["NEG"]
+cases = det = seeds = seeds_det = 0
+for f in sorted(glob.glob(f"{R}/{NEG}/results/*.json")):
+    d = json.load(open(f)); seeds += 1
+    cases += d["cases_run"]; det += d["cases_failed"]; seeds_det += d["cases_failed"] > 0
+out = {"seeds": seeds, "seeds_detecting": seeds_det, "cases": cases, "cases_detecting": det}
+json.dump(out, open(f"{R}/summaries/negctl-{NEG}-detection.json", "w"), indent=1)
+print(NEG, out)
+PY
+done
 echo done

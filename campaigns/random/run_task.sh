@@ -17,6 +17,8 @@ TASK=${2:-${SLURM_ARRAY_TASK_ID:?no task id}}
 # shellcheck disable=SC1090
 source "$CFG"
 source ${PE_WORK:?set PE_WORK to the cluster work directory}/cocotb/env20.sh
+# Config SIM_BIN: the iverilog/vvp that built SIMVVP (build.sh), when not the env20 one.
+if [ -n "${SIM_BIN:-}" ]; then export PATH=$SIM_BIN:$PATH; fi
 
 PYBIN=${PE_WORK:?set PE_WORK to the cluster work directory}/cocotb/venv20/bin/python3
 LIBDIR=$("$PYBIN" -m cocotb_tools.config --lib-dir)
@@ -45,7 +47,11 @@ run_seed() {
     if [ "$MODE" = gl ]; then export PE_GATE_LEVEL=1; fi
     # Optional negative control (config INJECT=xor): corrupt the model after XOR.
     if [ -n "${INJECT:-}" ]; then export PE_INJECT_MODEL_BUG=$INJECT VCAMP_SAVE_CASES=0; fi
+    # Config EXPECT_FAIL=1: a negative control with a defect in the simulated RTL copy (SIMVVP).
+    if [ "${EXPECT_FAIL:-0}" = 1 ]; then export VCAMP_SAVE_CASES=0; fi
     export VCAMP_XCOV=${XCOV:-0}
+    # Line-unit bins (test/model/line_coverage.py) on line-unit variants unless LCOV=0.
+    export VCAMP_LCOV=${LCOV:-1}
     exec timeout --signal=TERM "$SEED_TIMEOUT" vvp -M "$LIBDIR" -m "$LIBNAME" "$SIMVVP"
   ) >"$work/log" 2>&1
   rc=$?
@@ -71,7 +77,7 @@ EOF
     gzip -c "$work/log" >"$(printf '%s/failures/%s-seed-%08x.log.gz' "$OUTDIR" "$LABEL" "$seed")"
   else
     echo "seed $seed: rc=$rc $((t1 - t0)) s $(grep -o '"cases_failed": [0-9]*' "$out")"
-    if [ -z "${INJECT:-}" ] && ! grep -q '"cases_failed": 0,' "$out"; then
+    if [ -z "${INJECT:-}" ] && [ "${EXPECT_FAIL:-0}" != 1 ] && ! grep -q '"cases_failed": 0,' "$out"; then
       gzip -c "$work/log" >"$(printf '%s/failures/%s-seed-%08x.log.gz' "$OUTDIR" "$LABEL" "$seed")"
     fi
   fi

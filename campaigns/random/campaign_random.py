@@ -32,13 +32,18 @@ Environment:
                    | deselect (the upstream trailing deselect op moved into the traffic;
                      on a generation-2 generator, which already does that, every case
                      gets one mid-traffic deselect)
+                   | line | line-dense | line-faulty (design variants with the line unit only:
+                     line-unit programs, pad environment and host traffic of line_gen.py)
   VCAMP_GEN        generator generation passed to make_case (snapshots whose make_case
                    takes ``generation``; default: the snapshot's own default)
+  VCAMP_LCOV       0: do not collect the line-unit bins of test/model/line_coverage.py
+                   (collected by default when the model has the line unit)
   PE_VARIANT       design variant of the snapshot's test/variants.py (default base);
                    the model is configured from it, the core is chosen at build time
   PE_RANDOM_ITERS / PE_RANDOM_FIRST / PE_RANDOM_CYCLES   as in test_random
   PE_REPLAY        run one saved case JSON instead (triage); VCAMP_SEED ignored
-  PE_INJECT_MODEL_BUG  xor: corrupt the model after XOR (negative control, as in test_random)
+  PE_INJECT_MODEL_BUG  xor: corrupt the model after XOR (negative control, as in test_random);
+                   line-carry | line-crc: line-unit model defects (line_gen.inject_model_defect)
   VCAMP_XCOV       1: also collect the extended cross-coverage bins of xcov.py
   VCAMP_SAVE_CASES 0: do not write failing-case JSON (negative control; keeps inode count low)
   VCAMP_MINIMIZE   1: shrink each failing case with random_gen.minimize (triage;
@@ -66,9 +71,14 @@ from random_gen import BugInjector, Case, Coverage, minimize, run_case
 
 
 # ------------------------------------------------------------ generator variants
+LINE_VARIANTS = ("line", "line-dense", "line-faulty")
+
+
 def apply_variant(name: str) -> None:
     """Re-weight the upstream generator without editing it (monkeypatch)."""
     if name in ("", "default"):
+        return
+    if name in LINE_VARIANTS:  # line_gen.py builds the cases (see test_random_campaign)
         return
     if name == "dense":
         generate = random_gen.ProgramGenerator.generate
@@ -259,8 +269,22 @@ async def test_random_campaign(dut):
     label = os.environ.get("VCAMP_LABEL", "adhoc")
 
     h = CocotbHarness(dut)
-    if os.environ.get("PE_INJECT_MODEL_BUG") == "xor":  # negative control, as in test_random
+    line_mode = variant in LINE_VARIANTS
+    line_gen = None
+    if line_mode or (replay and '"env"' in Path(replay).read_text()):
+        import line_gen
+        line_gen.install()  # random_gen.run_case (minimizer) runs line cases with their environment
+    inject = os.environ.get("PE_INJECT_MODEL_BUG", "")
+    if inject == "xor":  # negative control, as in test_random
         h.observers.append(BugInjector())
+    elif inject.startswith("line-"):
+        import line_gen as defects
+        defects.inject_model_defect(h.model, inject)
+    lcov = None
+    if hasattr(h.model, "events") and os.environ.get("VCAMP_LCOV", "1") == "1":  # LineReference
+        from model.line_coverage import LineCoverage
+        lcov = LineCoverage()
+        h.observers.append(lcov)
     coverage = Coverage()
     xcov = None
     if os.environ.get("VCAMP_XCOV") == "1":  # extended cross coverage (xcov.py)
@@ -269,8 +293,18 @@ async def test_random_campaign(dut):
         h.observers.append(xcov)
     await h.start()
     gen_kwargs = make_case_kwargs()
+    runner = run_case
     if replay:
-        cases = [Case.from_json(Path(replay).read_text())]
+        text = Path(replay).read_text()
+        if line_gen is not None and line_gen.is_line_case_json(text):
+            cases = [line_gen.LineCase.from_json(text)]
+            runner = line_gen.run_line_case
+        else:
+            cases = [Case.from_json(text)]
+    elif line_mode:
+        runner = line_gen.run_line_case
+        cases = (line_gen.make_line_case(seed, i, h.model.config, cycles=cycles, profile=variant)
+                 for i in range(first, first + iterations))
     else:
         cases = (random_gen.make_case(seed, i, h.model.config, cycles=cycles, **gen_kwargs)  # variants may wrap it
                  for i in range(first, first + iterations))
@@ -284,7 +318,7 @@ async def test_random_campaign(dut):
                   "program_words": sum(len(s.words) for s in case.engines if s is not None),
                   "host_ops_generated": len(case.ops), "after_failure": failed_before}
         try:
-            await run_case(h, case, coverage)
+            await runner(h, case, coverage)
             record["status"] = "pass"
         except Exception as exc:  # noqa: BLE001 - record every failure kind and keep going
             coverage.detach(h)
@@ -314,7 +348,7 @@ async def test_random_campaign(dut):
                 record["min_case_json"] = str(fail_dir / f"{stem}-min.json")
                 h.quiet = True
                 try:
-                    await run_case(h, small)
+                    await runner(h, small)
                     record["min_message"] = "minimized case PASSES on re-run"
                 except Exception as again:  # noqa: BLE001
                     record["min_message"] = "\n".join(str(again).splitlines()[:40])
@@ -350,6 +384,11 @@ async def test_random_campaign(dut):
         "xcov": dict(xcov.bins) if xcov is not None else None,
         "argv": sys.argv[:1],
     }
+    if line_mode:
+        result["line_generation"] = line_gen.LINE_GENERATION
+    if lcov is not None:  # line-unit bins (test/model/line_coverage.py)
+        result["lcov"] = dict(lcov.bins)
+        result["lcov_examples"] = lcov.examples
     result_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = result_path.with_name(result_path.name + f".tmp{os.getpid()}")
     tmp.write_text(json.dumps(result, indent=1))

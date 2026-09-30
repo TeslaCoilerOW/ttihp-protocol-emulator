@@ -13,6 +13,8 @@ set -u
 SNAP=$1 BUILD=$2 LOG=$3
 shift 3
 source ${PE_WORK:?set PE_WORK to the cluster work directory}/cocotb/env20.sh
+# SIM_BIN=<dir>: the iverilog/vvp that built the simulation (build.sh), when not the env20 one.
+if [ -n "${SIM_BIN:-}" ]; then export PATH=$SIM_BIN:$PATH; fi
 work=$(mktemp -d "${TMPDIR:-/tmp}/pe-vcamp-up.XXXXXX")
 # Private copy of the build: if make decides the sources are newer (e.g. a copied
 # snapshot), it rebuilds here and never rewrites the shared sim.vvp that campaign

@@ -134,6 +134,34 @@ def main() -> None:
         errors = {k: sum(x.get(k, 0) for x in xsums) for x in xsums for k in x if k.startswith("xcov-error")}
         out.append("")
         out.append(f"xcov observer errors: {errors or 'none'}")
+    # Line-unit bins (test/model/line_coverage.py), per campaign that collected them.
+    llabels = [label for label in args.labels if any(r.get("lcov") is not None for r in cache[label])]
+    if llabels:
+        from model.line_coverage import UNREACHABLE, all_bins as lcov_bins, report as lcov_report
+        sums = {label: merge([r for r in cache[label] if r.get("lcov") is not None])["lcov"] for label in llabels}
+        merged = merge([r for label in llabels for r in cache[label] if r.get("lcov") is not None])["lcov"]
+        out.append("")
+        out.append(lcov_report(merged["bins"], merged["cases"], title="Line-unit coverage, all campaigns"))
+        # Per-campaign table: campaigns of line cases (campaign_random.py VCAMP_VARIANT=line*). The
+        # other generators rarely issue line-unit words; their bins stay in the summaries.
+        tlabels = [lab for lab in llabels if any(r.get("line_generation") is not None for r in cache[lab])]
+        others = [lab for lab in llabels if lab not in tlabels]
+        if others:
+            out.append("")
+            out.append("Other campaigns with the line-unit bins (not in the table below; bins in their summaries): "
+                       + ", ".join(f"`{lab}` ({sum(1 for b in lcov_bins() if sums[lab]['bins'].get(b))} bins hit, "
+                                   f"decode-check disagreements: {sum(sums[lab]['anomalies'].values()) or 'none'})"
+                                   for lab in others))
+        if tlabels:
+            out.append("")
+            out.append("Line-unit bins per campaign of line cases: hits, and hits per 1,000 cases in parentheses.")
+            out.append("")
+            out.append("| bin | " + " | ".join(f"`{lab}` ({sums[lab]['cases']:,} cases)" for lab in tlabels) + " |")
+            out.append("|---|" + "---:|" * len(tlabels))
+            for b in lcov_bins():
+                cells = [f"{sums[lab]['bins'].get(b, 0):,} ({1000 * sums[lab]['bins'].get(b, 0) / sums[lab]['cases']:.3g})"
+                         if sums[lab]["cases"] else "0" for lab in tlabels]
+                out.append(f"| {b}{' (unreachable)' if b in UNREACHABLE else ''} | " + " | ".join(cells) + " |")
     print("\n".join(out))
 
 

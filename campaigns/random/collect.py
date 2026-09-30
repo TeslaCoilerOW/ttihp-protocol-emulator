@@ -56,6 +56,8 @@ def main() -> None:
     ap.add_argument("--netlist", type=Path, help="gate-level netlist (sha256 recorded)")
     ap.add_argument("--labels", nargs="*", help="campaigns in table order (default: every summary)")
     ap.add_argument("--negctl", default="negctl-xor", help="negative-control campaign label ('' for none)")
+    ap.add_argument("--more-negctl", nargs="*", default=[],
+                    help="further negative-control campaigns (summaries/negctl-<label>-detection.json)")
     args = ap.parse_args()
     args.root = args.root.resolve()
     prefix = os.environ.get("PE_WORK", "").rstrip("/") or str(args.root.parent)
@@ -88,6 +90,8 @@ def main() -> None:
             "holes": s["holes"],
             "xcov_bins": s["xcov"]["bins"] if s.get("xcov") else None,
         }
+        if s.get("lcov"):  # line-unit bins (design variants with the line unit)
+            campaigns[label]["lcov"] = s["lcov"]
     out: dict = {"commit": args.commit}
     if args.netlist:
         out["netlist_sha256"] = hashlib.sha256(args.netlist.read_bytes()).hexdigest()
@@ -101,6 +105,18 @@ def main() -> None:
             detection["slurm_array_job"] = ", ".join(
                 sorted(j for j in json.loads(neg_summary.read_text()).get("slurm_array_jobs", []) if j))
         out["negative_control"] = detection
+    more = {}
+    for label in args.more_negctl:
+        path = summaries / f"negctl-{label}-detection.json"
+        if path.exists():
+            detection = json.loads(path.read_text())
+            neg_summary = summaries / f"{label}.json"
+            if neg_summary.exists():
+                detection["slurm_array_job"] = ", ".join(
+                    sorted(j for j in json.loads(neg_summary.read_text()).get("slurm_array_jobs", []) if j))
+            more[label] = detection
+    if more:
+        out["more_negative_controls"] = more
     gl = summaries / "gl-vs-rtl.json"
     if gl.exists():
         out["gl_vs_rtl_case_cycles"] = json.loads(gl.read_text())

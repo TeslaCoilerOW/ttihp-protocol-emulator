@@ -15,6 +15,9 @@
 set -euo pipefail
 MODE=$1 SNAP=$2 BUILD=$3 NETLIST=${4:-}
 source ${PE_WORK:?set PE_WORK to the cluster work directory}/cocotb/env20.sh
+# SIM_BIN=<dir>: take iverilog/vvp from there (e.g. the Icarus 13 of the TT actions).
+if [ -n "${SIM_BIN:-}" ]; then export PATH=$SIM_BIN:$PATH; fi
+iverilog -V 2>&1 | sed -n 1p
 cd "$SNAP/test"
 mkdir -p "$BUILD"
 if [ -n "${PE_VARIANT:-}" ]; then

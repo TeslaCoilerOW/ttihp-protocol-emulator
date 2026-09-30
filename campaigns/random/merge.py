@@ -8,7 +8,11 @@
 Each campaign directory holds results/seed-XXXXXXXX.json written by
 campaign_random.py (or an infra-error stub written by run_task.sh). Coverage bins
 are the ones Coverage in test/random_gen.py collects; "holes" are bins of the
-enumerable spaces below that no seed hit.
+enumerable spaces below that no seed hit. Results with line-unit bins ("lcov",
+design variants with the line unit) add the bins of test/model/line_coverage.py
+(import path: the snapshot's test/ directory on PYTHONPATH); their hole list
+"lcov" is given for merges that include line cases (campaign_random.py
+VCAMP_VARIANT=line*, result field "line_generation").
 """
 
 from __future__ import annotations
@@ -86,6 +90,9 @@ def merge(results: list[dict]) -> dict:
                  "cases": 0, "cycles": 0}
     xcov: Counter = Counter()
     xcov_seeds = 0
+    lcov: Counter = Counter()
+    lcov_seeds = lcov_cases = line_seeds = 0
+    lcov_examples: dict = {}
     case_cycles, failures, mover_zero = [], [], 0
     totals = Counter()
     for r in ok:
@@ -97,6 +104,13 @@ def merge(results: list[dict]) -> dict:
         if r.get("xcov") is not None:
             xcov.update(r["xcov"])
             xcov_seeds += 1
+        if r.get("lcov") is not None:
+            lcov.update(r["lcov"])
+            lcov_seeds += 1
+            lcov_cases += r["cases_run"]
+            line_seeds += r.get("line_generation") is not None
+            for key, text in (r.get("lcov_examples") or {}).items():
+                lcov_examples.setdefault(key, f"seed {r['seed']:#x}: {text}")
         cov["mover"] += c["mover"]
         mover_zero += c["mover"] == 0
         cov["cases"] += c["cases"]
@@ -136,6 +150,9 @@ def merge(results: list[dict]) -> dict:
     }
     if xcov_seeds:
         holes["xcov"] = [b for b in xcov_bins() if b not in xcov]
+    if line_seeds:  # line-unit holes only where line cases ran (other generators rarely issue line-unit words)
+        from model.line_coverage import holes as lcov_holes
+        holes["lcov"] = lcov_holes(lcov)
     explicit_codes = sorted({int(k.split()[1]) for k in cov["faults"] if k.endswith("from FAULT")})
     summary = {
         "totals": dict(totals), "infra_errors": [{k: r.get(k) for k in ("label", "seed", "kind", "rc", "host")}
@@ -158,6 +175,10 @@ def merge(results: list[dict]) -> dict:
         "holes": holes,
         "xcov": {"seeds": xcov_seeds, "bins": dict(sorted(xcov.items()))} if xcov_seeds else None,
     }
+    if lcov_seeds:
+        from model.line_coverage import anomalies, notes
+        summary["lcov"] = {"seeds": lcov_seeds, "cases": lcov_cases, "bins": dict(sorted(lcov.items())),
+                           "anomalies": anomalies(lcov), "notes": notes(lcov), "examples": lcov_examples}
     return summary
 
 
