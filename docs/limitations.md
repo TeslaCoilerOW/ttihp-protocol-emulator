@@ -262,7 +262,9 @@ them.
   tests, and tests that use the time warp, which works only on RTL. Since
   `e64cd6b` the suite has 107 tests: the 5 `uart-rx-idle` tests of
   `test_flagship.py` also skip at gate level, so 46 run and 61 skip (R28;
-  no official gl_test has run on that suite yet). It is
+  the official gl_test runs of `bab697b`, 36624435821 and 36624435439, gave
+  that). With `test_wait_limit.py` the suite has 109 tests, and its 2 run
+  at gate level with LIMIT up to 2^8 + 2: 48 run and 61 skip (R28b). It is
   zero-delay, without SDF, and uses the FUNCTIONAL SRAM models. It checks the netlist's logic, not its timing.
 - **The time-warp tests are white-box.** They deposit reachable counter
   values into RTL registers, and they run only on RTL. Gap closure killed
@@ -281,6 +283,12 @@ them.
     headline stays 96.82%, the score as run. At `c118027` it was 244 of
     2,304 (89.4%, R23b), including 55 on `blocked_cycles` that were not
     classified then.
+  - One of those arguments was wrong: `test_wait_limit.py`, added later,
+    kills survivor 192 (96.86% with it; results.md section 9, item 18). The module was written
+    from four mutants that the mutation campaign on the extension branch
+    found outside this campaign's sample and that pass every other test
+    of the default suite ([mutation-push.md](mutation-push.md) section 8).
+    The score covers only the 2,420 sampled mutants.
   - The score counts as equivalent only mutants proven so: 124 since
     `aa07868` (116 before).
 - **The peers are models, not devices.** Two of the third-party peers have

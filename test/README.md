@@ -29,6 +29,7 @@ behavioral peers.
 | `test_mover.py` | mover (DMA) arbitration: round robin among 2, 3 and 4 simultaneously eligible routes (one a self-route) and host TX priority, with an independent per-edge monitor of the arbitration rule |
 | `test_counters.py` | long-running counters read back: more than 2^16 completed instructions on every engine, a 0xFFFF-word ROUTE drained to zero, COUNT 0xFFFF loops, timestamp past 2^16, ROUTE counts draining exactly, LIMIT values with each bit 9..23 set, exact WAITPIN/WAITEVENT timeouts, exact WAIT ends |
 | `test_timewarp.py` | counter carries up to bit 31 and the 2^32 timestamp rollover by time warp: timestamp/TIME, completed counts while every opcode runs, WAIT timers, blocked counts and LIMIT timeouts, blocked-count clearing by every kind of instruction, repeat counters, ROUTE counts |
+| `test_wait_limit.py` | WAITEVENT and WAITPIN time out on the LIMIT-th sample at LIMIT 2^k + 2 (k = 0..23) on every engine, read from each engine's output enable and status (see "LIMIT timeouts") |
 | `model/` | the reference model, host recorder and wire scoreboards, copied from the asic-lab monorepo (stdlib only; provenance and hashes in `model/__init__.py`); `model/variant.py` (written here) adds the design variants |
 | `variants.py`, `variant_workloads.py` | design-variant selection (`PE_VARIANT`) and the legacy workloads recorded on a variant; see "Design variants" |
 
@@ -48,12 +49,16 @@ make
 The RTL run compiles `../src/project.v`, `../src/protocol_emulator_core.v` and the
 IHP SRAM behavioral models `../models/RM_IHPSG13_1P_64x16_c2.v` +
 `../models/RM_IHPSG13_1P_core_behavioral.v` with `-DFUNCTIONAL`. The full suite
-has 107 tests. In job 24303859, `make clean; make` with Icarus 13.0 on a
+has 109 tests. In job 24303859, `make clean; make` of the 107 tests before
+`test_wait_limit.py` with Icarus 13.0 on a
 cluster node, while other `scripts/reproduce.sh` steps ran in parallel,
 took 373 s, with 368 s of test time; the five `uart-rx-idle` tests of `test_flagship.py`, added in
 `e64cd6b`, took 105 s of it. For the 102-test suite before that commit it
 took about 221 s of test time, of which the gap-closure modules took 27 s
-and the test_kill_* modules 132 s.
+and the test_kill_* modules 132 s. With `test_wait_limit.py`, `make clean;
+make` alone on a cluster node took 216 s, with 207 s of test time, of which
+its two tests took 2.9 s (job 24382111_1); in GitHub's `test` job of
+`3364ad9` the 107 tests took 214 s of test time (run 36657674148).
 
 Useful variables:
 
@@ -83,8 +88,9 @@ other 17 are reported as SKIP) and 2 random cases (override with `PE_LEGACY=all`
 and `PE_RANDOM_ITERS`). Of the gap-closure modules, the tests that need more than
 8,000 cycles and the time-warp tests (which need the RTL register names) are
 reported as SKIP; 14 of their 27 tests run. The 5 `uart-rx-idle` tests of
-`test_flagship.py` are reported as SKIP too, so 46 of the 107 tests run at
-gate level. A quick pre-hardening check
+`test_flagship.py` are reported as SKIP too. The 2 tests of
+`test_wait_limit.py` run with LIMIT up to 2^8 + 2 and no time warp (see
+"LIMIT timeouts"), so 48 of the 109 tests run at gate level. A quick pre-hardening check
 is possible with a Yosys netlist (`synth -flatten`, `dfflibmap`/`abc` to the
 `sg13cmos5l_stdcell` liberty, SRAM macro read as a blackbox).
 
@@ -230,6 +236,41 @@ SKIP. Several scenarios time a command or a status capture to one clock edge
 by consulting the model (`test_kill_pc.command_at`,
 `test_kill_edges.snapshot_when`).
 
+## LIMIT timeouts
+
+`test_wait_limit.py` checks the bounded-wait timeout of `../docs/isa.md` (fault
+code 3 after LIMIT consecutive unsuccessful samples) at a LIMIT just past each
+bit of the blocked-cycle count. Each round loads every engine e with
+`DIR 1<<e; LIMIT n; WAITEVENT` (no event arrives) or `DIR 1<<e; LIMIT n;
+WAITPIN 7, 1` (pin 7 held low), for n = 2^k + 2 and k = 0..23. On sample 2^k
+the count has bit k set for the first time, and the timeout is due two samples
+later. An observer reads each engine's output enable (`uio_oe` bit e) from the
+DUT before every edge. The enable must stay high for exactly n + 1 edges
+(LIMIT's edge and n samples), and each engine's status must then report fault
+code 3.
+
+- **Model comparison.** The per-cycle comparison with the model runs as in
+  every module. With `PE_SPEC_ONLY=1` it is off for this module, so that only
+  the module's own checks can fail; the model still runs and tells the test how
+  long to wait.
+- **Time warp.** Above n = 16 the count is warped to 2^k − 6, so the sample
+  that first sets bit k is simulated. Each test simulates 8,983 cycles
+  (8,985 under `PE_VARIANT=diet4`) and warps 16,777,020.
+- **Gate level.** The two tests run n up to 2^8 + 2 (k = 0..8) without the
+  warp, 3,854 cycles each (3,856 under `diet4`). On the netlists of runs
+  36298635436 (8x4) and 36298635404 (6x4, `PE_VARIANT=diet4`) they took
+  7.4 s and 4.9 s of the gate-level suite's 111 s and 70 s (jobs
+  24382111_4 and 24382111_5).
+
+The module was written after the mutation campaign on the extension branch
+found that four mutants of the design-of-record core pass the rest of the
+suite. Each flips a bit of the next blocked-cycle count while a higher bit (13,
+14, 18 or 21) is set, on the WAITEVENT path of engine 0 or engine 2. The
+module fails on each of them, with the lockstep comparison and with
+`PE_SPEC_ONLY=1`: the enable is released one edge early at LIMIT 2^13 + 2,
+2^14 + 2, 2^18 + 2 or 2^21 + 2. It also fails on survivor 192 of the mutation
+push (`../docs/mutation-push.md` section 8).
+
 ## Design variants (PE_VARIANT)
 
 The area and reset variants of `../docs/area-study.md` (defined in
@@ -339,7 +380,7 @@ they are skipped (they are not in the default list either):
 | `model/line_unit.py` | the reference model of the unit (`LineReference`) |
 
 ```sh
-make PE_VARIANT=diet8_rec16                                        # 107 + 25 tests
+make PE_VARIANT=diet8_rec16                                        # 109 + 25 tests
 make PE_VARIANT=diet8_rec16 COCOTB_TEST_MODULES=test_line_unit     # directed tests only
 ```
 

@@ -6,8 +6,10 @@ This page continues the RTL mutation campaign of
 classifies them with formal equivalence checks, adds directed tests for the
 ones that the tests can reach, and reports the new score. Added later: section
 4.5 (a longer ABC cap), section 6 (the scripts in the repository, checked by
-re-running them, and a re-run on the committed test tree) and section 7 (the
-same procedure on design variant `diet4` under the 102-test suite).
+re-running them, and a re-run on the committed test tree), section 7 (the
+same procedure on design variant `diet4` under the 102-test suite) and section
+8 (a gap that the mutation campaign on the extension branch found, and
+`test/test_wait_limit.py`, which closes it and kills survivor 192).
 
 The mutants, the prepared core (`base.il`) and the per-mutant build are those of
 the campaign (2,420 mutants of `src/protocol_emulator_core.v` at commit
@@ -41,6 +43,9 @@ Later addition (section 4.5): the miter of section 4.2 with a longer ABC cap
 proves 26 of the 73 equivalent. With those proofs the score is 2,223 / (2,420 −
 150) = 97.93 %, with 47 survivors. The 96.82 % above, and the tables of this
 section, are the push as run.
+
+Later addition (section 8): `test/test_wait_limit.py` kills survivor 192, whose
+argument in section 5 does not hold.
 
 By region (proven equivalent includes both methods):
 
@@ -288,11 +293,13 @@ unobservable below, from its netlist diff and the design's register semantics
 (`hardcaml/lib/engine.ml`, `processor.ml`, `host.ml`); for none of them is a
 reachable observation known. The arguments are not proofs. Engine numbers
 follow `campaigns/mutation/results/engine_map.json`. Section 4.5 later proved 26
-of the 73 equivalent; the table keeps all 73 with their arguments.
+of the 73 equivalent; the table keeps all 73 with their arguments. Section 8
+later found an observation for 192: `test/test_wait_limit.py` kills it, and its
+argument below does not hold.
 
 | group | survivors | argument |
 |---|---|---|
-| blocked-cycle count, stages of other instructions | 40, 50, 76, 92, 113, 126, 192, 211, 261, 279, 303, 357, 421, 508 (engine_ctrl) | The mutation sits in the count's next-value selection for an instruction other than WAITPIN/WAITEVENT (or the PULL-stall hold): it forces a bit to 0, or flips a bit only while another bit of the count is 1. There the count is 0: every completion clears it and it only grows inside a bounded wait, which takes the WAITPIN/WAITEVENT path. |
+| blocked-cycle count, stages of other instructions | 40, 50, 76, 92, 113, 126, 192 (killed later, section 8), 211, 261, 279, 303, 357, 421, 508 (engine_ctrl) | The mutation sits in the count's next-value selection for an instruction other than WAITPIN/WAITEVENT (or the PULL-stall hold): it forces a bit to 0, or flips a bit only while another bit of the count is 1. There the count is 0: every completion clears it and it only grows inside a bounded wait, which takes the WAITPIN/WAITEVENT path. |
 | blocked-cycle count during an XFER | 25, 47, 62, 118, 233, 285, 528 (engine_ctrl) | The count changes only while a transfer runs; every transfer ends with a completion that clears it, and no bounded wait starts during a transfer. |
 | PC during an XFER | 94, 327, 390 (engine_ctrl) | A PC bit of 8 or above is dropped or flipped on the transfer path; an XFER issues from inside the image, so the PC is below 64 there. |
 | register changed on the STOP edge | 251, 425, 495, 1513, 1751, 1840, 2235 | LIMIT, WAIT timer, output enables, transfer tick, PINS selection or x change on the edge a STOP halts the engine. A halted engine's outputs are masked, and START re-initialises every one of these registers before the engine runs again. |
@@ -559,3 +566,80 @@ not argued one by one. Observations:
 Compute (sums of per-mutant run times): stage `suite` 53.6 CPU-hours
 (including the slow node), miter 6.7 and 22.3, `equiv_induct` with invariants
 1.2, RIP 14.0 (first run) and 12.3 (second run). The job ids are also in the work directory's `manifest.json`.
+
+## 8. Later addition: WAITEVENT timeouts past each count bit
+
+The mutation campaign on the extension branch (`eval/diet8-rec16`,
+[extension.md](extension.md)) draws its own mutants of the extension
+variant's core. Among its survivors were mutations of the blocked-cycle
+count's next value that flip bit p of the value while its bit c is 1. The
+same mutations applied to the design-of-record core (this campaign's
+`base.il`, core sha256 `26a873db…`) gave four mutants that pass all 102 tests
+of the push suite (Slurm array jobs 24366260 and 24370776, with the unmutated
+core and id 0 as controls). All four are `mutate -mode cnot1` on the
+WAITEVENT stage of one engine's count:
+
+| id | cell | port | p, c | engine |
+|---|---|---|---|---:|
+| D331 | `$ternary$core_orig.v:8783$1163` | B | 10, 13 | 0 |
+| D333 | `$ternary$core_orig.v:8783$1163` | Y | 11, 14 | 0 |
+| D1438 | `$ternary$core_orig.v:11539$2365` | B | 16, 18 | 2 |
+| D1442 | `$ternary$core_orig.v:11539$2365` | Y | 7, 21 | 2 |
+
+This campaign's sample (2,420 mutants, drawn per region with the quotas and
+seed of `campaigns/mutation/results/gen_params.txt`) does not contain them. It
+has three other mutants on these two cells: 279 and 357 (`const0` on port A,
+section 5) and 483 (`cnot1` on port B of `8783$1163`, bit 13 while bit 17 is
+set, killed by `test_kill_blocked` in the push).
+
+The core raises the timeout on a sample where the count plus one reaches
+LIMIT. While the count is below 2^c its bit c is 0 and the flip does not act.
+On the sample on which the count reaches 2^c the mutant stores 2^c + 2^p
+instead. At LIMIT 2^c + 2 the next sample then has 2^c + 2^p + 1 ≥ 2^c + 2
+and times out one sample early, where the unmutated count gives
+2^c + 1 < 2^c + 2. The suite's other WAITEVENT timeouts above LIMIT 0x3FF
+(`test_kill_blocked` at 2^k + 5 for k = 12, 17, 20 and 23, `test_timewarp` at
+0xFFFFFE, and its WAITEVENT released by an EVENT just before 0xFFFFFD) did
+not detect the four.
+
+`test/test_wait_limit.py` ([test/README.md](../test/README.md), "LIMIT
+timeouts") lets WAITEVENT and WAITPIN time out at LIMIT 2^k + 2 for k = 0..23
+on every engine. It checks, from the DUT, that each engine's output enable
+stays high for exactly LIMIT + 1 edges and that its status reports fault
+code 3. On the test tree with the module (109 tests):
+
+- **The four mutants.** Each fails the module's WAITEVENT test and passes the
+  other 107 tests (job 24382109). With `PE_SPEC_ONLY=1` (no comparison with the
+  reference model) the module's own check fails: the enable of engine 0
+  (D331, D333) or engine 2 (D1438, D1442) is released after LIMIT edges
+  instead of LIMIT + 1, at LIMIT 2^13 + 2, 2^14 + 2, 2^18 + 2 and 2^21 + 2.
+- **The same bit pairs on the WAITPIN stage** of the same two engines (cells
+  `8787$1167` and `11543$2369`) are killed by `test_kill_blocked` already
+  (one of them also by `test_directed` and `test_timewarp`). The module
+  kills all four as well.
+- **Controls.** The unmutated core and id 0 pass all 109 tests.
+- **The 73 survivors of section 5.** The module kills one of them, 192
+  (`cnot1`, bit 5 while bit 21 is set, port A of
+  `$ternary$core_orig.v:11541$2367`), and the other 72 pass it (job
+  24382110). Cell `11541$2367` is the stage of another instruction, but its
+  port A carries the value that the WAITEVENT stage before it selected, so
+  the mutation acts on engine 2's WAITEVENT count. The argument of section 5
+  does not hold for it. It passes the other 107 tests, and with
+  `PE_SPEC_ONLY=1` the module's own check fails on it at LIMIT 2^21 + 2
+  (job 24382495).
+
+With 192 counted, the push's 102 tests and `test_wait_limit.py` together kill
+2,224 of the 2,420 mutants: 2,224 / (2,420 − 124) = 96.86 %, with 72
+survivors. With the proofs of section 4.5 (192 is not among them) the score
+is 2,224 / (2,420 − 150) = 97.97 %, with 46 survivors. The four mutants
+above are not in the sample and do not enter these figures. Arithmetic
+checked with AXLE (`<work dir>/limit-port/axle/`).
+
+Jobs, all with Icarus 13.0 and cocotb 2.0.1, the mutant core in place of
+`src/protocol_emulator_core.v` (through `PE_CORE`) and one make call per
+module, every module run: 24381935 (first checks), 24382109 (the default suite on the four
+mutants, the four WAITPIN-stage mutants, id 0 and the unmutated core, and the
+module alone with `PE_SPEC_ONLY=1`), 24382110 (the module on the 73
+survivors) and 24382495 (192 with `PE_SPEC_ONLY=1` and under the default
+suite). The job list is also in the work directory's
+`limit-port/manifest.json`.

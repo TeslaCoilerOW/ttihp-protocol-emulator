@@ -86,7 +86,7 @@ scripts re-run on Slurm; **local**, `make reproduce` (`scripts/reproduce.sh`).
 
 | Feature | What proves or tests it | Strength | Where |
 |---|---|---|---|
-| Instruction semantics (all opcode classes, `WAIT`/`XFER` timing, faults) | RTL vs model lockstep: 107 cocotb tests in the default suite (R28); 536,064 constrained-random cases, 0 failures (R20); `engine_safety` properties | Tested; `engine_safety` bounded (BMC 24) in CI, unbounded on the cluster (R32) | CI [`test.yaml`](../.github/workflows/test.yaml), [`formal.yaml`](../.github/workflows/formal.yaml); [`campaigns.json`](../campaigns/random/results/campaigns.json), [`summary.tsv`](../formal_depth/results/summary.tsv) |
+| Instruction semantics (all opcode classes, `WAIT`/`XFER` timing, faults) | RTL vs model lockstep: 109 cocotb tests in the default suite (R28b); 536,064 constrained-random cases, 0 failures (R20); `engine_safety` properties | Tested; `engine_safety` bounded (BMC 24) in CI, unbounded on the cluster (R32) | CI [`test.yaml`](../.github/workflows/test.yaml), [`formal.yaml`](../.github/workflows/formal.yaml); [`campaigns.json`](../campaigns/random/results/campaigns.json), [`summary.tsv`](../formal_depth/results/summary.tsv) |
 | Host port protocol and read-back | Host-port atomicity and read snapshots (R34); lockstep tests; host library three-way differential fuzz, 100,000 seeds with RTL replay (R24) | Proved, unbounded (R34); tested | Cluster: [`summary.tsv`](../formal_depth/results/summary.tsv); local: `host/tests` |
 | Program load (BEGIN, COMMIT, image length) | Control part (R35); SRAM data integrity `spec_word_*` (R35b); SRAM macro read-last-write lemma ([timing-certificates.md](timing-certificates.md) section 3) | Control: proved, unbounded. Data: bounded (BMC 48), with an argued unbounded chain | Cluster: [`summary.tsv`](../formal_depth/results/summary.tsv), [`cert/results`](../tools/timing/cert/results/) |
 | TX/RX FIFOs | `fifo_conservation`: the ring buffer equals an independent shift-queue model | Proved, unbounded (IC3/PDR) | CI [`formal.yaml`](../.github/workflows/formal.yaml) (R30) |
@@ -117,7 +117,7 @@ For each layer, a deliberately wrong input shows that the check can fail.
 | Netlist equivalence | A netlist with one cell function changed; a netlist with two SRAM data pins swapped; 9 recipe controls | Run with every check; each must give its expected verdict | [`equiv.yaml`](../.github/workflows/equiv.yaml) (R90, R91, R93) |
 | Third-party peers | Wrong SPI mode substituted | 12 of 12 detected | R22 |
 | FPGA capture analysis, in simulation | Cores with a deliberate timing coupling | All 5 cases expected to differ were reported different; the 4 expected to match did | [`scope-summary.json`](../demo/results/scope-summary.json) |
-| Test suite as a whole | 2,420 single-bit mutants of the core | 96.82% killed: 2,223 of the 2,296 mutants not proven equivalent (2,420 − 124). Survivors that are argued but not proven stay in the denominator | R23c |
+| Test suite as a whole | 2,420 single-bit mutants of the core | 96.82% killed: 2,223 of the 2,296 mutants not proven equivalent (2,420 − 124). Survivors that are argued but not proven stay in the denominator. `test_wait_limit.py`, added later, also kills one argued survivor (192): with it, 96.86% (2,224 / 2,296) | R23c; R28b |
 
 Controls like these, coverage accounting and review also found defects in the
 verification infrastructure itself ([bug-ledger.md](bug-ledger.md)):
@@ -204,10 +204,12 @@ most likely to raise are these.
   certificate for its current hash, and proves changed images whose proofs
   fit its budget of 150 runs; the full campaigns, and images over that
   budget, run on the cluster.
-- **Gate-level simulation is partial and zero-delay.** It runs 46 of the
-  107 tests of the default suite: the official runs so far had 102 tests,
-  46 pass and 56 skip (R85), and the 5 `uart-rx-idle` tests added in
-  `e64cd6b` skip at gate level too (R28). It runs without SDF and with the
+- **Gate-level simulation is partial and zero-delay.** It runs 48 of the
+  109 tests of the default suite. The official runs up to `24f31f0` had 102
+  tests, 46 pass and 56 skip (R85); those of `bab697b` had 107, 46 pass and
+  61 skip (runs 36624435821 and 36624435439), because the 5 `uart-rx-idle`
+  tests added in `e64cd6b` skip at gate level too (R28). The 2 tests of
+  `test_wait_limit.py` run there with LIMIT up to 2^8 + 2 (R28b). It runs without SDF and with the
   FUNCTIONAL SRAM models. Timing is covered
   by STA. The input and output delays in the constraints are an assumption
   (20% of the period), not derived from the Tiny Tapeout multiplexer or the
@@ -222,7 +224,11 @@ most likely to raise are these.
   time-warp tests, which deposit reachable counter values into RTL
   registers and run only on RTL. In the `c118027` gap closure, 82 of the 216
   new kills came only from them; several `test_kill_*` tests of the later
-  push also use the warp.
+  push also use the warp. The mutation campaign on the extension branch,
+  with its own sample, found four mutants of the design-of-record core that
+  pass every other test of the default suite; `test_wait_limit.py` was
+  written from them and kills them ([mutation-push.md](mutation-push.md)
+  section 8).
 - **The evidence spans revisions.** The random campaign, the peers and
   `formal_depth/` ran at `73536f0`, the certificates at `24f31f0` (earlier
   at `c118027`), the `pe_timing` validation of run r8 on the images of

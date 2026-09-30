@@ -322,6 +322,13 @@ All four are from [verification-campaign.md](verification-campaign.md),
   has a written argument that no test can observe it, but the arguments are
   not proofs, so they count as survivors ([mutation-push.md](mutation-push.md);
   [results.md](results.md) R23c).
+- **After `3364ad9`.** One of those arguments was wrong: survivor 192 sits
+  on a port that carries the WAITEVENT stage's count, and
+  `test/test_wait_limit.py` kills it. The same module closes a gap in the
+  WAITEVENT LIMIT countdown that a mutation campaign on the extension
+  variant found (four count-bit mutations passed all 107 tests of the suite
+  then); 96.86% with survivor 192 killed ([mutation-push.md](mutation-push.md)
+  section 8; [results.md](results.md) R28b).
 
 ### BL-13: formal harness corrections at integration (test)
 
