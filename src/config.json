@@ -203,6 +203,13 @@
   "PL_TIMING_DRIVEN": true,
   "SYNTH_STRATEGY": "DELAY 4",
 
+  "//": "Antenna repair (branch eval/diet8-rec16, docs/extension.md 7.2): the global-routing repair inserts diodes",
+  "//": "only, no jumpers. With LibreLane's default (jumpers, then diodes) the diet8_rec16 layout kept one antenna",
+  "//": "net after detailed routing (gds run 36360490711, local run 24121613). With this key the local mirror run",
+  "//": "24296555 has 0 (route DRC 0, LVS 0, setup and hold met at all corners), TT precheck 24309378 (9/9),",
+  "//": "gate-level 24307910 (0 fail), formal_eq 24306936 (equivalent, self-test passed).",
+  "GRT_ANTENNA_REPAIR_DIODE_ONLY": true,
+
   "//": "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
   "//": "!!! DO NOT CHANGE ANYTHING BELOW THIS POINT !!!",
   "//": "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
