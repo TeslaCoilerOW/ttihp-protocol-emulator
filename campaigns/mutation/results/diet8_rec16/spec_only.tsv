@@ -1,0 +1,72 @@
+sample	id	kill4_modules	spec_only_modules	spec_only_first_failure
+1	216	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 0, other pins high: 0 bits left at SE0, expected 11
+1	266	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 2, pair pin 0, other pins high: 0 bits left at SE0, expected 11
+1	612	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 0, other pins high: LSTAT flags 0x0, expected SE0 only (word 0xb50)
+1	618	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 0, other pins high: LSTAT flags 0x0, expected SE0 only (word 0xb50)
+1	621	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 0, other pins high: LSTAT flags 0x5, expected SE0 only (word 0xb55)
+1	964	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 2, pair pin 0, other pins high: LSTAT flags 0x0, expected SE0 only (word 0xb50)
+1	965	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 2, pair pin 0, other pins high: LSTAT flags 0x3, expected SE0 only (word 0xb53)
+1	966	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 2, pair pin 0, other pins high: 27 bits left at SE0, expected 11
+1	967	test_line_spec_se0_pins	-	-
+1	968	test_line_spec_se0_pins	-	-
+1	969	test_line_spec_se0_pins	-	-
+1	970	test_line_spec_se0_pins	-	-
+1	971	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 2, pair pin 0, other pins high: LSTAT flags 0x3, expected SE0 only (word 0xb53)
+1	972	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 2, pair pin 0, other pins high: 15 bits left at SE0, expected 11
+1	974	test_line_spec_se0_pins	-	-
+1	1064	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 2, pair pin 0, other pins high: LSTAT flags 0x5, expected SE0 only (word 0xb55)
+1	1146	test_line_spec_invalid_fields,test_line_spec_image_end	test_line_spec_invalid_fields,test_line_spec_image_end	engine 2, line XFER a=1: status 0x10a, pc 2
+1	1156	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 2, pair pin 0, other pins high: 3 bits left at SE0, expected 11
+1	1248	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 2, pair pin 0, other pins high: 3 bits left at SE0, expected 11
+1	1249	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 2, pair pin 0, other pins high: 3 bits left at SE0, expected 11
+1	1570	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 0, other pins high: 3 bits left at SE0, expected 11
+1	1865	test_line_spec_se0_pins	-	-
+1	1868	test_line_spec_se0_pins	-	-
+1	1869	test_line_spec_se0_pins	-	-
+1	2108	test_line_spec_se0_pins	-	-
+1	2110	test_line_spec_se0_pins	-	-
+1	2204	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 3, pair pin 0, other pins high: LSTAT flags 0x0, expected SE0 only (word 0xb50)
+1	2208	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 3, pair pin 0, other pins high: LSTAT flags 0x5, expected SE0 only (word 0xb55)
+1	2310	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 3, pair pin 0, other pins high: 27 bits left at SE0, expected 11
+1	2394	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 3, pair pin 0, other pins high: 15 bits left at SE0, expected 11
+1	2409	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 3, pair pin 0, other pins high: 9 bits left at SE0, expected 11
+1	2420	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 3, pair pin 0, other pins high: 27 bits left at SE0, expected 11
+1	2520	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 0, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+1	2614	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 0, other pins high: 10 bits left at SE0, expected 11
+1	2616	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 0, other pins high: 9 bits left at SE0, expected 11
+1	2617	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 0, other pins high: 10 bits left at SE0, expected 11
+1	2618	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 0, other pins high: 9 bits left at SE0, expected 11
+1	2619	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 0, other pins high: 9 bits left at SE0, expected 11
+1	2620	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 0, other pins high: 27 bits left at SE0, expected 11
+1	2622	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 0, other pins high: 10 bits left at SE0, expected 11
+2	331	test_line_spec_limit_bits	test_line_spec_limit_bits	WAITEVENT LIMIT 8194, engine 0: output enable high for 8194 edges, expected 8195 (LIMIT's edge and 8194 samples)
+2	333	test_line_spec_limit_bits	test_line_spec_limit_bits	WAITEVENT LIMIT 16386, engine 0: output enable high for 16386 edges, expected 16387 (LIMIT's edge and 16386 samples)
+2	1438	test_line_spec_limit_bits	test_line_spec_limit_bits	WAITEVENT LIMIT 262146, engine 2: output enable high for 262146 edges, expected 262147 (LIMIT's edge and 262146 samples)
+2	1442	test_line_spec_limit_bits	test_line_spec_limit_bits	WAITEVENT LIMIT 2097154, engine 2: output enable high for 2097154 edges, expected 2097155 (LIMIT's edge and 2097154 samp
+2	116	test_line_spec_invalid_fields	test_line_spec_invalid_fields	engine 0, CRC c=35 a=0 b=2: status 0x2, pc 2
+2	121	test_line_spec_invalid_fields	test_line_spec_invalid_fields	engine 0, CRC c=66 a=1 b=0: status 0x2, pc 2
+2	123	test_line_spec_invalid_fields	test_line_spec_invalid_fields	engine 0, LCFG bit 15: status 0x2, pc 2
+2	151	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 0, pair pin 5, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+2	152	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 0, pair pin 3, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+2	153	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 0, pair pin 7, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+2	154	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 0, pair pin 3, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+2	155	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 0, pair pin 2, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+2	159	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 5, other pins low: 16 bits left at SE0, expected 11
+2	160	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 4, other pins high: 16 bits left at SE0, expected 11
+2	161	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 2, other pins high: 16 bits left at SE0, expected 11
+2	162	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 6, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+2	167	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 1, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+2	168	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 1, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+2	169	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 1, pair pin 1, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+2	172	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 3, pair pin 1, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+2	173	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 3, pair pin 0, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+2	174	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 3, pair pin 0, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+2	175	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 2, pair pin 5, other pins high: 16 bits left at SE0, expected 11
+2	176	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 2, pair pin 3, other pins low: 16 bits left at SE0, expected 11
+2	177	test_line_spec_se0_pins	test_line_spec_se0_pins	engine 2, pair pin 1, other pins high: LSTAT flags 0x0, expected SE0 only (word 0x50)
+2	1627	test_line_spec_image_end	test_line_spec_image_end	LSTAT, engine 2: fault code 0, expected 2
+2	1743	test_line_spec_image_end	test_line_spec_image_end	LSTAT, engine 3: PC 65, expected 64
+2	1873	test_line_spec_image_end	test_line_spec_image_end	LCFG, engine 1: fault code 0, expected 2
+2	1878	test_line_spec_image_end	test_line_spec_image_end	LTIM, engine 1: fault code 0, expected 2
+2	2010	test_line_spec_image_end	test_line_spec_image_end	LCFG, engine 0: fault code 0, expected 2
+2	2069	test_line_spec_image_end	test_line_spec_image_end	SIGNAL, engine 0: PC 66, expected 64

@@ -1,0 +1,2118 @@
+id	region	mode	status	how
+1	ext/no-line-input	const1	killed	ordered:test_line_spec_pins
+2	ext/no-line-input	inv	killed	ordered:test_line_spec_pins
+3	ext/no-line-input	const1	killed	ordered:test_line_spec_pins
+4	ext/no-line-input	cnot0	killed	ordered:test_line_random
+5	ext/no-line-input	const1	killed	ordered:test_line_spec_pins
+6	ext/no-line-input	const0	killed	ordered:test_line_spec_pins
+7	ext/no-line-input	const1	killed	ordered:test_line_spec_pins
+8	ext/no-line-input	inv	killed	ordered:test_line_spec_pins
+9	ext/no-line-input	cnot1	killed	ordered:test_line_spec_pins
+10	ext/no-line-input	inv	killed	ordered:test_line_random
+11	ext/no-line-input	const0	killed	ordered:test_line_spec_every_engine
+12	ext/no-line-input	const0	killed	ordered:test_line_random
+13	ext/no-line-input	const1	killed	ordered:test_kill_decode
+14	ext/no-line-input	const0	killed	ordered:test_line_random
+15	ext/no-line-input	inv	killed	ordered:test_line_random
+16	ext/no-line-input	inv	killed	ordered:test_line_random
+17	ext/no-line-input	const1	killed	ordered:test_line_random
+18	ext/no-line-input	const0	killed	ordered:test_line_random
+19	ext/no-line-input	const1	killed	ordered:test_line_random
+20	ext/no-line-input	inv	killed	ordered:test_line_random
+21	ext/no-line-input	const1	killed	ordered:test_kill_decode
+22	ext/no-line-input	const1	killed	ordered:test_kill_decode
+23	ext/no-line-input	const1	killed	ordered:test_line_spec_every_engine
+24	ext/no-line-input	const1	killed	ordered:test_line_random
+25	ext/no-line-input	const1	killed	ordered:test_line_random
+26	ext/no-line-input	const1	killed	ordered:test_line_spec_every_engine
+27	ext/no-line-input	const1	killed	ordered:test_line_random
+28	ext/no-line-input	const0	killed	ordered:test_line_random
+29	ext/no-line-input	inv	killed	ordered:test_line_random
+30	ext/no-line-input	const0	killed	ordered:test_line_random
+31	ext/tie	inv	killed	ordered:test_line_random
+32	ext/tie	const1	killed	ordered:test_line_random
+33	ext/tie	inv	killed	ordered:test_line_random
+34	ext/tie	const1	killed	ordered:test_line_random
+35	ext/tie	inv	killed	ordered:test_line_random
+36	ext/tie	const0	killed	ordered:test_line_random
+37	ext/tie	const1	killed	ordered:test_line_unit
+38	ext/tie	inv	killed	ordered:test_line_random
+39	ext/tie	const1	killed	ordered:test_line_spec_every_engine
+40	ext/tie	inv	killed	ordered:test_line_unit
+41	ext/tie	const0	killed	ordered:test_line_random
+42	ext/tie	const0	killed	ordered:test_line_unit
+43	ext/tie	const0	killed	ordered:test_line_random
+44	ext/tie	const1	equivalent	miter-abc-900s
+45	ext/tie	const1	killed	ordered:test_kill_edges
+46	ext/tie	inv	killed	ordered:test_line_random
+47	ext/no-line-input	inv	killed	ordered:test_line_unit
+48	ext/no-line-input	const1	killed	ordered:test_line_unit
+49	ext/tie	inv	killed	ordered:test_line_unit
+50	ext/tie	const0	killed	ordered:test_line_unit
+51	ext/no-line-input	inv	killed	ordered:test_line_spec_pins
+52	ext/no-line-input	const1	killed	ordered:test_line_spec_pins
+53	ext/no-line-input	cnot1	killed	ordered:test_line_random
+54	ext/tie	const0	killed	ordered:test_line_unit
+55	ext/tie	cnot1	equivalent	equiv_induct
+56	ext/no-line-input	cnot1	equivalent	equiv_induct
+57	ext/no-line-input	const1	killed	ordered:test_line_random
+58	ext/no-line-input	inv	killed	ordered:test_line_random
+59	ext/no-line-input	inv	killed	ordered:test_line_random
+60	ext/no-line-input	inv	killed	ordered:test_kill_decode
+61	ext/no-line-input	cnot1	killed	ordered:test_kill_decode
+62	ext/no-line-input	const1	equivalent	equiv_induct
+63	ext/tie	inv	killed	ordered:test_line_random
+64	ext/tie	inv	killed	ordered:test_line_random
+65	ext/tie	const1	killed	ordered:test_line_random
+66	ext/tie	cnot0	killed	ordered:test_line_random
+67	ext/tie	inv	killed	ordered:test_line_unit
+68	ext/tie	const0	killed	ordered:test_random
+69	ext/tie	const1	killed	ordered:test_line_random
+70	ext/no-line-input	inv	killed	ordered:test_line_random
+71	ext/no-line-input	const0	killed	ordered:test_line_random
+72	ext/no-line-input	const1	killed	ordered:test_line_random
+73	ext/no-line-input	const0	killed	ordered:test_line_random
+74	ext/no-line-input	inv	killed	ordered:test_line_random
+75	ext/no-line-input	cnot1	equivalent	equiv_induct
+76	ext/tie	cnot1	killed	ordered:test_line_random
+77	ext/tie	inv	killed	ordered:test_line_random
+78	ext/tie	inv	killed	ordered:test_line_spec_every_engine
+79	ext/tie	cnot1	killed	ordered:test_line_spec_every_engine
+80	ext/tie	const1	killed	ordered:test_line_spec_every_engine
+81	ext/tie	cnot1	equivalent	equiv_induct
+82	ext/tie	cnot0	killed	ordered:test_line_unit
+83	ext/no-line-input	const1	killed	ordered:test_line_random
+84	ext/no-line-input	inv	killed	ordered:test_line_random
+85	ext/no-line-input	const0	killed	ordered:test_line_random
+86	ext/no-line-input	const1	killed	ordered:test_line_random
+87	ext/no-line-input	inv	killed	ordered:test_line_random
+88	ext/no-line-input	inv	killed	ordered:test_line_random
+89	ext/no-line-input	inv	killed	ordered:test_kill_decode
+90	ext/no-line-input	cnot1	killed	ordered:test_kill_decode
+91	ext/no-line-input	inv	killed	ordered:test_kill_decode
+92	ext/no-line-input	const0	killed	ordered:test_kill_decode
+93	ext/no-line-input	const1	killed	ordered:test_line_random
+94	ext/tie	const0	killed	ordered:test_line_spec_every_engine
+95	ext/tie	const1	killed	ordered:test_line_random
+96	ext/tie	const0	killed	ordered:test_line_random
+97	ext/tie	cnot0	killed	ordered:test_line_random
+98	ext/no-line-input	const1	equivalent	equiv_induct
+99	ext/tie	cnot0	killed	ordered:test_line_random
+100	ext/tie	cnot1	equivalent	equiv_induct
+101	ext/tie	const1	killed	ordered:test_line_random
+102	ext/tie	inv	killed	ordered:test_line_random
+103	ext/tie	const1	killed	ordered:test_line_random
+104	ext/tie	const0	killed	ordered:test_timewarp
+105	ext/tie	cnot1	equivalent	equiv_induct
+106	ext/tie	const1	killed	ordered:test_line_random
+107	ext/tie	const1	killed	ordered:test_line_random
+108	ext/tie	cnot1	equivalent	equiv_induct
+109	ext/tie	cnot1	equivalent	equiv_induct
+110	ext/tie	inv	killed	ordered:test_line_random
+111	ext/tie	cnot0	killed	ordered:test_line_random
+112	ext/tie	cnot1	equivalent	equiv_induct
+113	ext/tie	cnot0	killed	ordered:test_line_random
+114	ext/tie	cnot1	equivalent	equiv_induct
+115	ext/no-line-input	const0	killed	ordered:test_line_unit
+116	ext/no-line-input	const0	killed	kill:test_line_spec_invalid_fields
+117	ext/no-line-input	inv	killed	ordered:test_line_unit
+118	ext/no-line-input	inv	killed	ordered:test_line_unit
+119	ext/no-line-input	inv	killed	ordered:test_line_unit
+120	ext/no-line-input	inv	killed	ordered:test_line_unit
+121	ext/no-line-input	const0	killed	kill:test_line_spec_invalid_fields
+122	ext/no-line-input	inv	killed	ordered:test_line_unit
+123	ext/no-line-input	const0	killed	kill:test_line_spec_invalid_fields
+124	ext/tie	const0	killed	ordered:test_line_unit
+125	ext/tie	const0	killed	ordered:test_line_unit
+126	ext/tie	const0	killed	ordered:test_line_unit
+127	ext/tie	const1	killed	ordered:test_line_unit
+128	ext/tie	cnot1	equivalent	equiv_induct
+129	ext/tie	inv	killed	ordered:test_line_unit
+130	ext/tie	const1	killed	ordered:test_smoke
+131	ext/tie	const0	killed	ordered:test_protocols
+132	ext/tie	inv	killed	ordered:test_legacy
+133	ext/tie	const0	killed	ordered:test_line_random
+134	ext/tie	cnot0	killed	ordered:test_line_random
+135	ext/tie	inv	killed	ordered:test_smoke
+136	ext/tie	cnot1	killed	ordered:test_random
+137	ext/tie	cnot1	killed	ordered:test_line_unit
+138	ext/tie	const0	killed	ordered:test_kill_host
+139	ext/tie	cnot1	killed	ordered:test_line_unit
+140	ext/tie	const0	killed	ordered:test_line_unit
+141	ext/no-line-input	inv	killed	ordered:test_line_random
+142	ext/tie	inv	killed	ordered:test_line_random
+143	ext/tie	inv	killed	ordered:test_line_random
+144	ext/tie	const0	killed	ordered:test_random
+145	ext/tie	inv	killed	ordered:test_line_unit
+146	ext/no-line-input	inv	killed	ordered:test_line_random
+147	ext/no-line-input	const1	killed	ordered:test_line_random
+148	ext/no-line-input	const0	killed	ordered:test_line_random
+149	ext/tie	inv	killed	ordered:test_line_random
+150	ext/tie	const0	killed	ordered:test_random
+151	ext/tie	const1	killed	kill:test_line_spec_se0_pins
+152	ext/tie	const1	killed	kill:test_line_spec_se0_pins
+153	ext/tie	const0	killed	kill:test_line_spec_se0_pins
+154	ext/tie	const0	killed	kill:test_line_spec_se0_pins
+155	ext/tie	cnot0	killed	kill:test_line_spec_se0_pins
+156	ext/tie	cnot1	killed	ordered:test_line_demos
+157	ext/tie	cnot1	equivalent	equiv_induct
+158	ext/tie	const0	equivalent	equiv_induct
+159	ext/tie	cnot0	killed	kill:test_line_spec_se0_pins
+160	ext/tie	cnot1	killed	kill:test_line_spec_se0_pins
+161	ext/tie	const0	killed	kill:test_line_spec_se0_pins
+162	ext/tie	const0	killed	kill:test_line_spec_se0_pins
+163	ext/tie	inv	killed	ordered:test_line_spec_every_engine
+164	ext/tie	const1	killed	ordered:test_line_spec_every_engine
+165	ext/tie	const1	killed	ordered:test_line_spec_every_engine
+166	ext/tie	cnot1	equivalent	equiv_induct
+167	ext/tie	const0	killed	kill:test_line_spec_se0_pins
+168	ext/tie	inv	killed	kill:test_line_spec_se0_pins
+169	ext/tie	const1	killed	kill:test_line_spec_se0_pins
+170	ext/tie	const0	equivalent	equiv_induct
+171	ext/tie	const0	equivalent	equiv_induct
+172	ext/tie	cnot1	killed	kill:test_line_spec_se0_pins
+173	ext/tie	const1	killed	kill:test_line_spec_se0_pins
+174	ext/tie	cnot0	killed	kill:test_line_spec_se0_pins
+175	ext/tie	cnot1	killed	kill:test_line_spec_se0_pins
+176	ext/tie	cnot0	killed	kill:test_line_spec_se0_pins
+177	ext/tie	const1	killed	kill:test_line_spec_se0_pins
+178	ext/tie	inv	killed	ordered:test_line_spec_every_engine
+179	ext/tie	const0	equivalent	equiv_induct
+180	ext/no-line-input	cnot1	survived	
+181	ext/no-line-input	const1	survived	
+182	ext/no-line-input	cnot1	survived	
+183	ext/no-line-input	const0	equivalent	equiv_induct
+184	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+185	ext/no-line-input	cnot1	survived	
+186	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+187	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+188	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+189	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+190	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+191	ext/no-line-input	const0	survived	
+192	ext/no-line-input	const0	survived	
+193	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+194	ext/no-line-input	const0	equivalent	equiv_induct
+195	ext/no-line-input	const0	equivalent	equiv_induct
+196	ext/no-line-input	const0	survived	
+197	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+198	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+199	ext/no-line-input	cnot1	survived	
+200	ext/no-line-input	cnot1	survived	
+201	ext/no-line-input	const1	killed	ordered:test_line_unit
+202	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+203	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+204	ext/no-line-input	const0	survived	
+205	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+206	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+207	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+208	ext/no-line-input	const0	survived	
+209	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+210	ext/no-line-input	const1	killed	ordered:test_line_unit
+211	ext/no-line-input	cnot1	survived	
+212	ext/no-line-input	cnot1	survived	
+213	ext/no-line-input	const1	killed	ordered:test_line_unit
+214	ext/no-line-input	cnot1	survived	
+215	ext/no-line-input	const1	killed	ordered:test_line_unit
+216	ext/no-line-input	const0	equivalent	equiv_induct
+217	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+218	ext/no-line-input	const0	survived	
+219	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+220	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+221	ext/no-line-input	inv	killed	ordered:test_line_unit
+222	ext/no-line-input	inv	killed	ordered:test_line_unit
+223	ext/no-line-input	const1	killed	ordered:test_line_unit
+224	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+225	ext/no-line-input	const0	survived	
+226	ext/no-line-input	cnot1	survived	
+227	ext/no-line-input	cnot1	survived	
+228	ext/no-line-input	cnot1	survived	
+229	ext/no-line-input	inv	killed	ordered:test_random
+230	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+231	ext/no-line-input	cnot1	survived	
+232	ext/no-line-input	inv	killed	ordered:test_line_unit
+233	ext/no-line-input	const0	survived	
+234	ext/no-line-input	const1	killed	ordered:test_line_unit
+235	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+236	ext/no-line-input	const1	killed	ordered:test_timewarp
+237	ext/no-line-input	const0	equivalent	equiv_induct
+238	ext/no-line-input	inv	killed	ordered:test_random
+239	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+240	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+241	ext/no-line-input	inv	killed	ordered:test_line_unit
+242	ext/no-line-input	const1	killed	ordered:test_random
+243	ext/no-line-input	cnot1	survived	
+244	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+245	ext/no-line-input	cnot1	survived	
+246	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+247	ext/no-line-input	inv	killed	ordered:test_random
+248	ext/no-line-input	const0	survived	
+249	ext/no-line-input	const0	survived	
+250	ext/no-line-input	const0	survived	
+251	ext/no-line-input	const1	killed	ordered:test_line_unit
+252	ext/no-line-input	const1	killed	ordered:test_timewarp
+253	ext/no-line-input	inv	killed	ordered:test_line_unit
+254	ext/no-line-input	cnot0	killed	ordered:test_timewarp
+255	ext/no-line-input	inv	killed	ordered:test_line_unit
+256	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+257	ext/no-line-input	cnot1	survived	
+258	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+259	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+260	ext/no-line-input	const1	killed	ordered:test_random
+261	ext/no-line-input	cnot1	survived	
+262	ext/no-line-input	const1	killed	ordered:test_line_unit
+263	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+264	ext/no-line-input	const0	equivalent	equiv_induct
+265	ext/no-line-input	const0	equivalent	equiv_induct
+266	ext/no-line-input	inv	killed	ordered:test_line_unit
+267	ext/no-line-input	const0	equivalent	equiv_induct
+268	ext/no-line-input	inv	killed	ordered:test_line_unit
+269	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+270	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+271	ext/no-line-input	const0	survived	
+272	ext/no-line-input	const0	survived	
+273	ext/no-line-input	inv	killed	ordered:test_random
+274	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+275	ext/no-line-input	inv	killed	ordered:test_random
+276	ext/no-line-input	cnot0	killed	ordered:test_random
+277	ext/no-line-input	cnot0	killed	ordered:test_random
+278	ext/no-line-input	inv	killed	ordered:test_line_unit
+279	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+280	ext/no-line-input	const0	equivalent	equiv_induct
+281	ext/no-line-input	const0	equivalent	equiv_induct
+282	ext/no-line-input	inv	killed	ordered:test_random
+283	ext/no-line-input	const0	equivalent	equiv_induct
+284	ext/no-line-input	cnot1	survived	
+285	ext/no-line-input	inv	killed	ordered:test_random
+286	ext/no-line-input	cnot1	survived	
+287	ext/no-line-input	const0	survived	
+288	ext/no-line-input	const0	survived	
+289	ext/no-line-input	const1	killed	ordered:test_random
+290	ext/no-line-input	const1	killed	ordered:test_line_unit
+291	ext/no-line-input	cnot1	survived	
+292	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+293	ext/no-line-input	const1	killed	ordered:test_random
+294	ext/no-line-input	const1	killed	ordered:test_random
+295	ext/no-line-input	const1	killed	ordered:test_random
+296	ext/no-line-input	const1	killed	ordered:test_line_unit
+297	ext/no-line-input	inv	killed	ordered:test_timewarp
+298	ext/no-line-input	const0	survived	
+299	ext/no-line-input	cnot1	survived	
+300	ext/no-line-input	cnot0	killed	ordered:test_random
+301	ext/no-line-input	const1	killed	ordered:test_random
+302	ext/no-line-input	inv	killed	ordered:test_random
+303	ext/no-line-input	const0	survived	
+304	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+305	ext/no-line-input	const1	killed	ordered:test_timewarp
+306	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+307	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+308	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+309	ext/no-line-input	const1	killed	ordered:test_random
+310	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+311	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+312	ext/no-line-input	const0	equivalent	equiv_induct
+313	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+314	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+315	ext/no-line-input	inv	killed	ordered:test_random
+316	ext/no-line-input	const0	survived	
+317	ext/no-line-input	inv	killed	ordered:test_random
+318	ext/no-line-input	const1	killed	ordered:test_random
+319	ext/no-line-input	inv	killed	ordered:test_random
+320	ext/no-line-input	const0	survived	
+321	ext/no-line-input	const0	survived	
+322	ext/no-line-input	const0	survived	
+323	ext/no-line-input	cnot0	killed	ordered:test_random
+324	ext/no-line-input	cnot1	survived	
+325	ext/no-line-input	const0	survived	
+326	ext/no-line-input	inv	killed	ordered:test_random
+327	ext/no-line-input	const1	killed	ordered:test_random
+328	ext/no-line-input	const1	killed	ordered:test_random
+329	ext/no-line-input	const1	killed	ordered:test_line_unit
+330	ext/no-line-input	const0	killed	ordered:test_random
+331	ext/no-line-input	cnot1	killed	kill4:test_line_spec_limit_bits
+332	ext/no-line-input	inv	killed	ordered:test_random
+333	ext/no-line-input	cnot1	killed	kill4:test_line_spec_limit_bits
+334	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+335	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+336	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+337	ext/no-line-input	const0	killed	ordered:test_random
+338	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+339	ext/no-line-input	inv	killed	ordered:test_line_unit
+340	ext/no-line-input	cnot1	killed	ordered:test_random
+341	ext/no-line-input	const0	equivalent	equiv_induct
+342	ext/no-line-input	const0	equivalent	equiv_induct
+343	ext/no-line-input	const0	equivalent	equiv_induct
+344	ext/no-line-input	const0	killed	ordered:test_random
+345	ext/no-line-input	cnot0	killed	ordered:test_random
+346	ext/no-line-input	const1	killed	ordered:test_random
+347	ext/no-line-input	const1	killed	ordered:test_random
+348	ext/no-line-input	cnot1	killed	ordered:test_random
+349	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+350	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+351	ext/no-line-input	const1	killed	ordered:test_random
+352	ext/no-line-input	inv	killed	ordered:test_random
+353	ext/no-line-input	const1	killed	ordered:test_line_unit
+354	ext/no-line-input	inv	killed	ordered:test_line_unit
+355	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+356	ext/no-line-input	inv	killed	ordered:test_legacy
+357	ext/no-line-input	cnot0	killed	ordered:test_legacy
+358	ext/no-line-input	const1	killed	ordered:test_line_unit
+359	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+360	ext/no-line-input	const0	killed	ordered:test_timewarp
+361	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+362	ext/no-line-input	const0	killed	ordered:test_directed
+363	ext/no-line-input	const0	killed	ordered:test_directed
+364	ext/no-line-input	const1	killed	ordered:test_legacy
+365	ext/no-line-input	cnot1	killed	ordered:test_legacy
+366	ext/no-line-input	const0	killed	ordered:test_directed
+367	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+368	ext/no-line-input	inv	killed	ordered:test_legacy
+369	ext/no-line-input	inv	killed	ordered:test_legacy
+370	ext/no-line-input	const1	killed	ordered:test_legacy
+371	ext/no-line-input	const1	killed	ordered:test_legacy
+372	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+373	ext/no-line-input	const1	killed	ordered:test_line_unit
+374	ext/no-line-input	cnot1	killed	ordered:test_random
+375	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+376	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+377	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+378	ext/no-line-input	inv	killed	ordered:test_timewarp
+379	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+380	ext/no-line-input	inv	killed	ordered:test_legacy
+381	ext/no-line-input	cnot1	killed	ordered:test_random
+382	ext/no-line-input	const0	killed	ordered:test_directed
+383	ext/no-line-input	cnot1	killed	ordered:test_directed
+384	ext/no-line-input	cnot0	killed	ordered:test_legacy
+385	ext/no-line-input	const1	killed	ordered:test_legacy
+386	ext/no-line-input	cnot0	killed	ordered:test_legacy
+387	ext/no-line-input	inv	killed	ordered:test_legacy
+388	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+389	ext/no-line-input	cnot0	killed	ordered:test_legacy
+390	ext/no-line-input	const1	killed	ordered:test_legacy
+391	ext/no-line-input	cnot0	killed	ordered:test_legacy
+392	ext/no-line-input	cnot1	killed	ordered:test_random
+393	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+394	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+395	ext/no-line-input	cnot0	killed	ordered:test_legacy
+396	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+397	ext/no-line-input	const0	equivalent	equiv_induct
+398	ext/no-line-input	inv	killed	ordered:test_legacy
+399	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+400	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+401	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+402	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+403	ext/no-line-input	inv	killed	ordered:test_legacy
+404	ext/no-line-input	const1	killed	ordered:test_legacy
+405	ext/no-line-input	const0	killed	ordered:test_directed
+406	ext/no-line-input	const0	killed	ordered:test_timewarp
+407	ext/no-line-input	inv	killed	ordered:test_line_unit
+408	ext/no-line-input	const0	killed	ordered:test_directed
+409	ext/no-line-input	cnot0	killed	ordered:test_legacy
+410	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+411	ext/no-line-input	const0	killed	ordered:test_timewarp
+412	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+413	ext/no-line-input	const0	killed	ordered:test_timewarp
+414	ext/no-line-input	const0	equivalent	equiv_induct
+415	ext/no-line-input	const0	equivalent	equiv_induct
+416	ext/no-line-input	const1	killed	ordered:test_random
+417	ext/no-line-input	inv	killed	ordered:test_legacy
+418	ext/no-line-input	const1	killed	ordered:test_legacy
+419	ext/no-line-input	inv	killed	ordered:test_legacy
+420	ext/no-line-input	const0	killed	ordered:test_timewarp
+421	ext/no-line-input	cnot0	killed	ordered:test_legacy
+422	ext/no-line-input	cnot0	killed	ordered:test_legacy
+423	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+424	ext/no-line-input	const0	killed	ordered:test_directed
+425	ext/no-line-input	const1	killed	ordered:test_legacy
+426	ext/no-line-input	inv	killed	ordered:test_legacy
+427	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+428	ext/no-line-input	cnot1	survived	
+429	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+430	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+431	ext/no-line-input	inv	killed	ordered:test_random
+432	ext/no-line-input	const0	survived	
+433	ext/no-line-input	const0	survived	
+434	ext/no-line-input	inv	killed	ordered:test_legacy
+435	ext/no-line-input	inv	killed	ordered:test_legacy
+436	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+437	ext/no-line-input	const1	killed	ordered:test_line_unit
+438	ext/no-line-input	const1	killed	ordered:test_legacy
+439	ext/no-line-input	inv	killed	ordered:test_legacy
+440	ext/no-line-input	const1	killed	ordered:test_legacy
+441	ext/no-line-input	const0	killed	ordered:test_directed
+442	ext/no-line-input	const1	killed	ordered:test_legacy
+443	ext/no-line-input	const1	killed	ordered:test_legacy
+444	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+445	ext/no-line-input	cnot1	survived	
+446	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+447	ext/no-line-input	const1	killed	ordered:test_legacy
+448	ext/no-line-input	cnot1	killed	ordered:test_random
+449	ext/no-line-input	const0	killed	ordered:test_timewarp
+450	ext/no-line-input	inv	killed	ordered:test_line_unit
+451	ext/no-line-input	inv	killed	ordered:test_legacy
+452	ext/no-line-input	cnot1	killed	ordered:test_random
+453	ext/no-line-input	const0	killed	ordered:test_timewarp
+454	ext/no-line-input	const1	killed	ordered:test_legacy
+455	ext/no-line-input	inv	killed	ordered:test_legacy
+456	ext/no-line-input	cnot0	killed	ordered:test_legacy
+457	ext/no-line-input	const1	killed	ordered:test_legacy
+458	ext/no-line-input	const0	equivalent	equiv_induct
+459	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+460	ext/no-line-input	cnot0	killed	ordered:test_legacy
+461	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+462	ext/no-line-input	inv	killed	ordered:test_legacy
+463	ext/no-line-input	const1	killed	ordered:test_legacy
+464	ext/no-line-input	cnot0	killed	ordered:test_legacy
+465	ext/no-line-input	inv	killed	ordered:test_legacy
+466	ext/no-line-input	cnot1	killed	ordered:test_random
+467	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+468	ext/no-line-input	inv	killed	ordered:test_line_unit
+469	ext/no-line-input	const1	killed	ordered:test_line_unit
+470	ext/no-line-input	const0	killed	ordered:test_directed
+471	ext/no-line-input	cnot1	killed	ordered:test_random
+472	ext/no-line-input	inv	killed	ordered:test_line_unit
+473	ext/no-line-input	inv	killed	ordered:test_line_unit
+474	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+475	ext/no-line-input	inv	killed	ordered:test_line_unit
+476	ext/no-line-input	const0	killed	ordered:test_timewarp
+477	ext/no-line-input	const1	killed	ordered:test_legacy
+478	ext/no-line-input	cnot0	killed	ordered:test_legacy
+479	ext/no-line-input	inv	killed	ordered:test_timewarp
+480	ext/no-line-input	const1	killed	ordered:test_timewarp
+481	ext/no-line-input	inv	killed	ordered:test_random
+482	ext/no-line-input	const1	killed	ordered:test_random
+483	ext/no-line-input	cnot0	killed	ordered:test_legacy
+484	ext/no-line-input	inv	killed	ordered:test_line_unit
+485	ext/no-line-input	inv	killed	ordered:test_legacy
+486	ext/no-line-input	inv	killed	ordered:test_legacy
+487	ext/no-line-input	const1	killed	ordered:test_line_unit
+488	ext/no-line-input	const1	survived	
+489	ext/no-line-input	const1	survived	
+490	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+491	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+492	ext/no-line-input	const1	killed	ordered:test_legacy
+493	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+494	ext/no-line-input	const1	killed	ordered:test_legacy
+495	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+496	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+497	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+498	ext/no-line-input	cnot0	killed	ordered:test_legacy
+499	ext/no-line-input	cnot1	killed	ordered:test_random
+500	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+501	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+502	ext/no-line-input	inv	killed	ordered:test_timewarp
+503	ext/no-line-input	const0	killed	ordered:test_directed
+504	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+505	ext/no-line-input	const1	killed	ordered:test_line_unit
+506	ext/no-line-input	const0	killed	ordered:test_line_unit
+507	ext/no-line-input	inv	killed	ordered:test_line_unit
+508	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+509	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+510	ext/no-line-input	const1	killed	ordered:test_line_unit
+511	ext/no-line-input	const1	killed	ordered:test_line_unit
+512	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+513	ext/no-line-input	const1	killed	ordered:test_line_unit
+514	ext/no-line-input	const1	killed	ordered:test_line_unit
+515	ext/no-line-input	const0	equivalent	equiv_induct
+516	ext/no-line-input	const0	killed	ordered:test_line_unit
+517	ext/no-line-input	const0	killed	ordered:test_line_unit
+518	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+519	ext/tie	cnot1	killed	ordered:test_line_spec_stuffing
+520	ext/tie	cnot1	killed	ordered:test_line_unit
+521	ext/no-line-input	const0	survived	
+522	ext/no-line-input	const0	survived	
+523	ext/no-line-input	inv	survived	
+524	ext/no-line-input	cnot1	survived	
+525	ext/no-line-input	const0	survived	
+526	ext/no-line-input	cnot0	survived	
+527	ext/no-line-input	inv	survived	
+528	ext/no-line-input	cnot1	survived	
+529	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+530	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+531	ext/no-line-input	const0	equivalent	equiv_induct
+532	ext/no-line-input	const1	survived	
+533	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+534	ext/no-line-input	const0	survived	
+535	ext/no-line-input	cnot1	survived	
+536	ext/no-line-input	cnot1	survived	
+537	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+538	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+539	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+540	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+541	ext/no-line-input	cnot0	killed	ordered:test_line_spec_every_engine
+542	ext/no-line-input	cnot1	survived	
+543	ext/no-line-input	const1	killed	ordered:test_line_spec_every_engine
+544	ext/no-line-input	cnot0	killed	ordered:test_line_spec_every_engine
+545	ext/no-line-input	cnot0	killed	ordered:test_line_spec_every_engine
+546	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+547	ext/no-line-input	const0	equivalent	equiv_induct
+548	ext/no-line-input	const0	equivalent	equiv_induct
+549	ext/no-line-input	cnot1	survived	
+550	ext/no-line-input	const1	killed	ordered:test_line_spec_every_engine
+551	ext/no-line-input	inv	killed	ordered:test_line_spec_every_engine
+552	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+553	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+554	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+555	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+556	ext/no-line-input	const1	killed	ordered:test_line_spec_every_engine
+557	ext/no-line-input	const0	equivalent	equiv_induct
+558	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+559	ext/no-line-input	const0	survived	
+560	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+561	ext/no-line-input	cnot1	survived	
+562	ext/no-line-input	const0	survived	
+563	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+564	ext/no-line-input	const0	survived	
+565	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+566	ext/no-line-input	cnot0	killed	ordered:test_line_spec_every_engine
+567	ext/no-line-input	const1	killed	ordered:test_directed
+568	ext/no-line-input	const1	killed	ordered:test_directed
+569	ext/no-line-input	const1	killed	ordered:test_directed
+570	ext/no-line-input	const0	survived	
+571	ext/no-line-input	const0	survived	
+572	ext/no-line-input	cnot1	survived	
+573	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+574	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+575	ext/no-line-input	const0	equivalent	equiv_induct
+576	ext/no-line-input	const1	killed	ordered:test_directed
+577	ext/no-line-input	inv	killed	ordered:test_directed
+578	ext/no-line-input	const0	survived	
+579	ext/no-line-input	const0	survived	
+580	ext/no-line-input	cnot0	killed	ordered:test_directed
+581	ext/no-line-input	cnot0	killed	ordered:test_directed
+582	ext/no-line-input	const1	killed	ordered:test_directed
+583	ext/no-line-input	inv	killed	ordered:test_directed
+584	ext/no-line-input	const0	survived	
+585	ext/no-line-input	cnot0	killed	ordered:test_directed
+586	ext/no-line-input	const0	survived	
+587	ext/no-line-input	const1	killed	ordered:test_directed
+588	ext/no-line-input	cnot1	survived	
+589	ext/no-line-input	const1	killed	ordered:test_directed
+590	ext/no-line-input	cnot1	survived	
+591	ext/no-line-input	cnot1	survived	
+592	ext/no-line-input	inv	killed	ordered:test_random
+593	ext/no-line-input	const1	killed	ordered:test_random
+594	ext/no-line-input	const0	equivalent	equiv_induct
+595	ext/no-line-input	inv	killed	ordered:test_timewarp
+596	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+597	ext/no-line-input	const0	equivalent	equiv_induct
+598	ext/no-line-input	cnot0	killed	ordered:test_directed
+599	ext/no-line-input	const1	killed	ordered:test_directed
+600	ext/no-line-input	cnot0	killed	ordered:test_directed
+601	ext/no-line-input	const0	survived	
+602	ext/no-line-input	inv	killed	ordered:test_directed
+603	ext/no-line-input	cnot0	killed	ordered:test_directed
+604	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+605	ext/no-line-input	const0	survived	
+606	ext/no-line-input	cnot1	survived	
+607	ext/no-line-input	const1	killed	ordered:test_directed
+608	ext/no-line-input	cnot1	survived	
+609	ext/no-line-input	const0	survived	
+610	ext/no-line-input	cnot1	survived	
+611	ext/no-line-input	cnot0	killed	ordered:test_random
+612	ext/no-line-input	const1	killed	ordered:test_random
+613	ext/no-line-input	cnot1	survived	
+614	ext/no-line-input	cnot0	killed	ordered:test_directed
+615	ext/no-line-input	const1	killed	ordered:test_directed
+616	ext/no-line-input	inv	killed	ordered:test_directed
+617	ext/no-line-input	cnot1	survived	
+618	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+619	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+620	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+621	ext/no-line-input	const0	equivalent	equiv_induct
+622	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+623	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+624	ext/no-line-input	inv	killed	ordered:test_directed
+625	ext/no-line-input	const0	survived	
+626	ext/no-line-input	inv	killed	ordered:test_random
+627	ext/no-line-input	const1	killed	ordered:test_random
+628	ext/no-line-input	cnot0	killed	ordered:test_directed
+629	ext/no-line-input	const0	equivalent	equiv_induct
+630	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+631	ext/no-line-input	cnot1	survived	
+632	ext/no-line-input	cnot1	survived	
+633	ext/no-line-input	const1	killed	ordered:test_directed
+634	ext/no-line-input	inv	killed	ordered:test_random
+635	ext/no-line-input	inv	killed	ordered:test_random
+636	ext/no-line-input	const0	survived	
+637	ext/no-line-input	cnot0	killed	ordered:test_random
+638	ext/no-line-input	inv	killed	ordered:test_random
+639	ext/no-line-input	const0	equivalent	equiv_induct
+640	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+641	ext/no-line-input	cnot0	killed	ordered:test_directed
+642	ext/no-line-input	cnot1	survived	
+643	ext/no-line-input	cnot1	survived	
+644	ext/no-line-input	const0	equivalent	equiv_induct
+645	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+646	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+647	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+648	ext/no-line-input	inv	killed	ordered:test_directed
+649	ext/no-line-input	const1	killed	ordered:test_random
+650	ext/no-line-input	cnot1	survived	
+651	ext/no-line-input	cnot0	killed	ordered:test_random
+652	ext/no-line-input	inv	killed	ordered:test_random
+653	ext/no-line-input	const0	survived	
+654	ext/no-line-input	const1	killed	ordered:test_directed
+655	ext/no-line-input	cnot0	killed	ordered:test_directed
+656	ext/no-line-input	cnot0	killed	ordered:test_directed
+657	ext/no-line-input	cnot1	survived	
+658	ext/no-line-input	const0	equivalent	equiv_induct
+659	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+660	ext/no-line-input	const1	killed	ordered:test_directed
+661	ext/no-line-input	const1	killed	ordered:test_directed
+662	ext/no-line-input	cnot1	survived	
+663	ext/no-line-input	cnot1	survived	
+664	ext/no-line-input	inv	killed	ordered:test_random
+665	ext/no-line-input	cnot0	killed	ordered:test_random
+666	ext/no-line-input	const0	survived	
+667	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+668	ext/no-line-input	const1	killed	ordered:test_directed
+669	ext/no-line-input	cnot1	survived	
+670	ext/no-line-input	const0	survived	
+671	ext/no-line-input	cnot0	killed	ordered:test_directed
+672	ext/no-line-input	cnot0	killed	ordered:test_random
+673	ext/no-line-input	const0	survived	
+674	ext/no-line-input	cnot0	killed	ordered:test_random
+675	ext/no-line-input	const1	killed	ordered:test_directed
+676	ext/no-line-input	cnot1	survived	
+677	ext/no-line-input	const0	survived	
+678	ext/no-line-input	cnot1	survived	
+679	ext/no-line-input	inv	killed	ordered:test_random
+680	ext/no-line-input	const1	killed	ordered:test_legacy
+681	ext/no-line-input	cnot1	killed	ordered:test_random
+682	ext/no-line-input	inv	killed	ordered:test_legacy
+683	ext/no-line-input	const0	killed	ordered:test_timewarp
+684	ext/no-line-input	const1	killed	ordered:test_legacy
+685	ext/no-line-input	const1	killed	ordered:test_legacy
+686	ext/no-line-input	cnot0	killed	ordered:test_legacy
+687	ext/no-line-input	cnot0	killed	ordered:test_legacy
+688	ext/no-line-input	cnot1	killed	ordered:test_legacy
+689	ext/no-line-input	const0	killed	ordered:test_timewarp
+690	ext/no-line-input	const0	killed	ordered:test_timewarp
+691	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+692	ext/no-line-input	cnot1	killed	ordered:test_legacy
+693	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+694	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+695	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+696	ext/no-line-input	const0	equivalent	equiv_induct
+697	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+698	ext/no-line-input	const1	killed	ordered:test_legacy
+699	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+700	ext/no-line-input	const0	killed	ordered:test_random
+701	ext/no-line-input	inv	killed	ordered:test_legacy
+702	ext/no-line-input	inv	killed	ordered:test_legacy
+703	ext/no-line-input	inv	killed	ordered:test_legacy
+704	ext/no-line-input	cnot1	killed	ordered:test_legacy
+705	ext/no-line-input	inv	killed	ordered:test_protocols
+706	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+707	ext/no-line-input	inv	killed	ordered:test_protocols
+708	ext/no-line-input	const1	killed	ordered:test_random
+709	ext/no-line-input	inv	killed	ordered:test_legacy
+710	ext/no-line-input	const0	killed	ordered:test_protocols
+711	ext/no-line-input	cnot1	killed	ordered:test_protocols
+712	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+713	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+714	ext/no-line-input	const1	killed	ordered:test_protocols
+715	ext/no-line-input	cnot0	killed	ordered:test_protocols
+716	ext/no-line-input	const1	killed	ordered:test_protocols
+717	ext/no-line-input	inv	killed	ordered:test_protocols
+718	ext/no-line-input	inv	killed	ordered:test_legacy
+719	ext/no-line-input	inv	killed	ordered:test_legacy
+720	ext/no-line-input	const0	equivalent	equiv_induct
+721	ext/no-line-input	cnot1	killed	ordered:test_protocols
+722	ext/no-line-input	inv	killed	ordered:test_protocols
+723	ext/no-line-input	const1	killed	ordered:test_protocols
+724	ext/no-line-input	cnot1	killed	ordered:test_directed
+725	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+726	ext/no-line-input	cnot0	killed	ordered:test_protocols
+727	ext/no-line-input	cnot1	killed	ordered:test_protocols
+728	ext/no-line-input	inv	killed	ordered:test_protocols
+729	ext/no-line-input	const1	killed	ordered:test_protocols
+730	ext/no-line-input	const1	killed	ordered:test_protocols
+731	ext/no-line-input	const1	killed	ordered:test_protocols
+732	ext/no-line-input	const0	killed	ordered:test_protocols
+733	ext/no-line-input	cnot1	killed	ordered:test_protocols
+734	ext/no-line-input	inv	killed	ordered:test_protocols
+735	ext/no-line-input	inv	killed	ordered:test_protocols
+736	ext/no-line-input	const0	killed	ordered:test_timewarp
+737	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+738	ext/no-line-input	cnot1	killed	ordered:test_legacy
+739	ext/no-line-input	const1	killed	ordered:test_protocols
+740	ext/no-line-input	const1	killed	ordered:test_protocols
+741	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+742	ext/no-line-input	inv	killed	ordered:test_protocols
+743	ext/no-line-input	inv	killed	ordered:test_legacy
+744	ext/no-line-input	inv	killed	ordered:test_legacy
+745	ext/no-line-input	cnot0	killed	ordered:test_protocols
+746	ext/no-line-input	const1	killed	ordered:test_protocols
+747	ext/no-line-input	cnot0	killed	ordered:test_protocols
+748	ext/no-line-input	const1	killed	ordered:test_random
+749	ext/no-line-input	const0	equivalent	equiv_induct
+750	ext/no-line-input	const0	equivalent	equiv_induct
+751	ext/no-line-input	const0	equivalent	equiv_induct
+752	ext/no-line-input	const1	killed	ordered:test_protocols
+753	ext/no-line-input	const1	killed	ordered:test_protocols
+754	ext/no-line-input	cnot1	killed	ordered:test_directed
+755	ext/no-line-input	inv	killed	ordered:test_protocols
+756	ext/no-line-input	const0	killed	ordered:test_protocols
+757	ext/no-line-input	inv	killed	ordered:test_protocols
+758	ext/no-line-input	cnot0	killed	ordered:test_protocols
+759	ext/no-line-input	cnot0	killed	ordered:test_protocols
+760	ext/no-line-input	const0	equivalent	equiv_induct
+761	ext/no-line-input	const0	equivalent	equiv_induct
+762	ext/no-line-input	const1	killed	ordered:test_random
+763	ext/no-line-input	inv	killed	ordered:test_random
+764	ext/no-line-input	const0	killed	ordered:test_protocols
+765	ext/no-line-input	const1	killed	ordered:test_protocols
+766	ext/no-line-input	const0	killed	ordered:test_protocols
+767	ext/no-line-input	const1	killed	ordered:test_protocols
+768	ext/no-line-input	const1	killed	ordered:test_protocols
+769	ext/no-line-input	cnot0	killed	ordered:test_protocols
+770	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+771	ext/no-line-input	inv	killed	ordered:test_protocols
+772	ext/no-line-input	cnot1	killed	ordered:test_protocols
+773	ext/no-line-input	const0	killed	ordered:test_directed
+774	ext/no-line-input	cnot0	killed	ordered:test_protocols
+775	ext/no-line-input	const1	killed	ordered:test_protocols
+776	ext/no-line-input	cnot1	killed	ordered:test_directed
+777	ext/no-line-input	cnot1	survived	
+778	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+779	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+780	ext/no-line-input	const1	killed	ordered:test_random
+781	ext/no-line-input	inv	killed	ordered:test_random
+782	ext/no-line-input	cnot1	survived	
+783	ext/no-line-input	const1	killed	ordered:test_protocols
+784	ext/no-line-input	cnot1	killed	ordered:test_protocols
+785	ext/no-line-input	const1	killed	ordered:test_protocols
+786	ext/no-line-input	cnot1	survived	
+787	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+788	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+789	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+790	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+791	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+792	ext/no-line-input	cnot1	survived	
+793	ext/no-line-input	const1	killed	ordered:test_protocols
+794	ext/no-line-input	inv	killed	ordered:test_legacy
+795	ext/no-line-input	const0	killed	ordered:test_protocols
+796	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+797	ext/no-line-input	cnot1	killed	ordered:test_random
+798	ext/no-line-input	inv	killed	ordered:test_legacy
+799	ext/no-line-input	inv	killed	ordered:test_legacy
+800	ext/no-line-input	const0	killed	ordered:test_directed
+801	ext/no-line-input	const1	killed	ordered:test_protocols
+802	ext/no-line-input	const0	equivalent	equiv_induct
+803	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+804	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+805	ext/no-line-input	const0	equivalent	equiv_induct
+806	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+807	ext/no-line-input	const0	killed	ordered:test_protocols
+808	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+809	ext/no-line-input	inv	killed	ordered:test_legacy
+810	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+811	ext/no-line-input	cnot0	killed	ordered:test_protocols
+812	ext/no-line-input	cnot0	killed	ordered:test_protocols
+813	ext/no-line-input	const0	equivalent	equiv_induct
+814	ext/no-line-input	const1	killed	ordered:test_random
+815	ext/no-line-input	inv	killed	ordered:test_protocols
+816	ext/no-line-input	const1	killed	ordered:test_protocols
+817	ext/no-line-input	const1	killed	ordered:test_protocols
+818	ext/no-line-input	const0	killed	ordered:test_timewarp
+819	ext/no-line-input	inv	killed	ordered:test_protocols
+820	ext/no-line-input	cnot0	killed	ordered:test_legacy
+821	ext/no-line-input	inv	killed	ordered:test_protocols
+822	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+823	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+824	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+825	ext/no-line-input	const0	equivalent	equiv_induct
+826	ext/no-line-input	const1	killed	ordered:test_protocols
+827	ext/no-line-input	const1	killed	ordered:test_protocols
+828	ext/no-line-input	cnot0	killed	ordered:test_legacy
+829	ext/no-line-input	inv	killed	ordered:test_protocols
+830	ext/no-line-input	inv	killed	ordered:test_protocols
+831	ext/no-line-input	cnot0	killed	ordered:test_legacy
+832	ext/no-line-input	const1	killed	ordered:test_protocols
+833	ext/no-line-input	cnot1	killed	ordered:test_random
+834	ext/no-line-input	cnot0	killed	ordered:test_legacy
+835	ext/no-line-input	const1	killed	ordered:test_protocols
+836	ext/no-line-input	const0	killed	ordered:test_timewarp
+837	ext/no-line-input	inv	killed	ordered:test_protocols
+838	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+839	ext/no-line-input	const0	killed	ordered:test_timewarp
+840	ext/no-line-input	const1	survived	
+841	ext/no-line-input	const0	equivalent	equiv_induct
+842	ext/no-line-input	cnot1	killed	ordered:test_random
+843	ext/no-line-input	const1	killed	ordered:test_protocols
+844	ext/no-line-input	const1	killed	ordered:test_protocols
+845	ext/no-line-input	cnot0	killed	ordered:test_legacy
+846	ext/no-line-input	cnot0	killed	ordered:test_protocols
+847	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+848	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+849	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+850	ext/no-line-input	inv	killed	ordered:test_protocols
+851	ext/no-line-input	cnot1	killed	ordered:test_random
+852	ext/no-line-input	const0	killed	ordered:test_line_random
+853	ext/no-line-input	inv	killed	ordered:test_line_random
+854	ext/no-line-input	const0	killed	ordered:test_line_random
+855	ext/no-line-input	cnot0	killed	ordered:test_line_random
+856	ext/no-line-input	cnot0	killed	ordered:test_line_random
+857	ext/no-line-input	cnot1	equivalent	equiv_induct
+858	ext/no-line-input	const1	killed	ordered:test_line_random
+859	ext/no-line-input	cnot0	killed	ordered:test_line_random
+860	ext/no-line-input	const0	killed	ordered:test_line_random
+861	ext/no-line-input	cnot0	killed	ordered:test_line_random
+862	ext/no-line-input	const1	killed	ordered:test_legacy
+863	ext/no-line-input	cnot0	killed	ordered:test_legacy
+864	ext/no-line-input	cnot1	equivalent	equiv_induct
+865	ext/no-line-input	inv	killed	ordered:test_line_random
+866	ext/no-line-input	cnot1	killed	ordered:test_line_random
+867	ext/no-line-input	cnot1	killed	ordered:test_random
+868	ext/no-line-input	cnot1	equivalent	equiv_induct
+869	ext/no-line-input	inv	killed	ordered:test_line_random
+870	ext/no-line-input	const1	killed	ordered:test_line_random
+871	ext/no-line-input	const0	killed	ordered:test_line_random
+872	ext/no-line-input	cnot1	killed	ordered:test_line_random
+873	ext/no-line-input	cnot0	survived	
+874	ext/no-line-input	const0	survived	
+875	ext/no-line-input	cnot0	survived	
+876	ext/no-line-input	const0	equivalent	equiv_induct
+877	ext/no-line-input	const0	equivalent	equiv_induct
+878	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+879	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+880	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+881	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+882	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+883	ext/no-line-input	cnot1	survived	
+884	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+885	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+886	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+887	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+888	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+889	ext/no-line-input	inv	killed	ordered:test_line_random
+890	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+891	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+892	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+893	ext/no-line-input	cnot1	survived	
+894	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+895	ext/no-line-input	const0	equivalent	equiv_induct
+896	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+897	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+898	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+899	ext/no-line-input	inv	killed	ordered:test_line_spec_lstat
+900	ext/no-line-input	const1	survived	
+901	ext/no-line-input	cnot1	survived	
+902	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+903	ext/no-line-input	const0	survived	
+904	ext/no-line-input	const1	killed	ordered:test_line_random
+905	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+906	ext/no-line-input	cnot1	survived	
+907	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+908	ext/no-line-input	cnot1	survived	
+909	ext/no-line-input	inv	killed	ordered:test_line_random
+910	ext/no-line-input	const0	equivalent	equiv_induct
+911	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+912	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+913	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+914	ext/no-line-input	cnot1	survived	
+915	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+916	ext/no-line-input	const0	survived	
+917	ext/no-line-input	const0	survived	
+918	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+919	ext/no-line-input	const0	survived	
+920	ext/no-line-input	const0	survived	
+921	ext/no-line-input	const0	survived	
+922	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+923	ext/no-line-input	inv	killed	ordered:test_line_random
+924	ext/no-line-input	cnot1	survived	
+925	ext/no-line-input	const1	killed	ordered:test_random
+926	ext/no-line-input	const1	killed	ordered:test_random
+927	ext/no-line-input	const1	killed	ordered:test_random
+928	ext/no-line-input	inv	killed	ordered:test_random
+929	ext/no-line-input	cnot0	killed	ordered:test_random
+930	ext/no-line-input	cnot0	killed	ordered:test_random
+931	ext/no-line-input	inv	killed	ordered:test_random
+932	ext/no-line-input	cnot0	killed	ordered:test_random
+933	ext/no-line-input	inv	killed	ordered:test_random
+934	ext/no-line-input	const0	survived	
+935	ext/no-line-input	const0	survived	
+936	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+937	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+938	ext/no-line-input	const1	killed	ordered:test_random
+939	ext/no-line-input	cnot1	survived	
+940	ext/no-line-input	inv	killed	ordered:test_random
+941	ext/no-line-input	inv	killed	ordered:test_line_random
+942	ext/no-line-input	const1	killed	ordered:test_line_random
+943	ext/no-line-input	cnot1	survived	
+944	ext/no-line-input	const0	survived	
+945	ext/no-line-input	inv	killed	ordered:test_line_random
+946	ext/no-line-input	inv	killed	ordered:test_timewarp
+947	ext/no-line-input	inv	killed	ordered:test_legacy
+948	ext/no-line-input	inv	killed	ordered:test_random
+949	ext/no-line-input	const1	killed	ordered:test_random
+950	ext/no-line-input	cnot1	survived	
+951	ext/no-line-input	inv	killed	ordered:test_line_random
+952	ext/no-line-input	cnot1	survived	
+953	ext/no-line-input	cnot0	killed	ordered:test_random
+954	ext/no-line-input	cnot1	survived	
+955	ext/no-line-input	inv	killed	ordered:test_line_random
+956	ext/no-line-input	const0	equivalent	equiv_induct
+957	ext/no-line-input	cnot1	survived	
+958	ext/no-line-input	cnot0	killed	ordered:test_random
+959	ext/no-line-input	cnot1	survived	
+960	ext/no-line-input	inv	killed	ordered:test_line_random
+961	ext/no-line-input	inv	killed	ordered:test_line_random
+962	ext/no-line-input	cnot0	killed	ordered:test_random
+963	ext/no-line-input	cnot0	killed	ordered:test_random
+964	ext/no-line-input	const1	killed	ordered:test_random
+965	ext/no-line-input	inv	killed	ordered:test_timewarp
+966	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+967	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+968	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+969	ext/no-line-input	inv	survived	
+970	ext/no-line-input	const0	survived	
+971	ext/no-line-input	const0	survived	
+972	ext/no-line-input	inv	killed	ordered:test_random
+973	ext/no-line-input	const1	killed	ordered:test_random
+974	ext/no-line-input	cnot1	survived	
+975	ext/no-line-input	const1	killed	ordered:test_random
+976	ext/no-line-input	cnot1	survived	
+977	ext/no-line-input	const0	survived	
+978	ext/no-line-input	const0	equivalent	equiv_induct
+979	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+980	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+981	ext/no-line-input	const1	killed	ordered:test_random
+982	ext/no-line-input	inv	killed	ordered:test_random
+983	ext/no-line-input	cnot1	survived	
+984	ext/no-line-input	cnot0	killed	ordered:test_line_random
+985	ext/no-line-input	cnot1	survived	
+986	ext/no-line-input	inv	killed	ordered:test_line_random
+987	ext/no-line-input	cnot0	killed	ordered:test_random
+988	ext/no-line-input	cnot1	survived	
+989	ext/no-line-input	inv	killed	ordered:test_random
+990	ext/no-line-input	cnot1	survived	
+991	ext/no-line-input	inv	killed	ordered:test_line_random
+992	ext/no-line-input	cnot0	killed	ordered:test_line_random
+993	ext/no-line-input	const1	killed	ordered:test_line_random
+994	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+995	ext/no-line-input	inv	killed	ordered:test_random
+996	ext/no-line-input	const0	survived	
+997	ext/no-line-input	const1	killed	ordered:test_random
+998	ext/no-line-input	inv	killed	ordered:test_random
+999	ext/no-line-input	const0	survived	
+1000	ext/no-line-input	cnot1	survived	
+1001	ext/no-line-input	cnot1	survived	
+1002	ext/no-line-input	const0	survived	
+1003	ext/no-line-input	cnot0	killed	ordered:test_random
+1004	ext/no-line-input	const1	killed	ordered:test_timewarp
+1005	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1006	ext/no-line-input	inv	killed	ordered:test_random
+1007	ext/no-line-input	inv	killed	ordered:test_random
+1008	ext/no-line-input	cnot1	survived	
+1009	ext/no-line-input	inv	killed	ordered:test_random
+1010	ext/no-line-input	const1	killed	ordered:test_line_random
+1011	ext/no-line-input	cnot1	survived	
+1012	ext/no-line-input	const1	killed	ordered:test_random
+1013	ext/no-line-input	inv	killed	ordered:test_random
+1014	ext/no-line-input	const0	survived	
+1015	ext/no-line-input	const1	killed	ordered:test_random
+1016	ext/no-line-input	const0	equivalent	equiv_induct
+1017	ext/no-line-input	inv	killed	ordered:test_random
+1018	ext/no-line-input	inv	killed	ordered:test_random
+1019	ext/no-line-input	const1	killed	ordered:test_line_random
+1020	ext/no-line-input	const1	killed	ordered:test_random
+1021	ext/no-line-input	const1	killed	ordered:test_random
+1022	ext/no-line-input	const1	killed	ordered:test_line_random
+1023	ext/no-line-input	const0	survived	
+1024	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1025	ext/no-line-input	const0	survived	
+1026	ext/no-line-input	const1	killed	ordered:test_timewarp
+1027	ext/no-line-input	const0	equivalent	equiv_induct
+1028	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1029	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1030	ext/no-line-input	cnot1	survived	
+1031	ext/no-line-input	const1	killed	ordered:test_random
+1032	ext/no-line-input	inv	killed	ordered:test_random
+1033	ext/no-line-input	const0	survived	
+1034	ext/no-line-input	const0	survived	
+1035	ext/no-line-input	const0	survived	
+1036	ext/no-line-input	cnot1	survived	
+1037	ext/no-line-input	const1	killed	ordered:test_line_random
+1038	ext/no-line-input	const0	survived	
+1039	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1040	ext/no-line-input	const0	survived	
+1041	ext/no-line-input	cnot1	survived	
+1042	ext/no-line-input	const0	survived	
+1043	ext/no-line-input	inv	killed	ordered:test_random
+1044	ext/no-line-input	cnot1	survived	
+1045	ext/no-line-input	const1	killed	ordered:test_line_random
+1046	ext/no-line-input	inv	killed	ordered:test_timewarp
+1047	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1048	ext/no-line-input	inv	killed	ordered:test_random
+1049	ext/no-line-input	inv	survived	
+1050	ext/no-line-input	cnot1	survived	
+1051	ext/no-line-input	const0	survived	
+1052	ext/no-line-input	const0	survived	
+1053	ext/no-line-input	cnot1	survived	
+1054	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1055	ext/no-line-input	cnot0	killed	ordered:test_random
+1056	ext/no-line-input	cnot0	killed	ordered:test_random
+1057	ext/no-line-input	const0	survived	
+1058	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1059	ext/no-line-input	cnot0	killed	ordered:test_random
+1060	ext/no-line-input	inv	killed	ordered:test_random
+1061	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1062	ext/no-line-input	cnot0	killed	ordered:test_random
+1063	ext/no-line-input	inv	killed	ordered:test_line_random
+1064	ext/no-line-input	const1	killed	ordered:test_line_random
+1065	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1066	ext/no-line-input	const1	killed	ordered:test_random
+1067	ext/no-line-input	const1	killed	ordered:test_line_random
+1068	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1069	ext/no-line-input	const0	equivalent	equiv_induct
+1070	ext/no-line-input	inv	killed	ordered:test_random
+1071	ext/no-line-input	const0	equivalent	equiv_induct
+1072	ext/no-line-input	const0	equivalent	equiv_induct
+1073	ext/no-line-input	cnot0	killed	ordered:test_random
+1074	ext/no-line-input	inv	killed	ordered:test_random
+1075	ext/no-line-input	const1	killed	ordered:test_random
+1076	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1077	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1078	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1079	ext/no-line-input	inv	killed	ordered:test_random
+1080	ext/no-line-input	const0	killed	ordered:test_random
+1081	ext/no-line-input	cnot0	killed	ordered:test_random
+1082	ext/no-line-input	const1	killed	ordered:test_line_random
+1083	ext/no-line-input	const0	killed	ordered:test_random
+1084	ext/no-line-input	const1	killed	ordered:test_random
+1085	ext/no-line-input	cnot0	killed	ordered:test_random
+1086	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1087	ext/no-line-input	const0	killed	ordered:test_random
+1088	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1089	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1090	ext/no-line-input	cnot0	killed	ordered:test_random
+1091	ext/no-line-input	inv	killed	ordered:test_line_random
+1092	ext/no-line-input	const1	killed	ordered:test_counters
+1093	ext/no-line-input	const1	killed	ordered:test_counters
+1094	ext/no-line-input	const0	equivalent	equiv_induct
+1095	ext/no-line-input	cnot0	killed	ordered:test_random
+1096	ext/no-line-input	const0	killed	ordered:test_random
+1097	ext/no-line-input	inv	killed	ordered:test_random
+1098	ext/no-line-input	const1	killed	ordered:test_random
+1099	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1100	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1101	ext/no-line-input	cnot0	killed	ordered:test_random
+1102	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1103	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1104	ext/no-line-input	inv	killed	ordered:test_legacy
+1105	ext/no-line-input	const1	killed	ordered:test_legacy
+1106	ext/no-line-input	inv	killed	ordered:test_legacy
+1107	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1108	ext/no-line-input	cnot1	killed	ordered:test_random
+1109	ext/no-line-input	inv	killed	ordered:test_random
+1110	ext/no-line-input	cnot0	killed	ordered:test_random
+1111	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1112	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1113	ext/no-line-input	const0	equivalent	equiv_induct
+1114	ext/no-line-input	const1	killed	ordered:test_random
+1115	ext/no-line-input	cnot1	killed	ordered:test_random
+1116	ext/no-line-input	inv	killed	ordered:test_line_random
+1117	ext/no-line-input	inv	killed	ordered:test_random
+1118	ext/no-line-input	cnot0	killed	ordered:test_random
+1119	ext/no-line-input	const0	killed	ordered:test_random
+1120	ext/no-line-input	cnot0	killed	ordered:test_random
+1121	ext/no-line-input	inv	killed	ordered:test_line_random
+1122	ext/no-line-input	const1	killed	ordered:test_line_random
+1123	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+1124	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1125	ext/no-line-input	inv	killed	ordered:test_line_random
+1126	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1127	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1128	ext/no-line-input	const1	killed	ordered:test_line_random
+1129	ext/no-line-input	cnot0	killed	ordered:test_random
+1130	ext/no-line-input	cnot0	killed	ordered:test_random
+1131	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1132	ext/no-line-input	inv	killed	ordered:test_random
+1133	ext/no-line-input	inv	killed	ordered:test_legacy
+1134	ext/no-line-input	const1	killed	ordered:test_random
+1135	ext/no-line-input	const1	killed	ordered:test_random
+1136	ext/no-line-input	cnot0	killed	ordered:test_random
+1137	ext/no-line-input	cnot0	killed	ordered:test_random
+1138	ext/no-line-input	const1	killed	ordered:test_random
+1139	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1140	ext/no-line-input	inv	killed	ordered:test_line_random
+1141	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1142	ext/no-line-input	const0	killed	ordered:test_random
+1143	ext/no-line-input	const1	killed	ordered:test_random
+1144	ext/no-line-input	const0	killed	ordered:test_random
+1145	ext/no-line-input	cnot0	killed	ordered:test_random
+1146	ext/no-line-input	const1	killed	ordered:test_line_random
+1147	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1148	ext/no-line-input	cnot1	survived	
+1149	ext/no-line-input	cnot1	survived	
+1150	ext/no-line-input	cnot1	survived	
+1151	ext/no-line-input	const1	killed	ordered:test_random
+1152	ext/no-line-input	cnot1	survived	
+1153	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1154	ext/no-line-input	inv	killed	ordered:test_random
+1155	ext/no-line-input	inv	killed	ordered:test_line_random
+1156	ext/no-line-input	inv	killed	ordered:test_line_random
+1157	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1158	ext/no-line-input	cnot1	killed	ordered:test_random
+1159	ext/no-line-input	inv	killed	ordered:test_random
+1160	ext/no-line-input	const1	killed	ordered:test_random
+1161	ext/no-line-input	const0	killed	ordered:test_random
+1162	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1163	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1164	ext/no-line-input	cnot1	survived	
+1165	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1166	ext/no-line-input	const0	survived	
+1167	ext/no-line-input	const0	killed	ordered:test_random
+1168	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1169	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1170	ext/no-line-input	const1	killed	ordered:test_line_random
+1171	ext/no-line-input	const1	killed	ordered:test_line_random
+1172	ext/no-line-input	inv	killed	ordered:test_random
+1173	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1174	ext/no-line-input	inv	killed	ordered:test_timewarp
+1175	ext/no-line-input	const0	equivalent	equiv_induct
+1176	ext/no-line-input	inv	killed	ordered:test_random
+1177	ext/no-line-input	inv	killed	ordered:test_random
+1178	ext/no-line-input	cnot0	killed	ordered:test_random
+1179	ext/no-line-input	inv	killed	ordered:test_line_random
+1180	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+1181	ext/no-line-input	const0	killed	ordered:test_random
+1182	ext/no-line-input	cnot0	killed	ordered:test_random
+1183	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1184	ext/no-line-input	const1	killed	ordered:test_line_random
+1185	ext/no-line-input	const1	killed	ordered:test_line_random
+1186	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1187	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1188	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1189	ext/no-line-input	const1	killed	ordered:test_random
+1190	ext/no-line-input	cnot1	killed	ordered:test_random
+1191	ext/no-line-input	cnot0	killed	ordered:test_random
+1192	ext/no-line-input	inv	killed	ordered:test_line_random
+1193	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1194	ext/no-line-input	cnot0	killed	ordered:test_random
+1195	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1196	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1197	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1198	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1199	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1200	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1201	ext/no-line-input	const0	killed	ordered:test_random
+1202	ext/no-line-input	const1	killed	ordered:test_random
+1203	ext/no-line-input	cnot0	killed	ordered:test_random
+1204	ext/no-line-input	cnot0	killed	ordered:test_random
+1205	ext/no-line-input	const1	killed	ordered:test_line_random
+1206	ext/no-line-input	const0	equivalent	equiv_induct
+1207	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1208	ext/no-line-input	const0	equivalent	equiv_induct
+1209	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1210	ext/no-line-input	inv	killed	ordered:test_random
+1211	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1212	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1213	ext/no-line-input	cnot0	killed	ordered:test_random
+1214	ext/no-line-input	const0	equivalent	equiv_induct
+1215	ext/no-line-input	inv	survived	
+1216	ext/no-line-input	inv	survived	
+1217	ext/no-line-input	const1	survived	
+1218	ext/no-line-input	inv	killed	ordered:test_random
+1219	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1220	ext/no-line-input	const1	killed	ordered:test_random
+1221	ext/no-line-input	const1	killed	ordered:test_random
+1222	ext/no-line-input	inv	killed	ordered:test_random
+1223	ext/no-line-input	const0	equivalent	equiv_induct
+1224	ext/no-line-input	const0	killed	ordered:test_random
+1225	ext/no-line-input	cnot1	killed	ordered:test_random
+1226	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1227	ext/no-line-input	inv	killed	ordered:test_random
+1228	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1229	ext/no-line-input	inv	killed	ordered:test_line_random
+1230	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1231	ext/no-line-input	cnot1	killed	ordered:test_random
+1232	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1233	ext/no-line-input	const1	killed	ordered:test_line_random
+1234	ext/no-line-input	cnot1	equivalent	equiv_induct
+1235	ext/no-line-input	inv	killed	ordered:test_line_random
+1236	ext/no-line-input	const0	killed	ordered:test_line_random
+1237	ext/no-line-input	const1	killed	ordered:test_line_random
+1238	ext/no-line-input	inv	killed	ordered:test_line_random
+1239	ext/no-line-input	const1	killed	ordered:test_line_random
+1240	ext/no-line-input	inv	killed	ordered:test_line_random
+1241	ext/no-line-input	cnot0	killed	ordered:test_random
+1242	ext/no-line-input	cnot1	equivalent	equiv_induct
+1243	ext/no-line-input	inv	killed	ordered:test_line_random
+1244	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1245	ext/no-line-input	inv	killed	ordered:test_line_random
+1246	ext/no-line-input	inv	killed	ordered:test_line_random
+1247	ext/no-line-input	const1	killed	ordered:test_line_random
+1248	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1249	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1250	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1251	ext/no-line-input	const0	equivalent	equiv_induct
+1252	ext/no-line-input	const0	equivalent	equiv_induct
+1253	ext/no-line-input	const1	killed	ordered:test_line_random
+1254	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1255	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+1256	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+1257	ext/no-line-input	const0	equivalent	equiv_induct
+1258	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1259	ext/no-line-input	const0	survived	
+1260	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+1261	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1262	ext/no-line-input	cnot1	survived	
+1263	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1264	ext/no-line-input	const0	survived	
+1265	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1266	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1267	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+1268	ext/no-line-input	const0	equivalent	equiv_induct
+1269	ext/no-line-input	cnot1	survived	
+1270	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1271	ext/no-line-input	inv	killed	ordered:test_line_spec_every_engine
+1272	ext/no-line-input	cnot1	survived	
+1273	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+1274	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+1275	ext/no-line-input	cnot1	survived	
+1276	ext/no-line-input	const0	survived	
+1277	ext/no-line-input	cnot1	survived	
+1278	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1279	ext/no-line-input	const0	survived	
+1280	ext/no-line-input	cnot1	survived	
+1281	ext/no-line-input	cnot1	survived	
+1282	ext/no-line-input	const1	killed	ordered:test_line_spec_lstat
+1283	ext/no-line-input	inv	killed	ordered:test_line_spec_lstat
+1284	ext/no-line-input	const1	killed	ordered:test_line_spec_lstat
+1285	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+1286	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1287	ext/no-line-input	cnot1	survived	
+1288	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+1289	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+1290	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1291	ext/no-line-input	const1	killed	ordered:test_line_spec_every_engine
+1292	ext/no-line-input	const1	killed	ordered:test_line_spec_every_engine
+1293	ext/no-line-input	const0	survived	
+1294	ext/no-line-input	const0	survived	
+1295	ext/no-line-input	const1	killed	ordered:test_line_spec_bounded_wait
+1296	ext/no-line-input	cnot1	survived	
+1297	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1298	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1299	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1300	ext/no-line-input	const0	survived	
+1301	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1302	ext/no-line-input	const0	survived	
+1303	ext/no-line-input	cnot1	survived	
+1304	ext/no-line-input	const0	survived	
+1305	ext/no-line-input	cnot0	killed	ordered:test_line_spec_bounded_wait
+1306	ext/no-line-input	inv	killed	ordered:test_line_spec_bounded_wait
+1307	ext/no-line-input	const0	survived	
+1308	ext/no-line-input	const0	survived	
+1309	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1310	ext/no-line-input	const0	survived	
+1311	ext/no-line-input	cnot0	killed	ordered:test_timewarp
+1312	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1313	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1314	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1315	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1316	ext/no-line-input	const0	equivalent	equiv_induct
+1317	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1318	ext/no-line-input	const0	survived	
+1319	ext/no-line-input	inv	killed	ordered:test_timewarp
+1320	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1321	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1322	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1323	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1324	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1325	ext/no-line-input	cnot1	survived	
+1326	ext/no-line-input	const0	survived	
+1327	ext/no-line-input	cnot1	survived	
+1328	ext/no-line-input	cnot1	survived	
+1329	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1330	ext/no-line-input	cnot1	survived	
+1331	ext/no-line-input	const0	survived	
+1332	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1333	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1334	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1335	ext/no-line-input	const1	killed	ordered:test_random
+1336	ext/no-line-input	const0	survived	
+1337	ext/no-line-input	inv	killed	ordered:test_timewarp
+1338	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1339	ext/no-line-input	const0	survived	
+1340	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1341	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1342	ext/no-line-input	const0	survived	
+1343	ext/no-line-input	inv	killed	ordered:test_random
+1344	ext/no-line-input	const1	killed	ordered:test_timewarp
+1345	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1346	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1347	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1348	ext/no-line-input	cnot1	survived	
+1349	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1350	ext/no-line-input	const1	killed	ordered:test_timewarp
+1351	ext/no-line-input	const0	survived	
+1352	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1353	ext/no-line-input	const1	killed	ordered:test_random
+1354	ext/no-line-input	inv	killed	ordered:test_random
+1355	ext/no-line-input	const0	survived	
+1356	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1357	ext/no-line-input	const0	equivalent	equiv_induct
+1358	ext/no-line-input	const0	survived	
+1359	ext/no-line-input	const0	survived	
+1360	ext/no-line-input	const0	survived	
+1361	ext/no-line-input	cnot0	killed	ordered:test_timewarp
+1362	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1363	ext/no-line-input	cnot1	survived	
+1364	ext/no-line-input	cnot0	killed	ordered:test_random
+1365	ext/no-line-input	cnot1	survived	
+1366	ext/no-line-input	const1	killed	ordered:test_random
+1367	ext/no-line-input	const1	killed	ordered:test_timewarp
+1368	ext/no-line-input	const0	equivalent	equiv_induct
+1369	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1370	ext/no-line-input	const0	equivalent	equiv_induct
+1371	ext/no-line-input	cnot0	killed	ordered:test_timewarp
+1372	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1373	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1374	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1375	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1376	ext/no-line-input	cnot0	killed	ordered:test_random
+1377	ext/no-line-input	cnot1	survived	
+1378	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1379	ext/no-line-input	cnot1	survived	
+1380	ext/no-line-input	const0	equivalent	equiv_induct
+1381	ext/no-line-input	inv	killed	ordered:test_random
+1382	ext/no-line-input	inv	killed	ordered:test_timewarp
+1383	ext/no-line-input	const0	survived	
+1384	ext/no-line-input	inv	killed	ordered:test_timewarp
+1385	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1386	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1387	ext/no-line-input	const0	survived	
+1388	ext/no-line-input	inv	killed	ordered:test_random
+1389	ext/no-line-input	cnot0	killed	ordered:test_kill_blocked
+1390	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1391	ext/no-line-input	const0	survived	
+1392	ext/no-line-input	cnot0	killed	ordered:test_directed
+1393	ext/no-line-input	const0	survived	
+1394	ext/no-line-input	cnot0	killed	ordered:test_directed
+1395	ext/no-line-input	const0	survived	
+1396	ext/no-line-input	inv	killed	ordered:test_directed
+1397	ext/no-line-input	const0	survived	
+1398	ext/no-line-input	inv	killed	ordered:test_directed
+1399	ext/no-line-input	cnot1	survived	
+1400	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1401	ext/no-line-input	const0	equivalent	equiv_induct
+1402	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1403	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1404	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1405	ext/no-line-input	cnot1	survived	
+1406	ext/no-line-input	cnot0	killed	ordered:test_directed
+1407	ext/no-line-input	const1	killed	ordered:test_directed
+1408	ext/no-line-input	cnot0	killed	ordered:test_directed
+1409	ext/no-line-input	cnot0	killed	ordered:test_random
+1410	ext/no-line-input	inv	killed	ordered:test_directed
+1411	ext/no-line-input	const0	survived	
+1412	ext/no-line-input	const0	survived	
+1413	ext/no-line-input	cnot0	killed	ordered:test_random
+1414	ext/no-line-input	cnot0	killed	ordered:test_directed
+1415	ext/no-line-input	cnot0	killed	ordered:test_directed
+1416	ext/no-line-input	const1	killed	ordered:test_directed
+1417	ext/no-line-input	inv	killed	ordered:test_directed
+1418	ext/no-line-input	const1	killed	ordered:test_directed
+1419	ext/no-line-input	const1	killed	ordered:test_directed
+1420	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1421	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1422	ext/no-line-input	const0	equivalent	equiv_induct
+1423	ext/no-line-input	cnot1	survived	
+1424	ext/no-line-input	const1	killed	ordered:test_directed
+1425	ext/no-line-input	cnot0	killed	ordered:test_directed
+1426	ext/no-line-input	inv	killed	ordered:test_directed
+1427	ext/no-line-input	cnot0	killed	ordered:test_directed
+1428	ext/no-line-input	const1	killed	ordered:test_random
+1429	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1430	ext/no-line-input	const0	equivalent	equiv_induct
+1431	ext/no-line-input	const0	equivalent	equiv_induct
+1432	ext/no-line-input	inv	killed	ordered:test_directed
+1433	ext/no-line-input	const1	killed	ordered:test_directed
+1434	ext/no-line-input	cnot0	killed	ordered:test_random
+1435	ext/no-line-input	cnot1	survived	
+1436	ext/no-line-input	const0	survived	
+1437	ext/no-line-input	inv	killed	ordered:test_random
+1438	ext/no-line-input	cnot1	killed	kill4:test_line_spec_limit_bits
+1439	ext/no-line-input	cnot0	killed	ordered:test_random
+1440	ext/no-line-input	inv	killed	ordered:test_random
+1441	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1442	ext/no-line-input	cnot1	killed	kill4:test_line_spec_limit_bits
+1443	ext/no-line-input	const1	killed	ordered:test_random
+1444	ext/no-line-input	inv	killed	ordered:test_random
+1445	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1446	ext/no-line-input	cnot0	killed	ordered:test_random
+1447	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1448	ext/no-line-input	const0	equivalent	equiv_induct
+1449	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1450	ext/no-line-input	inv	killed	ordered:test_random
+1451	ext/no-line-input	cnot0	killed	ordered:test_random
+1452	ext/no-line-input	cnot0	killed	ordered:test_random
+1453	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1454	ext/no-line-input	inv	killed	ordered:test_random
+1455	ext/no-line-input	cnot0	killed	ordered:test_random
+1456	ext/no-line-input	const0	killed	ordered:test_random
+1457	ext/no-line-input	cnot0	killed	ordered:test_random
+1458	ext/no-line-input	cnot1	killed	ordered:test_random
+1459	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1460	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1461	ext/no-line-input	cnot0	killed	ordered:test_random
+1462	ext/no-line-input	cnot1	killed	ordered:test_random
+1463	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1464	ext/no-line-input	inv	killed	ordered:test_random
+1465	ext/no-line-input	cnot1	killed	ordered:test_random
+1466	ext/no-line-input	const0	killed	ordered:test_random
+1467	ext/no-line-input	cnot0	killed	ordered:test_random
+1468	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1469	ext/no-line-input	cnot0	killed	ordered:test_legacy
+1470	ext/no-line-input	const1	killed	ordered:test_random
+1471	ext/no-line-input	const0	equivalent	equiv_induct
+1472	ext/no-line-input	const1	killed	ordered:test_random
+1473	ext/no-line-input	const1	killed	ordered:test_random
+1474	ext/no-line-input	inv	killed	ordered:test_random
+1475	ext/no-line-input	const1	killed	ordered:test_random
+1476	ext/no-line-input	const0	killed	ordered:test_random
+1477	ext/no-line-input	const1	killed	ordered:test_random
+1478	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1479	ext/no-line-input	const1	killed	ordered:test_random
+1480	ext/no-line-input	cnot0	killed	ordered:test_random
+1481	ext/no-line-input	cnot0	killed	ordered:test_random
+1482	ext/no-line-input	inv	killed	ordered:test_random
+1483	ext/no-line-input	const1	killed	ordered:test_legacy
+1484	ext/no-line-input	const0	survived	
+1485	ext/no-line-input	cnot0	killed	ordered:test_random
+1486	ext/no-line-input	cnot0	killed	ordered:test_random
+1487	ext/no-line-input	const1	killed	ordered:test_random
+1488	ext/no-line-input	cnot0	killed	ordered:test_random
+1489	ext/no-line-input	cnot0	killed	ordered:test_random
+1490	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1491	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1492	ext/no-line-input	const1	killed	ordered:test_random
+1493	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1494	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1495	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1496	ext/no-line-input	const1	killed	ordered:test_legacy
+1497	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1498	ext/no-line-input	const0	equivalent	equiv_induct
+1499	ext/no-line-input	inv	killed	ordered:test_legacy
+1500	ext/no-line-input	inv	killed	ordered:test_legacy
+1501	ext/no-line-input	inv	killed	ordered:test_random
+1502	ext/no-line-input	cnot0	killed	ordered:test_random
+1503	ext/no-line-input	cnot0	killed	ordered:test_legacy
+1504	ext/no-line-input	inv	killed	ordered:test_legacy
+1505	ext/no-line-input	const1	killed	ordered:test_random
+1506	ext/no-line-input	const1	killed	ordered:test_random
+1507	ext/no-line-input	cnot0	killed	ordered:test_random
+1508	ext/no-line-input	const1	killed	ordered:test_random
+1509	ext/no-line-input	cnot0	killed	ordered:test_random
+1510	ext/no-line-input	const1	killed	ordered:test_random
+1511	ext/no-line-input	const1	killed	ordered:test_random
+1512	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+1513	ext/no-line-input	inv	killed	ordered:test_random
+1514	ext/no-line-input	cnot0	killed	ordered:test_random
+1515	ext/no-line-input	const1	killed	ordered:test_random
+1516	ext/no-line-input	inv	killed	ordered:test_legacy
+1517	ext/no-line-input	const1	killed	ordered:test_legacy
+1518	ext/no-line-input	inv	killed	ordered:test_random
+1519	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1520	ext/no-line-input	const1	killed	ordered:test_random
+1521	ext/no-line-input	inv	killed	ordered:test_random
+1522	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1523	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1524	ext/no-line-input	cnot0	killed	ordered:test_random
+1525	ext/no-line-input	const0	survived	
+1526	ext/no-line-input	cnot1	survived	
+1527	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1528	ext/no-line-input	cnot0	killed	ordered:test_random
+1529	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1530	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1531	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1532	ext/no-line-input	cnot1	survived	
+1533	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1534	ext/no-line-input	const0	survived	
+1535	ext/no-line-input	const0	survived	
+1536	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1537	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1538	ext/no-line-input	cnot1	survived	
+1539	ext/no-line-input	const0	survived	
+1540	ext/no-line-input	const0	killed	ordered:test_random
+1541	ext/no-line-input	const1	killed	ordered:test_random
+1542	ext/no-line-input	cnot1	killed	ordered:test_kill_blocked
+1543	ext/no-line-input	cnot0	killed	ordered:test_legacy
+1544	ext/no-line-input	inv	killed	ordered:test_random
+1545	ext/no-line-input	inv	killed	ordered:test_random
+1546	ext/no-line-input	const0	survived	
+1547	ext/no-line-input	const0	killed	ordered:test_random
+1548	ext/no-line-input	cnot0	killed	ordered:test_random
+1549	ext/no-line-input	const0	killed	ordered:test_random
+1550	ext/no-line-input	const1	killed	ordered:test_random
+1551	ext/no-line-input	cnot0	killed	ordered:test_random
+1552	ext/no-line-input	cnot1	killed	ordered:test_random
+1553	ext/no-line-input	const0	equivalent	equiv_induct
+1554	ext/no-line-input	const1	killed	ordered:test_random
+1555	ext/no-line-input	cnot0	killed	ordered:test_legacy
+1556	ext/no-line-input	const1	killed	ordered:test_random
+1557	ext/no-line-input	cnot0	killed	ordered:test_random
+1558	ext/no-line-input	cnot0	killed	ordered:test_legacy
+1559	ext/no-line-input	cnot0	killed	ordered:test_legacy
+1560	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1561	ext/no-line-input	cnot0	killed	ordered:test_legacy
+1562	ext/no-line-input	const1	killed	ordered:test_legacy
+1563	ext/no-line-input	const0	equivalent	equiv_induct
+1564	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1565	ext/no-line-input	const0	equivalent	equiv_induct
+1566	ext/no-line-input	const1	killed	ordered:test_legacy
+1567	ext/no-line-input	const0	killed	ordered:test_random
+1568	ext/no-line-input	const0	killed	ordered:test_kill_blocked
+1569	ext/no-line-input	inv	killed	ordered:test_legacy
+1570	ext/no-line-input	cnot0	killed	ordered:test_random
+1571	ext/no-line-input	cnot0	killed	ordered:test_random
+1572	ext/no-line-input	const1	killed	ordered:test_legacy
+1573	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1574	ext/no-line-input	const0	equivalent	equiv_induct
+1575	ext/no-line-input	inv	killed	ordered:test_kill_blocked
+1576	ext/no-line-input	cnot0	killed	ordered:test_random
+1577	ext/no-line-input	const1	killed	ordered:test_random
+1578	ext/no-line-input	const1	killed	ordered:test_random
+1579	ext/no-line-input	inv	killed	ordered:test_random
+1580	ext/no-line-input	inv	killed	ordered:test_legacy
+1581	ext/no-line-input	const1	killed	ordered:test_legacy
+1582	ext/no-line-input	const1	survived	
+1583	ext/no-line-input	cnot0	killed	ordered:test_random
+1584	ext/no-line-input	inv	killed	ordered:test_random
+1585	ext/no-line-input	const1	killed	ordered:test_random
+1586	ext/no-line-input	const1	killed	ordered:test_random
+1587	ext/no-line-input	cnot1	killed	ordered:test_random
+1588	ext/no-line-input	const1	killed	ordered:test_random
+1589	ext/no-line-input	const1	killed	ordered:test_random
+1590	ext/no-line-input	const1	killed	ordered:test_random
+1591	ext/no-line-input	inv	killed	ordered:test_random
+1592	ext/no-line-input	cnot0	killed	ordered:test_random
+1593	ext/no-line-input	inv	killed	ordered:test_random
+1594	ext/no-line-input	inv	killed	ordered:test_legacy
+1595	ext/no-line-input	const0	equivalent	equiv_induct
+1596	ext/no-line-input	const1	killed	ordered:test_kill_blocked
+1597	ext/no-line-input	cnot0	killed	ordered:test_legacy
+1598	ext/no-line-input	const1	killed	ordered:test_line_random
+1599	ext/no-line-input	const0	killed	ordered:test_line_random
+1600	ext/no-line-input	const1	killed	ordered:test_line_random
+1601	ext/no-line-input	inv	killed	ordered:test_line_random
+1602	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1603	ext/no-line-input	const0	killed	ordered:test_line_random
+1604	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1605	ext/no-line-input	inv	killed	ordered:test_line_random
+1606	ext/no-line-input	const0	equivalent	equiv_induct
+1607	ext/no-line-input	inv	killed	ordered:test_line_random
+1608	ext/no-line-input	const1	killed	ordered:test_line_random
+1609	ext/no-line-input	const1	killed	ordered:test_line_random
+1610	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1611	ext/no-line-input	const1	killed	ordered:test_line_random
+1612	ext/no-line-input	inv	killed	ordered:test_line_random
+1613	ext/no-line-input	const1	killed	ordered:test_line_random
+1614	ext/no-line-input	inv	killed	ordered:test_line_random
+1615	ext/no-line-input	cnot0	killed	ordered:test_line_spec_every_engine
+1616	ext/no-line-input	cnot1	killed	ordered:test_line_spec_ticker
+1617	ext/no-line-input	const1	killed	ordered:test_line_random
+1618	ext/no-line-input	cnot1	killed	ordered:test_protocols
+1619	ext/no-line-input	inv	killed	ordered:test_line_random
+1620	ext/no-line-input	cnot1	killed	ordered:test_line_spec_every_engine
+1621	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1622	ext/no-line-input	const1	killed	ordered:test_line_random
+1623	ext/no-line-input	const0	equivalent	miter-abc-900s
+1624	ext/no-line-input	inv	killed	ordered:test_line_random
+1625	ext/no-line-input	const0	killed	ordered:test_line_random
+1626	ext/no-line-input	inv	killed	ordered:test_line_random
+1627	ext/no-line-input	const0	killed	kill:test_line_spec_image_end
+1628	ext/no-line-input	const0	killed	ordered:test_line_random
+1629	ext/no-line-input	const1	killed	ordered:test_line_random
+1630	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1631	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1632	ext/no-line-input	inv	killed	ordered:test_line_random
+1633	ext/no-line-input	inv	killed	ordered:test_line_random
+1634	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1635	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1636	ext/no-line-input	const0	killed	ordered:test_line_random
+1637	ext/no-line-input	const0	killed	ordered:test_line_random
+1638	ext/no-line-input	const1	killed	ordered:test_line_random
+1639	ext/no-line-input	inv	killed	ordered:test_line_random
+1640	ext/no-line-input	inv	killed	ordered:test_line_random
+1641	ext/no-line-input	const1	killed	ordered:test_line_random
+1642	ext/no-line-input	const0	killed	ordered:test_line_random
+1643	ext/no-line-input	const0	killed	ordered:test_line_random
+1644	ext/no-line-input	cnot1	killed	ordered:test_random
+1645	ext/no-line-input	inv	killed	ordered:test_random
+1646	ext/no-line-input	cnot1	killed	ordered:test_random
+1647	ext/no-line-input	const1	killed	ordered:test_line_random
+1648	ext/no-line-input	inv	killed	ordered:test_line_random
+1649	ext/no-line-input	const1	killed	ordered:test_line_random
+1650	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1651	ext/no-line-input	const0	killed	ordered:test_line_random
+1652	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1653	ext/no-line-input	const0	killed	ordered:test_random
+1654	ext/no-line-input	inv	killed	ordered:test_line_random
+1655	ext/no-line-input	const1	killed	ordered:test_random
+1656	ext/no-line-input	const1	killed	ordered:test_protocols
+1657	ext/no-line-input	const0	killed	ordered:test_line_random
+1658	ext/no-line-input	const1	killed	ordered:test_line_random
+1659	ext/no-line-input	const1	killed	ordered:test_line_random
+1660	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1661	ext/no-line-input	const0	killed	ordered:test_random
+1662	ext/no-line-input	const1	killed	ordered:test_line_random
+1663	ext/no-line-input	inv	killed	ordered:test_line_random
+1664	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1665	ext/no-line-input	const0	killed	ordered:test_line_random
+1666	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1667	ext/no-line-input	const0	killed	ordered:test_line_random
+1668	ext/no-line-input	cnot1	killed	ordered:test_random
+1669	ext/no-line-input	const0	killed	ordered:test_line_random
+1670	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1671	ext/no-line-input	inv	killed	ordered:test_line_random
+1672	ext/no-line-input	const0	killed	ordered:test_random
+1673	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1674	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1675	ext/no-line-input	const0	killed	ordered:test_line_random
+1676	ext/no-line-input	const1	killed	ordered:test_line_random
+1677	ext/no-line-input	const0	killed	ordered:test_line_random
+1678	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1679	ext/no-line-input	inv	killed	ordered:test_line_random
+1680	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1681	ext/no-line-input	const0	killed	ordered:test_line_random
+1682	ext/no-line-input	const0	killed	ordered:test_random
+1683	ext/no-line-input	inv	killed	ordered:test_line_random
+1684	ext/no-line-input	const1	killed	ordered:test_line_random
+1685	ext/no-line-input	const0	killed	ordered:test_line_random
+1686	ext/no-line-input	cnot1	killed	ordered:test_kill_regs
+1687	ext/no-line-input	const1	killed	ordered:test_line_random
+1688	ext/no-line-input	const0	killed	ordered:test_line_random
+1689	ext/no-line-input	inv	killed	ordered:test_line_random
+1690	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1691	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1692	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1693	ext/no-line-input	inv	killed	ordered:test_line_random
+1694	ext/no-line-input	const0	killed	ordered:test_line_random
+1695	ext/no-line-input	inv	killed	ordered:test_line_random
+1696	ext/no-line-input	inv	killed	ordered:test_line_random
+1697	ext/no-line-input	const1	killed	ordered:test_line_random
+1698	ext/no-line-input	inv	killed	ordered:test_legacy
+1699	ext/no-line-input	const1	killed	ordered:test_legacy
+1700	ext/no-line-input	const0	killed	ordered:test_line_random
+1701	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1702	ext/no-line-input	const0	killed	ordered:test_line_random
+1703	ext/no-line-input	const1	killed	ordered:test_line_random
+1704	ext/no-line-input	const1	killed	ordered:test_line_random
+1705	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1706	ext/no-line-input	const1	killed	ordered:test_line_random
+1707	ext/no-line-input	inv	killed	ordered:test_line_random
+1708	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1709	ext/no-line-input	inv	killed	ordered:test_line_random
+1710	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1711	ext/no-line-input	const0	killed	ordered:test_line_random
+1712	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1713	ext/no-line-input	inv	killed	ordered:test_line_random
+1714	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1715	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1716	ext/no-line-input	inv	killed	ordered:test_line_random
+1717	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1718	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1719	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1720	ext/no-line-input	const0	killed	ordered:test_line_random
+1721	ext/no-line-input	const0	killed	ordered:test_line_random
+1722	ext/no-line-input	inv	killed	ordered:test_line_random
+1723	ext/no-line-input	const1	killed	ordered:test_line_random
+1724	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1725	ext/no-line-input	inv	killed	ordered:test_line_random
+1726	ext/no-line-input	cnot0	killed	ordered:test_random
+1727	ext/no-line-input	const1	killed	ordered:test_line_random
+1728	ext/no-line-input	inv	killed	ordered:test_line_random
+1729	ext/no-line-input	const1	killed	ordered:test_line_spec_every_engine
+1730	ext/no-line-input	const1	killed	ordered:test_line_random
+1731	ext/no-line-input	const1	killed	ordered:test_line_random
+1732	ext/no-line-input	inv	killed	ordered:test_line_random
+1733	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1734	ext/no-line-input	const0	killed	ordered:test_line_random
+1735	ext/no-line-input	const0	killed	ordered:test_line_spec_every_engine
+1736	ext/no-line-input	const1	killed	ordered:test_line_random
+1737	ext/no-line-input	const1	killed	ordered:test_line_random
+1738	ext/no-line-input	const1	killed	ordered:test_line_random
+1739	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1740	ext/no-line-input	const0	killed	ordered:test_kill_xfer
+1741	ext/no-line-input	const0	killed	ordered:test_line_random
+1742	ext/no-line-input	const1	killed	ordered:test_line_random
+1743	ext/no-line-input	cnot1	killed	kill:test_line_spec_image_end
+1744	ext/no-line-input	const1	killed	ordered:test_line_random
+1745	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1746	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1747	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1748	ext/no-line-input	const1	killed	ordered:test_line_random
+1749	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1750	ext/no-line-input	inv	killed	ordered:test_line_random
+1751	ext/no-line-input	const0	killed	ordered:test_line_random
+1752	ext/no-line-input	const1	killed	ordered:test_line_random
+1753	ext/no-line-input	const0	killed	ordered:test_line_random
+1754	ext/no-line-input	inv	killed	ordered:test_line_random
+1755	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1756	ext/no-line-input	const1	killed	ordered:test_line_random
+1757	ext/no-line-input	inv	killed	ordered:test_line_random
+1758	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1759	ext/no-line-input	const0	killed	ordered:test_line_random
+1760	ext/no-line-input	inv	killed	ordered:test_line_random
+1761	ext/no-line-input	inv	killed	ordered:test_line_random
+1762	ext/no-line-input	cnot0	killed	ordered:test_protocols
+1763	ext/no-line-input	cnot0	killed	ordered:test_protocols
+1764	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1765	ext/no-line-input	const1	killed	ordered:test_line_random
+1766	ext/no-line-input	const1	killed	ordered:test_line_random
+1767	ext/no-line-input	const0	killed	ordered:test_line_random
+1768	ext/no-line-input	inv	killed	ordered:test_line_random
+1769	ext/no-line-input	const1	killed	ordered:test_line_random
+1770	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1771	ext/no-line-input	inv	killed	ordered:test_line_random
+1772	ext/no-line-input	const1	killed	ordered:test_line_random
+1773	ext/no-line-input	const1	killed	ordered:test_line_random
+1774	ext/no-line-input	const0	killed	ordered:test_line_random
+1775	ext/no-line-input	inv	killed	ordered:test_line_random
+1776	ext/no-line-input	const1	killed	ordered:test_line_random
+1777	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1778	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1779	ext/no-line-input	inv	killed	ordered:test_line_random
+1780	ext/no-line-input	const0	killed	ordered:test_legacy
+1781	ext/no-line-input	const1	killed	ordered:test_line_random
+1782	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1783	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1784	ext/no-line-input	cnot1	killed	ordered:test_random
+1785	ext/no-line-input	const0	killed	ordered:test_line_random
+1786	ext/no-line-input	const0	killed	ordered:test_line_random
+1787	ext/no-line-input	inv	killed	ordered:test_line_random
+1788	ext/no-line-input	const0	killed	ordered:test_line_random
+1789	ext/no-line-input	const1	killed	ordered:test_line_random
+1790	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1791	ext/no-line-input	const0	killed	ordered:test_line_random
+1792	ext/no-line-input	const1	killed	ordered:test_random
+1793	ext/no-line-input	const0	killed	ordered:test_random
+1794	ext/no-line-input	inv	killed	ordered:test_line_random
+1795	ext/no-line-input	const1	killed	ordered:test_line_random
+1796	ext/no-line-input	const1	killed	ordered:test_line_random
+1797	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1798	ext/no-line-input	const1	killed	ordered:test_random
+1799	ext/no-line-input	const0	killed	ordered:test_line_random
+1800	ext/no-line-input	const1	killed	ordered:test_line_random
+1801	ext/no-line-input	const1	killed	ordered:test_line_random
+1802	ext/no-line-input	const1	killed	ordered:test_line_random
+1803	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1804	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1805	ext/no-line-input	const0	killed	ordered:test_line_random
+1806	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1807	ext/no-line-input	const0	killed	ordered:test_line_random
+1808	ext/no-line-input	inv	killed	ordered:test_line_random
+1809	ext/no-line-input	inv	killed	ordered:test_line_random
+1810	ext/no-line-input	inv	killed	ordered:test_line_random
+1811	ext/no-line-input	const1	killed	ordered:test_line_random
+1812	ext/no-line-input	const0	killed	ordered:test_line_random
+1813	ext/no-line-input	cnot0	killed	ordered:test_protocols
+1814	ext/no-line-input	cnot0	killed	ordered:test_protocols
+1815	ext/no-line-input	cnot1	killed	ordered:test_protocols
+1816	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1817	ext/no-line-input	inv	killed	ordered:test_line_random
+1818	ext/no-line-input	cnot0	killed	ordered:test_protocols
+1819	ext/no-line-input	const1	killed	ordered:test_line_random
+1820	ext/no-line-input	inv	killed	ordered:test_line_random
+1821	ext/no-line-input	inv	killed	ordered:test_line_random
+1822	ext/no-line-input	const0	killed	ordered:test_line_random
+1823	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1824	ext/no-line-input	const0	killed	ordered:test_legacy
+1825	ext/no-line-input	inv	killed	ordered:test_protocols
+1826	ext/no-line-input	const1	killed	ordered:test_flagship
+1827	ext/no-line-input	const0	killed	ordered:test_line_random
+1828	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1829	ext/no-line-input	inv	killed	ordered:test_line_random
+1830	ext/no-line-input	inv	killed	ordered:test_line_random
+1831	ext/no-line-input	const0	killed	ordered:test_line_random
+1832	ext/no-line-input	cnot1	killed	ordered:test_random
+1833	ext/no-line-input	const0	killed	ordered:test_line_random
+1834	ext/no-line-input	const0	killed	ordered:test_line_random
+1835	ext/no-line-input	cnot1	killed	ordered:test_protocols
+1836	ext/no-line-input	const1	killed	ordered:test_line_random
+1837	ext/no-line-input	const0	killed	ordered:test_line_random
+1838	ext/no-line-input	const1	killed	ordered:test_line_random
+1839	ext/no-line-input	cnot0	killed	ordered:test_random
+1840	ext/no-line-input	const0	killed	ordered:test_line_random
+1841	ext/no-line-input	const1	killed	ordered:test_line_random
+1842	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1843	ext/no-line-input	const1	killed	ordered:test_line_random
+1844	ext/no-line-input	const1	killed	ordered:test_line_random
+1845	ext/no-line-input	const0	killed	ordered:test_line_random
+1846	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1847	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1848	ext/no-line-input	inv	killed	ordered:test_line_random
+1849	ext/no-line-input	const1	killed	ordered:test_line_random
+1850	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1851	ext/no-line-input	cnot1	killed	ordered:test_line_spec_every_engine
+1852	ext/no-line-input	const1	killed	ordered:test_line_random
+1853	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1854	ext/no-line-input	const1	killed	ordered:test_line_random
+1855	ext/no-line-input	const0	killed	ordered:test_line_random
+1856	ext/no-line-input	const0	killed	ordered:test_line_spec_every_engine
+1857	ext/no-line-input	const1	killed	ordered:test_line_random
+1858	ext/no-line-input	const1	killed	ordered:test_line_random
+1859	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1860	ext/no-line-input	const1	killed	ordered:test_line_random
+1861	ext/no-line-input	const1	equivalent	miter-abc-900s
+1862	ext/no-line-input	const0	equivalent	miter-abc-900s
+1863	ext/no-line-input	const1	killed	ordered:test_line_random
+1864	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1865	ext/no-line-input	const1	killed	ordered:test_line_random
+1866	ext/no-line-input	const0	killed	ordered:test_line_random
+1867	ext/no-line-input	const1	killed	ordered:test_line_random
+1868	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1869	ext/no-line-input	const0	killed	ordered:test_line_random
+1870	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1871	ext/no-line-input	const1	killed	ordered:test_line_random
+1872	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1873	ext/no-line-input	const0	killed	kill:test_line_spec_image_end
+1874	ext/no-line-input	const0	killed	ordered:test_line_random
+1875	ext/no-line-input	const1	killed	ordered:test_line_random
+1876	ext/no-line-input	const1	killed	ordered:test_line_random
+1877	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1878	ext/no-line-input	const0	killed	kill:test_line_spec_image_end
+1879	ext/no-line-input	const1	killed	ordered:test_line_random
+1880	ext/no-line-input	const1	killed	ordered:test_line_random
+1881	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1882	ext/no-line-input	inv	killed	ordered:test_line_random
+1883	ext/no-line-input	inv	killed	ordered:test_line_random
+1884	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1885	ext/no-line-input	const0	killed	ordered:test_line_random
+1886	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1887	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1888	ext/no-line-input	const1	killed	ordered:test_line_random
+1889	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1890	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1891	ext/no-line-input	const0	killed	ordered:test_kill_host
+1892	ext/no-line-input	const0	killed	ordered:test_protocols
+1893	ext/no-line-input	const0	killed	ordered:test_line_random
+1894	ext/no-line-input	cnot1	killed	ordered:test_directed
+1895	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1896	ext/no-line-input	const1	killed	ordered:test_protocols
+1897	ext/no-line-input	const0	killed	ordered:test_random
+1898	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1899	ext/no-line-input	inv	killed	ordered:test_line_random
+1900	ext/no-line-input	const0	killed	ordered:test_line_random
+1901	ext/no-line-input	const0	killed	ordered:test_random
+1902	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1903	ext/no-line-input	const1	killed	ordered:test_line_random
+1904	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1905	ext/no-line-input	const0	killed	ordered:test_line_random
+1906	ext/no-line-input	inv	killed	ordered:test_line_random
+1907	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1908	ext/no-line-input	inv	killed	ordered:test_line_random
+1909	ext/no-line-input	inv	killed	ordered:test_random
+1910	ext/no-line-input	const1	killed	ordered:test_random
+1911	ext/no-line-input	const1	killed	ordered:test_line_random
+1912	ext/no-line-input	cnot0	killed	ordered:test_random
+1913	ext/no-line-input	inv	killed	ordered:test_random
+1914	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1915	ext/no-line-input	inv	killed	ordered:test_line_random
+1916	ext/no-line-input	const1	killed	ordered:test_random
+1917	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1918	ext/no-line-input	inv	killed	ordered:test_line_random
+1919	ext/no-line-input	cnot1	killed	ordered:test_timewarp
+1920	ext/no-line-input	const1	killed	ordered:test_random
+1921	ext/no-line-input	cnot1	killed	ordered:test_random
+1922	ext/no-line-input	const1	killed	ordered:test_line_random
+1923	ext/no-line-input	const1	killed	ordered:test_line_random
+1924	ext/no-line-input	inv	killed	ordered:test_line_random
+1925	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1926	ext/no-line-input	const1	killed	ordered:test_line_random
+1927	ext/no-line-input	inv	killed	ordered:test_line_random
+1928	ext/no-line-input	const1	killed	ordered:test_line_random
+1929	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1930	ext/no-line-input	inv	killed	ordered:test_line_random
+1931	ext/no-line-input	const1	killed	ordered:test_line_random
+1932	ext/no-line-input	inv	killed	ordered:test_line_demos
+1933	ext/no-line-input	inv	killed	ordered:test_line_demos
+1934	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1935	ext/no-line-input	inv	killed	ordered:test_line_random
+1936	ext/no-line-input	const0	killed	ordered:test_random
+1937	ext/no-line-input	const0	killed	ordered:test_kill_host
+1938	ext/no-line-input	cnot0	killed	ordered:test_legacy
+1939	ext/no-line-input	const0	killed	ordered:test_legacy
+1940	ext/no-line-input	inv	killed	ordered:test_line_random
+1941	ext/no-line-input	inv	killed	ordered:test_line_random
+1942	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1943	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1944	ext/no-line-input	cnot1	killed	ordered:test_random
+1945	ext/no-line-input	inv	killed	ordered:test_random
+1946	ext/no-line-input	const1	killed	ordered:test_line_random
+1947	ext/no-line-input	inv	killed	ordered:test_line_random
+1948	ext/no-line-input	const0	killed	ordered:test_random
+1949	ext/no-line-input	const0	killed	ordered:test_random
+1950	ext/no-line-input	const1	killed	ordered:test_protocols
+1951	ext/no-line-input	inv	killed	ordered:test_line_random
+1952	ext/no-line-input	const0	killed	ordered:test_line_random
+1953	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1954	ext/no-line-input	cnot1	killed	ordered:test_protocols
+1955	ext/no-line-input	inv	killed	ordered:test_line_random
+1956	ext/no-line-input	inv	killed	ordered:test_line_random
+1957	ext/no-line-input	inv	killed	ordered:test_line_random
+1958	ext/no-line-input	inv	killed	ordered:test_line_random
+1959	ext/no-line-input	inv	killed	ordered:test_line_random
+1960	ext/no-line-input	const1	killed	ordered:test_line_random
+1961	ext/no-line-input	inv	killed	ordered:test_line_random
+1962	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1963	ext/no-line-input	const1	killed	ordered:test_line_random
+1964	ext/no-line-input	inv	killed	ordered:test_line_random
+1965	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1966	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1967	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1968	ext/no-line-input	const1	killed	ordered:test_line_random
+1969	ext/no-line-input	inv	killed	ordered:test_line_random
+1970	ext/no-line-input	inv	killed	ordered:test_line_random
+1971	ext/no-line-input	inv	killed	ordered:test_line_random
+1972	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1973	ext/no-line-input	const1	killed	ordered:test_line_random
+1974	ext/no-line-input	const1	killed	ordered:test_line_random
+1975	ext/no-line-input	const1	killed	ordered:test_line_random
+1976	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1977	ext/no-line-input	const0	killed	ordered:test_line_random
+1978	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1979	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1980	ext/no-line-input	cnot1	killed	ordered:test_line_random
+1981	ext/no-line-input	const0	killed	ordered:test_line_random
+1982	ext/no-line-input	cnot1	killed	ordered:test_random
+1983	ext/no-line-input	cnot0	killed	ordered:test_line_random
+1984	ext/no-line-input	const1	killed	ordered:test_smoke
+1985	ext/no-line-input	inv	killed	ordered:test_random
+1986	ext/no-line-input	inv	killed	ordered:test_line_random
+1987	ext/no-line-input	inv	killed	ordered:test_line_random
+1988	ext/no-line-input	inv	killed	ordered:test_line_unit
+1989	ext/no-line-input	const1	killed	ordered:test_line_unit
+1990	ext/no-line-input	const0	killed	ordered:test_line_unit
+1991	ext/no-line-input	const0	killed	ordered:test_line_spec_ticker
+1992	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+1993	ext/no-line-input	inv	killed	ordered:test_line_unit
+1994	ext/no-line-input	const1	killed	ordered:test_line_unit
+1995	ext/no-line-input	const1	killed	ordered:test_line_unit
+1996	ext/no-line-input	const1	killed	ordered:test_line_unit
+1997	ext/no-line-input	inv	killed	ordered:test_line_unit
+1998	ext/no-line-input	const0	killed	ordered:test_line_unit
+1999	ext/no-line-input	const0	killed	ordered:test_line_unit
+2000	ext/no-line-input	const1	equivalent	miter-abc-900s
+2001	ext/no-line-input	const0	killed	ordered:test_line_random
+2002	ext/no-line-input	inv	killed	ordered:test_line_unit
+2003	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2004	ext/no-line-input	cnot1	killed	ordered:test_line_random
+2005	ext/no-line-input	const1	killed	ordered:test_line_unit
+2006	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2007	ext/no-line-input	const0	killed	ordered:test_line_unit
+2008	ext/no-line-input	inv	killed	ordered:test_line_unit
+2009	ext/no-line-input	inv	killed	ordered:test_line_unit
+2010	ext/no-line-input	const0	killed	kill:test_line_spec_image_end
+2011	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2012	ext/no-line-input	inv	killed	ordered:test_line_unit
+2013	ext/no-line-input	inv	killed	ordered:test_line_unit
+2014	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2015	ext/no-line-input	const0	killed	ordered:test_line_unit
+2016	ext/no-line-input	inv	killed	ordered:test_line_unit
+2017	ext/no-line-input	const1	killed	ordered:test_line_unit
+2018	ext/no-line-input	const0	killed	ordered:test_line_random
+2019	ext/no-line-input	const0	killed	ordered:test_line_demos
+2020	ext/no-line-input	cnot1	killed	ordered:test_line_demos
+2021	ext/no-line-input	inv	killed	ordered:test_line_unit
+2022	ext/no-line-input	const0	killed	ordered:test_directed
+2023	ext/no-line-input	inv	killed	ordered:test_line_unit
+2024	ext/no-line-input	cnot1	killed	ordered:test_directed
+2025	ext/no-line-input	const0	killed	ordered:test_line_demos
+2026	ext/no-line-input	inv	killed	ordered:test_line_unit
+2027	ext/no-line-input	const0	killed	ordered:test_line_unit
+2028	ext/no-line-input	const1	killed	ordered:test_line_unit
+2029	ext/no-line-input	const0	killed	ordered:test_line_unit
+2030	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2031	ext/no-line-input	const0	killed	ordered:test_line_unit
+2032	ext/no-line-input	inv	killed	ordered:test_line_unit
+2033	ext/no-line-input	cnot1	killed	ordered:test_line_demos
+2034	ext/no-line-input	const0	killed	ordered:test_line_demos
+2035	ext/no-line-input	cnot0	killed	ordered:test_line_random
+2036	ext/no-line-input	inv	killed	ordered:test_line_unit
+2037	ext/no-line-input	inv	killed	ordered:test_line_unit
+2038	ext/no-line-input	const0	killed	ordered:test_directed
+2039	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+2040	ext/no-line-input	inv	killed	ordered:test_line_unit
+2041	ext/no-line-input	const1	killed	ordered:test_line_unit
+2042	ext/no-line-input	cnot1	killed	ordered:test_legacy
+2043	ext/no-line-input	const1	killed	ordered:test_line_unit
+2044	ext/no-line-input	const1	killed	ordered:test_line_unit
+2045	ext/no-line-input	inv	killed	ordered:test_line_unit
+2046	ext/no-line-input	inv	killed	ordered:test_line_unit
+2047	ext/no-line-input	const1	killed	ordered:test_line_unit
+2048	ext/no-line-input	const0	killed	ordered:test_line_unit
+2049	ext/no-line-input	const1	killed	ordered:test_line_unit
+2050	ext/no-line-input	const1	killed	ordered:test_line_unit
+2051	ext/no-line-input	cnot1	killed	ordered:test_line_random
+2052	ext/no-line-input	const1	killed	ordered:test_line_unit
+2053	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+2054	ext/no-line-input	cnot1	killed	ordered:test_line_random
+2055	ext/no-line-input	const0	killed	ordered:test_line_random
+2056	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+2057	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2058	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+2059	ext/no-line-input	inv	killed	ordered:test_line_unit
+2060	ext/no-line-input	const0	killed	ordered:test_random
+2061	ext/no-line-input	const1	killed	ordered:test_legacy
+2062	ext/no-line-input	const1	killed	ordered:test_line_unit
+2063	ext/no-line-input	const1	killed	ordered:test_line_unit
+2064	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+2065	ext/no-line-input	inv	killed	ordered:test_line_unit
+2066	ext/no-line-input	const0	killed	ordered:test_directed
+2067	ext/no-line-input	const0	killed	ordered:test_line_unit
+2068	ext/no-line-input	const1	killed	ordered:test_line_unit
+2069	ext/no-line-input	cnot1	killed	kill:test_line_spec_image_end
+2070	ext/no-line-input	const1	killed	ordered:test_legacy
+2071	ext/no-line-input	const0	killed	ordered:test_line_unit
+2072	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2073	ext/no-line-input	cnot1	killed	ordered:test_line_random
+2074	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+2075	ext/no-line-input	const1	killed	ordered:test_line_unit
+2076	ext/no-line-input	inv	killed	ordered:test_line_unit
+2077	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2078	ext/no-line-input	const0	killed	ordered:test_line_unit
+2079	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+2080	ext/no-line-input	inv	killed	ordered:test_line_unit
+2081	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2082	ext/no-line-input	const1	killed	ordered:test_line_unit
+2083	ext/no-line-input	const0	killed	ordered:test_line_unit
+2084	ext/no-line-input	inv	killed	ordered:test_line_unit
+2085	ext/no-line-input	const1	killed	ordered:test_line_unit
+2086	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2087	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2088	ext/no-line-input	const0	killed	ordered:test_line_unit
+2089	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2090	ext/no-line-input	const0	killed	ordered:test_line_unit
+2091	ext/no-line-input	cnot1	killed	ordered:test_line_random
+2092	ext/no-line-input	inv	killed	ordered:test_random
+2093	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2094	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2095	ext/no-line-input	const1	killed	ordered:test_random
+2096	ext/no-line-input	const1	killed	ordered:test_line_unit
+2097	ext/no-line-input	const1	killed	ordered:test_line_unit
+2098	ext/no-line-input	const0	killed	ordered:test_line_unit
+2099	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+2100	ext/no-line-input	const1	killed	ordered:test_line_unit
+2101	ext/no-line-input	cnot1	killed	ordered:test_random
+2102	ext/no-line-input	inv	killed	ordered:test_line_unit
+2103	ext/no-line-input	inv	killed	ordered:test_line_unit
+2104	ext/no-line-input	const1	killed	ordered:test_line_unit
+2105	ext/no-line-input	inv	killed	ordered:test_line_unit
+2106	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2107	ext/no-line-input	inv	killed	ordered:test_line_unit
+2108	ext/no-line-input	const0	killed	ordered:test_line_unit
+2109	ext/no-line-input	const0	killed	ordered:test_line_unit
+2110	ext/no-line-input	cnot1	killed	ordered:test_line_unit
+2111	ext/no-line-input	cnot1	killed	ordered:test_line_random
+2112	ext/no-line-input	const0	killed	ordered:test_line_unit
+2113	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2114	ext/no-line-input	cnot0	killed	ordered:test_line_unit
+2115	ext/no-line-input	const0	killed	ordered:test_line_random
+2116	ext/no-line-input	cnot1	killed	ordered:test_line_random
+2117	ext/no-line-input	const1	killed	ordered:test_line_unit

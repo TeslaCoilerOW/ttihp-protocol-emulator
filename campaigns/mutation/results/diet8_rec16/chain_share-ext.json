@@ -1,0 +1,21 @@
+{
+ "status_tsv": "mutant_status-ext.tsv",
+ "mutants": 2117,
+ "places": {
+  "chain, stage of an opcode 30-33": {
+   "equivalent": 14,
+   "killed": 102,
+   "survived": 61
+  },
+  "chain, stage of an opcode below 30": {
+   "equivalent": 66,
+   "killed": 930,
+   "survived": 185
+  },
+  "off the chain": {
+   "equivalent": 33,
+   "killed": 726,
+   "survived": 0
+  }
+ }
+}

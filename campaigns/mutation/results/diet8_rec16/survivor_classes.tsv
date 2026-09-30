@@ -1,0 +1,202 @@
+id	region	mode	nearest_state	engine	select_role	port	class	rip	miter_abc
+3	line/state	const0	stuff_run	2	no select	A	neither proven nor argued	infected: stuff_run	unknown
+170	line/state	const1	line_level,line_man_pending,logical_output	0	no select	A	neither proven nor argued	not infected	unknown
+241	line/state	cnot0	line_cfg	3	no select	Q	neither proven nor argued	infected: line_cfg_0	unknown
+392	line/out-pins	cnot1	logical_output	2	other	B	neither proven nor argued	not infected	unknown
+394	line/out-pins	const1	logical_output	2	other	A	neither proven nor argued	infected: logical_output_0	unknown
+411	line/out-pins	cnot1	logical_output	1	other	B	neither proven nor argued	infected: logical_output_1	unknown
+450	line/out-engine_ctrl	const0	blocked_cycles	0	other	A	blocked count in a line XFER (argued)	not infected	unknown
+451	line/out-engine_ctrl	cnot0	blocked_cycles	0	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles	unknown
+452	line/out-engine_ctrl	const0	blocked_cycles	0	other	A	blocked count in a line XFER (argued)	not infected	unknown
+459	line/out-engine_ctrl	inv	blocked_cycles	0	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles	unknown
+460	line/out-engine_ctrl	const1	blocked_cycles	0	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles	unknown
+461	line/out-engine_ctrl	const1	blocked_cycles	0	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles	unknown
+475	line/out-engine_ctrl	const0	blocked_cycles	0	other	A	blocked count in a line XFER (argued)	not infected	unknown
+478	line/out-engine_ctrl	const0	blocked_cycles	0	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+479	line/out-engine_ctrl	const0	blocked_cycles	0	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+480	line/out-engine_ctrl	const0	blocked_cycles	0	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+482	line/state	const1	line_trailing_stuff	0	other	B	neither proven nor argued	infected: line_trailing_stuff	unknown
+489	line/state	const1	line_trailing_stuff	0	other	A	neither proven nor argued	infected: line_trailing_stuff	unknown
+490	line/state	const0	line_trailing_stuff	0	other	B	neither proven nor argued	not infected	unknown
+512	line/state	inv	line_se0	0	other	A	neither proven nor argued	infected: line_se0	unknown
+515	line/state	const0	line_se0	0	START	S	neither proven nor argued	infected: line_se0	unknown
+520	line/state	inv	stuff_error	0	STOP	B	STOP/BEGIN edge (argued)	infected: stuff_error	unknown
+528	line/out-engine_xfer	cnot1	transfer_edges	1	other	A	neither proven nor argued	not infected	unknown
+535	line/out-engine_ctrl	inv	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles_0	unknown
+536	line/out-engine_ctrl	const0	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	not infected	unknown
+537	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	not infected	unknown
+538	line/out-engine_ctrl	const1	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles_0	unknown
+539	line/out-engine_ctrl	inv	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles_0	unknown
+540	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	not infected	unknown
+541	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	not infected	unknown
+547	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+548	line/out-engine_ctrl	const1	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles_0	unknown
+549	line/out-engine_ctrl	cnot0	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles_0	unknown
+552	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+553	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+555	line/out-engine_ctrl	const0	blocked_cycles	1	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+556	line/out-engine_ctrl	const0	blocked_cycles	1	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+557	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+558	line/out-engine_ctrl	const0	blocked_cycles	1	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+559	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	not infected	unknown
+561	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	not infected	unknown
+564	line/out-engine_ctrl	const0	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	not infected	unknown
+565	line/out-engine_ctrl	const0	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	not infected	unknown
+566	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	B	blocked count in a line XFER (argued)	not infected	unknown
+569	line/out-engine_ctrl	const0	blocked_cycles	1	other	B	blocked count in a line XFER (argued)	not infected	unknown
+570	line/out-engine_ctrl	inv	blocked_cycles	1	other	S	blocked count in a line XFER (argued)	not infected	unknown
+571	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+577	line/state	inv	line_trailing_stuff	1	other	S	neither proven nor argued	infected: line_trailing_stuff_0	unknown
+578	line/state	const1	line_trailing_stuff	1	other	B	neither proven nor argued	infected: line_trailing_stuff_0	unknown
+579	line/state	inv	line_trailing_stuff	1	other	A	neither proven nor argued	infected: line_trailing_stuff_0	unknown
+600	line/out-engine_data	const1	tx	1	other	B	neither proven nor argued	infected: tx_1	unknown
+615	line/state	inv	line_se0	1	FAULT	B	fault edge (argued)	infected: line_se0_0	unknown
+628	line/out-engine_xfer	const0	transfer_edges	3	other	A	neither proven nor argued	not infected	unknown
+635	line/out-engine_xfer	cnot1	transfer_edges	3	other	Y	neither proven nor argued	not infected	unknown
+636	line/out-engine_ctrl	inv	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles_1	unknown
+637	line/out-engine_ctrl	inv	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles_1	unknown
+643	line/out-engine_ctrl	cnot1	blocked_cycles	3	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+644	line/out-engine_ctrl	cnot0	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles_1	unknown
+645	line/out-engine_ctrl	const1	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles_1	unknown
+646	line/out-engine_ctrl	inv	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles_1	unknown
+647	line/out-engine_ctrl	inv	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles_1	unknown
+649	line/out-engine_ctrl	const0	blocked_cycles	3	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+650	line/out-engine_ctrl	cnot1	blocked_cycles	3	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+651	line/out-engine_ctrl	cnot1	blocked_cycles	3	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+652	line/out-engine_ctrl	const0	blocked_cycles	3	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+653	line/out-engine_ctrl	const0	blocked_cycles	3	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+655	line/out-engine_ctrl	cnot1	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	not infected	unknown
+658	line/out-engine_ctrl	const0	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	not infected	unknown
+659	line/out-engine_ctrl	cnot1	blocked_cycles	3	other	B	blocked count in a line XFER (argued)	not infected	unknown
+661	line/out-engine_ctrl	cnot1	blocked_cycles	3	other	B	blocked count in a line XFER (argued)	not infected	unknown
+663	line/out-engine_ctrl	cnot1	blocked_cycles	3	other	B	blocked count in a line XFER (argued)	not infected	unknown
+664	line/out-engine_ctrl	const0	blocked_cycles	3	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+668	line/state	const0	line_trailing_stuff	3	other	A	neither proven nor argued	not infected	unknown
+673	line/state	const0	line_trailing_stuff	3	other	A	neither proven nor argued	not infected	unknown
+698	line/out-engine_ctrl	inv	blocked_cycles	2	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles_2	unknown
+699	line/out-engine_ctrl	const0	blocked_cycles	2	other	A	blocked count in a line XFER (argued)	not infected	unknown
+700	line/out-engine_ctrl	cnot1	blocked_cycles	2	other	A	blocked count in a line XFER (argued)	not infected	unknown
+701	line/out-engine_ctrl	cnot1	blocked_cycles	2	other	A	blocked count in a line XFER (argued)	not infected	unknown
+702	line/out-engine_ctrl	const0	blocked_cycles	2	other	A	blocked count in a line XFER (argued)	not infected	unknown
+703	line/out-engine_ctrl	cnot1	blocked_cycles	2	other	A	blocked count in a line XFER (argued)	not infected	unknown
+707	line/out-engine_ctrl	const0	blocked_cycles	2	other	A	blocked count in a line XFER (argued)	not infected	unknown
+708	line/out-engine_ctrl	const0	blocked_cycles	2	other	A	blocked count in a line XFER (argued)	not infected	unknown
+709	line/out-engine_ctrl	inv	blocked_cycles	2	other	A	blocked count in a line XFER (argued)	infected: blocked_cycles_2	unknown
+712	line/out-engine_ctrl	const0	blocked_cycles	2	other	Y	blocked count in a line XFER (argued)	not infected	unknown
+719	line/out-engine_ctrl	cnot1	blocked_cycles	2	other	B	blocked count in a line XFER (argued)	not infected	unknown
+720	line/out-engine_ctrl	const0	blocked_cycles	2	other	B	blocked count in a line XFER (argued)	not infected	unknown
+730	line/state	const0	line_trailing_stuff	2	other	Y	neither proven nor argued	not infected	unknown
+731	line/state	const0	line_trailing_stuff	2	FAULT	A	neither proven nor argued	not infected	unknown
+736	line/out-engine_ctrl	cnot1	pc	2	other	A	neither proven nor argued	not infected	unknown
+740	line/out-engine_ctrl	const0	pc	2	other	B	neither proven nor argued	not infected	unknown
+767	line/state	const1	crc_state	2	other	A	neither proven nor argued	infected: crc_state	unknown
+768	line/state	const1	crc_state	2	other	A	neither proven nor argued	infected: crc_state	unknown
+997	line/state	const1	crc_state	2	FAULT	B	fault edge (argued)	infected: crc_state	unknown
+998	line/state	const1	crc_state	2	FAULT	B	fault edge (argued)	infected: crc_state	unknown
+999	line/state	cnot1	crc_state	2	FAULT	B	fault edge (argued)	infected: crc_state	unknown
+1075	line/state	inv	line_rx_prev	2	other	B	neither proven nor argued	infected: line_rx_prev,rx,stuff_last,stuff_run	unknown
+1076	line/state	const1	line_rx_prev	2	other	B	neither proven nor argued	infected: line_rx_prev,rx,stuff_last,stuff_run	unknown
+1079	line/state	inv	stuff_last	2	other	B	neither proven nor argued	infected: stuff_last	unknown
+1080	line/state	const0	stuff_last	2	FAULT	Y	neither proven nor argued	infected: stuff_last	unknown
+1092	line/state	const1	stuff_run	2	other	A	neither proven nor argued	infected: stuff_run	unknown
+1097	line/state	const0	stuff_run	2	FAULT	B	fault edge (argued)	infected: stuff_run	unknown
+1113	line/state	const0	line_man_pending	2	other	A	neither proven nor argued	not infected	unknown
+1126	line/state	const0	line_cfg	2	FAULT	B	fault edge (argued)	infected: line_cfg	unknown
+1127	line/state	inv	line_cfg	2	FAULT	B	fault edge (argued)	infected: line_cfg	unknown
+1128	line/state	const0	line_cfg	2	FAULT	S	fault edge (argued)	infected: line_cfg	unknown
+1155	line/state	cnot1	line_remaining	2	other	A	neither proven nor argued	infected: line_remaining	unknown
+1172	line/state	inv	line_frac	2	FAULT	B	fault edge (argued)	infected: line_frac	unknown
+1190	line/state	inv	line_frac	2	START	B	START value of the fraction (argued)	infected: line_frac	unknown
+1207	line/state	cnot1	line_acc	2	FAULT	A	neither proven nor argued	infected: line_acc	unknown
+1211	line/state	cnot1	line_acc	2	FAULT	B	fault edge (argued)	infected: line_acc	unknown
+1212	line/state	inv	line_acc	2	FAULT	B	fault edge (argued)	infected: line_acc	unknown
+1213	line/state	const1	line_acc	2	FAULT	B	fault edge (argued)	infected: line_acc	unknown
+1218	line/state	const1	line_acc	2	WAIT	A	neither proven nor argued	infected: line_acc,transfer_tick	unknown
+1219	line/state	const1	line_acc	2	WAIT	A	neither proven nor argued	infected: line_acc,transfer_tick	unknown
+1254	line/state	cnot0	line_remaining	2	FAULT	B	fault edge (argued)	infected: line_remaining	unknown
+1258	line/state	const0	line_remaining	2	WAIT	A	neither proven nor argued	not infected	unknown
+1287	line/state	cnot0	crc_state	1	other	A	neither proven nor argued	infected: crc_state_0,tx_1,y_0	unknown
+1288	line/state	cnot0	crc_state	1	other	A	neither proven nor argued	infected: crc_state_0,tx_1,y_0	unknown
+1317	line/state	const0	crc_state	1	other	A	neither proven nor argued	infected: crc_state_0	unknown
+1318	line/state	cnot0	crc_state	1	other	A	neither proven nor argued	infected: crc_state_0	unknown
+1504	line/state	const0	crc_state	1	FAULT	B	fault edge (argued)	infected: crc_state_0	unknown
+1505	line/state	const0	crc_state	1	FAULT	B	fault edge (argued)	infected: crc_state_0	unknown
+1525	line/state	const0	crc_state	1	ACTIVE	A	halted or faulted engine (argued)	infected: crc_state_0	unknown
+1526	line/state	const0	crc_state	1	ACTIVE	A	halted or faulted engine (argued)	infected: crc_state_0	unknown
+1532	line/state	const1	crc_state	1	ACTIVE	S	halted or faulted engine (argued)	not infected	unknown
+1540	line/state	cnot0	crc_state	1	STOP	B	STOP/BEGIN edge (argued)	infected: crc_state_0	unknown
+1541	line/state	const0	crc_state	1	STOP	B	STOP/BEGIN edge (argued)	infected: crc_state_0	unknown
+1706	line/state	inv	crc_state	0	other	S	neither proven nor argued	infected: crc_state_1	unknown
+1961	line/state	const1	crc_preset	3	ACTIVE	S	halted or faulted engine (argued)	infected: crc_preset_2	unknown
+2138	line/state	inv	crc_state	3	FAULT	B	fault edge (argued)	infected: crc_state_2	unknown
+2139	line/state	cnot1	crc_state	3	FAULT	B	fault edge (argued)	infected: crc_state_2	unknown
+2140	line/state	const0	crc_state	3	FAULT	B	fault edge (argued)	infected: crc_state_2	unknown
+2209	line/state	const1	stuff_error	3	ACTIVE	S	halted or faulted engine (argued)	not infected	unknown
+2225	line/state	inv	line_rx_prev	3	other	A	neither proven nor argued	infected: line_rx_prev_0	unknown
+2227	line/state	const1	line_rx_prev	3	FAULT	B	fault edge (argued)	infected: line_rx_prev_0	unknown
+2232	line/state	inv	stuff_last	3	other	S	neither proven nor argued	infected: _364,_9910,_9922,line_boundary_seen_0,line_trailing_stuff_1,pc_0,rx_2,stuff_last_0,stuff_run_0,transfer_edges_0,transfer_mode_0,tx_0	unknown
+2233	line/state	const0	stuff_last	3	FAULT	B	fault edge (argued)	infected: stuff_last_0	unknown
+2253	line/state	const0	stuff_run	3	WAIT	A	neither proven nor argued	infected: stuff_run_0	unknown
+2257	line/state	const0	stuff_run	3	ACTIVE	A	halted or faulted engine (argued)	infected: stuff_run_0	unknown
+2262	line/state	const0	stuff_run	3	STOP	B	STOP/BEGIN edge (argued)	infected: stuff_run_0	unknown
+2269	line/state	const1	line_man_pending	3	other	B	neither proven nor argued	infected: line_man_pending_0	unknown
+2271	line/state	inv	line_man_pending	3	STOP	B	STOP/BEGIN edge (argued)	infected: line_man_pending_0	unknown
+2272	line/state	const0	line_level	3	other	S	neither proven nor argued	infected: line_level_0	unknown
+2274	line/state	const0	line_level	3	STOP	B	STOP/BEGIN edge (argued)	infected: line_level_0	unknown
+2279	line/state	const1	line_cfg	3	other	B	neither proven nor argued	infected: line_cfg_0	unknown
+2281	line/state	cnot1	line_cfg	3	XFER	A	neither proven nor argued	infected: line_cfg_0	unknown
+2286	line/state	const1	line_cfg	3	WAIT	A	neither proven nor argued	infected: line_cfg_0	unknown
+2287	line/state	const1	line_cfg	3	WAIT	A	neither proven nor argued	infected: line_cfg_0	unknown
+2316	line/state	inv	line_boundary_seen	3	FAULT	B	fault edge (argued)	infected: line_boundary_seen_0	unknown
+2326	line/state	const1	line_frac	3	FAULT	B	fault edge (argued)	infected: line_frac_0	unknown
+2327	line/state	inv	line_frac	3	FAULT	B	fault edge (argued)	infected: line_frac_0	unknown
+2328	line/state	cnot1	line_frac	3	FAULT	B	fault edge (argued)	infected: line_frac_0	unknown
+2329	line/state	const1	line_frac	3	FAULT	B	fault edge (argued)	infected: line_frac_0	unknown
+2367	line/state	inv	line_acc	3	FAULT	B	fault edge (argued)	infected: line_acc_0	unknown
+2369	line/state	const1	line_acc	3	WAIT	A	neither proven nor argued	infected: line_acc_0,transfer_tick_0	unknown
+2406	line/state	const0	line_remaining	3	FAULT	B	fault edge (argued)	not infected	unknown
+2407	line/state	const1	line_remaining	3	FAULT	B	fault edge (argued)	infected: line_remaining_0	unknown
+2443	line/state	const0	line_cell_bit	1	other	S	neither proven nor argued	not infected	unknown
+2451	line/state	const0	stuff_run	1	other	A	neither proven nor argued	infected: stuff_run_1	unknown
+2468	line/state	const0	arbitration_lost	1	FAULT	S	fault edge (argued)	not infected	unknown
+2488	line/state	const1	line_man_pending	1	FAULT	S	neither proven nor argued	not infected	unknown
+2501	line/state	cnot1	line_cfg	1	FAULT	B	fault edge (argued)	infected: line_cfg_1	unknown
+2502	line/state	const1	line_cfg	1	FAULT	B	fault edge (argued)	infected: line_cfg_1	unknown
+2509	line/state	cnot0	line_cfg	1	WAIT	A	neither proven nor argued	infected: line_cfg_1,stuff_run_1	unknown
+2526	line/state	const0	line_boundary_seen	1	FAULT	B	fault edge (argued)	infected: line_boundary_seen_1	unknown
+2527	line/state	const1	line_boundary_seen	1	WAIT	A	neither proven nor argued	infected: line_boundary_seen_1	unknown
+2537	line/state	cnot1	line_frac	1	FAULT	B	fault edge (argued)	infected: line_frac_1	unknown
+2552	line/state	inv	line_frac	1	START	B	START value of the fraction (argued)	infected: line_frac_1	unknown
+2579	line/state	const1	line_acc	1	FAULT	B	fault edge (argued)	infected: line_acc_1	unknown
+2610	line/state	cnot1	line_remaining	1	other	A	neither proven nor argued	infected: line_remaining_1	unknown
+2611	line/state	cnot1	line_remaining	1	FAULT	B	fault edge (argued)	not infected	unknown
+2646	line/state	const0	stuff_run	0	other	B	neither proven nor argued	not infected	unknown
+2663	line/state	const0	stuff_run	0	other	A	neither proven nor argued	infected: stuff_run_2	unknown
+2668	line/state	inv	stuff_run	0	FAULT	B	fault edge (argued)	infected: stuff_run_2	unknown
+2669	line/state	cnot1	stuff_run	0	FAULT	B	fault edge (argued)	infected: stuff_run_2	unknown
+2681	line/state	const1	arbitration_lost	0	WAIT	S	neither proven nor argued	not infected	unknown
+2688	line/state	const0	line_cell_bit	0	FAULT	B	fault edge (argued)	infected: line_cell_bit_2	unknown
+2693	line/state	const0	line_man_pending	0	other	S	neither proven nor argued	infected: line_man_pending_2	unknown
+2713	line/state	const1	line_cfg	0	WAIT	S	neither proven nor argued	not infected	unknown
+2728	line/state	cnot1	line_cfg	0	STOP	Y	neither proven nor argued	infected: line_cfg_2,stuff_run_2	unknown
+2732	line/state	const1	line_boundary_seen	0	other	A	neither proven nor argued	infected: line_boundary_seen_2	unknown
+2733	line/state	const0	line_boundary_seen	0	other	Y	neither proven nor argued	infected: line_boundary_seen_2	unknown
+2734	line/state	const1	line_boundary_seen	0	other	S	neither proven nor argued	infected: line_boundary_seen_2	unknown
+2735	line/state	const0	line_boundary_seen	0	other	Y	neither proven nor argued	infected: line_boundary_seen_2	unknown
+2740	line/state	inv	line_boundary_seen	0	STOP	B	STOP/BEGIN edge (argued)	infected: line_boundary_seen_2	unknown
+2741	line/state	const1	line_boundary_seen	0	STOP	B	STOP/BEGIN edge (argued)	infected: line_boundary_seen_2	unknown
+2742	line/state	const0	line_phase	0	FAULT	S	fault edge (argued)	not infected	unknown
+2751	line/state	cnot0	line_frac	0	FAULT	B	fault edge (argued)	infected: line_frac_2	unknown
+2760	line/state	cnot1	line_frac	0	ACTIVE	A	halted or faulted engine (argued)	infected: line_frac_2	unknown
+2766	line/state	inv	line_frac	0	START	B	START value of the fraction (argued)	infected: line_frac_2	unknown
+2767	line/state	const0	line_frac	0	START	S	neither proven nor argued	infected: line_frac_2	unknown
+2770	line/state	inv	line_frac	0	STOP	B	STOP/BEGIN edge (argued)	infected: line_frac_2	unknown
+2771	line/state	const1	line_frac	0	STOP	B	STOP/BEGIN edge (argued)	infected: line_frac_2	unknown
+2772	line/state	const0	line_frac	0	STOP	B	STOP/BEGIN edge (argued)	infected: line_frac_2	unknown
+2778	line/state	inv	line_acc	0	other	A	neither proven nor argued	infected: line_acc_2	unknown
+2787	line/state	cnot1	line_acc	0	other	Y	neither proven nor argued	infected: _11672,_11675,_11684,crc_state_1,line_acc_2,line_boundary_seen_2,line_cell_bit_2,line_phase_2,line_rx_prev_2,pc_2,rx_1,stuff_last_2,stuff_run_2,transfer_edges_2,transfer_mode_2,transfer_tick_2,tx_2	unknown
+2791	line/state	cnot1	line_acc	0	FAULT	Y	neither proven nor argued	infected: crc_state_1,line_acc_2,line_cell_bit_2,line_phase_2,stuff_last_2,stuff_run_2,transfer_edges_2,transfer_tick_2,tx_2	unknown
+2797	line/state	cnot0	line_acc	0	WAIT	A	neither proven nor argued	infected: line_acc_2,line_phase_2,transfer_tick_2	unknown
+2798	line/state	const0	line_acc	0	WAIT	A	neither proven nor argued	infected: line_acc_2,line_phase_2,transfer_tick_2	unknown
+2851	line/out-pins	cnot1	logical_output	3	other	Y	neither proven nor argued	not infected	unknown
+2853	line/out-pins	inv	logical_output	3	other	A	neither proven nor argued	infected: logical_output	unknown

@@ -1,0 +1,13 @@
+snapshot: <work dir>/ext-mutation/snap-f9e0bf9 (git archive of f9e0bf9)
+variant: diet8_rec16
+reference core: 5fb364f2ad15f55e145b3e059e264c44bf6e4c0fb793e7024c67f458411909e2
+seed: 20270118
+population: 90372
+sample: 3000
+Yosys 0.67+111 (git sha1 4821ed17b-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+d517e277aa2a56f2f4368124581e4ac4d831db209826e377c50127e158566c69  core_orig.v
+69125d9b59c6a2b25c06853a6ffb72209a63f2227d240e723d3d65497d9b515a  base.il
+0b9c031517778d6fe4e7cbbf1f0e76b291513dc6fe5d87c0c0d283f00eee3196  base_roundtrip.v
+e6514661bf48bbd0e370cb5a85feebc5237d45f2bb7bd6da2da2c921819bd733  sel/line.txt
+eb63e0907321c390e4595c8da136f4f96a9a6e9c917481e158aa61ccb339da03  all_mutations.tsv
+056ebe21e4d88a081ac99b54fd13cf6f9f6c6214d1dfe2854334299000c40450  mutations.tsv

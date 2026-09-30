@@ -34,6 +34,11 @@ per-mutant files stay in the campaign directory `$CAMP`.
 | `describe.py` | Print a mutant's statement and its path to the nearest named state |
 | `sample_classification.py` | Hand classification of the 48-survivor sample, merged with the evidence |
 | `directed/test_mutation_gaps.py` | Directed tests written from the survivor analysis (not part of the repo suite) |
+| `campaign-line-diet8_rec16.env` | Parameters of the line-unit campaign on variant `diet8_rec16` (see "Line unit (diet8_rec16)") |
+| `gen_line_mutants.sh` | Line-unit campaign: `prep` the variant core, select the line-unit logic (`line_region.py`), list every `mutate` mutation of it, draw a uniform sample |
+| `line_region.py` | Locate the line-unit logic structurally: the statements that compute line-unit state and the first statements on every path out of them |
+| `sample_score.py` | Score of a uniform mutant sample with a Wilson confidence interval, total and per region |
+| `line_survivor_classes.py` | Line-unit campaign: locate the engine-control selects and the blocked-cycle count's opcode chain structurally and classify survivors (docs/extension.md section 11.4); `--chain-share` counts the mutants of a sample by their place on that chain |
 
 Stages of `run_mutant.py`:
 
@@ -46,6 +51,8 @@ Stages of `run_mutant.py`:
 | `suite` | the snapshot's whole suite: the default `COCOTB_TEST_MODULES` of its `test/Makefile` (66 tests in nine modules at c118027, 102 tests in 20 modules from aa07868 on), stopping at the first failing module | fast-set survivors (used instead of `full` for the diet4 campaign); every mutant in the push (there called `head`, on a c118027 tree) and in the diet4 re-run |
 | `kill` | the modules listed in the design directory's `kill_modules.txt`; every module runs, and `killed_modules` lists each one that fails | the push's `test_kill_*` iterations |
 | `kill-rip` | the `kill` modules on the RIP wrapper of stage `rip` | survivor analysis |
+| `ordered` | the modules listed in the design directory's `suite_modules.txt`, in that order, each passed as `COCOTB_TEST_MODULES`, stopping at the first failing module | the line-unit campaign's first stage (the variant's 23 default modules, the three line-unit modules first) |
+| `ordered-rip` | the `suite_modules.txt` modules on the RIP wrapper | survivor analysis |
 | `directed` | `directed/test_mutation_gaps.py` | full-suite survivors and the two controls |
 | `directed-rip` | the directed tests on the RIP wrapper | diagnosing a directed test that misses its target |
 
@@ -299,3 +306,221 @@ python3 $H/push_summary.py design --sim suite=results/suite --proof equiv_induct
 `einv_specs.py --core ... --fifo-depth 4` finds the eight 3-bit queue counters
 of `diet4` (the anonymous registers compared only with 4); the invariant
 library is otherwise the push's, mapped through the variant's `engine_map.json`.
+
+## Line unit (diet8_rec16)
+
+The mutation campaign over the line unit of variant `diet8_rec16` asked for by
+[docs/extension.md](../../docs/extension.md) section 11. Parameters:
+`campaign-line-diet8_rec16.env`; results: [`results/diet8_rec16/`](results/diet8_rec16/).
+
+**Snapshot.** A `git archive` of branch `eval/diet8-rec16` at `f9e0bf9`, whose
+`src/protocol_emulator_core.v` is the published `diet8_rec16` core (sha256
+`d517e277…`) and whose `test/Makefile` defaults to `PE_VARIANT=diet8_rec16`. The
+test tree packed for the runs is what the test action uses on that branch
+(`src/project.v`, `test`, `firmware`, `models`, `configs`; no `build/variants/`),
+with the `test/test_line_spec_*.py` files copied in where a stage runs them
+(`mk_design.sh`, `EXTRA_TESTS`). `scripts/gen_variants.sh --no-check diet8
+diet8_rec16`, run in the snapshot, regenerates the `diet8_rec16` core byte for
+byte and gives the `diet8` core (`5fb364f2…`) that `line_region.py` compares
+it with.
+
+**Selection** (`line_region.py`). Two populations of mutations.
+
+* First population (`sel/line.txt`, regions `line/*`), anchored on the
+  registers: the 19 line-unit registers of `Engine.line_register_names` (76 in
+  the four-engine core) are added to `region_map.py`'s categories; the
+  statements whose nearest named state is one of them are the unit's state
+  logic (`line/state`), and the first cell-producing statements on every path
+  out of that logic are its outputs (`line/out-<region>`: into the pins, the
+  data registers, engine control, ...).
+* Second population (`sel/ext.txt`, regions `ext/*`): the option's logic
+  outside the first. `line_region.py` compares the core with `diet8` statement
+  by statement (a statement whose structural key does not occur in `diet8` was
+  added or changed by the option; a change propagates to every statement whose
+  input changed) and selects the combinational statements with a line-unit
+  register among their nearest named states that the tie-break gave another
+  region (`ext/tie`), and the added or changed combinational statements with no
+  line-unit register in their same-cycle fan-in (`ext/no-line-input`: the
+  decode of opcodes 30-33, the encoding checks, and the next-value selections
+  they feed).
+* Not selected, counted in `line_region.json`: added or changed combinational
+  statements that read line-unit state in the same cycle beyond the first
+  cell-producing statement of their path (`ext/downstream`,
+  `sel/ext-downstream.txt`), and the clocked blocks of other registers and
+  the SRAM instances whose inputs changed.
+
+`gen_line_mutants.sh` lists every `mutate` mutation of a population's cells
+(`all_mutations.tsv`; `mutate -list` with a limit above the database size) and
+draws a uniform random sample without replacement (`random.seed`), numbered
+1..SAMPLE in `mutations.tsv`; `sample_index.tsv` maps each sample id to its
+population line. `POPULATION=ext` picks the second population. `EXCLUDE` (a
+`sample_index.tsv`) and `SAMPLE_SEED` draw a held-out sample from the lines an
+earlier sample did not take, with the same `mutate` seed and so the same
+population.
+
+**Samples.** (1) 3,000 of the first population; (2) 2,117 of the second, the
+first sample's sampling fraction; (3) a held-out sample of 1,000 first-population
+mutations that the first sample did not draw, taken after the
+`test_line_spec_*` modules had been written from the first sample's survivors,
+to measure the suite on mutants it was not written from.
+
+**Stages.** `ordered` runs the modules of `DESIGN/suite_modules.txt` in order
+and stops at the first failing module; on the first sample these are the
+variant's 23 default modules at `f9e0bf9` (the three line-unit modules first,
+then the 20 default modules in `test/Makefile` order); on the second and the
+held-out sample the same 23 followed by the ten `test_line_spec` modules
+written from the first sample (`SPEC_MODULES_FIRST`). Because the committed
+modules run first, `push_summary.py --only-modules <the 23>` gives the
+committed suite's score from the same run. The controls `orig` and `0` must
+survive every stage. The kill stage (`kill`) runs every module of
+`DESIGN/kill_modules.txt` on every survivor of `ordered`: all thirteen
+`test_line_spec` modules of round 2 on the first sample (`kill-final2`), the
+three written from the second sample's survivors (`SPEC_MODULES_SECOND`) on
+the second and the held-out sample (`kill3`). `kill4` runs the four modules
+changed or added in round 3 (`SPEC_MODULES_KILL4`: `test_line_spec_image_end`
+with five more cases, `test_line_spec_limit_bits` new, and `se0_pins` and
+`invalid_fields`, whose only change is the harness constructor) on every mutant
+of each sample that no earlier stage killed, and on the earlier kills of the
+three. `kill5` runs `image_end` and `limit_bits` on all of the first sample's
+survivors of the committed suite, as `kill-final2` did for the thirteen, for
+the per-module kill counts. `kill4so` repeats `kill4` on `kill4`'s kills with
+`PE_SPEC_ONLY=1` in the environment: `test_line_spec_common.spec_harness` then
+turns off the harness's per-cycle comparison with the reference model, so only
+the modules' own assertions can fail. The formal classification is that of
+docs/mutation-push.md (sections 4.1 to 4.5): `equiv_mutant.py`, `equiv_inv.py`
+with the invariant library mapped to this core, and the miter with ABC at
+`formal_mutant.py`'s default limits (PDR 600 s, ABC cap 900 s). Each formal
+stage runs with controls: mutant 0 (must be proven), killed mutants (must not
+be proven) and, for the miter, mutants that `equiv_mutant.py` proved
+(`results/diet8_rec16/controls.txt`). `push_summary.py --no-clock-proofs`
+does not count a proof of a mutant that moves a flip-flop to the other clock
+edge (`-port CLK`): the proof methods model every flip-flop as a one-cycle
+delay of the one clock and do not see that change.
+
+**Survivor classes** (`line_survivor_classes.py`). The script locates, per
+engine, the conditions that select a line-unit register's next value (STOP,
+START, "active", WAIT, XFER, FAULT) on the next-value path of the engine's
+`running` register, and the blocked-cycle count's opcode chain on the count's
+own next-value path, checking each step's structure; it reads each survivor's
+mutated statement, port and mode and applies the class rules listed in its
+docstring. Docs/extension.md section 11.4 gives the argument of each class.
+The arguments are not proofs; argued survivors stay in the denominator.
+With `--chain-share STATUS_TSV` the script instead counts every mutant of a
+`push_summary.py --status-tsv` table by its place (on the count's opcode
+chain at the stage of an opcode below 30 or of one of 30-33, or off the
+chain) and status.
+
+```sh
+export PE_WORK=/path/to/work OSS_CAD_SUITE=/path/to/oss-cad-suite
+source campaigns/mutation/campaign-line-diet8_rec16.env
+export PATH=$OSS_CAD_SUITE/bin:$PATH
+H=$PWD/campaigns/mutation; S=$H/submit.sh; T=$(ls $PWD/test/test_line_spec_*.py)
+REF=$CAMP/variants-gen/variants/diet8/protocol_emulator_core.v
+mkdir -p $SNAPSHOT && git archive $SNAPSHOT_COMMIT | tar -x -C $SNAPSHOT
+(cd $SNAPSHOT && scripts/gen_variants.sh --no-check diet8 diet8_rec16 && mv build $CAMP/variants-gen)
+export CAMP MANIFEST=$CAMP/manifest.json JOB_PREFIX=pe-ext-ext-mutation SNAPSHOT_COMMIT
+cd $CAMP
+# --- first sample
+PE_VARIANT=$PE_VARIANT srun -p mit_quicktest -c 2 --mem=8G -t 15 $H/gen_line_mutants.sh $SNAPSHOT $REF design $SEED $SAMPLE
+python3 $H/noop_check.py design > design/noop.json
+echo $SUITE_MODULES | tr ' ' '\n' > design/suite_modules.txt
+cut -f1 design/mutations.tsv | grep -v '^0$' > all_ids.txt && printf 'orig\n0\n' > baseline_ids.txt
+PAR=2 $S ordered baseline_ids.txt 1 00:15:00 mit_quicktest                 # controls: both survive, 127 tests
+PAR=8 $S ordered all_ids.txt 37 03:00:00 mit_preemptable,mit_normal
+python3 $H/push_summary.py design --sim ordered=results/ordered --write-survivors ordered_survivors.txt
+EXTRA_TESTS="$T" $H/mk_design.sh design $SNAPSHOT design-final2 $SPEC_MODULES
+(printf 'orig\n0\n'; cat ordered_survivors.txt) > final_ids.txt
+DESIGN=$CAMP/design-final2 RESULTS=$CAMP/results/kill-final2 PAR=4 $S kill final_ids.txt 16 03:00:00 mit_preemptable,mit_normal
+PAR=8 $S equiv ordered_survivors.txt 12 01:00:00 mit_preemptable,mit_normal
+python3 $H/einv_specs.py --invariants-only - design/engine_map.json einv_invonly.json --core design/base_roundtrip.v --fifo-depth $FIFO_DEPTH
+PAR=8 MEM_PER_RUNNER=4 RUNNER_ARGS="--spec $CAMP/einv_invonly.json" $S einv einv_ids.txt 4 01:00:00 mit_preemptable,mit_normal
+PAR=8 MEM_PER_RUNNER=5 RUNNER_ARGS="$FORMAL_ARGS" $S formal-long formal_ids.txt 16 02:30:00 mit_preemptable,mit_normal
+# reach/infect/propagate: the three line-unit modules and the test_line_spec modules on the wrapper
+DESIGN=$CAMP/design_rip RESULTS=$CAMP/results/rip PAR=8 $S kill-rip rip_ids.txt 16 02:00:00 mit_preemptable,mit_normal
+PROOFS="--proof equiv_induct=results/equiv --proof equiv_inv=results/einv --proof miter-abc-900s=results/formal-long"
+python3 $H/push_summary.py design --sim ordered=results/ordered --sim kill=results/kill-final2 $PROOFS \
+  --no-clock-proofs --json summary.json --status-tsv mutant_status.tsv --write-survivors survivors.txt
+python3 $H/sample_score.py summary.json --population $(wc -l < design/all_mutations.tsv)
+python3 $H/line_survivor_classes.py design --ids-file survivors.txt --rip results/rip \
+  --rip-expected-failure test_can_reset_mid_frame --abc results/formal-long --tsv survivor_classes.tsv
+# --- second sample (P=ext) and held-out sample (P=held); the same steps for each
+POPULATION=ext PE_VARIANT=$PE_VARIANT srun -p mit_quicktest -c 2 --mem=8G -t 15 \
+  $H/gen_line_mutants.sh $SNAPSHOT $REF design-ext $SEED $EXT_SAMPLE
+EXCLUDE=design/sample_index.tsv SAMPLE_SEED=$HELD_SEED PE_VARIANT=$PE_VARIANT srun -p mit_quicktest -c 2 --mem=8G -t 15 \
+  $H/gen_line_mutants.sh $SNAPSHOT $REF design-held $SEED $HELD_SAMPLE
+for P in ext held; do
+  python3 $H/noop_check.py design-$P > design-$P/noop.json
+  EXTRA_TESTS="$T" $H/mk_design.sh design-$P $SNAPSHOT design-$P-run $SPEC_MODULES_FIRST
+  echo $SUITE_MODULES $SPEC_MODULES_FIRST | tr ' ' '\n' > design-$P-run/suite_modules.txt
+  EXTRA_TESTS="$T" $H/mk_design.sh design-$P $SNAPSHOT design-$P-kill3 $SPEC_MODULES_SECOND
+done
+# controls (orig, 0: 155 tests pass), then every mutant; ids that hit the 3,600 s budget on a slow node are re-run elsewhere
+DESIGN=$CAMP/design-ext-run RESULTS=$CAMP/results/ordered-ext PAR=2 $S ordered baseline_ids.txt 1 00:15:00 mit_quicktest
+DESIGN=$CAMP/design-ext-run RESULTS=$CAMP/results/ordered-ext PAR=8 $S ordered ext_ids.txt 25 03:00:00 mit_preemptable,mit_normal
+DESIGN=$CAMP/design-held-run RESULTS=$CAMP/results/ordered-held PAR=8 $S ordered held_ids.txt 12 03:00:00 mit_preemptable,mit_normal
+# for P in ext held: ${P}_survivors.txt from push_summary.py --write-survivors on results/ordered-$P
+DESIGN=$CAMP/design-$P-kill3 RESULTS=$CAMP/results/kill3-$P PAR=4 $S kill kill3_${P}_ids.txt 8 01:00:00 mit_preemptable,mit_normal
+DESIGN=$CAMP/design-$P RESULTS=$CAMP/results/equiv-$P PAR=4 $S equiv ${P}_survivors.txt 8 01:00:00 mit_preemptable,mit_normal
+DESIGN=$CAMP/design-$P RESULTS=$CAMP/results/einv-$P PAR=4 MEM_PER_RUNNER=4 RUNNER_ARGS="--spec $CAMP/einv_invonly.json" \
+  $S einv einv_${P}_ids.txt 12 01:00:00 mit_preemptable,mit_normal
+DESIGN=$CAMP/design-$P RESULTS=$CAMP/results/formal-$P PAR=8 MEM_PER_RUNNER=5 RUNNER_ARGS="$FORMAL_ARGS" \
+  $S formal-long formal_${P}_ids.txt 13 02:30:00 mit_preemptable,mit_normal
+PROOFS="--proof equiv_induct=results/equiv-$P --proof equiv_inv=results/einv-$P --proof miter-abc-900s=results/formal-$P"
+python3 $H/push_summary.py design-$P --sim ordered=results/ordered-$P --only-modules $(echo $SUITE_MODULES | tr ' ' ,) \
+  $PROOFS --no-clock-proofs --json summary-$P-committed-suite.json
+python3 $H/push_summary.py design-$P --sim ordered=results/ordered-$P --sim kill=results/kill3-$P $PROOFS \
+  --no-clock-proofs --json summary-$P.json --status-tsv mutant_status-$P.tsv --write-survivors survivors-$P.txt
+python3 $H/sample_score.py summary-$P.json --population $(wc -l < design-$P/all_mutations.tsv)
+python3 $H/line_survivor_classes.py design-$P --ids-file survivors-$P.txt --abc results/formal-$P --tsv survivor_classes-$P.tsv
+# --- round 3: stage kill4 on each sample (Q=p1 is the first sample, design/), kill5, kill4so
+# kill4_Q_ids.txt: orig, 0, every mutant that no stage killed, and the kills of the three SPEC_MODULES_SECOND
+EXTRA_TESTS="$T" $H/mk_design.sh design $SNAPSHOT design-p1-kill4 $SPEC_MODULES_KILL4
+EXTRA_TESTS="$T" $H/mk_design.sh design $SNAPSHOT design-p1-kill5 $SPEC_MODULES_KILL5
+for P in ext held; do EXTRA_TESTS="$T" $H/mk_design.sh design-$P $SNAPSHOT design-$P-kill4 $SPEC_MODULES_KILL4; done
+for QN in p1:8 ext:8 held:3; do Q=${QN%:*}
+  DESIGN=$CAMP/design-$Q-kill4 RESULTS=$CAMP/results/kill4-$Q PAR=8 $S kill kill4_${Q}_ids.txt ${QN#*:} 01:00:00 mit_preemptable,mit_normal
+done
+DESIGN=$CAMP/design-p1-kill5 RESULTS=$CAMP/results/kill5-p1 PAR=8 $S kill final_ids.txt 12 01:00:00 mit_preemptable,mit_normal
+# kill4so_Q_ids.txt: orig, 0 and kill4's kills
+for Q in p1 ext; do
+  PE_SPEC_ONLY=1 DESIGN=$CAMP/design-$Q-kill4 RESULTS=$CAMP/results/kill4so-$Q PAR=8 $S kill kill4so_${Q}_ids.txt 3 01:00:00 mit_preemptable,mit_normal
+done
+# the summaries then add --sim kill4=results/kill4-Q to the push_summary.py calls above, and
+python3 $H/line_survivor_classes.py design-ext --chain-share mutant_status-ext.tsv --json chain_share-ext.json
+```
+
+`design/engine_map.json` is `engine_map.py`'s output for the core;
+`results/diet8_rec16/engine_map.json` also maps the line-unit registers
+(`engine_map.py core_orig.v <the 19 register names>`). `einv_ids.txt`,
+`formal_ids.txt` and `rip_ids.txt` of the first sample hold the survivors of
+the kill iterations that no earlier method proved, plus the controls; on the
+second and held-out samples the proof stages ran on every survivor of
+`ordered` that the previous method did not prove, plus the controls. The first
+sample's kill stage was run in iterations while the modules were written
+(`kill-k1` to `kill-k5`, then `kill-final` with the ten modules of round 1);
+the scores use `kill-final2`, which runs all thirteen modules of round 2 on
+every survivor of `ordered`, and `kill4`. Eleven array tasks of the first sample's
+`ordered` run landed on two nodes where `test_line_unit` took a median 175 s
+and 200 s per mutant (8 s to 17 s on the other nodes); those tasks were
+cancelled and their remaining ids, with the 36 ids that had hit the stage's
+3,600 s budget there, re-run on other nodes (`--exclude`). The same happened on
+one node in the second sample's run (18 ids re-run).
+
+`results/diet8_rec16/`: `gen_params*.txt` and `line_region.json` (generation
+and selection; the second population's statistics are in `line_region.json`),
+`sample_index*.tsv` (sample id to population line), `noop*.json`,
+`suite_modules*.txt`, `kill_modules*.txt` (stages `kill-final2` and `kill3`),
+`kill4_modules.txt` and `kill5_modules.txt` (the module lists),
+`testtree.sha256` (the test tree of `kill4`, `kill4so` and `kill5`, with the
+fourteen `test_line_spec_*` modules) and `testtree-r2.sha256` (that of
+`kill-final2` and `kill3`, with the thirteen of round 2), `summary*.json` (per
+sample: committed suite, with the campaign's proofs, with all proofs),
+`mutant_status*.tsv`, `survivor_classes*.tsv`, `chain_share-ext.json`,
+`spec_only.tsv` (each `kill4` kill with the modules that kill it with and
+without `PE_SPEC_ONLY=1`, and the first failing assertion),
+`dor_waitevent_analogues.tsv` (the four `cnot1` mutations of the second
+sample's last unargued survivors, applied to the design of record's core),
+`controls.txt`, `einv_invonly.json` and `engine_map.json`; the files without a
+suffix are the first sample's, `-ext` the second sample's, `-held` the
+held-out sample's.
+Write-up: [docs/extension.md](../../docs/extension.md) section 11.

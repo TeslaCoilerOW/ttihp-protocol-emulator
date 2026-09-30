@@ -26,12 +26,15 @@ mkdir -p "$DST"
 DST=$(readlink -f "$DST")
 [ -f "$SRC/base.il" ] && [ -f "$SRC/mutations.tsv" ] || { echo "$SRC: not a design directory" >&2; exit 1; }
 for f in base.il base_roundtrip.v core_orig.v equiv_keep_gold.txt equiv_keep_gate.txt mutations.tsv \
-         sram_blackbox.v variant.txt regions.json cells.tsv gen_params.txt stat.txt engine_map.json; do
+         sram_blackbox.v variant.txt regions.json cells.tsv gen_params.txt stat.txt engine_map.json \
+         line_region.json all_mutations.tsv sample_index.tsv; do
   if [ -e "$SRC/$f" ]; then ln -sfn "$(readlink -f "$SRC/$f")" "$DST/$f"; fi
 done
 VARIANT=$(cat "$SRC/variant.txt" 2>/dev/null || echo base)
 EXTRA=()
-if [ "$VARIANT" != base ]; then
+if [ "$VARIANT" != base ] && [ ! -d "$SNAP/build/variants/$VARIANT" ] && cmp -s "$SNAP/src/protocol_emulator_core.v" "$SRC/core_orig.v"; then
+  :  # a branch whose src/ holds the variant core (eval/diet8-rec16, gen_line_mutants.sh): no build/variants/
+elif [ "$VARIANT" != base ]; then
   [ -d "$SNAP/build/variants/$VARIANT" ] || { echo "no $SNAP/build/variants/$VARIANT (scripts/gen_variants.sh $VARIANT)" >&2; exit 1; }
   cmp -s "$SNAP/build/variants/$VARIANT/protocol_emulator_core.v" "$SRC/core_orig.v" \
     || { echo "$SNAP/build/variants/$VARIANT/protocol_emulator_core.v differs from the mutated core" >&2; exit 1; }

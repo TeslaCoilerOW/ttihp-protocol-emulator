@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Map per-engine registers of the generated core to engine indices.
 
-usage: engine_map.py CORE.v   -> prints JSON {register: engine}
+usage: engine_map.py CORE.v [FAMILY...]   -> prints JSON {register: engine}
+
+FAMILY adds register families to the default list (e.g. the 19 line-unit
+registers of line_region.LINE_REGISTERS for results/diet8_rec16/engine_map.json).
 
 Hardcaml de-duplicates the per-engine register names (pc, pc_0, pc_1, pc_2, ...)
 in elaboration order, which is not the engine order. A register belongs to the
@@ -25,8 +28,9 @@ FAMILIES = ["pc", "running", "fault_code", "tx", "rx", "x", "y", "repeat_count",
             "transfer_edges", "transfer_tick", "transfer_period", "transfer_mode"]
 
 
-def main() -> None:
-    _, stmts, _, _, seq, _ = region_map.parse(Path(sys.argv[1]))
+def engine_finder(stmts, seq):
+    """engine_of(signal): the engine index of the instruction SRAM that a backward walk from
+    the signal reaches first (a dict of counts if several are reached at that depth)."""
     drivers = {}
     for st in stmts:
         for x in st.lhs:
@@ -53,8 +57,14 @@ def main() -> None:
             frontier = nxt
         return None
 
+    return engine_of
+
+
+def main() -> None:
+    _, stmts, _, _, seq, _ = region_map.parse(Path(sys.argv[1]))
+    engine_of = engine_finder(stmts, seq)
     out = {}
-    for fam in FAMILIES:
+    for fam in FAMILIES + sys.argv[2:]:
         for suffix in ("", "_0", "_1", "_2"):
             out[fam + suffix] = engine_of(fam + suffix)
     print(json.dumps(out, indent=1))

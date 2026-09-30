@@ -1,0 +1,10 @@
+# formal_mutant.py controls (random.seed(20270118)): killed first by test_line_unit, then proven equivalent by equiv_mutant.py
+449 1581 1666 1668 1794 2807 185 200 231 344 822 2263
+# equiv_inv.py controls (killed, random.seed(20270118))
+950 1593 2298 
+# equiv_mutant.py and equiv_inv.py positive controls: 0 and the static no-op mutants 294, 298, 300
+# second sample (ids of mutations-ext): equiv_mutant.py, equiv_inv.py and formal_mutant.py positive control 0 (proven by all three);
+# equiv_inv.py negative controls, killed, random.seed(20270118): 566 1756 1047 (none proven)
+# formal_mutant.py controls, random.seed(20270119): proven by equiv_mutant.py 343 158 644 (343, 644 proven, 158 undecided);
+# killed 1610 438 302 (none proven)
+# held-out sample: positive control 0 for equiv_mutant.py, equiv_inv.py and formal_mutant.py (proven by all three)

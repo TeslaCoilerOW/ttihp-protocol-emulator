@@ -20,6 +20,18 @@ no-op control, and "orig" are excluded from the counts) gets one status:
 Score = killed / (mutants - equivalent). A mutant that a proof calls equivalent
 but a test kills is counted as killed and listed under "conflicts" (a soundness
 alarm; expected empty). Controls are listed per stage.
+
+--no-clock-proofs ignores every proof of a mutant that mutates a flip-flop's clock
+input (`-port CLK`): equiv_mutant.py and equiv_inv.py model each flip-flop as a
+one-cycle delay of the one clock, so they do not see a flop moved to the other
+clock edge (line-unit campaign, mutant 231: "equivalent" by equiv_induct, killed
+by a test). Such mutants stay in the denominator unless a test kills them; they
+are listed under "clock_proofs_ignored".
+
+--only-modules M1,M2,... counts a --sim result as a kill only when one of these
+modules failed: for a stage that stops at the first failing module (ordered) the
+committed suite's score is the one with the committed modules listed, when the
+stage ran them before any newer module.
 """
 from __future__ import annotations
 
@@ -57,19 +69,36 @@ def main() -> None:
     ap.add_argument("--status-tsv", type=Path)
     ap.add_argument("--write-survivors", type=Path, help="ids neither killed nor proven equivalent")
     ap.add_argument("--write-unclassified", type=Path, help="ids without a verdict in the first --sim stage")
+    ap.add_argument("--no-clock-proofs", action="store_true",
+                    help="ignore proofs of mutants that mutate a flip-flop's CLK port")
+    ap.add_argument("--only-modules", help="comma-separated modules: a --sim result counts as a kill only "
+                    "if one of these modules failed (killed_modules, else killed_by)")
     a = ap.parse_args()
 
     muts = {}
     for line in (a.design / "mutations.tsv").read_text().splitlines():
         mid, region, cmd = line.split("\t", 2)
         if mid != "0":
-            muts[mid] = {"region": region, "mode": cmd.split("-mode ", 1)[1].split()[0]}
+            muts[mid] = {"region": region, "mode": cmd.split("-mode ", 1)[1].split()[0],
+                         "clock": " -port CLK " in cmd + " "}
     sims = [(n, load(d)) for n, d in pairs(a.sim)]
+    if a.only_modules:  # e.g. the committed modules of a stage that also ran newer ones
+        keep = set(a.only_modules.split(","))
+        for _, results in sims:
+            for r in results.values():
+                if r.get("status") != "killed":
+                    continue
+                killers = r.get("killed_modules") or [r["killed_by"]["module"]]
+                kept = [m for m in killers if m in keep]
+                if not kept:
+                    r["status"] = "survived"
+                elif r.get("killed_modules"):
+                    r["killed_modules"] = kept
     proofs = [(n, load(d)) for n, d in pairs(a.proof)]
     if not sims:
         raise SystemExit("at least one --sim stage is needed")
 
-    status, how, conflicts = {}, {}, []
+    status, how, conflicts, ignored = {}, {}, [], []
     for mid in muts:
         first = sims[0][1].get(mid)
         if first is None or first["status"] in ("timeout", "error"):
@@ -78,6 +107,9 @@ def main() -> None:
             continue
         kill = next(((n, r[mid]) for n, r in sims if r.get(mid, {}).get("status") == "killed"), None)
         proof = next((n for n, r in proofs if r.get(mid, {}).get("status") == "equivalent"), None)
+        if proof and a.no_clock_proofs and muts[mid]["clock"]:
+            ignored.append({"id": mid, "proof": proof})
+            proof = None
         if kill:
             n, r = kill
             status[mid] = "killed"
@@ -117,6 +149,7 @@ def main() -> None:
         "killed_first_stage_by_module": dict(first_module.most_common()),
         "equivalent_by_method": dict(collections.Counter(how[m] for m in muts if status[m] == "equivalent")),
         "conflicts": conflicts,
+        **({"clock_proofs_ignored": ignored} if a.no_clock_proofs else {}),
         "controls": {nm: {cid: r[cid]["status"] for cid in ("orig", "0") if cid in r} for nm, r in sims},
         "survivors": sorted((m for m in muts if status[m] == "survived"), key=int),
         "by_region": {k: dict(v) for k, v in sorted(by_region.items())},

@@ -1,0 +1,130 @@
+{
+ "core": "core_orig.v",
+ "statements": 9187,
+ "statements_by_region": {
+  "line": 1731,
+  "pins": 1492,
+  "engine_data": 1387,
+  "engine_ctrl": 1278,
+  "events": 1232,
+  "fifo": 510,
+  "engine_xfer": 442,
+  "host": 418,
+  "shared": 362,
+  "mover": 256,
+  "imem": 75,
+  "timestamp": 4
+ },
+ "line_registers": 76,
+ "selected_statements": 1991,
+ "selected_statements_by_subregion": {
+  "state": 1731,
+  "out-shared": 96,
+  "out-engine_data": 56,
+  "out-pins": 36,
+  "out-engine_xfer": 28,
+  "out-engine_ctrl": 24,
+  "out-events": 20
+ },
+ "cells": 5387,
+ "selected_cells": 1304,
+ "selected_cells_by_subregion": {
+  "state": 1164,
+  "out-engine_data": 36,
+  "out-shared": 32,
+  "out-engine_ctrl": 24,
+  "out-pins": 20,
+  "out-engine_xfer": 20,
+  "out-events": 8
+ },
+ "selected_cells_by_type": {
+  "$mux": 994,
+  "$and": 84,
+  "$adff": 76,
+  "$eq": 43,
+  "$xor": 40,
+  "$not": 23,
+  "$add": 16,
+  "$pmux": 12,
+  "$logic_not": 8,
+  "$or": 4,
+  "$lt": 4
+ },
+ "reference": "protocol_emulator_core.v",
+ "changed_statements": 3912,
+ "changed_selected": 1887,
+ "selected_not_changed": {
+  "state": 104
+ },
+ "changed_not_selected_by_region": {
+  "engine_ctrl": 592,
+  "engine_data": 429,
+  "engine_xfer": 280,
+  "events": 270,
+  "pins": 188,
+  "fifo": 152,
+  "shared": 76,
+  "imem": 24,
+  "host": 14
+ },
+ "selected_not_changed_by_shape": {
+  "wiring": 64,
+  "compare": 20,
+  "other": 16,
+  "constant": 4
+ },
+ "changed_not_selected": {
+  "ext/downstream": 1260,
+  "ext/no-line-input": 556,
+  "seq": 125,
+  "ext/tie": 76,
+  "inst": 8
+ },
+ "ext_statements": {
+  "downstream": 1260,
+  "no-line-input": 556,
+  "tie": 255
+ },
+ "ext_statements_changed": {
+  "downstream": 1260,
+  "no-line-input": 556,
+  "tie": 76
+ },
+ "ext_statements_root": {
+  "no-line-input": 108,
+  "tie": 28
+ },
+ "ext_statements_by_region": {
+  "tie": {
+   "shared": 247,
+   "engine_data": 8
+  },
+  "no-line-input": {
+   "engine_ctrl": 288,
+   "events": 162,
+   "engine_xfer": 60,
+   "engine_data": 41,
+   "pins": 4,
+   "host": 1
+  },
+  "downstream": {
+   "engine_data": 368,
+   "engine_ctrl": 276,
+   "engine_xfer": 200,
+   "pins": 176,
+   "fifo": 108,
+   "events": 104,
+   "imem": 16,
+   "host": 12
+  }
+ },
+ "ext_cells": {
+  "downstream": 1292,
+  "no-line-input": 425,
+  "tie": 157
+ },
+ "ext_selected_kinds": [
+  "tie",
+  "no-line-input"
+ ]
+}

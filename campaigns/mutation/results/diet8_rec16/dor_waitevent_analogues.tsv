@@ -1,0 +1,7 @@
+id	mutation (applied to the design of record's core, sha256 26a873db...)	base variant's 20 default modules (102 tests)	test_line_spec_limit_bits
+orig	(unmodified core)	102 of 102 pass, 0 fail, 0 skipped	2 of 2 pass, 0 fail
+0	mutate -mode none	102 of 102 pass, 0 fail, 0 skipped	2 of 2 pass, 0 fail
+D331	mutate -mode cnot1 -module protocol_emulator_core -cell $ternary$core_orig.v:8783$1163 -port B -portbit 10 -ctrlbit 13	102 of 102 pass, 0 fail, 0 skipped	1 of 2 pass, 1 fail
+D333	mutate -mode cnot1 -module protocol_emulator_core -cell $ternary$core_orig.v:8783$1163 -port Y -portbit 11 -ctrlbit 14	102 of 102 pass, 0 fail, 0 skipped	1 of 2 pass, 1 fail
+D1438	mutate -mode cnot1 -module protocol_emulator_core -cell $ternary$core_orig.v:11539$2365 -port B -portbit 16 -ctrlbit 18	102 of 102 pass, 0 fail, 0 skipped	1 of 2 pass, 1 fail
+D1442	mutate -mode cnot1 -module protocol_emulator_core -cell $ternary$core_orig.v:11539$2365 -port Y -portbit 7 -ctrlbit 21	102 of 102 pass, 0 fail, 0 skipped	1 of 2 pass, 1 fail

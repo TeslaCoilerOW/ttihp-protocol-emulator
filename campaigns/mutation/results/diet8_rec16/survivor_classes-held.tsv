@@ -1,0 +1,71 @@
+id	region	mode	nearest_state	engine	select_role	port	class	rip	miter_abc
+141	line/out-pins	cnot1	logical_output	0	other	Y	neither proven nor argued	-	unknown
+142	line/out-pins	const1	logical_output	0	other	A	neither proven nor argued	-	unknown
+143	line/out-pins	cnot1	logical_output	0	other	A	neither proven nor argued	-	unknown
+148	line/out-engine_xfer	const0	transfer_edges	0	other	A	neither proven nor argued	-	unknown
+149	line/out-engine_ctrl	cnot1	blocked_cycles	0	other	A	blocked count in a line XFER (argued)	-	unknown
+150	line/out-engine_ctrl	cnot0	blocked_cycles	0	other	A	blocked count in a line XFER (argued)	-	unknown
+152	line/out-engine_ctrl	const1	blocked_cycles	0	other	A	blocked count in a line XFER (argued)	-	unknown
+153	line/out-engine_ctrl	const0	blocked_cycles	0	other	A	blocked count in a line XFER (argued)	-	unknown
+154	line/out-engine_ctrl	cnot1	blocked_cycles	0	other	Y	blocked count in a line XFER (argued)	-	unknown
+169	line/state	const1	stuff_error	0	ACTIVE	S	halted or faulted engine (argued)	-	unknown
+174	line/out-engine_ctrl	const0	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	-	unknown
+178	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	-	unknown
+179	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	-	unknown
+180	line/out-engine_ctrl	inv	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	-	unknown
+181	line/out-engine_ctrl	cnot0	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	-	unknown
+183	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	Y	blocked count in a line XFER (argued)	-	unknown
+184	line/out-engine_ctrl	const0	blocked_cycles	1	other	Y	blocked count in a line XFER (argued)	-	unknown
+185	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	A	blocked count in a line XFER (argued)	-	unknown
+189	line/out-engine_ctrl	cnot1	blocked_cycles	1	other	Y	blocked count in a line XFER (argued)	-	unknown
+193	line/state	inv	line_trailing_stuff	1	FAULT	B	fault edge (argued)	-	unknown
+205	line/out-engine_ctrl	const0	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	-	unknown
+206	line/out-engine_ctrl	const1	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	-	unknown
+207	line/out-engine_ctrl	cnot0	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	-	unknown
+208	line/out-engine_ctrl	cnot1	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	-	unknown
+209	line/out-engine_ctrl	inv	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	-	unknown
+210	line/out-engine_ctrl	const1	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	-	unknown
+211	line/out-engine_ctrl	cnot1	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	-	unknown
+213	line/out-engine_ctrl	cnot0	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	-	unknown
+215	line/out-engine_ctrl	cnot1	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	-	unknown
+217	line/out-engine_ctrl	const0	blocked_cycles	3	other	A	blocked count in a line XFER (argued)	-	unknown
+219	line/out-engine_ctrl	const0	blocked_cycles	3	other	Y	blocked count in a line XFER (argued)	-	unknown
+220	line/out-engine_ctrl	const0	blocked_cycles	3	other	Y	blocked count in a line XFER (argued)	-	unknown
+221	line/out-engine_ctrl	const0	blocked_cycles	3	other	Y	blocked count in a line XFER (argued)	-	unknown
+224	line/state	const0	line_trailing_stuff	3	FAULT	A	neither proven nor argued	-	unknown
+229	line/out-engine_ctrl	cnot1	blocked_cycles	2	other	Y	blocked count in a line XFER (argued)	-	unknown
+231	line/out-engine_ctrl	cnot1	blocked_cycles	2	other	A	blocked count in a line XFER (argued)	-	unknown
+239	line/state	const1	line_trailing_stuff	2	other	A	neither proven nor argued	-	unknown
+324	line/state	cnot0	crc_state	2	FAULT	B	fault edge (argued)	-	unknown
+349	line/state	const1	stuff_last	2	other	B	neither proven nor argued	-	unknown
+350	line/state	const0	stuff_last	2	other	S	neither proven nor argued	-	unknown
+401	line/state	const0	line_remaining	2	FAULT	B	fault edge (argued)	-	unknown
+478	line/state	inv	crc_state	1	FAULT	B	fault edge (argued)	-	unknown
+479	line/state	const1	crc_state	1	FAULT	B	fault edge (argued)	-	unknown
+572	line/state	cnot0	crc_state	0	FAULT	B	fault edge (argued)	-	unknown
+573	line/state	inv	crc_state	0	FAULT	B	fault edge (argued)	-	unknown
+698	line/state	const1	stuff_error	3	FAULT	S	neither proven nor argued	-	unknown
+715	line/state	cnot0	stuff_run	3	FAULT	B	fault edge (argued)	-	unknown
+724	line/state	const0	line_cfg	3	FAULT	B	fault edge (argued)	-	unknown
+737	line/state	inv	line_boundary_seen	3	other	A	neither proven nor argued	-	unknown
+738	line/state	const1	line_boundary_seen	3	other	A	neither proven nor argued	-	unknown
+750	line/state	cnot1	line_frac	3	WAIT	A	neither proven nor argued	-	unknown
+751	line/state	const0	line_frac	3	WAIT	A	neither proven nor argued	-	unknown
+757	line/state	cnot1	line_acc	3	other	A	neither proven nor argued	-	unknown
+759	line/state	cnot1	line_acc	3	FAULT	B	fault edge (argued)	-	unknown
+763	line/state	cnot0	line_acc	3	WAIT	A	neither proven nor argued	-	unknown
+769	line/state	cnot1	line_remaining	3	other	A	neither proven nor argued	-	unknown
+774	line/state	const1	line_remaining	3	FAULT	B	fault edge (argued)	-	unknown
+778	line/state	cnot1	line_remaining	3	WAIT	A	neither proven nor argued	-	unknown
+779	line/state	const0	line_remaining	3	WAIT	A	neither proven nor argued	-	unknown
+807	line/state	const1	arbitration_lost	1	WAIT	S	neither proven nor argued	-	unknown
+854	line/state	cnot0	line_remaining	1	other	A	neither proven nor argued	-	unknown
+855	line/state	const0	line_remaining	1	other	A	neither proven nor argued	-	unknown
+868	line/state	const0	line_rx_prev	0	WAIT	A	neither proven nor argued	-	unknown
+879	line/state	inv	line_man_pending	0	START	B	neither proven nor argued	-	unknown
+888	line/state	const1	line_cfg	0	WAIT	A	neither proven nor argued	-	unknown
+901	line/state	const1	line_phase	0	WAIT	A	neither proven nor argued	-	unknown
+907	line/state	cnot1	line_frac	0	FAULT	B	fault edge (argued)	-	unknown
+908	line/state	const0	line_frac	0	FAULT	B	fault edge (argued)	-	unknown
+914	line/state	const0	line_frac	0	WAIT	A	neither proven nor argued	-	unknown
+925	line/state	const1	line_acc	0	FAULT	B	fault edge (argued)	-	unknown

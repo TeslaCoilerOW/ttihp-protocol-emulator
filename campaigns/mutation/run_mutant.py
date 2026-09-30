@@ -83,15 +83,21 @@ STAGES = {
     "kill": {"modules": "kill_modules", "budget": 2400, "all_modules": True},
     # the same modules on the reach/infect/propagate wrapper of stage rip
     "kill-rip": {"modules": "kill_modules", "budget": 2400, "rip": True},
+    # line-unit campaign (docs/extension.md section 11): the modules listed in
+    # DESIGN/suite_modules.txt, in that order, each passed as COCOTB_TEST_MODULES,
+    # stopping at the first failing module (the stop rule of stage suite)
+    "ordered": {"modules": "suite_modules", "budget": 3600},
+    # the suite_modules.txt modules on the reach/infect/propagate wrapper
+    "ordered-rip": {"modules": "suite_modules", "budget": 5400, "rip": True},
 }
 MAKEFILE_MODULES = re.compile(r"^COCOTB_TEST_MODULES\s*\?=\s*(\S.*)$", re.M)
 
 
 def stage_modules(spec: dict, test_dir: Path, design: Path) -> list[tuple[str, dict]]:
     """The stage's (module, env) list; "makefile" means the snapshot's default module list,
-    "kill_modules" the whitespace-separated list in DESIGN/kill_modules.txt."""
-    if spec["modules"] == "kill_modules":
-        return [(name, {}) for name in (design / "kill_modules.txt").read_text().split()]
+    "kill_modules" and "suite_modules" the whitespace-separated list in DESIGN/<name>.txt."""
+    if spec["modules"] in ("kill_modules", "suite_modules"):
+        return [(name, {}) for name in (design / f"{spec['modules']}.txt").read_text().split()]
     if spec["modules"] != "makefile":
         return spec["modules"]
     m = MAKEFILE_MODULES.search((test_dir / "Makefile").read_text())

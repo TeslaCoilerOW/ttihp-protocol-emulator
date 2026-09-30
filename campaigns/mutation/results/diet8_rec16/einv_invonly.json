@@ -1,0 +1,38 @@
+{
+ "default": {
+  "invariants": [
+   "blocked_cycles == 24'd0 || !(running_2 && fault_code_2 == 8'd0) || ((wait_timer_2 == 24'd0 && transfer_edges_2 == 7'd0) && (instr0[31:24] == 8'd13 || instr0[31:24] == 8'd15))",
+   "!running_2 || (lv0 && lv1 && la0 == pc_2[5:0] && la1 == pc_2[5:0])",
+   "!running_2 || fault_code_2 == 8'd0",
+   "!running_2 || wait_limit != 24'd0",
+   "blocked_cycles_0 == 24'd0 || !(running_1 && fault_code == 8'd0) || ((wait_timer_1 == 24'd0 && transfer_edges_1 == 7'd0) && (instr1[31:24] == 8'd13 || instr1[31:24] == 8'd15))",
+   "!running_1 || (lv2 && lv3 && la2 == pc_1[5:0] && la3 == pc_1[5:0])",
+   "!running_1 || fault_code == 8'd0",
+   "!running_1 || wait_limit_0 != 24'd0",
+   "blocked_cycles_2 == 24'd0 || !(running && fault_code_1 == 8'd0) || ((wait_timer == 24'd0 && transfer_edges == 7'd0) && (instr2[31:24] == 8'd13 || instr2[31:24] == 8'd15))",
+   "!running || (lv4 && lv5 && la4 == pc[5:0] && la5 == pc[5:0])",
+   "!running || fault_code_1 == 8'd0",
+   "!running || wait_limit_2 != 24'd0",
+   "blocked_cycles_1 == 24'd0 || !(running_0 && fault_code_0 == 8'd0) || ((wait_timer_0 == 24'd0 && transfer_edges_0 == 7'd0) && (instr3[31:24] == 8'd13 || instr3[31:24] == 8'd15))",
+   "!running_0 || (lv6 && lv7 && la6 == pc_0[5:0] && la7 == pc_0[5:0])",
+   "!running_0 || fault_code_0 == 8'd0",
+   "!running_0 || wait_limit_1 != 24'd0",
+   "image_length_0 <= 16'd64",
+   "image_loaded_0 <= 16'd64",
+   "image_length_1 <= 16'd64",
+   "image_loaded_1 <= 16'd64",
+   "image_length_2 <= 16'd64",
+   "image_loaded_2 <= 16'd64",
+   "image_length_3 <= 16'd64",
+   "image_loaded_3 <= 16'd64",
+   "_1210 <= 4'd8",
+   "_1673 <= 4'd8",
+   "_2136 <= 4'd8",
+   "_4424 <= 4'd8",
+   "_4461 <= 4'd8",
+   "_4498 <= 4'd8",
+   "_4535 <= 4'd8",
+   "_747 <= 4'd8"
+  ]
+ }
+}
