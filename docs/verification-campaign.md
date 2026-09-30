@@ -868,7 +868,7 @@ proof on the survivors. What differs:
 | controls | `orig` and mutant 0 pass the fast set (job 23975067) and all 66 tests of the suite with none skipped (job 23975068; `test_timewarp` runs its 7 tests on the variant). Mutant 0 is proven equivalent (job 23975069). All 40 negative controls, a random sample (`random.seed(20270118)`) of fast-killed mutants, are "not proven" (job 23976517). All 38 static no-op mutants (`noop_check.py`) are proven equivalent |
 
 **Result** (66-test suite of `c118027`; superseded for the current
-102-test suite by 95.24%, [results.md](results.md) R23d and
+102-test suite by 95.24% (95.19% without mutant 1860's clock-inversion proof, R23e), [results.md](results.md) R23d and
 [mutation-push.md](mutation-push.md) section 7). 2,028 of 2,420 mutants are
 killed (1,346 by the fast set, 682 more by the suite), 0 time out and 0
 error. 107 of the 392 survivors are proven

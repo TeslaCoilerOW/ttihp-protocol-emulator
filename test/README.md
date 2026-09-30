@@ -22,7 +22,7 @@ behavioral peers.
 | `test_smoke.py` | reset/deselect, ISA version, loader (BEGIN/OWN/COMMIT/START/STOP), status registers, host-fault rejections, checker self-test |
 | `test_protocols.py` | `uart-tx` (decoded from pin 0), `uart-rx` (pin 1 driven, RX FIFO read; idle timeout and framing faults), `spi-controller-mode0..3` against the SPI target, `i2c-write`/`i2c-read`/NACK against the open-drain target |
 | `test_flagship.py` | `../firmware/flagship-scenario.json`: four engines concurrently (UART TX, UART RX with `uart-rx-idle`, SPI, I2C) plus the autonomous UART-RX to SPI-TX route; and 5 RTL-only tests of `uart-rx-idle` alone on engine 1 (idle stretches of `PE_UART_IDLE_CYCLES`, default 100,000 cycles; sparse frames at every poll phase, a break across START and a framing error; back-to-back frames at -2%, 0 and +2% baud error), which record the reference model's sample points while the DUT is checked in lockstep on its outputs; skipped at gate level |
-| `test_protocols_ext.py` | the SWD, WS2812B, PS/2 and 1-Wire images (`../docs/firmware.md`) against peers written here from the cited specifications, 22 tests. Not in the default list or the gate-level test: run `make COCOTB_TEST_MODULES=test_protocols_ext` (RTL, about 7 minutes); CI runs it in the `protocols-ext` job of `../.github/workflows/test.yaml`. It loads `../firmware/` directly and skips a design whose engine count, data width, queue depth or issue mode differs from the design of record |
+| `test_protocols_ext.py` | the SWD, WS2812B, PS/2 and 1-Wire images (`../docs/firmware.md`) against peers written here from the cited specifications, 22 tests, and `test_ps2_host_restricted` (below). Not in the default list or the gate-level test: run `make COCOTB_TEST_MODULES=test_protocols_ext` (RTL, about 7 minutes); CI runs it in the `protocols-ext` job of `../.github/workflows/test.yaml`. It loads `../firmware/` directly and skips an image's tests on a design whose engine count, data width, queue depth or issue mode differs from the design of record, or whose ISA-version-3 knobs change one of the image's words (`model/variant.py` `Options.image_differences`; `../docs/isa.md`, "ISA version"). `ps2-host` shifts by 21 (word 45), so on a design with byte-lane shifts the two `test_ps2_host` tests are skipped and `test_ps2_host_restricted` checks instead that the image sends its command to the device and then faults at that word with code 1. That test queues one word, so it also runs on the 4- and 2-word-queue designs (`diet4`, `diet2`), where the other 22 are skipped; on the design of record it is skipped. `test_ps2_host_no_device` ends before that word and runs on every design of the design of record's architecture |
 | `test_legacy.py` | lockstep replay of the 25 monorepo differential workloads (`model/verification.py`): queues, DMA congestion, SPI mode matrix, strict push, input triggers, JTAG, waveform, I2C target, UART overflow, ... |
 | `test_random.py`, `random_gen.py` | constrained-random lockstep differential test with functional coverage and a minimizer |
 | `test_directed.py` | directed tests written from the mutation campaign's survivor analysis (full-capacity image, OWN overlap, operand check, ROUTE counts above 4095, FLUSH of a routed engine, COUNT/LOOP, 40,003 completed instructions, blocked count after ALU/TIME, LIMIT 0x2108, SHR into bit 15, odd XFER half-period, far jump targets, XFER next to driven pins) |
@@ -310,10 +310,16 @@ For any other name:
   (every current variant has the 32-bit datapath it needs; `test_flagship`
   passes 6 of 6 with it under `PE_VARIANT=diet4` and `diet8_rec16`, job
   24303859). These 20 images are valid on every variant (shift counts are
-  all 24, targets at most 54).
+  all 24, targets at most 58).
   The SWD, WS2812B, PS/2 and 1-Wire images are not reassembled:
-  `test_protocols_ext.py` loads them from `../firmware/` and skips other
-  designs (`ps2-host` shifts by 21, which the byte-lane variants reject).
+  `test_protocols_ext.py` loads them from `../firmware/` and skips the tests
+  of an image on a design that cannot run it unchanged (another engine
+  count, data width, queue depth or issue mode, or a word that the design's
+  ISA knobs change: `ps2-host` shifts by 21, which the byte-lane variants
+  fault on with code 1). On a byte-lane design `test_ps2_host_restricted`
+  checks that fault: 1 pass and 22 skipped on `diet4` (the 6x4 core) and
+  `diet2`, 21 pass and 2 skipped on `diet8` and `diet8_rec16` (job
+  24391190).
 - **Model.** `model/variant.py` subclasses the verbatim reference: queue depth,
   counters, saturating PC, byte-lane faults, ISA version, and the reset
   styles, modelled with the two synchronizer flops explicitly.

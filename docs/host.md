@@ -367,8 +367,10 @@ case. On a port without uo[7], every other command returns None.
   yourself.
 - `load_image(image_or_path, engine=None, check_isa=True, verify=False)`
   checks the image's architecture binding. It reads the ISA version (at least
-  the image's `isa_version`, and in `isa_versions`), then loads the image on
-  `image.engine`.
+  the image's `isa_version`, and in `isa_versions`; on a version-3 device the
+  image must also pass `image.check_isa`, below), then loads the image on
+  `image.engine`. For a refused image the library reads READ_SELECT 7 and
+  sends no program word.
 
 **Queues**
 
@@ -413,7 +415,19 @@ as [firmware.md](firmware.md) specifies:
 - with `architecture`, the binding to that architecture.
 
 `image.check_binding(arch, ignore=())` and `image.check_isa(version)` raise
-`ImageError`. `load_scenario(path, architecture=None)` loads a
+`ImageError`. `check_isa` requires the version to be at least the image's
+`isa_version`. When bits 7..0 of the version are 3, an image of ISA version 1
+or 2 must also meet the rule of [isa.md](isa.md), "ISA version": every SHL and
+SHR count a byte lane (0, 8, 16 or 24) and every JMP, LOOP and JZ target below
+128. Version 3 does not tell which of the ISA-3 knobs a device has, so both
+parts apply. `isa3_differences(words)` lists the words that break the rule, as
+(PC, reason) pairs. Of the 26 committed images only `ps2-host` breaks it (word
+45, SHR by 21), so `load_image` refuses `ps2-host` on a `diet4` (6x4),
+`diet2`, `diet8` or `diet8_rec16` device, where that word would fault with
+code 1. (`load_image` compares the whole READ_SELECT 7 word with
+`isa_versions`, so a `diet8_rec16` device, which reads 0x000F5F03, needs that
+value in `isa_versions`; with (2, 3) it refuses every image.) `load_image(..., check_isa=False)` skips the version check.
+`load_scenario(path, architecture=None)` loads a
 `protocol-emulator.firmware-scenario.v1` file and checks its binding. All of
 this uses only `json`, `hashlib.sha256`, `binascii` and `struct`, so it runs
 on the board too.
@@ -566,15 +580,20 @@ calls, so manual clocking runs far below 50 MHz. That is harmless for
 correctness, because every protocol in the example firmware counts system
 clocks.
 
-Memory: the precompiled package is 39,133 bytes of `.mpy` for either
-architecture. The smallest MicroPython heap that ran the replayed flagship
+Memory: the precompiled package was 39,133 bytes of `.mpy` for either
+architecture before the ISA-3 check (39,613 since; see below). The smallest MicroPython heap that ran the replayed flagship
 scenario was 190 KiB. The self-test needed 129 KiB (the bisection varies by a
 few KiB between runs: 123 to 129 KiB in this round). Both figures come from
 the 64-bit unix port (`tools/upy_heap.py`, job 23778831), include the replay
 trace (47 KB and 20 KB), and do not include the `ttboard` SDK's own heap use. They are
 estimates for a 32-bit board, not measurements on one. The RP2350's 520 KB of
 SRAM leaves room. On an RP2040 (264 KB), the flagship scenario with software
-peers may be tight next to the SDK.
+peers may be tight next to the SDK. The ISA-version-3 check of
+`pe_host.image` adds 480 bytes: 39,613 bytes of `.mpy` for either
+architecture (job 24391202), against 39,133 on `dced528`. Job 24391460
+bisected the heap again on `dced528` and with the check: the flagship
+scenario (7,842 cycles with `uart-rx-idle`) needed 194 KiB in both, the
+self-test 128 and 125 KiB.
 
 SHA-256: `image.py` uses `hashlib.sha256` when the firmware provides it,
 otherwise a pure-Python SHA-256. The fallback was checked against `hashlib`
@@ -597,7 +616,7 @@ installs in CI.
 |---|---|---|
 | `host/tests/test_host_commands.py` | Every command and READ_SELECT against the model's internal state. Also: rejections, TX/RX timeouts, read pauses, strict-overflow held RX, every committed image loaded (19 at the time of job 23778831, 26 since `e64cd6b`), a self-test that fails on a model with an injected host-port bug, and raw SELECT/READ_SELECT under a high FAULT pin (the library's selection stays equal to the model's, and `fault_report()` still works). | PASS (job 23778831; with the 26 images, job 24302122) |
 | `test_host_transfers.py` | Abandoned partial command, program, TX, RX and status transfers (1 to 7 nibbles) have no side effect. A window change abandons the RX reservation. Every window change is a bubble with ready and valid low. Read-valid comes two cycles and write-ready one cycle after the change. | PASS (23778831) |
-| `test_host_image.py` | SHA-256 and structure checks, architecture binding and ISA requirement, including tampered images. | PASS (23778831) |
+| `test_host_image.py` | SHA-256 and structure checks, architecture binding and ISA requirement, including tampered images. Since the ISA-version-3 rule (three tests): `isa3_differences` on hand-written words (non-lane counts, targets 127 and 128) and on the 26 committed images, where it names only `ps2-host` word 45, cross-checked against the `.source.json` files (the only shift count that is not a multiple of 8; every branch target a label, every image at most 64 words); `check_isa` with 2, 3 and 0x000F5F03; and `load_image` on reference models of `diet8` and `diet4` with `isa_versions=(2, 3)`, which loads the other 25 images and refuses `ps2-host` with its engine left uncommitted (`check_isa=False` loads it). With the rule removed from `check_isa`, all three fail (four failed checks, job 24391702). | PASS (23778831; the ISA-version-3 tests, 24391202) |
 | `test_host_harness_equivalence.py` | An operation list covering every command, accepted and rejected, gives cycle-identical ui/uio/rst/ena/uo and identical returned values on the library and on `test/harness.py`. The harness driver returns nothing for commands, so an acceptance oracle (`tests/acceptance.py`) checks `command()`'s results separately. It wraps the model's own command decoder and compares each result with the model's accept/reject decision. It also checks that the library's `selected` and `read_selected` equal the model's after every operation. The oracle runs on the operation list and on 30 random programs, each on a full port and on a 6-bit uo port. A mutant with the old SELECT/READ_SELECT rule is caught. | PASS (23778831) |
 | `test_host_flagship.py` | The flagship scenario with pe_host peers. The pad waveform is decoded by `test/model/scoreboards.py` (`uart_decode` on pins 0 and 1, `spi_decode` MOSI and MISO, `i2c_decode`, `assert_open_drain`) and by `test/peers.py`'s `UartMonitor`. Also covered: I2C clock stretching, NACK reported as fault 65, and the contention interlock. With the `test/` peers, the whole flagship waveform (over 7,000 cycles) equals `test/scenarios.py` `flagship()` on the harness, cycle for cycle. `peers="external"`, with SPI and I2C targets on the pads and an idle UART line, has four tests. (1) Engine 1 (`uart-rx-idle` since `e64cd6b`) does not fault on the idle line: the run passes with no engine fault and no host fault, and nothing is cleared. (2) A host fault injected right after reset is still detected. (3) An extra engine fault (no I2C target, so fault 65) fails the run. (4) On a 6-bit uo port the run passes, with the host fault reported as not checked. (Until `e64cd6b` engine 1 ran the bounded `uart-rx`, test (1) expected its fault 3 and a CLEAR, and (3) and (4) expected fault 3 as well.) | PASS (23778831; with `uart-rx-idle`, 24302122) |
 | `test_host_ports.py` | `DemoBoardPort` (fast and slow) and `PicoPort` (fast and slow) against SDK/GPIO fakes. For the self-test and the flagship scenario, their rising-edge sequence equals `ModelPort`'s. `PIN_MAP_CMOD_A7_HOST`: the self-test minus `trigger`, then `deselect()` through the ena GPIO, gives the same edges as `ModelPort`, ena included. `PIN_MAP_URBANA_HOST`: active-high reset, uo_out[5:0] only, program load, TX/RX traffic, and SELECT/READ_SELECT acceptance without uo[7]. | PASS (23778831) |
@@ -620,7 +639,14 @@ skipped: the four MicroPython replay tests and the two Icarus replays. Job
 24302122 repeated both runs on the tree with `uart-rx-idle` as the flagship's
 engine 1 (since `e64cd6b`): 69 of 69 pass with MicroPython 1.29, mpy-cross
 and Icarus 14, `test_host_rtl.py` passes on Icarus 13.0, and the CI-like run
-passes with the same 6 skipped. The host tests are not in CI yet. If
+passes with the same 6 skipped. Job 24391202 ran the suite with the three
+ISA-version-3 tests of `test_host_image.py` on a snapshot of the working tree
+after `dced528`: 72 of 72 pass with MicroPython 1.29, mpy-cross and Icarus 14
+(`make test`), the CI-like run passes with the same 6 skipped,
+`test_host_rtl.py` passes on Icarus 13.0, `make upy-check` reports no
+problem, `make mpy` builds for both architectures and `make -C host
+rtl-cocotb` gives 2 of 2; the same `make test` on `dced528` itself runs 69.
+The host tests are not in CI yet. If
 `python3 -m unittest discover -s
 host/tests` is added to `.github/workflows/test.yaml` after its Icarus 13.0
 install step, the two Icarus replays run as well, and they pass on that

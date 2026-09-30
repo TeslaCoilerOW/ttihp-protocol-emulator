@@ -29,6 +29,13 @@ reference model and tools/timing:
 * ``OneWireSlave``: a DS18B20-like slave (DS18B20 datasheet timing): reset
   detection, presence pulse, ROM command, Read ROM (0x33) with a Maxim CRC-8.
 
+The images are loaded from ``firmware/`` as they are. An image's tests are
+skipped on a design that cannot run it unchanged: another engine count, data
+width, queue depth or issue mode, or a word that the design's ISA-version-3
+knobs change (``model/variant.py`` ``Options.image_differences``). Of the images
+only ``ps2-host`` has such a word, its SHR by 21, which a design with byte-lane
+shifts faults on; ``test_ps2_host_restricted`` checks that fault there.
+
 These are digital simulations; they are not measurements of hardware.
 """
 
@@ -40,8 +47,9 @@ from collections.abc import Callable, Sequence
 
 import cocotb
 
-from harness import CLEAR, CLOCK_NS, FIRMWARE, RS_STATUS, SELECT, START, STOP, Harness, design_config
-from model.reference import Outputs
+import variants
+from harness import CLEAR, CLOCK_NS, FIRMWARE, RS_PC, RS_STATUS, SELECT, START, STOP, Harness, design_config
+from model.reference import Fault, Outputs
 
 CLOCK_S = CLOCK_NS * 1e-9          # 20 ns: the 50 MHz clock of info.yaml
 QUICK = os.environ.get("PE_EXT_QUICK", "") not in ("", "0")
@@ -60,15 +68,32 @@ def fault_of(status: int) -> int:
     return status >> 8 & 0xFF if status & 8 else 0
 
 
-def compatible(name: str) -> bool:
-    """The images target the design-of-record architecture (4 engines, 32 bits, 8-word FIFOs)."""
+def same_architecture(name: str, *, queue_depth: bool = True) -> bool:
+    """The images target the design-of-record architecture (4 engines, 32 bits, 8-word FIFOs).
+    True when the design under test has the image's engine count, data width, issue
+    mode and, unless ``queue_depth`` is False, queue depth."""
     try:
         arch = json.loads((FIRMWARE / f"{name}.image.json").read_text())["architecture"]
     except (OSError, ValueError, KeyError):
         return False
     design = design_config()
-    return (design.engines, design.width, design.fifo_words, design.fused) == (
-        arch["engine_count"], arch["data_width"], arch["fifo_words"], arch["issue"] == "fused")
+    keep = 4 if queue_depth else 3
+    return (design.engines, design.width, design.fused, design.fifo_words)[:keep] == (
+        arch["engine_count"], arch["data_width"], arch["issue"] == "fused", arch["fifo_words"])[:keep]
+
+
+def restricted_words(name: str) -> list[tuple[int, str]]:
+    """(PC, reason) of the image's words that the design under test executes
+    differently from the design of record: its ISA-version-3 knobs (byte-lane
+    shifts, saturating 7-bit PC; docs/isa.md, "ISA version")."""
+    words = json.loads((FIRMWARE / f"{name}.image.json").read_text())["words"]
+    return variants.options(design_config()).image_differences(words)
+
+
+def compatible(name: str) -> bool:
+    """The image runs unchanged on the design under test: same architecture and
+    no restricted word (ps2-host shifts by 21, which byte-lane designs fault on)."""
+    return same_architecture(name) and not restricted_words(name)
 
 
 async def load(h: Harness, name: str) -> dict:
@@ -922,6 +947,29 @@ async def ps2_host_no_device(h: Harness) -> None:
     await h.command(CLEAR, 4)
 
 
+async def ps2_host_restricted(h: Harness) -> None:
+    """ps2-host on a design that faults on its one restricted word (the SHR by 21
+    of a byte-lane design): the reset command is sent and acknowledged as on the
+    design of record, and the engine faults with code 1 (invalid operand) at that
+    word while it shifts the first response frame into place."""
+    (pc, reason), = restricted_words("ps2-host")
+    assert reason.startswith("SHR by 21"), reason
+    device = Ps2Device(half=30)
+    await h.start()
+    h.pins = lambda cycle, out: _merge(out, dict(zip((4, 5), device.update(cycle, out))))
+    await load(h, "ps2-host")
+    await h.command(SELECT, 2)
+    await h.command(START, 4)
+    await h.write(2, 2 << 8 | 0xFF)
+    await h.run_until(lambda: h.engine(2).fault != 0, 400000, "the fault at the restricted word")
+    assert h.engine(2).fault == Fault.INVALID_OPERAND and h.engine(2).pc == pc, (h.engine(2).fault, h.engine(2).pc)
+    assert device.commands == [0xFF], device.commands
+    assert fault_of(await h.status(RS_STATUS)) == Fault.INVALID_OPERAND
+    assert await h.status(RS_PC) == pc
+    assert not h.last_pre.uio_oe >> 4 & 3
+    await h.command(CLEAR, 4)
+
+
 async def onewire_rom(h: Harness, corner: str) -> None:
     params = {"typical": {}, "early-short": dict(t_pdhigh=15, t_pdlow=60, t_sample=15, t_hold=15),
               "late-long": dict(t_pdhigh=60, t_pdlow=240, t_sample=60, t_hold=60)}[corner]
@@ -1074,10 +1122,23 @@ async def test_ps2_host(dut, half):
     await ps2_host(dut_harness(dut), half)
 
 
-@cocotb.test(skip=skip_unless("ps2-host"))
+# Its path ends in the wait for the first device clock, before the one word a
+# byte-lane design faults on, so it runs on every design of the same architecture.
+@cocotb.test(skip=not same_architecture("ps2-host"))
 async def test_ps2_host_no_device(dut):
     """ps2-host without a device: the wait for the first device clock ends in fault 3 after LIMIT (16 ms)."""
     await ps2_host_no_device(dut_harness(dut))
+
+
+# It queues one TX word and reads none, so it does not depend on the queue depth
+# and also runs on the byte-lane designs with 4- and 2-word queues (diet4, the
+# 6x4 build, and diet2).
+@cocotb.test(skip=not (same_architecture("ps2-host", queue_depth=False) and restricted_words("ps2-host")))
+async def test_ps2_host_restricted(dut):
+    """A design with byte-lane shifts (ISA version 3) cannot run ps2-host, so test_ps2_host
+    is skipped on it: the image runs up to its SHR by 21 and faults there with code 1
+    (docs/isa.md, "ISA version"). Skipped on the design of record."""
+    await ps2_host_restricted(dut_harness(dut))
 
 
 @cocotb.test(skip=skip_unless("onewire-master"))

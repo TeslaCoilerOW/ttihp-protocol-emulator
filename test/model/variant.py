@@ -141,6 +141,25 @@ class Options:
     def is_base(self) -> bool:
         return self == Options()
 
+    def image_differences(self, words: list[int]) -> list[tuple[int, str]]:
+        """The words of an ISA-2 image that this variant executes differently
+        from the design of record, as (PC, reason) pairs; empty when the image
+        runs unchanged. docs/isa.md ("ISA version"): an ISA-2 image runs
+        unchanged on a version-3 device when all its shift counts are byte
+        lanes and all its targets are below 128. Under ``byte_lane`` an SHL or
+        SHR whose count is not a lane faults with code 1; under
+        ``saturating_7`` a JMP, LOOP or JZ target of 128 or more gives PC 127.
+        """
+        found = []
+        for pc, word in enumerate(words):
+            op, c = word >> 24, word & 0xFF
+            if self.shift == "byte_lane" and op in (24, 25) and c % 8:
+                found.append((pc, f"{'SHL' if op == 24 else 'SHR'} by {c}, not a byte lane (fault code 1)"))
+            target = word & 0xFFFF if op == 26 else word & 0xFFFFFF if op in (5, 11) else None
+            if self.pc_bits == "saturating_7" and target is not None and target >= 128:
+                found.append((pc, f"target {target} of 128 or more (saturates to 127)"))
+        return found
+
 
 @dataclass(frozen=True)
 class VariantConfig(Config):

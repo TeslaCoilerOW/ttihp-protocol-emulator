@@ -469,7 +469,9 @@ class ProtocolEmulator:
 
         Checks the architecture binding against self.architecture and, with
         check_isa, reads READ_SELECT 7 and requires an accepted version that is
-        at least the image's isa_version. engine defaults to image.engine.
+        at least the image's isa_version; on a version-3 device an older image
+        must also meet docs/isa.md "ISA version" (FirmwareImage.check_isa).
+        engine defaults to image.engine.
         """
         if not isinstance(image, FirmwareImage):
             image = FirmwareImage.load(image)

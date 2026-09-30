@@ -320,7 +320,14 @@ dune exec bin/assemble.exe -- --source ../firmware/swd-read.source.json --output
 
 `scripts/gen_variants.sh` does not reassemble them for the variants, and the
 tests below skip a design whose engine count, data width, FIFO depth or
-issue mode differs from the design of record.
+issue mode differs from the design of record. They also skip the tests of an
+image on a design whose ISA-version-3 knobs change one of its words
+([isa.md](isa.md), "ISA version"): `ps2-host` shifts by 21 (word 45), which a
+design with byte-lane shifts faults on with code 1. There
+`test_ps2_host_restricted` checks that fault instead
+([test/README.md](../test/README.md)), and the host library refuses to load
+`ps2-host` on a device that reports ISA version 3 ([host.md](host.md),
+`pe_host.image`).
 
 | Image | Engine, pins | Words of 64 | Protocol subset | Timing at 50 MHz | Cited document |
 |---|---|---:|---|---|---|
@@ -530,7 +537,9 @@ presence pulse of the DS2404/DS1994.
   ```
 
   Its 22 tests take about seven minutes with cocotb 2.0.1 and Icarus
-  Verilog 13.0.
+  Verilog 13.0. A 23rd, `test_ps2_host_restricted`, runs only on a design
+  that cannot run `ps2-host` unchanged (above) and is skipped on the design
+  of record.
 - **Ground truth for the static schedules.** pe_timing's validator traced the
   reference model through every scenario of `test_protocols_ext.py` and
   through its random-traffic stress suite on the six images (8 seeds of

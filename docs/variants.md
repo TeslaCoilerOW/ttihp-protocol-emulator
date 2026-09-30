@@ -234,7 +234,9 @@ The `diet` variants change the following:
 - **Strict overflow.** Its rule about preserving the completed count
   (`isa.md`) has nothing left to preserve.
 - **Firmware.** Every committed image still assembles, because all 15 shifting
-  images shift by 24. The flagship scenario needs a TX top-up instead of an
+  images shift by 24. (That was the state of 2026-09-25; since `e64cd6b`,
+  `ps2-host` shifts by 21 at word 45 and does not run on byte-lane designs:
+  [isa.md](isa.md), "ISA version".) The flagship scenario needs a TX top-up instead of an
   8-word prefill.
 
 ## 5. Area (TT synthesis replica)

@@ -13,7 +13,11 @@ Checks, following docs/firmware.md ("Source and image contracts"):
   engine exists and the image fits the program store;
 * architecture binding: the image's architecture object equals the device's
   (DESIGN_ARCHITECTURE unless the caller supplies another one);
-* the device's ISA version (READ_SELECT 7) is at least the image's isa_version.
+* the device's ISA version (READ_SELECT 7) is at least the image's isa_version;
+  on a version-3 device an ISA-1 or ISA-2 image must also meet docs/isa.md
+  ("ISA version"): every SHL/SHR count a byte lane (0, 8, 16, 24) and every
+  JMP, LOOP and JZ target below 128 (isa3_differences). Version 3 does not say
+  which of the ISA-3 knobs a device has, so both are required.
 
 MicroPython compatible (json, hashlib.sha256, binascii, struct; no os.path).
 """
@@ -124,6 +128,25 @@ def check_architecture(architecture):
             raise ImageError("architecture " + key + " must be a positive integer")
 
 
+def isa3_differences(words):
+    """(PC, reason) pairs of the words that a version-3 device may execute
+    differently from the design of record (docs/isa.md, "ISA version"): an SHL
+    or SHR whose count is not a byte lane faults with code 1 on a device with
+    byte-lane shifts, and a JMP, LOOP or JZ target of 128 or more gives PC 127
+    on a device with the saturating 7-bit PC. Empty when the image runs
+    unchanged on every version-3 device."""
+    found = []
+    for pc, word in enumerate(words):
+        op = word >> 24
+        if op in (24, 25) and (word & 0xFF) % 8:
+            found.append((pc, "%s by %d is not a byte lane" % ("SHL" if op == 24 else "SHR", word & 0xFF)))
+        elif op in (5, 11) and (word & 0xFFFFFF) >= 128:
+            found.append((pc, "target %d is 128 or more" % (word & 0xFFFFFF)))
+        elif op == 26 and (word & 0xFFFF) >= 128:
+            found.append((pc, "target %d is 128 or more" % (word & 0xFFFF)))
+    return found
+
+
 def architecture_differences(image_arch, device_arch, ignore=()):
     """Keys whose values differ, as 'key: image!=device' strings."""
     out = []
@@ -229,9 +252,19 @@ class FirmwareImage:
                              % (self.name, "; ".join(diffs)))
 
     def check_isa(self, device_version):
+        """Raise ImageError unless a device reporting this READ_SELECT 7 value
+        runs the image unchanged: the version is at least the image's
+        isa_version and, on a version-3 device (bits 7..0, docs/isa.md
+        "Discovery"), an older image has no word that isa3_differences names."""
         if device_version < self.isa_version:
             raise ImageError("%s needs ISA %d, the device reports %d"
                              % (self.name, self.isa_version, device_version))
+        if (device_version & 0xFF) == 3 and self.isa_version < 3:
+            found = isa3_differences(self.words)
+            if found:
+                raise ImageError("%s cannot run unchanged on an ISA-3 device (docs/isa.md, "
+                                 "\"ISA version\"): %s"
+                                 % (self.name, "; ".join("word %d: %s" % f for f in found)))
 
     def __len__(self):
         return len(self.words)

@@ -9,9 +9,11 @@ import unittest
 from pathlib import Path
 
 import support
+from pe_host import ProtocolEmulator
 from pe_host import protocol as P
 from pe_host.errors import ImageError
-from pe_host.image import FirmwareImage, bytecode_sha256, load_scenario
+from pe_host.image import FirmwareImage, bytecode_sha256, isa3_differences, load_scenario
+from pe_host.ports.model import ModelPort
 
 
 class ProtocolTest(unittest.TestCase):
@@ -112,6 +114,87 @@ class ImageTest(unittest.TestCase):
         image.check_isa(2)
         with self.assertRaisesRegex(ImageError, "needs ISA 2"):
             image.check_isa(1)
+
+    def test_isa3_rule_of_docs_isa(self):
+        """isa3_differences names exactly the words docs/isa.md ("ISA version")
+        names: SHL/SHR counts that are not byte lanes and JMP/LOOP/JZ targets of
+        128 or more; check_isa applies it on version-3 devices only, reading
+        bits 7..0 of READ_SELECT 7 (docs/isa.md, "Discovery")."""
+        words = [24 << 24 | 1 << 16 | 8, 25 << 24 | 1 << 16 | 12, 5 << 24 | 127, 5 << 24 | 128,
+                 11 << 24 | 200, 26 << 24 | 2 << 16 | 0x80, 26 << 24 | 2 << 16 | 0x7F, 19 << 24 | 0x80,
+                 24 << 24 | 1 << 16 | 0, 25 << 24 | 1 << 16 | 24, 24 << 24 | 1 << 16 | 1]
+        self.assertEqual([pc for pc, _ in isa3_differences(words)], [1, 3, 4, 5, 10])
+        image = FirmwareImage.load(str(support.FIRMWARE / "ps2-host.image.json"))
+        image.check_isa(2)
+        for version in (3, 0x000F5F03):
+            with self.assertRaisesRegex(ImageError, "word 45: SHR by 21 is not a byte lane"):
+                image.check_isa(version)
+        FirmwareImage.load(str(support.FIRMWARE / "uart-rx-idle.image.json")).check_isa(3)
+
+    def test_committed_images_under_the_isa3_rule(self):
+        """Of the committed images only ps2-host breaks the rule, at its SHR by
+        21 (word 45). Cross-checked on the sources: ps2-host is the only one
+        with a shift count that is not a multiple of 8, every JMP/LOOP/JZ target
+        is a label, and no image has more than 64 words, so every target is
+        below 128."""
+        def source(name):
+            with open(str(support.FIRMWARE / (name + ".source.json"))) as handle:
+                return json.load(handle)["instructions"]
+        names = support.image_names()
+        self.assertEqual(len(names), 26)
+        non_lane = [name for name in names
+                    if any(ins["mnemonic"] in ("SHL", "SHR") and ins.get("c", 0) % 8
+                           for ins in source(name))]
+        self.assertEqual(non_lane, ["ps2-host"])
+        for name in names:
+            image = FirmwareImage.load(str(support.FIRMWARE / (name + ".image.json")))
+            self.assertLessEqual(len(image.words), 64)
+            for ins in source(name):
+                if ins["mnemonic"] in ("JMP", "LOOP", "JZ"):
+                    self.assertIsInstance(ins["target"], str, name)
+            with self.subTest(image=name):
+                if name == "ps2-host":
+                    self.assertEqual(isa3_differences(image.words),
+                                     [(45, "SHR by 21 is not a byte lane")])
+                    with self.assertRaises(ImageError):
+                        image.check_isa(3)
+                else:
+                    self.assertEqual(isa3_differences(image.words), [])
+                    image.check_isa(3)
+
+    def test_byte_lane_devices_refuse_ps2_host(self):
+        """On reference models of the byte-lane variants (READ_SELECT 7 = 3),
+        load_image refuses ps2-host before sending a word and loads the other
+        25 images. diet8 has the design of record's architecture; diet4 (the
+        6x4 build) has 4-word queues, which the device does not report, so a
+        host left at the default architecture binds these images to it. With
+        check_isa=False the loader does not read the version and ps2-host
+        loads."""
+        try:
+            import variants
+            from model.variant import make_reference
+        except ImportError as exc:  # a PE_HOST_TEST_DIR without the variant model
+            self.skipTest("variant model not available: %s" % exc)
+        names = support.image_names()
+        for variant in ("diet8", "diet4"):
+            config = variants.spec_config(variant)
+            self.assertEqual(config.options.isa_version, 3)
+            pe = ProtocolEmulator(ModelPort(model=make_reference(config, settled=True)),
+                                  isa_versions=(2, 3))
+            for name in names:
+                image = FirmwareImage.load(str(support.FIRMWARE / (name + ".image.json")))
+                pe.reset()
+                with self.subTest(device=variant, image=name):
+                    if name == "ps2-host":
+                        cycles = pe.cycles
+                        with self.assertRaisesRegex(ImageError, "word 45: SHR by 21"):
+                            pe.load_image(image, verify=True)
+                        self.assertFalse(pe.port.model.engines[image.engine].committed)
+                        self.assertLess(pe.cycles - cycles, 40, "only READ_SELECT 7 was read")
+                        pe.load_image(image, check_isa=False, verify=True)
+                    else:
+                        pe.load_image(image, verify=True)
+                    self.assertEqual(pe.port.model.engines[image.engine].program, image.words)
 
     def test_scenario_binding(self):
         scenario = load_scenario(str(support.SCENARIO))

@@ -416,6 +416,26 @@ section 4.5 on both, 97.93 % for the design of record and 96.66 % for `diet4`
 verification-campaign.md notes, the two mutant sets are drawn from different
 netlists, so the two scores are not a paired comparison.
 
+**Note (added 2026-09-30): mutant 1860.** One of the 107 `equiv_induct`
+proofs is of a clock inversion: mutant 1860 (`inv` of the `CLK` port of the
+`$procdff` cell of `transfer_pins_2`, engine 0's `transfer_pins` register by
+`results/diet4-102/engine_map.json`) moves that flip-flop to the falling
+edge. `equiv_induct` treats every flip-flop as a delay of one step of the one
+clock and does not look at the clock net, so it does not see the change, and
+the proof does not show that the mutant is equivalent. (The same Yosys steps,
+`async2sync`, `equiv_make`, `equiv_simple` and `equiv_induct`, also prove a
+two-flip-flop module equal to a copy whose first flip-flop is clocked by the
+inverted clock, although Icarus Verilog shows their outputs differ on 13 of
+20 cycles; `<work dir>/ps2-port/clkinv/`.) Without it, `diet4` scores
+2,199 / (2,420 − 110) = 95.19 % with 111 survivors, and with the longer ABC
+cap (section 7.3) 2,199 / (2,420 − 144) = 96.62 % with 77 survivors (a recount of `results/diet4-102/mutant_status.tsv` against the
+campaign's `mutations.tsv`, sha256 `8a24cf1d…`; Slurm job 24391204). The
+campaign's seven other `CLK` mutants (756, 830, 1534, 1746, 1804, 2138 and
+2203) are killed. The figures of this section keep the accounting as first
+published. The design of record's three `CLK` mutants (857, 1390 and 2111)
+are all killed, so its 96.82 % and 97.93 % do not change (the same recount
+on `results/push-4bd30c8/`).
+
 * Every mutant the earlier suite killed is killed again; the 221 survivors of
   the stage are a subset of the earlier 392. Of the earlier 285 unproven
   survivors, 171 are killed now. The 107 proven-equivalent mutants all survive.
