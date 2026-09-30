@@ -6,6 +6,12 @@ advanced one clock per ``cycle`` exactly like test/harness.py's ModelHarness.
 CPython only (the reference model uses dataclasses). The model directory is
 found at <repo>/test, or at $PE_HOST_TEST_DIR when set.
 
+Devices: ``device=None`` or "base" is the design of record's model (Reference
+of configs/instruction-sram-32.json's architecture, as before); another name in
+pe_host.protocol.DEVICES (e.g. "diet8_rec16") is the variant model of
+configs/variants/<name>.json next to the model directory (test/model/variant.py
+make_reference: VariantReference, or LineReference with the line unit).
+
 Pads: with a pad environment (pe_host.peers) the port resolves chip drive,
 environment drive and pull-ups (default: pull-ups on all eight pads, as the
 harness's pad_value(out, 0xFF)) and raises PadContention on a driver fight.
@@ -44,6 +50,17 @@ def import_model():
     return Config, Reference, Outputs
 
 
+def variant_reference(device):
+    """The reference model of a known variant device (configs/variants/<device>.json)."""
+    from ..protocol import DEVICES
+    if device not in DEVICES:
+        raise ValueError("unknown device %r" % (device,))
+    config_path = test_dir().parent / "configs" / "variants" / (device + ".json")
+    import_model()
+    from model.variant import load_config, make_reference
+    return make_reference(load_config(config_path))
+
+
 def config_from_architecture(architecture):
     Config, _, _ = import_model()
     return Config(engines=architecture["engine_count"], width=architecture["data_width"],
@@ -57,8 +74,12 @@ class ModelPort(Port):
     simulated = True
 
     def __init__(self, architecture=None, model=None, env=None, pins=None, pullups=0xFF,
-                 record=False, record_replay=False):
+                 record=False, record_replay=False, device=None):
         Port.__init__(self, env)
+        if model is None and device not in (None, "base"):
+            if architecture is not None:
+                raise ValueError("give either device or architecture, not both")
+            model = variant_reference(device)
         if model is None:
             _, Reference, _ = import_model()
             model = Reference(config_from_architecture(architecture or DESIGN_ARCHITECTURE))

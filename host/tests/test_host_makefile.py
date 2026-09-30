@@ -22,6 +22,7 @@ def resolved(cwd, *args, pwd=None):
     env.pop("PE_HOST_SCENARIO", None)
     env.pop("RTL_DIR", None)
     env.pop("MODEL_DIR", None)
+    env.pop("PE_HOST_DEVICE", None)
     env.pop("MAKEFLAGS", None)
     env["PWD"] = pwd or str(cwd)
     out = subprocess.run([MAKE, "-s", "--no-print-directory"] + list(args), cwd=str(cwd),
@@ -59,6 +60,7 @@ class RtlMakefileTest(unittest.TestCase):
                 self.assertEqual(v["PE_HOST_SCENARIO"],
                                  str(repo / "firmware" / "flagship-scenario.json"))
                 self.assertIn(str(support.HOST.resolve()), v["PYTHONPATH"].split(":"))
+                self.assertEqual(v["PE_HOST_DEVICE"], support.selected_device())
                 if (repo / "src" / "project.v").is_file():
                     for source in v["SOURCES"].split():
                         self.assertTrue(os.path.isfile(source), source)
@@ -67,8 +69,11 @@ class RtlMakefileTest(unittest.TestCase):
         v = resolved(support.REPO, "-C", "host", "rtl-cocotb-paths", "RTL_DIR=/x/rtl")
         self.assertEqual(v["RTL_DIR"], "/x/rtl")
         self.assertEqual(v["PE_HOST_SCENARIO"], "/x/rtl/firmware/flagship-scenario.json")
+        self.assertEqual(v["PE_HOST_DEVICE"], "", "no design selection under /x/rtl")
         v = resolved(support.HOST, "rtl-cocotb-paths", "PE_HOST_SCENARIO=/x/s.json")
         self.assertEqual(v["PE_HOST_SCENARIO"], "/x/s.json")
+        v = resolved(support.HOST, "rtl-cocotb-paths", "PE_HOST_DEVICE=base")
+        self.assertEqual(v["PE_HOST_DEVICE"], "base")
         # A stale PE_HOST_SCENARIO in the environment does not win.
         os.environ["PE_HOST_SCENARIO"] = "/stale.json"
         try:

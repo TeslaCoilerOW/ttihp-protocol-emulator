@@ -37,6 +37,11 @@ class IsaMismatch(HostError):
     """READ_SELECT 7 returned an ISA version this library or image does not accept."""
 
 
+class CapabilityMismatch(ImageError):
+    """An image needs a capability (READ_SELECT 7 bits 23..8, e.g. the line
+    unit on its engine) that the device does not report."""
+
+
 class EngineFault(HostError):
     """An engine or the host interface reported a fault."""
 

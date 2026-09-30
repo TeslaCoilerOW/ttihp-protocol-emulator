@@ -13,11 +13,11 @@ One API (ProtocolEmulator) over interchangeable backends:
 MicroPython compatible except the model and cocotb ports.
 """
 
-from .errors import (CommandRejected, EngineFault, HostError, HostTimeout, ImageError,
-                     IsaMismatch, PadContention, ReplayDivergence)
+from .errors import (CapabilityMismatch, CommandRejected, EngineFault, HostError, HostTimeout,
+                     ImageError, IsaMismatch, PadContention, ReplayDivergence)
 from .host import FaultReport, ProtocolEmulator
 from .image import FirmwareImage, load_scenario
-from .protocol import DESIGN_ARCHITECTURE, Status, fault_name
+from .protocol import DESIGN_ARCHITECTURE, DEVICES, Capabilities, Status, fault_name
 
 __version__ = "0.1.0"
 

@@ -1,0 +1,12 @@
+# Design selection: the generator configuration of src/protocol_emulator_core.v.
+#
+# Exactly one line that is not blank and not a comment: either
+#   configs/instruction-sram-32.json   (the base design)
+# or
+#   configs/variants/NAME.json         (the design variant NAME)
+#
+# scripts/design_selection.sh reads this file; the regen, test and formal
+# workflows, test/Makefile (the default PE_VARIANT, which the Tiny Tapeout
+# gl_test action uses) and the equivalence workflow take the design from it
+# (docs/extension.md section 12).
+configs/variants/diet8_rec16.json

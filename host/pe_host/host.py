@@ -22,11 +22,12 @@ host-library run and a harness run of the same operations are cycle-identical
 from .errors import CommandRejected, EngineFault, HostError, HostTimeout, IsaMismatch
 from .image import FirmwareImage
 from .protocol import (BEGIN, CLEAR, CLEAR_HOST_FAULT, COMMAND_NAMES, COMMIT, DESIGN_ARCHITECTURE,
-                       EVENT, FLUSH, OWN, READ_SELECT, ROUTE, RS_COUNT, RS_EVENT, RS_HELD_RX,
-                       RS_LEVELS, RS_PC, RS_STATUS, RS_TIMESTAMP, RS_VERSION, SELECT, START, STOP,
-                       TRIGGER, UI_RREADY, UI_WVALID, UO_FAULT, UO_IRQ, UO_RVALID, UO_WREADY,
-                       W_COMMAND, W_PROGRAM, W_RX, W_TX, Status, command_word, fault_name,
-                       own_payload, route_payload, split_levels, trigger_payload)
+                       DEVICES, EVENT, FLUSH, OWN, READ_SELECT, ROUTE, RS_COUNT, RS_EVENT,
+                       RS_HELD_RX, RS_LEVELS, RS_PC, RS_STATUS, RS_TIMESTAMP, RS_VERSION, SELECT,
+                       START, STOP, TRIGGER, UI_RREADY, UI_WVALID, UO_FAULT, UO_IRQ, UO_RVALID,
+                       UO_WREADY, VERSION_MASK, W_COMMAND, W_PROGRAM, W_RX, W_TX, Capabilities,
+                       Status, command_word, fault_name, own_payload, route_payload, split_levels,
+                       split_version, trigger_payload)
 
 
 class FaultReport:
@@ -72,26 +73,49 @@ class ProtocolEmulator:
 
     port:         a backend from pe_host.ports (model, ttboard, pico, cocotb, replay)
     timeout:      default cycle budget for one blocked nibble handshake
-    architecture: the device architecture images must be bound to
-    isa_versions: READ_SELECT 7 values accepted by check_isa()
+    architecture: the device architecture images must be bound to (default:
+                  the device's, DESIGN_ARCHITECTURE for both known devices)
+    isa_versions: ISA versions (READ_SELECT 7 bits 7..0) accepted by check_isa()
+                  and load_image() (default: the device's)
     strict:       raise CommandRejected when uo[7] rises across a command word
+    device:       a name in protocol.DEVICES ("base", "diet8_rec16"): the
+                  READ_SELECT 7 word and READ_SELECT 5 behaviour the self-test
+                  expects. Default "base" (the design of record), unless
+                  isa_versions is given: then no known device is assumed
+                  (expected_version_word and debug_counters are None).
     """
 
-    def __init__(self, port, timeout=100000, architecture=None, isa_versions=(2,),
-                 strict=True, log=None):
+    def __init__(self, port, timeout=100000, architecture=None, isa_versions=None,
+                 strict=True, log=None, device=None):
+        if device is None and isa_versions is None:
+            device = "base"
+        if device is not None and device not in DEVICES:
+            raise ValueError("unknown device %r (known: %s)"
+                             % (device, ", ".join(sorted(DEVICES))))
+        profile = DEVICES[device] if device is not None else None
         self.port = port
         self.timeout = timeout
-        self.architecture = DESIGN_ARCHITECTURE if architecture is None else architecture
+        self.device = device
+        if architecture is None:
+            architecture = profile["architecture"] if profile else DESIGN_ARCHITECTURE
+        self.architecture = architecture
         self.engines = self.architecture["engine_count"]
         self.all_engines = (1 << self.engines) - 1
+        if isa_versions is None:
+            isa_versions = (profile["version_word"] & VERSION_MASK,)
         self.isa_versions = tuple(isa_versions)
+        # What the self-test expects of READ_SELECT 7 and 5 (None: not known).
+        self.expected_version_word = profile["version_word"] if profile else None
+        self.debug_counters = profile["debug_counters"] if profile else None
         self.strict = strict
         self.log = log
         self.uo = 0
         self.window = 0
         self.selected = 0
         self.read_selected = 0
-        self.device_isa = None
+        self.device_isa = None              # READ_SELECT 7 bits 7..0, last read
+        self.device_version_word = None     # READ_SELECT 7, last read
+        self.device_capabilities = None     # Capabilities of that word
         self._first_uo = 0
         self.last_command_ok = None
 
@@ -431,15 +455,38 @@ class ProtocolEmulator:
         self.use(engine)
         return self.read_status(RS_HELD_RX)
 
+    def version_word(self):
+        """READ_SELECT 7: ISA version in bits 7..0, capability bits in 23..8."""
+        word = self.read_status(RS_VERSION)
+        self.device_version_word = word
+        self.device_isa, bits = split_version(word)
+        self.device_capabilities = Capabilities(bits)
+        return word
+
     def isa_version(self):
-        self.device_isa = self.read_status(RS_VERSION)
+        """The device's ISA version: READ_SELECT 7 bits 7..0."""
+        self.version_word()
         return self.device_isa
+
+    def capabilities(self):
+        """The device's capability bits (READ_SELECT 7 bits 23..8) as Capabilities."""
+        self.version_word()
+        return self.device_capabilities
+
+    def identify(self):
+        """Name of the known device (protocol.DEVICES) whose READ_SELECT 7 word
+        the device reads, or None."""
+        word = self.version_word()
+        for name in sorted(DEVICES):
+            if DEVICES[name]["version_word"] == word:
+                return name
+        return None
 
     def check_isa(self):
         version = self.isa_version()
         if version not in self.isa_versions:
-            raise IsaMismatch("device reports ISA version %d; accepted: %r"
-                              % (version, self.isa_versions))
+            raise IsaMismatch("device reports ISA version %d (READ_SELECT 7 = 0x%08x); accepted: %r"
+                              % (version, self.device_version_word, self.isa_versions))
         return version
 
     # --------------------------------------------------------------- loading
@@ -468,19 +515,20 @@ class ProtocolEmulator:
         """Load a verified FirmwareImage (or a path to one).
 
         Checks the architecture binding against self.architecture and, with
-        check_isa, reads READ_SELECT 7 and requires an accepted version that is
-        at least the image's isa_version. engine defaults to image.engine.
+        check_isa, reads READ_SELECT 7 and requires an accepted ISA version
+        (bits 7..0) that is at least the image's isa_version, and the
+        capabilities the image needs (bits 23..8, including the line unit on
+        the target engine; CapabilityMismatch otherwise). engine defaults to
+        image.engine.
         """
         if not isinstance(image, FirmwareImage):
             image = FirmwareImage.load(image)
         image.check_binding(self.architecture)
-        if check_isa:
-            version = self.isa_version()
-            if version not in self.isa_versions:
-                raise IsaMismatch("device reports ISA version %d; accepted: %r"
-                                  % (version, self.isa_versions))
-            image.check_isa(version)
         target = image.engine if engine is None else engine
+        if check_isa:
+            version = self.check_isa()
+            image.check_isa(version)
+            image.check_capabilities(self.device_capabilities, target)
         self.load_program(target, image.words, image.owned_pins, image.open_drain, verify)
         return image
 

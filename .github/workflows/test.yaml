@@ -28,6 +28,21 @@ jobs:
         shell: bash
         run: pip install -r test/requirements.txt
 
+      # The design selection (configs/design-selection.txt) names the variant
+      # whose core src/ carries: the suite runs that variant's reference model
+      # (PE_VARIANT) against src/ (PE_CORE, for a variant other than base; for
+      # base test/Makefile uses src/ directly). test/Makefile defaults to the
+      # same selection, which the gate-level run of the gds workflow uses.
+      - name: Design selection
+        shell: bash
+        run: |
+          variant=$(scripts/design_selection.sh variant)
+          scripts/design_selection.sh check
+          echo "PE_VARIANT=$variant" >> "$GITHUB_ENV"
+          if [ "$variant" != base ]; then
+            echo "PE_CORE=$GITHUB_WORKSPACE/src/protocol_emulator_core.v" >> "$GITHUB_ENV"
+          fi
+
       # RTL simulation needs the IHP SRAM behavioral models, which are
       # committed under models/ (Apache-2.0, see models/NOTICE.IHP-Open-PDK);
       # test/Makefile adds them with -DFUNCTIONAL.

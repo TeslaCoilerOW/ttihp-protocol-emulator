@@ -2,6 +2,16 @@ name: formal
 # SymbiYosys proofs, bounded checks, covers and negative controls over RTL
 # generated from hardcaml/ (see formal/README.md). The OCaml pins and opam
 # cache are the same as regen.yaml; the OSS CAD Suite release is pinned.
+#
+# The design is the design selection (configs/design-selection.txt, read by
+# scripts/design_selection.sh). For base (configs/instruction-sram-32.json)
+# every job of `formal/run.sh --list` runs. For a variant NAME
+# (configs/variants/NAME.json) the jobs of `formal/run.sh --variant NAME
+# --list` run with the variant's settings; for a variant with the line unit,
+# its line_* jobs are the CI subset `formal/run.sh --variant NAME --ci --list`
+# (every line_* job except the long bounded checks, formal/README.md). The
+# generated variant core must equal src/protocol_emulator_core.v below its
+# header line (VARIANT_CORES).
 on:
   push:
   pull_request:
@@ -16,9 +26,26 @@ jobs:
     name: generate formal RTL
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    outputs:
+      variant: ${{ steps.design.outputs.variant }}
+      build: ${{ steps.design.outputs.build }}
+      jobs: ${{ steps.jobs.outputs.jobs }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
+
+      - name: Design selection
+        id: design
+        shell: bash
+        run: |
+          variant=$(scripts/design_selection.sh variant)
+          scripts/design_selection.sh check
+          if [ "$variant" = base ]; then
+            build=formal/build
+          else
+            build=formal/build/variants/$variant
+          fi
+          { echo "variant=$variant"; echo "build=$build"; } >> "$GITHUB_OUTPUT"
 
       - name: Install system packages
         shell: bash
@@ -40,18 +67,84 @@ jobs:
       - name: Install pinned opam packages
         shell: bash
         run: |
+          # One package per word of scripts/opam-deps.txt, so no quotes.
+          # shellcheck disable=SC2046
           opam install --yes $(grep -v '^#' scripts/opam-deps.txt)
           opam list --installed --columns=name,version hardcaml yojson digestif dune
 
       - name: Generate formal RTL
         shell: bash
-        run: opam exec -- formal/run.sh --generate-only
+        env:
+          DESIGN_VARIANT: ${{ steps.design.outputs.variant }}
+        run: |
+          if [ "$DESIGN_VARIANT" = base ]; then
+            opam exec -- formal/run.sh --generate-only
+          else
+            # run.sh compares the variant core it generates with this copy of
+            # src/ below the header line and fails if they differ.
+            mkdir -p "$RUNNER_TEMP/cores"
+            cp src/protocol_emulator_core.v "$RUNNER_TEMP/cores/$DESIGN_VARIANT.v"
+            VARIANT_CORES=$RUNNER_TEMP/cores opam exec -- \
+              formal/run.sh --variant "$DESIGN_VARIANT" --generate-only
+          fi
+
+      - name: Select the formal jobs
+        id: jobs
+        shell: bash
+        env:
+          DESIGN_VARIANT: ${{ steps.design.outputs.variant }}
+        run: |
+          t=$RUNNER_TEMP
+          if [ "$DESIGN_VARIANT" = base ]; then
+            formal/run.sh --list > "$t/all.txt"
+            cp "$t/all.txt" "$t/jobs.txt"
+          else
+            formal/run.sh --variant "$DESIGN_VARIANT" --list > "$t/all.txt"
+            if grep -q '^line_' "$t/all.txt"; then
+              # The jobs without the line unit, then the line-unit CI subset.
+              formal/run.sh --variant "$DESIGN_VARIANT" --ci --list > "$t/ci.txt"
+              # The subset must name at least one line_* job, only line_*
+              # jobs, and only jobs of --list.
+              if ! grep -q '^line_' "$t/ci.txt"; then
+                echo "::error::formal/run.sh --ci --list selects no line-unit job"
+                exit 1
+              fi
+              if grep -qv '^line_' "$t/ci.txt"; then
+                echo "::error::formal/run.sh --ci --list names a job that is not a line-unit job"
+                exit 1
+              fi
+              if grep -qvxF -f "$t/all.txt" "$t/ci.txt"; then
+                echo "::error::formal/run.sh --ci --list names a job that --list does not"
+                exit 1
+              fi
+              { grep -v '^line_' "$t/all.txt"; cat "$t/ci.txt"; } > "$t/jobs.txt"
+            else
+              cp "$t/all.txt" "$t/jobs.txt"
+            fi
+          fi
+          if grep -qvE '^[a-z0-9_]+$' "$t/jobs.txt"; then
+            echo "::error::unexpected formal job name"
+            exit 1
+          fi
+          [ -s "$t/jobs.txt" ] || { echo "::error::no formal jobs selected"; exit 1; }
+          jobs=$(python3 -c 'import json, sys; print(json.dumps(sys.stdin.read().split()))' < "$t/jobs.txt")
+          echo "jobs=$jobs" >> "$GITHUB_OUTPUT"
+          excluded=$(grep -vxF -f "$t/jobs.txt" "$t/all.txt" | tr '\n' ' ' || true)
+          {
+            echo "### Formal jobs (design: $DESIGN_VARIANT)"
+            echo
+            echo "$(wc -l < "$t/jobs.txt") of $(wc -l < "$t/all.txt") jobs: $(tr '\n' ' ' < "$t/jobs.txt")"
+            if [ -n "$excluded" ]; then
+              echo
+              echo "Not in the CI subset (formal/run.sh --ci): $excluded"
+            fi
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Upload formal RTL
         uses: actions/upload-artifact@v7
         with:
           name: formal-rtl
-          path: formal/build/rtl/
+          path: ${{ steps.design.outputs.build }}/rtl/
           if-no-files-found: error
 
   sby:
@@ -62,23 +155,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        job:
-          - reset_safety
-          - fifo_conservation
-          - engine_safety
-          - processor_invariants_bmc
-          - processor_invariants_prove
-          - processor_inductive_bmc
-          - processor_inductive_prove
-          - processor_inductive_cover
-          - timing_isolation_prove_k0
-          - timing_isolation_prove_k1
-          - timing_isolation_prove_k2
-          - timing_isolation_prove_k3
-          - timing_isolation_bmc
-          - timing_isolation_cover
-          - timing_isolation_neg_pull
-          - timing_isolation_neg_mutant
+        job: ${{ fromJSON(needs.rtl.outputs.jobs) }}
+    env:
+      DESIGN_VARIANT: ${{ needs.rtl.outputs.variant }}
+      FORMAL_BUILD: ${{ needs.rtl.outputs.build }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
@@ -87,7 +167,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: formal-rtl
-          path: formal/build/rtl
+          path: ${{ needs.rtl.outputs.build }}/rtl
 
       - name: Set up OSS CAD Suite
         uses: YosysHQ/setup-oss-cad-suite@v4
@@ -102,14 +182,20 @@ jobs:
         shell: bash
         env:
           SBY_TIMEOUT: "1500"
-        run: formal/run.sh --no-generate ${{ matrix.job }}
+          JOB: ${{ matrix.job }}
+        run: |
+          if [ "$DESIGN_VARIANT" = base ]; then
+            formal/run.sh --no-generate "$JOB"
+          else
+            formal/run.sh --variant "$DESIGN_VARIANT" --no-generate "$JOB"
+          fi
 
       - name: Job summary
         if: always()
         shell: bash
         run: |
-          if [ -f formal/build/summary.tsv ]; then
-            { echo '```'; column -t -s $'\t' formal/build/summary.tsv; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          if [ -f "$FORMAL_BUILD/summary.tsv" ]; then
+            { echo '```'; column -t -s $'\t' "$FORMAL_BUILD/summary.tsv"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Upload sby logs and traces
@@ -118,10 +204,10 @@ jobs:
         with:
           name: sby-${{ matrix.job }}
           path: |
-            formal/build/summary.tsv
-            formal/build/sby/*.log
-            formal/build/sby/*/logfile.txt
-            formal/build/sby/*/status
-            formal/build/sby/*/engine_*/*.vcd
-            formal/build/sby/*/engine_*/*.yw
+            ${{ needs.rtl.outputs.build }}/summary.tsv
+            ${{ needs.rtl.outputs.build }}/sby/*.log
+            ${{ needs.rtl.outputs.build }}/sby/*/logfile.txt
+            ${{ needs.rtl.outputs.build }}/sby/*/status
+            ${{ needs.rtl.outputs.build }}/sby/*/engine_*/*.vcd
+            ${{ needs.rtl.outputs.build }}/sby/*/engine_*/*.yw
           if-no-files-found: ignore

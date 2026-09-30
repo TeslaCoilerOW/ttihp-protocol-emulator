@@ -1,6 +1,8 @@
 name: regen
-# Regenerates src/protocol_emulator_core.v from hardcaml/ with the pinned
-# OCaml toolchain and fails if the committed file is not current.
+# Regenerates src/protocol_emulator_core.v from hardcaml/ and the configuration
+# named by the design selection (configs/design-selection.txt, read by
+# scripts/design_selection.sh) with the pinned OCaml toolchain, and fails if
+# the committed file is not current.
 on:
   push:
   pull_request:
@@ -15,6 +17,15 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
+
+      # The configuration src/protocol_emulator_core.v is generated from.
+      - name: Design selection
+        id: design
+        shell: bash
+        run: |
+          config=$(scripts/design_selection.sh config)
+          scripts/design_selection.sh check
+          echo "config=$config" >> "$GITHUB_OUTPUT"
 
       - name: Install system packages
         shell: bash
@@ -38,19 +49,25 @@ jobs:
       - name: Install pinned opam packages
         shell: bash
         run: |
+          # One package per word of scripts/opam-deps.txt, so no quotes.
+          # shellcheck disable=SC2046
           opam install --yes $(grep -v '^#' scripts/opam-deps.txt)
           opam list --installed --columns=name,version hardcaml yojson digestif dune zarith base ppxlib
 
       - name: Regenerate core RTL
         shell: bash
-        run: opam exec -- scripts/generate.sh configs/instruction-sram-32.json
+        env:
+          DESIGN_CONFIG: ${{ steps.design.outputs.config }}
+        run: opam exec -- scripts/generate.sh "$DESIGN_CONFIG"
 
       - name: Check committed RTL is current
         shell: bash
+        env:
+          DESIGN_CONFIG: ${{ steps.design.outputs.config }}
         run: |
           git status --short -- src
           if ! git diff --exit-code --stat -- src; then
-            echo "::error::src/ is out of date with hardcaml/. Run scripts/generate.sh and commit the result."
+            echo "::error::src/ is out of date with hardcaml/ and $DESIGN_CONFIG. Run scripts/generate.sh $DESIGN_CONFIG and commit the result."
             exit 1
           fi
           untracked=$(git ls-files --others --exclude-standard -- src)

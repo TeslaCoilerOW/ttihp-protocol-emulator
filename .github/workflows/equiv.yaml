@@ -2,8 +2,12 @@ name: equivalence
 # RTL-vs-netlist sequential equivalence (formal_eq/, docs/equivalence.md) of
 # the netlist in the tt_submission artifact of a gds or gds_6x4 run: after
 # every such run whose gds job succeeded (workflow_run), or for a given run id
-# (workflow_dispatch). gds -> variant base (8x4), gds_6x4 -> variant diet4
-# (6x4). It never changes the triggering run or any other workflow.
+# (workflow_dispatch). gds (8x4) -> the variant of the built commit's design
+# selection (configs/design-selection.txt: base for
+# configs/instruction-sram-32.json, NAME for configs/variants/NAME.json; base
+# when the commit has no such file), with src/protocol_emulator_core.v;
+# gds_6x4 (6x4) -> variant diet4 with variants6x4/protocol_emulator_core.v.
+# It never changes the triggering run or any other workflow.
 #
 # Fail closed: the check job passes only when formal_eq/eq_check.py proves the
 # netlist equivalent to the RTL of the built commit (exit 0), both netlist
@@ -11,9 +15,12 @@ name: equivalence
 # and the artifact's src/ equals the built commit's RTL.
 #
 # Trust:
-# - formal_eq/ is taken from this workflow's own commit (the default branch
-#   for workflow_run). The built commit supplies only the RTL (src/ and
-#   variants6x4/), checked out sparsely into rtl/.
+# - formal_eq/ and scripts/design_selection.sh are taken from this workflow's
+#   own commit (the default branch for workflow_run). The built commit
+#   supplies only data: the RTL (src/ and variants6x4/) and its design
+#   selection (configs/), checked out sparsely into rtl/. Its selection file is
+#   read, never executed, and the core's header line must name the selected
+#   configuration.
 # - Values from the event, the inputs, the GitHub API and the artifact reach
 #   scripts only through env: and are matched against a strict pattern before
 #   use. Nothing from the artifact is executed.
@@ -24,11 +31,14 @@ on:
   workflow_run:
     workflows: [gds, gds_6x4]
     types: [completed]
-    # Builds of main only. GitHub lists workflow_run runs under the default
-    # branch's latest commit, so an experimental branch (e.g. a variant core
-    # in src/) would otherwise put its result there; check such a build by
-    # hand with workflow_dispatch.
-    branches: [main]
+    # Builds of main and of the evaluation branch of the diet8_rec16 variant
+    # (docs/extension.md section 12), whose src/ carries that variant's core.
+    # GitHub runs this file from the default branch for workflow_run and lists
+    # such runs under the default branch's latest commit, also for a build of
+    # the evaluation branch: its result (pass or fail) appears on main's
+    # latest commit as the job "equivalence (NAME)". Check a build of any
+    # other branch by hand with workflow_dispatch.
+    branches: [main, eval/diet8-rec16]
   workflow_dispatch:
     inputs:
       run_id:
@@ -74,6 +84,8 @@ jobs:
       run_id: ${{ steps.sel.outputs.run_id }}
       head_sha: ${{ steps.sel.outputs.head_sha }}
       variant: ${{ steps.sel.outputs.variant }}
+      config: ${{ steps.sel.outputs.config }}
+      rtl_core: ${{ steps.sel.outputs.rtl_core }}
       artifact_id: ${{ steps.sel.outputs.artifact_id }}
       artifact_sha256: ${{ steps.sel.outputs.artifact_sha256 }}
     steps:
@@ -120,8 +132,7 @@ jobs:
           event=$(jq -r .event <<<"$run")
           head_sha=$(jq -r .head_sha <<<"$run")
           case "$path" in
-            .github/workflows/gds.yaml) variant=base ;;
-            .github/workflows/gds_6x4.yaml) variant=diet4 ;;
+            .github/workflows/gds.yaml|.github/workflows/gds_6x4.yaml) ;;
             *) fail "run $run_id is not a run of gds.yaml or gds_6x4.yaml" ;;
           esac
           case "$event" in
@@ -129,13 +140,16 @@ jobs:
             *) fail "run $run_id was not started by push or workflow_dispatch" ;;
           esac
           [[ $head_sha =~ $sha_re ]] || fail "run $run_id has no valid head_sha"
+
           if [ "$EVENT_NAME" = workflow_run ]; then
             if [ "$head_sha" != "$WR_HEAD_SHA" ] || [ "$path" != "$WR_PATH" ]; then
               fail "the event and the API disagree about run $run_id"
             fi
           fi
 
-          # The gds job (latest attempt) must have succeeded.
+          # The gds job (latest attempt) must have succeeded. Checked before the
+          # design selection is read, so a workflow_run event for a failed gds
+          # job is skipped whatever the built commit's selection file holds.
           gds=$(gh api --paginate "repos/$REPO/actions/runs/$run_id/jobs?per_page=100" \
                   --jq '.jobs[] | select(.name == "gds") | (.conclusion // "none")') \
             || fail "cannot list the jobs of run $run_id"
@@ -144,6 +158,41 @@ jobs:
           if [ "$gds" != success ]; then
             msg="the gds job of run $run_id concluded '$gds', so there is no netlist to check"
             if [ "$EVENT_NAME" = workflow_run ]; then skip "$msg"; else fail "$msg"; fi
+          fi
+
+          # The variant. gds.yaml builds src/, whose configuration the built
+          # commit's configs/design-selection.txt names; its content is data,
+          # checked here with the rules of scripts/design_selection.sh (one
+          # line that is not blank and not a '#' comment:
+          # configs/instruction-sram-32.json or configs/variants/NAME.json).
+          # A commit without the file predates it and carries the base design.
+          if [ "$path" = .github/workflows/gds_6x4.yaml ]; then
+            variant=diet4
+            config=configs/variants/diet4.json
+            rtl_core=variants6x4/protocol_emulator_core.v
+          else
+            rtl_core=src/protocol_emulator_core.v
+            sel_err="$RUNNER_TEMP/design-selection.err"
+            if selection=$(gh api -H "Accept: application/vnd.github.raw+json" \
+                             "repos/$REPO/contents/configs/design-selection.txt?ref=$head_sha" 2>"$sel_err"); then
+              lines=$(grep -vE '^(#.*)?$' <<<"$selection" || true)
+              [ -n "$lines" ] && [ "$(wc -l <<<"$lines")" = 1 ] \
+                || fail "configs/design-selection.txt of $head_sha does not hold exactly one selection line"
+              config=$lines
+              variant_re='^configs/variants/([a-z0-9][a-z0-9_]{0,31})\.json$'
+              if [ "$config" = configs/instruction-sram-32.json ]; then
+                variant=base
+              elif [[ $config =~ $variant_re ]] && [ "${BASH_REMATCH[1]}" != base ]; then
+                variant=${BASH_REMATCH[1]}
+              else
+                fail "configs/design-selection.txt of $head_sha selects no configuration this workflow accepts"
+              fi
+            elif grep -q '(HTTP 404)' "$sel_err"; then
+              variant=base
+              config=configs/instruction-sram-32.json
+            else
+              fail "cannot read configs/design-selection.txt of $head_sha"
+            fi
           fi
 
           # Its newest unexpired tt_submission artifact, built from head_sha.
@@ -162,11 +211,14 @@ jobs:
             echo "run_id=$run_id"
             echo "head_sha=$head_sha"
             echo "variant=$variant"
+            echo "config=$config"
+            echo "rtl_core=$rtl_core"
             echo "artifact_id=$art_id"
             echo "artifact_sha256=${art_digest#sha256:}"
           } >> "$GITHUB_OUTPUT"
-          printf 'run %s (%s, %s) of %s: variant %s, tt_submission artifact %s (%s)\n' \
-            "$run_id" "$path" "$event" "$head_sha" "$variant" "$art_id" "$art_digest" | tee -a "$GITHUB_STEP_SUMMARY"
+          printf 'run %s (%s, %s) of %s: variant %s (%s, %s), tt_submission artifact %s (%s)\n' \
+            "$run_id" "$path" "$event" "$head_sha" "$variant" "$config" "$rtl_core" "$art_id" "$art_digest" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
 
   check:
     name: equivalence (${{ needs.select.outputs.variant }})
@@ -186,6 +238,8 @@ jobs:
       RUN_ID: ${{ needs.select.outputs.run_id }}
       HEAD_SHA: ${{ needs.select.outputs.head_sha }}
       VARIANT: ${{ needs.select.outputs.variant }}
+      DESIGN_CONFIG: ${{ needs.select.outputs.config }}
+      RTL_CORE: ${{ needs.select.outputs.rtl_core }}
       ARTIFACT_ID: ${{ needs.select.outputs.artifact_id }}
       ARTIFACT_SHA256: ${{ needs.select.outputs.artifact_sha256 }}
     steps:
@@ -193,12 +247,17 @@ jobs:
         run: |
           [[ $RUN_ID =~ ^[1-9][0-9]{0,19}$ ]]
           [[ $HEAD_SHA =~ ^[0-9a-f]{40}$ ]]
-          [[ $VARIANT =~ ^(base|diet4)$ ]]
+          [[ $VARIANT =~ ^[a-z0-9][a-z0-9_]{0,31}$ ]]
           [[ $ARTIFACT_ID =~ ^[1-9][0-9]{0,19}$ ]]
           [[ $ARTIFACT_SHA256 =~ ^[0-9a-f]{64}$ ]]
-          case "$VARIANT" in
-            base) echo "RTL_CORE=src/protocol_emulator_core.v" >> "$GITHUB_ENV" ;;
-            diet4) echo "RTL_CORE=variants6x4/protocol_emulator_core.v" >> "$GITHUB_ENV" ;;
+          if [ "$VARIANT" = base ]; then
+            [ "$DESIGN_CONFIG" = configs/instruction-sram-32.json ]
+          else
+            [ "$DESIGN_CONFIG" = "configs/variants/$VARIANT.json" ]
+          fi
+          case "$RTL_CORE" in
+            src/protocol_emulator_core.v) ;;
+            variants6x4/protocol_emulator_core.v) [ "$VARIANT" = diet4 ] ;;
             *) exit 1 ;;
           esac
 
@@ -217,6 +276,32 @@ jobs:
           sparse-checkout: |
             src
             variants6x4
+            configs
+
+      # The built commit's selection must name the variant chosen above (for a
+      # gds run; a commit without the file must be base), and the core's first
+      # line must name the variant's configuration (scripts/generate.sh writes
+      # it; regen.yaml checks the committed file).
+      - name: Require the built commit's design selection and core header
+        run: |
+          if [ "$RTL_CORE" = src/protocol_emulator_core.v ]; then
+            if [ -e rtl/configs/design-selection.txt ]; then
+              selected=$(tool/scripts/design_selection.sh --repo rtl config)
+              if [ "$selected" != "$DESIGN_CONFIG" ]; then
+                echo "::error::the built commit selects $selected, not $DESIGN_CONFIG"
+                exit 1
+              fi
+            elif [ "$VARIANT" != base ]; then
+              echo "::error::the built commit has no configs/design-selection.txt, so its variant is base"
+              exit 1
+            fi
+          fi
+          header=$(head -n 1 "rtl/$RTL_CORE")
+          if [ "$header" != "// generated by scripts/generate.sh from hardcaml/ + $DESIGN_CONFIG -- do not edit" ]; then
+            echo "::error::the first line of $RTL_CORE does not name $DESIGN_CONFIG: $header"
+            exit 1
+          fi
+          echo "variant $VARIANT: $DESIGN_CONFIG, $RTL_CORE"
 
       - name: Download the tt_submission artifact and check its digest
         env:

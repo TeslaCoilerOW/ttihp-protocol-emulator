@@ -10,6 +10,8 @@
 #   make PE_HOST_SCENARIO=/path/to/flagship-scenario.json
 #   make GATES=yes GL_NETLIST=... PDK_ROOT=...
 #   make paths                # print the resolved paths (no cocotb needed)
+#   make PE_HOST_DEVICE=base  # the device whose core src/ carries (default: the
+#                             # design selection of RTL_DIR, scripts/design_selection.sh)
 #
 # Paths derive from this Makefile's own location, never from $(PWD): GNU make
 # does not update PWD for `make -C`, so `make -C host rtl-cocotb` from the
@@ -38,6 +40,11 @@ VERILOG_SOURCES += $(PDK_ROOT)/ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/verilo
 VERILOG_SOURCES += $(SRAM_MODELS) $(GL_NETLIST)
 endif
 
+# The device (pe_host.protocol.DEVICES) whose core src/ carries: the lockstep
+# model and the self-test expectations follow it.
+PE_HOST_DEVICE ?= $(shell $(RTL_DIR)/scripts/design_selection.sh variant 2>/dev/null)
+export PE_HOST_DEVICE
+
 COMPILE_ARGS    += -I$(SRC_DIR)
 VERILOG_SOURCES += $(THIS_DIR)/tb_host.v
 TOPLEVEL = tb_host
@@ -59,7 +66,11 @@ paths:
 	@echo "TB=$(THIS_DIR)/tb_host.v"
 	@echo "SOURCES=$(VERILOG_SOURCES)"
 	@echo "PE_HOST_SCENARIO=$(PE_HOST_SCENARIO)"
+	@echo "PE_HOST_DEVICE=$(PE_HOST_DEVICE)"
 	@echo "PYTHONPATH=$(PYTHONPATH)"
 else
+ifeq ($(strip $(PE_HOST_DEVICE)),)
+$(error cannot read the design selection of $(RTL_DIR) ($(RTL_DIR)/scripts/design_selection.sh variant); set PE_HOST_DEVICE)
+endif
 include $(shell cocotb-config --makefiles)/Makefile.sim
 endif

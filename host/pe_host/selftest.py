@@ -9,9 +9,13 @@ same code runs on the model, the cocotb RTL simulation, an FPGA behind a Pico
 and the silicon on a demo board (MicroPython compatible).
 
 Checks per section:
-  identity         ISA version, post-reset status of every engine, exact timestamp rate
+  identity         READ_SELECT 7: ISA version in bits 7..0, capability bits 23..8
+                   consistent (and the whole word equal to the expected device's),
+                   bits 31..24 zero; post-reset status of every engine, exact
+                   timestamp rate
   fifo_loopback    echo program: prefill, abandoned TX nibbles, START, levels, held RX,
-                   PC, completed-instruction count, abandoned RX read (no pop), IRQ
+                   PC, completed-instruction count (0 on a device without debug
+                   counters), abandoned RX read (no pop), IRQ
   backpressure     TX full holds write-ready low, FLUSH empties, FLUSH while running rejects
   route            autonomous RX->TX mover between two engines, word count exhaustion
   event            WAITEVENT stalls, EVENT delivers, mailbox consumed, TIME result
@@ -20,15 +24,20 @@ Checks per section:
   host_fault       rejected commands set the sticky host fault; CLEAR bit 23 clears it
   program_abandon  partial program word abandoned; COMMIT length rules
   reset            reset invalidates images; START of an uncommitted engine rejects
+  line_unit        with the line unit (capability bit 8): on every engine that has it
+                   (bits 19..16), twice: CRC set/preset/read round trip, LTIM starts
+                   the ticker, LSTAT flags, and the second START clears the CRC the
+                   first run left; without it: LSTAT faults with code 1
 """
 
 from .errors import CommandRejected, HostError
 from .protocol import (RS_STATUS, SELECT, START, TRIG_RISING, TRIGGER, UO_FAULT, UO_IRQ,
-                       UO_WREADY, W_PROGRAM, W_RX, W_TX)
+                       UO_WREADY, W_PROGRAM, W_RX, W_TX, Capabilities, split_version)
 
 # Opcodes (docs/isa.md) used by the self-test programs.
 NOP, HALT, SET, DIR, WAIT, JMP, PULL, PUSH = 0, 1, 2, 3, 4, 5, 6, 7
 WAITEVENT, MOV, TIME, FAULT = 15, 18, 28, 29
+LTIM, CRC, LSTAT = 30, 32, 33       # line-unit extension (docs/isa.md)
 REG_TX, REG_RX = 0, 1
 
 
@@ -43,6 +52,14 @@ def imm(op, value=0):
 ECHO = [imm(PULL), ins(MOV, REG_RX, REG_TX), ins(PUSH), imm(JMP, 0)]
 FAULTER = [imm(NOP), imm(FAULT, 0x55)]
 WAITEV = [imm(WAITEVENT), ins(TIME, REG_RX), ins(PUSH), imm(HALT)]
+# Line unit: push the CRC after START (0), the low 16 bits of a TX word
+# written to the CRC and read back after a preset change, then LSTAT after
+# LTIM (ticker running, RX has space, TX empty, line level 0, no flags).
+LINE_PROBE = [ins(CRC, REG_RX, 0, 2), ins(PUSH), imm(PULL), ins(CRC, 0, REG_TX, 1),
+              ins(CRC, 0, 2, 3), ins(CRC, REG_RX, 0, 2), ins(PUSH), imm(LTIM, 10),
+              ins(LSTAT, REG_RX), ins(PUSH), imm(HALT)]
+LINE_PROBE_TX = (0x1234ABCD, 0x0000C3A5)
+LSTAT_RX_SPACE, LSTAT_TICKER_RUNNING = 1 << 4, 1 << 6
 
 
 def pulse(pin):
@@ -95,7 +112,7 @@ class SelfTest:
 
     def run(self, sections=None):
         names = ("identity", "fifo_loopback", "backpressure", "route", "event", "trigger",
-                 "engine_fault", "host_fault", "program_abandon", "reset")
+                 "engine_fault", "host_fault", "program_abandon", "reset", "line_unit")
         for name in names:
             if sections is not None and name not in sections:
                 continue
@@ -111,10 +128,26 @@ class SelfTest:
         return self.result
 
     # ------------------------------------------------------------ sections
+    def counters_present(self):
+        """Whether READ_SELECT 5 counts completed instructions: the device
+        profile's debug_counters, else True for ISA 2 (which has them) and None
+        (unknown) for other versions."""
+        if self.pe.debug_counters is not None:
+            return self.pe.debug_counters
+        return True if self.pe.isa_version() == 2 else None
+
     def s_identity(self):
         pe = self.pe
-        version = pe.isa_version()
-        self.check("isa_version", version in pe.isa_versions, "READ_SELECT 7 = %d" % version)
+        word = pe.version_word()
+        version, bits = split_version(word)
+        self.check("isa_version", version in pe.isa_versions,
+                   "READ_SELECT 7 bits 7..0 = %d (word 0x%08x)" % (version, word))
+        self.equal("READ_SELECT 7 bits 31..24", word >> 24, 0)
+        problems = Capabilities(bits).problems(pe.engines)
+        self.check("capability bits consistent", not problems,
+                   "; ".join(problems) or repr(Capabilities(bits)))
+        if pe.expected_version_word is not None:
+            self.equal("READ_SELECT 7 of device %s" % pe.device, word, pe.expected_version_word)
         for engine in range(pe.engines):
             status = pe.status(engine)
             self.equal("status engine %d after reset" % engine, status.word, 0)
@@ -145,7 +178,15 @@ class SelfTest:
         status = pe.status()
         self.check("stalled on PULL with TX empty", status.stalled and status.running, repr(status))
         self.equal("PC parked on PULL", pe.pc(), 0)
-        self.equal("completed instructions", pe.completed(), 4 * len(words))
+        counters = self.counters_present()
+        count = pe.completed()
+        if counters:
+            self.equal("completed instructions", count, 4 * len(words))
+        elif counters is None:
+            self.check("completed instructions (or 0 without debug counters)",
+                       count in (4 * len(words), 0), "got %d" % count)
+        else:
+            self.equal("no debug counters: READ_SELECT 5 reads 0", count, 0)
         partial = pe.try_read_word(W_RX, 8, nibbles=3)
         self.check("abandoned RX read returns None", partial is None)
         self.equal("abandoned RX read does not pop", pe.levels(), (0, 3))
@@ -327,6 +368,33 @@ class SelfTest:
         except CommandRejected:
             self.check("START after reset rejected", True)
         pe.clear(0, host_fault=True)
+
+    def s_line_unit(self):
+        pe = self.pe
+        caps = pe.capabilities()
+        if not caps.line_unit:
+            pe.load_program(0, [ins(LSTAT, REG_RX), imm(HALT)])
+            pe.start(1)
+            pe.idle(8)
+            status = pe.status(0)
+            self.check("LSTAT faults with code 1 without the line unit",
+                       status.faulted and status.fault == 1, repr(status))
+            pe.clear_faults(host_fault=True)
+            return
+        engines = [e for e in range(pe.engines) if (caps.line_engines >> e) & 1]
+        self.check("line unit on at least one engine", engines, repr(caps))
+        for engine in engines:
+            pe.load_program(engine, LINE_PROBE)
+            for run, word in enumerate(LINE_PROBE_TX):
+                pe.tx_write(word, engine=engine)
+                pe.start(1 << engine)
+                pe.idle(48)
+                status = pe.status(engine)
+                self.check("engine %d line-unit probe run %d halts without fault" % (engine, run),
+                           not status.running and not status.faulted, repr(status))
+                self.equal("engine %d run %d: CRC after START, CRC round trip, LSTAT"
+                           % (engine, run), pe.rx_read_many(3, engine=engine),
+                           [0, word & 0xFFFF, LSTAT_RX_SPACE | LSTAT_TICKER_RUNNING])
 
 
 def run(pe, trigger_pin=0, log=None, sections=None):

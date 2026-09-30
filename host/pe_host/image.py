@@ -13,7 +13,15 @@ Checks, following docs/firmware.md ("Source and image contracts"):
   engine exists and the image fits the program store;
 * architecture binding: the image's architecture object equals the device's
   (DESIGN_ARCHITECTURE unless the caller supplies another one);
-* the device's ISA version (READ_SELECT 7) is at least the image's isa_version.
+* the device's ISA version (READ_SELECT 7 bits 7..0) is at least the image's
+  isa_version;
+* capabilities: the image needs the READ_SELECT 7 capability bits (bits 23..8,
+  docs/isa.md "Discovery") that its words use (line-unit opcodes 30-33, XFER c
+  bits 5 and 6, the fraction, stuffing, arbitration and preset fields) plus any
+  it declares in the optional "requires" list of feature names
+  (protocol.CAPABILITY_NAMES); a declaration that omits a capability the words
+  use is an error. A device must report every required feature and, when any
+  is required, the line unit on the image's engine (bits 19..16).
 
 MicroPython compatible (json, hashlib.sha256, binascii, struct; no os.path).
 """
@@ -22,8 +30,11 @@ import binascii
 import json
 import struct
 
-from .errors import ImageError
-from .protocol import ARCHITECTURE_KEYS, DESIGN_ARCHITECTURE
+from .errors import CapabilityMismatch, ImageError
+from .protocol import (ARCHITECTURE_KEYS, CAP_ARBITRATION, CAP_CRC16, CAP_CRC_PRESETS,
+                       CAP_FRACTION, CAP_LINE_UNIT, CAP_STUFFING, Capabilities,
+                       capability_mask, capability_names)
+from .protocol import DESIGN_ARCHITECTURE
 
 try:
     from hashlib import sha256 as _native_sha256
@@ -124,6 +135,39 @@ def check_architecture(architecture):
             raise ImageError("architecture " + key + " must be a positive integer")
 
 
+# Opcodes of the line-unit extension (docs/isa.md, "Line-unit extension").
+OP_XFER, OP_LTIM, OP_LCFG, OP_CRC, OP_LSTAT = 17, 30, 31, 32, 33
+
+
+def word_capabilities(word):
+    """Capability feature bits that one instruction word needs (0 for an
+    instruction of the base ISA)."""
+    op = word >> 24
+    c = word & 0xFF
+    if op == OP_XFER:
+        need = CAP_LINE_UNIT if c & 0x20 else 0            # c bit 5: line XFER
+        if c & 0x40:                                       # c bit 6: feed the CRC
+            need |= CAP_LINE_UNIT | CAP_CRC16
+        return need
+    if op == OP_LTIM:
+        return CAP_LINE_UNIT | (CAP_FRACTION if (word >> 8) & 0xFF else 0)
+    if op == OP_LCFG:
+        return (CAP_LINE_UNIT | (CAP_STUFFING if word & 0x4 else 0)
+                | (CAP_ARBITRATION if word & 0x100 else 0))
+    if op == OP_CRC:
+        return CAP_LINE_UNIT | CAP_CRC16 | (CAP_CRC_PRESETS if c == 3 else 0)
+    if op == OP_LSTAT:
+        return CAP_LINE_UNIT
+    return 0
+
+
+def words_capabilities(words):
+    need = 0
+    for word in words:
+        need |= word_capabilities(word)
+    return need
+
+
 def architecture_differences(image_arch, device_arch, ignore=()):
     """Keys whose values differ, as 'key: image!=device' strings."""
     out = []
@@ -161,6 +205,9 @@ class FirmwareImage:
         self.words = data["words"]
         self.labels = data.get("labels", {})
         self.notes = data.get("notes", [])
+        self.requires = data.get("requires")
+        self.used_capabilities = 0
+        self.required_capabilities = 0
         self.source_verified = False
         self._verify(source_bytes)
         if architecture is not None:
@@ -209,6 +256,20 @@ class FirmwareImage:
         for word in words:
             if not _is_int(word) or not 0 <= word <= 0xFFFFFFFF:
                 raise ImageError("image word outside 32 bits")
+        self.used_capabilities = words_capabilities(words)
+        declared = 0
+        if self.requires is not None:
+            if not isinstance(self.requires, list):
+                raise ImageError("requires must be a list of capability names")
+            try:
+                declared = capability_mask(self.requires)
+            except ValueError as exc:
+                raise ImageError("%s: requires: %s" % (self.name, exc))
+            undeclared = self.used_capabilities & ~declared
+            if undeclared:
+                raise ImageError("%s: its words use %s, which requires does not list"
+                                 % (self.name, ", ".join(capability_names(undeclared))))
+        self.required_capabilities = self.used_capabilities | declared
         digest = bytecode_sha256(words)
         if digest != self.bytecode_sha256:
             raise ImageError("%s: bytecode SHA-256 mismatch (%s != %s)"
@@ -229,16 +290,31 @@ class FirmwareImage:
                              % (self.name, "; ".join(diffs)))
 
     def check_isa(self, device_version):
+        """device_version: READ_SELECT 7 bits 7..0 (ProtocolEmulator.isa_version())."""
         if device_version < self.isa_version:
             raise ImageError("%s needs ISA %d, the device reports %d"
                              % (self.name, self.isa_version, device_version))
+
+    def check_capabilities(self, capabilities, engine=None):
+        """Raise CapabilityMismatch unless a device with these capability bits
+        (READ_SELECT 7 bits 23..8, an int or protocol.Capabilities) can run the
+        image on ``engine`` (default: the image's engine)."""
+        if not isinstance(capabilities, Capabilities):
+            capabilities = Capabilities(capabilities)
+        target = self.engine if engine is None else engine
+        missing = capabilities.missing(self.required_capabilities, target)
+        if missing:
+            raise CapabilityMismatch("%s needs %s; the device reports %r"
+                                     % (self.name, " and ".join(missing), capabilities))
 
     def __len__(self):
         return len(self.words)
 
     def __repr__(self):
-        return "<FirmwareImage %s engine %d, %d words, pins 0x%02x od 0x%02x%s>" % (
+        return "<FirmwareImage %s engine %d, %d words, pins 0x%02x od 0x%02x%s%s>" % (
             self.name, self.engine, len(self.words), self.owned_pins, self.open_drain,
+            ", needs " + "+".join(capability_names(self.required_capabilities))
+            if self.required_capabilities else "",
             ", source verified" if self.source_verified else "")
 
 

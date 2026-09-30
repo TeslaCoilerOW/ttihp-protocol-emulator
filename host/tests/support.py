@@ -9,6 +9,7 @@ PE_HOST_FIRMWARE_DIR  firmware images (default <test dir>/../firmware)
 
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -38,3 +39,19 @@ def micropython_binary():
 
 def image_names():
     return sorted(p.name[:-len(".image.json")] for p in FIRMWARE.glob("*.image.json"))
+
+
+def ext_image_names():
+    """Images of firmware/ext/ (the line-unit extension, docs/extension.md)."""
+    return sorted(p.name[:-len(".image.json")] for p in (FIRMWARE / "ext").glob("*.image.json"))
+
+
+def selected_device(repo=REPO):
+    """The design selection of a checkout (scripts/design_selection.sh variant):
+    the device whose core its src/ carries. A checkout without the script
+    predates the selection and carries the base design."""
+    script = Path(repo) / "scripts" / "design_selection.sh"
+    if not script.exists():
+        return "base"
+    return subprocess.run(["bash", str(script), "variant"], check=True, capture_output=True,
+                          text=True).stdout.strip()

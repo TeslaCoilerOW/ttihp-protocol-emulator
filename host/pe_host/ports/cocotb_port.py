@@ -19,7 +19,9 @@ the host sees) and let the rising edge happen.
 
 lockstep=True also advances the reference model (test/model) with the same
 inputs and compares uo_out/uio_out/uio_oe before and after every edge (the
-read nibble only while read-valid is high), raising LockstepMismatch.
+read nibble only while read-valid is high), raising LockstepMismatch. The
+model is the design of record's unless ``device`` names a variant device of
+pe_host.protocol.DEVICES (ports/model.py variant_reference) or ``model`` is given.
 """
 
 from ..protocol import DESIGN_ARCHITECTURE, UO_RVALID
@@ -56,7 +58,7 @@ class CocotbPort(Port):
     simulated = True
 
     def __init__(self, dut, env=None, pins=None, pullups=0xFF, lockstep=True,
-                 architecture=None, model=None, record=False):
+                 architecture=None, model=None, record=False, device=None):
         Port.__init__(self, env)
         from cocotb.triggers import FallingEdge, ReadOnly, RisingEdge
         _, resume = bridge_api()
@@ -72,6 +74,9 @@ class CocotbPort(Port):
         self.mismatches = 0
         self.trace = [] if record else None
         if lockstep:
+            if model is None and device not in (None, "base"):
+                from .model import variant_reference
+                model = variant_reference(device)
             if model is None:
                 from .model import config_from_architecture, import_model
                 _, Reference, _ = import_model()
