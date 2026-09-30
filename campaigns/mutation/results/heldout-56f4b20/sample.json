@@ -1,0 +1,217 @@
+{
+ "src_design": "the campaign design directory (campaign.env: $CAMP/design)",
+ "base_il_sha256": "cb91afa088ca7246b2a21e23cca62c8c61b4cd0285ea9bd2cf0bd6c9408c4b5d",
+ "core_orig_sha256": "26a873db82935fe6bc79214ca1e084294d270fd5adc3cc2aab28c1adfe0d7697",
+ "seed": 20260930,
+ "quotas": "engine_ctrl=440,host=320,mover=200,events=240,pins=200,engine_xfer=160,imem=48,shared=72,fifo=104,engine_data=144,timestamp=8",
+ "exclude_files": {
+  "campaign mutations.tsv (2,420 mutants of this page)": "0f0a26c3a68483c57e28fdacd4586c9f1eb58eb592cc944aa123f37ce1e126ee",
+  "exclude_section8.tsv (D331 D333 D1438 D1442 P331 P333 P1438 P1442)": "b301391fda18d9bfed771204b31671fd81b030e0ac4368929e5f4299fd085023"
+ },
+ "excluded_mutants": 2428,
+ "excluded_keys_mode_cell_port": 2401,
+ "python": "3.12.12",
+ "yosys": "Yosys 0.67+111 (git sha1 4821ed17b-dirty, Release, Clang /usr/bin/clang++ 21.1.8)",
+ "regions": {
+  "engine_ctrl": {
+   "k": 1,
+   "mutate_seed": 20260931,
+   "sample_seed": 20260931,
+   "database": 247319,
+   "excluded_mode_cell_port": 13218,
+   "same_mode_cell_port_bit_ctrl": 349,
+   "population": 234101,
+   "drawn": 440,
+   "drawn_by_mode": {
+    "cnot0": 75,
+    "cnot1": 78,
+    "const0": 90,
+    "const1": 88,
+    "inv": 109
+   },
+   "database_gz_sha256": "f7f1db3ed08ae81b5ad8d0424266364f88728fd8b839496f569de2969109ed6b"
+  },
+  "host": {
+   "k": 2,
+   "mutate_seed": 20260932,
+   "sample_seed": 20260932,
+   "database": 20238,
+   "excluded_mode_cell_port": 3251,
+   "same_mode_cell_port_bit_ctrl": 347,
+   "population": 16987,
+   "drawn": 320,
+   "drawn_by_mode": {
+    "cnot0": 65,
+    "cnot1": 55,
+    "const0": 65,
+    "const1": 77,
+    "inv": 58
+   },
+   "database_gz_sha256": "9691e3073beb5fda579cd280e90ae800ad4be22c9b89eed8e9c505fe8e6eb990"
+  },
+  "mover": {
+   "k": 3,
+   "mutate_seed": 20260933,
+   "sample_seed": 20260933,
+   "database": 7034,
+   "excluded_mode_cell_port": 1003,
+   "same_mode_cell_port_bit_ctrl": 226,
+   "population": 6031,
+   "drawn": 200,
+   "drawn_by_mode": {
+    "cnot0": 27,
+    "cnot1": 23,
+    "const0": 48,
+    "const1": 49,
+    "inv": 53
+   },
+   "database_gz_sha256": "3603d195e7f1de8657dc9061925a86f2d4f536fdbee1d0f22973652aed5d0273"
+  },
+  "events": {
+   "k": 4,
+   "mutate_seed": 20260934,
+   "sample_seed": 20260934,
+   "database": 20777,
+   "excluded_mode_cell_port": 1518,
+   "same_mode_cell_port_bit_ctrl": 250,
+   "population": 19259,
+   "drawn": 240,
+   "drawn_by_mode": {
+    "cnot0": 30,
+    "cnot1": 28,
+    "const0": 60,
+    "const1": 58,
+    "inv": 64
+   },
+   "database_gz_sha256": "8fb5a37e3440e962f79c1d33b67a90b9215ff707010efd65e86f76a8aba8fde5"
+  },
+  "pins": {
+   "k": 5,
+   "mutate_seed": 20260935,
+   "sample_seed": 20260935,
+   "database": 31762,
+   "excluded_mode_cell_port": 1954,
+   "same_mode_cell_port_bit_ctrl": 169,
+   "population": 29808,
+   "drawn": 200,
+   "drawn_by_mode": {
+    "cnot0": 29,
+    "cnot1": 31,
+    "const0": 42,
+    "const1": 51,
+    "inv": 47
+   },
+   "database_gz_sha256": "c07651725eb4d409fd8f24cfddbfffeebdb300b0e9e29f5e2c14f27568222c97"
+  },
+  "engine_xfer": {
+   "k": 6,
+   "mutate_seed": 20260936,
+   "sample_seed": 20260936,
+   "database": 23167,
+   "excluded_mode_cell_port": 1423,
+   "same_mode_cell_port_bit_ctrl": 146,
+   "population": 21744,
+   "drawn": 160,
+   "drawn_by_mode": {
+    "cnot0": 34,
+    "cnot1": 32,
+    "const0": 40,
+    "const1": 21,
+    "inv": 33
+   },
+   "database_gz_sha256": "1ce2005b5dbd8c17d89f396571a90be1bb9285777252e081dc45e9692acf4534"
+  },
+  "imem": {
+   "k": 7,
+   "mutate_seed": 20260937,
+   "sample_seed": 20260937,
+   "database": 4334,
+   "excluded_mode_cell_port": 695,
+   "same_mode_cell_port_bit_ctrl": 47,
+   "population": 3639,
+   "drawn": 48,
+   "drawn_by_mode": {
+    "cnot0": 10,
+    "cnot1": 8,
+    "const0": 12,
+    "const1": 7,
+    "inv": 11
+   },
+   "database_gz_sha256": "5a7403398ebe70a2f4635f615171276cecd78abe5682d85bb281615f61478371"
+  },
+  "shared": {
+   "k": 8,
+   "mutate_seed": 20260938,
+   "sample_seed": 20260938,
+   "database": 2431,
+   "excluded_mode_cell_port": 339,
+   "same_mode_cell_port_bit_ctrl": 82,
+   "population": 2092,
+   "drawn": 72,
+   "drawn_by_mode": {
+    "cnot0": 5,
+    "cnot1": 17,
+    "const0": 15,
+    "const1": 18,
+    "inv": 17
+   },
+   "database_gz_sha256": "48e6a3b5ee5309abb21ac2a9f069a2dcd2f97e9335115a64391696652e551f10"
+  },
+  "fifo": {
+   "k": 9,
+   "mutate_seed": 20260939,
+   "sample_seed": 20260939,
+   "database": 16172,
+   "excluded_mode_cell_port": 1173,
+   "same_mode_cell_port_bit_ctrl": 103,
+   "population": 14999,
+   "drawn": 104,
+   "drawn_by_mode": {
+    "cnot0": 13,
+    "cnot1": 12,
+    "const0": 35,
+    "const1": 24,
+    "inv": 20
+   },
+   "database_gz_sha256": "295aa0f8370b25455ded242d1e2ffbaba149d35306f68f9796ccce2c7e046f5c"
+  },
+  "engine_data": {
+   "k": 10,
+   "mutate_seed": 20260940,
+   "sample_seed": 20260940,
+   "database": 278388,
+   "excluded_mode_cell_port": 5437,
+   "same_mode_cell_port_bit_ctrl": 112,
+   "population": 272951,
+   "drawn": 144,
+   "drawn_by_mode": {
+    "cnot0": 30,
+    "cnot1": 21,
+    "const0": 31,
+    "const1": 32,
+    "inv": 30
+   },
+   "database_gz_sha256": "e4d0c1709abda4e042be74bdbb6afca7a1680ff9848a02e23b08c37c9ac803d8"
+  },
+  "timestamp": {
+   "k": 11,
+   "mutate_seed": 20260941,
+   "sample_seed": 20260941,
+   "database": 1056,
+   "excluded_mode_cell_port": 287,
+   "same_mode_cell_port_bit_ctrl": 8,
+   "population": 769,
+   "drawn": 8,
+   "drawn_by_mode": {
+    "cnot0": 3,
+    "const0": 1,
+    "inv": 4
+   },
+   "database_gz_sha256": "fc2e9991fb3ef1b21efb28781e3c2af88f9d73b35d348ea1fc1dcf2ee172a309"
+  }
+ },
+ "mutants": 1936,
+ "database_total": 652678,
+ "population_total": 622380,
+ "mutations_tsv_sha256": "80f8300173438c6265435c18edf4e1dc430bfe2d261904baf83e337183c237f1"
+}

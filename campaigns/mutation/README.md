@@ -15,6 +15,8 @@ per-mutant files stay in the campaign directory `$CAMP`.
 | `campaign-diet4.env` | The same for the design-variant `diet4` campaign at c118027 (see "Design variants") |
 | `campaign-push.env` | Parameters of the mutation score push of [docs/mutation-push.md](../../docs/mutation-push.md) (see "Mutation score push") |
 | `campaign-diet4-102.env` | Parameters of the `diet4` re-run under the 102-test suite (see "Variant diet4 under the 102-test suite") |
+| `campaign-heldout.env` | Parameters of the held-out sample of [docs/mutation-push.md](../../docs/mutation-push.md) section 9 (seed, quotas, exclusions) |
+| `heldout_sample.py` | Draw the held-out sample: the raw `mutate -list` database per region, minus every (mode, cell, port) of the push's mutants, sampled uniformly per region with a recorded seed |
 | `gen_mutants.sh` | `prep` the core, map regions, run one seeded `mutate -list` per region, write `mutations.tsv` |
 | `region_map.py` | Assign each statement/cell of the flat Hardcaml netlist to a functional region (nearest named state in its forward cone) |
 | `run_mutant.py` | Array-task body: build one mutant, run a stage, write `results/<stage>/<id>.json` (idempotent; requeue-safe) |

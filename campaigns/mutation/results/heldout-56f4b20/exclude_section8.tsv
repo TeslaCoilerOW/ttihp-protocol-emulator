@@ -1,0 +1,8 @@
+D331	mutate -mode cnot1 -module protocol_emulator_core -cell $ternary$core_orig.v:8783$1163 -port B -portbit 10 -ctrlbit 13
+D333	mutate -mode cnot1 -module protocol_emulator_core -cell $ternary$core_orig.v:8783$1163 -port Y -portbit 11 -ctrlbit 14
+D1438	mutate -mode cnot1 -module protocol_emulator_core -cell $ternary$core_orig.v:11539$2365 -port B -portbit 16 -ctrlbit 18
+D1442	mutate -mode cnot1 -module protocol_emulator_core -cell $ternary$core_orig.v:11539$2365 -port Y -portbit 7 -ctrlbit 21
+P331	mutate -mode cnot1 -module protocol_emulator_core -cell $ternary$core_orig.v:8787$1167 -port B -portbit 10 -ctrlbit 13
+P333	mutate -mode cnot1 -module protocol_emulator_core -cell $ternary$core_orig.v:8787$1167 -port Y -portbit 11 -ctrlbit 14
+P1438	mutate -mode cnot1 -module protocol_emulator_core -cell $ternary$core_orig.v:11543$2369 -port B -portbit 16 -ctrlbit 18
+P1442	mutate -mode cnot1 -module protocol_emulator_core -cell $ternary$core_orig.v:11543$2369 -port Y -portbit 7 -ctrlbit 21
