@@ -115,7 +115,7 @@ make check-generated     # regenerate and fail if the committed core differs (th
 make lint                # iverilog, yosys hierarchy and verilator -Wall
 (cd test && pip install -r requirements.txt && make clean && make)   # cocotb suite on the RTL
 (cd test && make COCOTB_TEST_MODULES=test_protocols_ext)             # SWD, WS2812B, PS/2 and 1-Wire images (RTL)
-formal/run.sh --list     # SymbiYosys job names; formal/run.sh runs them all (the formal action)
+formal/run.sh --list     # SymbiYosys job names and isa_ci_* groups; formal/run.sh runs the core jobs (the formal action also runs the groups)
 make reproduce           # the local checks behind docs/results.md; reproduce-full adds the longer ones
 ```
 

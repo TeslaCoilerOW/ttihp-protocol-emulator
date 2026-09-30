@@ -34,7 +34,7 @@ NOT logical output value. SET high therefore releases an enabled open-drain pin.
 | op | mnemonic | operands / operation |
 |---:|---|---|
 |0|NOP|none|
-|1|HALT|stop and release output enables; preserve queues and diagnostic registers|
+|1|HALT|stop and release output enables; preserve queues and diagnostic registers. HALT completes like other instructions: the PC advances and the completed-instruction count increments|
 |2|SET|imm24 low8 sets logical pin values; high16 zero|
 |3|DIR|imm24 low8 sets logical output enables; high16 zero|
 |4|WAIT|imm24 additional cycles|
@@ -148,7 +148,8 @@ space, and an empty FIFO does not allow a pop on the same edge as its first push
 
 Invalid host commands reject atomically and set sticky host fault, cleared by
 reset or CLEAR with payload bit23 set. START resets PC, registers, local timers,
-repeat state and local logical outputs; queues remain available for prefill.
+repeat state and local logical outputs; it also clears the completed-instruction
+count and PINS and restores LIMIT to 65535. Queues remain available for prefill.
 START does not change ownership, open-drain configuration or image validity.
 DMA decrements descriptor count only after an accepted RX-to-TX word transfer.
 Self-route is legal. A destination may have multiple sources; no transfer is

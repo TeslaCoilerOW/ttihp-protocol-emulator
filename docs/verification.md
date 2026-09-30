@@ -152,10 +152,14 @@ verification infrastructure itself ([bug-ledger.md](bug-ledger.md)):
 
   Cycle-exact timing as a design goal has precedents in PRET machines
   (Edwards and Lee, 2007).
-- **What is absent:** an instruction-level formal specification in the style
-  of riscv-formal. The ISA is checked through the reference model, the
-  properties and the peers, not against a formal ISA specification (section
-  5).
+- **Instruction-level formal specification** (since round 6): one property
+  module per opcode and per state-changing host command, in the style of
+  riscv-formal's per-instruction checks, written from isa.md without the
+  Hardcaml source, the generated RTL's logic or the model; 48 one-step checks
+  proved by k-induction from an invariant that reset establishes, 5 bounded
+  checks, 49 negative controls ([isa-spec.md](isa-spec.md)). Until then the
+  ISA was checked only through the reference model, the properties and the
+  peers.
 
 ## 5. What is not established
 
@@ -173,10 +177,17 @@ most likely to raise are these.
   correctness. The checks that do not use the model as the reference are:
   - the third-party peers;
   - `pe_timing`'s protocol checks against the published specifications;
-  - the formal properties.
+  - the formal properties;
+  - the instruction-level specification ([isa-spec.md](isa-spec.md)), a third
+    reading of isa.md checked by proof. It found no RTL bug; it found three
+    points isa.md did not decide (HALT advances the PC and the completed
+    count; START clears the completed count and PINS and restores LIMIT),
+    where the RTL and the model had made the same choice. isa.md now states
+    them.
 
-  These cover pin-level protocol behaviour and selected properties, not the
-  whole ISA.
+  The specification's queue-data and whole-XFER checks are bounded, and host
+  nibble transport and command rejection are covered elsewhere
+  (isa-spec.md section 8).
 - **The end-to-end timing claim is composed by hand.** The certificate
   chain, the premise that a host load produces the image, and the use of the
   isolation theorem are argued over separate proofs

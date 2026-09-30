@@ -79,6 +79,13 @@ jobs:
           - timing_isolation_cover
           - timing_isolation_neg_pull
           - timing_isolation_neg_mutant
+          # instruction-level specification (formal/isa, docs/isa-spec.md):
+          # each group runs its jobs in turn (213-642 s on 4 CPUs)
+          - isa_ci_insn_a
+          - isa_ci_insn_b
+          - isa_ci_other
+          - isa_ci_cover
+          - isa_ci_neg
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
