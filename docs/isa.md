@@ -206,8 +206,11 @@ way).
 **ISA version.** READ_SELECT 7 reads 3 when `debug_counters` is `false`,
 `pc_bits` is `saturating_7` or `shift` is `byte_lane`, and 2 otherwise. An ISA-2
 image runs unchanged on a version-3 device when all its shift counts are byte
-lanes and all its targets are below 128; every image in `firmware/` qualifies
-(all shifting images use c = 24; the largest target is 54).
+lanes and all its targets are below 128. The 19 images of `c118027` qualify
+(all shifting images use c = 24; the largest target was 54). Of the 26 images
+in `firmware/` since `e64cd6b`, all but `ps2-host` qualify (shift counts 8,
+16 and 24; the largest target is 59, in `swd-read`); `ps2-host` shifts by 21
+and faults with code 1 on a device with byte-lane shifts.
 
 **Reset styles.** Let *raw* mean that `rst_n` is low or `ena` is low. Like any
 input it is sampled before a rising edge. *Reset* means the reset of the Machine

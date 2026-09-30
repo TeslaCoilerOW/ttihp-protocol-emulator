@@ -205,13 +205,46 @@ class DeviceTest(unittest.TestCase):
                 self.assertEqual(pe.port.model.engines[image.engine].program, image.words)
 
     def test_design_of_record_images_load_on_both_devices(self):
+        """Every image loads on base; on diet8_rec16 (ISA 3, byte-lane shifts) every
+        image loads except those whose source shifts by a count that is not a byte
+        lane (docs/isa.md, "ISA version"), which the loader refuses. Label targets
+        are below 128 in every image (at most 64 words)."""
+        def non_lane_shifts(name):
+            with open(str(support.FIRMWARE / (name + ".source.json"))) as handle:
+                source = json.load(handle)
+            return [ins["c"] for ins in source["instructions"]
+                    if ins["mnemonic"] in ("SHL", "SHR") and ins.get("c", 0) % 8]
+        restricted = [name for name in support.image_names() if non_lane_shifts(name)]
+        self.assertEqual(restricted, ["ps2-host"])
         for dev in DEVICES:
             pe = device(dev)
             for name in support.image_names():
                 image = FirmwareImage.load(str(support.FIRMWARE / (name + ".image.json")))
+                self.assertLessEqual(len(image.words), 64)
                 pe.reset()
                 with self.subTest(device=dev, image=name):
-                    pe.load_image(image, verify=True)
+                    if dev == "diet8_rec16" and name in restricted:
+                        with self.assertRaises(ImageError) as cm:
+                            pe.load_image(image, verify=True)
+                        self.assertIn("SHR by 21 is not a byte lane", str(cm.exception))
+                        self.assertFalse(pe.port.model.engines[image.engine].committed,
+                                         "nothing is loaded after the refusal")
+                    else:
+                        pe.load_image(image, verify=True)
+
+    def test_isa3_rule_of_docs_isa(self):
+        """isa3_differences flags exactly the words docs/isa.md names: non-lane
+        SHL/SHR counts and JMP/LOOP/JZ targets of 128 or more; check_isa applies
+        it on version-3 devices only."""
+        from pe_host.image import isa3_differences
+        words = [24 << 24 | 1 << 16 | 8, 25 << 24 | 1 << 16 | 12, 5 << 24 | 127, 5 << 24 | 128,
+                 11 << 24 | 200, 26 << 24 | 2 << 16 | 0x80, 26 << 24 | 2 << 16 | 0x7F, 19 << 24 | 0x80]
+        self.assertEqual([pc for pc, _ in isa3_differences(words)], [1, 3, 4, 5])
+        image = FirmwareImage.load(str(support.FIRMWARE / "ps2-host.image.json"))
+        image.check_isa(2)
+        with self.assertRaises(ImageError):
+            image.check_isa(3)
+        FirmwareImage.load(str(support.FIRMWARE / "uart-rx-idle.image.json")).check_isa(3)
 
     def test_crc16_stream_image_computes_ccitt_crcs_on_the_diet8_rec16_device(self):
         """Loaded through the capability check, the image's pushed CRCs equal
