@@ -92,6 +92,9 @@
   },
   "status_runs": {
     "current_marker": "(?i)\\(current\\)",
+    "ref_markers": {
+      "(?i)\\(current on `?main\\b": ["origin/main", "main"]
+    },
     "design_paths": ["src", "info.yaml"],
     "variant_design_paths": {
       "(?i)6x4|6×4|gds_6x4|diet4": ["variants6x4", "src/project.v", "src/sram_pdn_cfg.tcl"]

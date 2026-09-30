@@ -154,8 +154,9 @@ class Repo:
         except RuntimeError:
             return None
 
-    def changed_since(self, rev: str, paths: list[str]) -> list[str]:
-        out = self._git("diff", "--name-only", rev, "--", *paths)
+    def changed_since(self, rev: str, paths: list[str], against: str | None = None) -> list[str]:
+        """Paths that differ between rev and the working tree (or the commit `against`)."""
+        out = self._git("diff", "--name-only", rev, *([against] if against else []), "--", *paths)
         return [p for p in out.splitlines() if p]
 
     def _index(self) -> None:
@@ -896,13 +897,21 @@ class Checker:
                 return list(paths)
         return list(sr.get("design_paths", ["src", "info.yaml"]))
 
-    def design_changed(self, rev: str, paths: list[str] | None = None) -> list[str]:
+    def design_changed(self, rev: str, paths: list[str] | None = None,
+                       against: str | None = None) -> list[str]:
+        """Design paths that differ between rev and the checkout (or the commit
+        `against`), ignoring changes to `//` comment keys of JSON files."""
         if paths is None:
             paths = (self.cfg.get("status_runs") or {}).get("design_paths", ["src", "info.yaml"])
         changed = []
-        for p in self.repo.changed_since(rev, paths):
+        for p in self.repo.changed_since(rev, paths, against):
             if p.endswith(".json"):
-                old, new = self.repo.show(rev, p), self.repo.read_text(p)
+                old = self.repo.show(rev, p)
+                if against:
+                    raw = self.repo.show(against, p)
+                    new = raw.decode("utf-8", "replace") if raw is not None else None
+                else:
+                    new = self.repo.read_text(p)
                 if old is not None and new is not None:
                     try:
                         hook = lambda pairs: {k: v for k, v in pairs if not str(k).startswith("//")}
@@ -936,6 +945,11 @@ class Checker:
         sr = self.cfg.get("status_runs") or {}
         current_re = re.compile(sr.get("current_marker", r"(?i)\(current\)"))
         progress_re = re.compile(sr.get("progress_pattern", r"(?i)\b(?:in progress|still running)\b"))
+        # "(current on `main`)" and the like: the run is the current status of
+        # another branch's design (on a branch whose design selection names a
+        # variant, the design of record's runs), checked against that branch's
+        # commit instead of the checkout: the first ref of the list that resolves.
+        ref_markers = [(re.compile(pat), list(refs)) for pat, refs in (sr.get("ref_markers") or {}).items()]
         if not self.repo.is_git:
             return
         for rel in self.markdown_files():
@@ -951,8 +965,19 @@ class Checker:
                             self.progress_claim(rel, u, rid)
                     # Only a unit (a sentence or a table cell) that presents
                     # a run as the current status is checked for design drift.
-                    if not current_re.search(u.text) or self.is_history(u.text):
+                    if self.is_history(u.text):
                         continue
+                    against = None
+                    if not current_re.search(u.text):
+                        refs = next((r for pat, r in ref_markers if pat.search(u.text)), None)
+                        if refs is None:
+                            continue
+                        against = next((r for r in refs if self.repo.resolve_commit(r)), None)
+                        if against is None:
+                            self.add("status-runs", WARNING, rel, u.line,
+                                     f"presents a run as the current status of {refs[0]}, which does "
+                                     f"not resolve in this checkout ({', '.join(refs)}); not checked")
+                            continue
                     design_paths = self.variant_paths(u.text)
                     commits = [(m.start(), m.group(1)) for m in HEX_TOKEN.finditer(u.text)
                                if self.repo.resolve_commit(m.group(1))]
@@ -970,11 +995,12 @@ class Checker:
                             commit = api["head_sha"][:7]
                         if commit is None:
                             continue
-                        changed = self.design_changed(commit, design_paths)
+                        changed = self.design_changed(commit, design_paths, against)
                         if changed:
+                            where = f" on {against}" if against else ""
                             self.add("status-runs", ERROR, rel, u.line,
-                                     f"cites run {rid} (`{commit}`) as the current status, but "
-                                     f"{', '.join(changed)} changed since `{commit}`")
+                                     f"cites run {rid} (`{commit}`) as the current status{where}, but "
+                                     f"{', '.join(changed)} changed since `{commit}`{where}")
 
     def progress_claim(self, rel: str, u: Unit, rid: str) -> None:
         if not self.online:

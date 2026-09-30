@@ -32,6 +32,8 @@ Commands:
       (files listed in FILE), as a JSON list. With --budget, an image whose
       proofs need more than N runs (gen_cert preflight) is left out of the
       list and named in the --report file instead (cluster campaign only).
+      With --rtl, exit 1 when cert_dut.vh does not fit DIR/processor_fv.v
+      (interface_problems: a design variant's formal RTL).
   fingerprint WORK
       Write WORK/fingerprint.json (campaign.sh prepare).
   record WORK [--id ID]
@@ -96,6 +98,64 @@ def gen_cert():
     sys.path.insert(0, str(HERE))
     import gen_cert as G  # noqa: PLC0415
     return G
+
+
+# ----------------------------------------------------------------------------
+# which design: the harness interface and the design selection
+# ----------------------------------------------------------------------------
+
+def _widths(decls: str, pattern: str) -> dict[str, int]:
+    """name -> width of the declarations matched by pattern (group 1: msb or
+    None, group 2: the comma-separated names)."""
+    out = {}
+    for m in re.finditer(pattern, decls, re.M):
+        width = int(m.group(1)) + 1 if m.group(1) is not None else 1
+        for name in m.group(2).split(","):
+            out[name.strip()] = width
+    return out
+
+
+def interface_problems(rtl: Path, include: Path | None = None) -> list[str]:
+    """Why cert_dut.vh cannot be bound to rtl/processor_fv.v: every port its
+    protocol_processor_fv instance connects must exist there with the width of
+    the wire it is connected to. cert_dut.vh (and cert_env.vh, the boundary
+    lemmas and gen_cert) are written for the design of record's
+    processor_fv.v; a design variant's (e.g. 7-bit PCs, a 7-bit transfer
+    mode with the line unit) differs, and Verilog would silently resize the
+    connection. Empty when every connection matches. It does not flag a port
+    of rtl that the harness leaves unconnected (a new input would then float),
+    and its unit test builds the design of record's ports from cert_dut.vh
+    itself; the check against the real processor_fv.v is the certs plan job."""
+    include = include or HERE / "cert_dut.vh"
+    fv = rtl / "processor_fv.v"
+    if not fv.is_file():
+        return [f"{fv} not found"]
+    text = include.read_text()
+    wires = _widths(text, r"\bwire\s*(?:\[(\d+):0\])?\s*([A-Za-z_][\w\s,]*?);")
+    inst = re.search(r"protocol_processor_fv\s+\w+\s*\((.*?)\);", text, re.S)
+    if not inst:
+        return [f"{include.name}: no protocol_processor_fv instance"]
+    ports = _widths(fv.read_text(), r"^\s*(?:input|output)\s+(?:wire\s+|reg\s+)?(?:\[(\d+):0\]\s*)?(\w+)\s*;")
+    problems = []
+    for port, wire in re.findall(r"\.(\w+)\s*\(\s*(\w+)\s*\)", inst.group(1)):
+        if port not in ports:
+            problems.append(f"port {port} missing")
+        elif wire in wires and wires[wire] != ports[port]:
+            problems.append(f"{port}: {ports[port]} bits, {include.name} connects {wire} of {wires[wire]}")
+    return problems
+
+
+def design_selection(repo: Path) -> str | None:
+    """The configuration configs/design-selection.txt names (read as data,
+    the rules of scripts/design_selection.sh), or None without the file."""
+    path = repo / "configs" / "design-selection.txt"
+    if not path.is_file():
+        return None
+    lines = [ln for ln in path.read_text().splitlines() if ln and not ln.startswith("#")]
+    return lines[0] if len(lines) == 1 else "(invalid selection file)"
+
+
+BASE_CONFIG = "configs/instruction-sram-32.json"
 
 
 # ----------------------------------------------------------------------------
@@ -387,6 +447,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     repo = Path(args.repo).resolve()
     rows, notes = check(repo, Path(args.rtl) if args.rtl else None, not args.no_obligations)
     stale = [r for r in rows if r["status"] != "certified"]
+    selection = design_selection(repo)
     lines = ["| image | sha256 | campaign | status |", "|---|---|---|---|"]
     for r in rows:
         status = r["status"] if not r["reasons"] else "STALE: " + "; ".join(r["reasons"])
@@ -394,7 +455,14 @@ def cmd_check(args: argparse.Namespace) -> int:
     head = (f"Timing certificates: {len(rows) - len(stale)}/{len(rows)} firmware images certified "
             f"for their current sha256 on the current RTL.")
     text = [head, ""] + lines + [""] + notes
-    if stale:
+    if stale and selection not in (None, BASE_CONFIG):
+        text += ["", f"The design selection (configs/design-selection.txt) names `{selection}`, not the "
+                 f"design of record (`{BASE_CONFIG}`): src/ holds that design's core, and every campaign "
+                 "in the ledger certified the design of record. The certificate harness "
+                 "(cert_dut.vh, cert_env.vh, boundary_lemmas.sv, gen_cert.py) is written for the design "
+                 "of record's processor_fv.v, so `campaign.sh certify` cannot certify this design as it "
+                 "is; see docs/extension.md, section 13."]
+    elif stale:
         text += ["", f"Certify the stale images on Slurm with `{CERTIFY}` (after committing them); "
                  "see docs/timing-certificates.md, section 8."]
     print("\n".join(text))
@@ -421,6 +489,16 @@ def cmd_plan(args: argparse.Namespace) -> int:
     change to the RTL inputs proves every image once the regenerated
     processor_fv.v (--rtl) differs from the ledger's."""
     repo = Path(args.repo).resolve()
+    if args.rtl:
+        # The proof jobs bind cert_dut.vh to this RTL: refuse one it does not
+        # fit (a design variant's), instead of proving another design or a
+        # silently resized connection.
+        problems = interface_problems(Path(args.rtl))
+        if problems:
+            print(f"ledger: cannot plan certificate proofs for {args.rtl}/processor_fv.v (design selection: "
+                  f"{design_selection(repo)}): the harness cert_dut.vh is written for the design of "
+                  f"record's processor_fv.v; " + "; ".join(problems), file=sys.stderr)
+            return 1
     changed = [line.strip() for line in Path(args.changed).read_text().splitlines() if line.strip()] \
         if args.changed else []
     all_images = [tag(p) for p in images_in(repo)]

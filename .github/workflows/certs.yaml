@@ -10,7 +10,11 @@ name: certs
 #
 # proofs (only when a push or pull request changes firmware/, hardcaml/,
 #   tools/timing/, formal/gen/, formal/run.sh, models/ or configs/): the formal
-#   RTL is regenerated, and ledger.py plan picks the images to prove: changed
+#   RTL of the design selection (configs/design-selection.txt, as formal.yaml:
+#   the base design's, or a variant's whose generated core must equal src/) is
+#   regenerated. ledger.py plan first refuses RTL that the certificate harness
+#   (cert_dut.vh, written for the design of record's processor_fv.v) does not
+#   fit, such as a design variant's, and then picks the images to prove: changed
 #   image files, and, when the RTL inputs or tools/timing/ changed, every image
 #   that ledger.py check --rtl flags (new image, changed obligations, or a
 #   different processor_fv.v, which flags all). Each is proved on its own
@@ -142,6 +146,16 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           { echo "Changed files considered (${base:-no base}):"; echo '```'; head -50 changed.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
+      # The design src/ carries (configs/design-selection.txt), as formal.yaml.
+      - name: Design selection
+        id: design
+        run: |
+          set -euo pipefail
+          variant=$(scripts/design_selection.sh variant)
+          scripts/design_selection.sh check
+          if [ "$variant" = base ]; then rtl=formal/build/rtl; else rtl=formal/build/variants/$variant/rtl; fi
+          { echo "variant=$variant"; echo "rtl=$rtl"; } >> "$GITHUB_OUTPUT"
+
       - name: Install system packages
         if: steps.diff.outputs.trigger == 'true'
         run: sudo apt-get update && sudo apt-get install -y libgmp-dev pkg-config
@@ -171,22 +185,36 @@ jobs:
 
       - name: Generate formal RTL
         if: steps.diff.outputs.trigger == 'true'
-        run: opam exec -- formal/run.sh --generate-only
+        env:
+          DESIGN_VARIANT: ${{ steps.design.outputs.variant }}
+        run: |
+          set -euo pipefail
+          if [ "$DESIGN_VARIANT" = base ]; then
+            opam exec -- formal/run.sh --generate-only
+          else
+            # run.sh compares the variant core it generates with this copy of
+            # src/ below the header line and fails if they differ.
+            mkdir -p "$RUNNER_TEMP/cores"
+            cp src/protocol_emulator_core.v "$RUNNER_TEMP/cores/$DESIGN_VARIANT.v"
+            VARIANT_CORES=$RUNNER_TEMP/cores opam exec -- \
+              formal/run.sh --variant "$DESIGN_VARIANT" --generate-only
+          fi
 
       - name: Images to prove
         id: plan
         env:
           TRIGGER: ${{ steps.diff.outputs.trigger }}
           ALL: ${{ steps.diff.outputs.all }}
+          FORMAL_RTL: ${{ steps.design.outputs.rtl }}
         run: |
           set -euo pipefail
           if [ "$TRIGGER" != true ]; then echo 'images=[]' >> "$GITHUB_OUTPUT"; exit 0; fi
           extra=()
           if [ "$ALL" = --all ]; then extra+=(--all); fi
-          images=$(python3 tools/timing/cert/ledger.py plan --changed changed.txt --rtl formal/build/rtl \
+          images=$(python3 tools/timing/cert/ledger.py plan --changed changed.txt --rtl "$FORMAL_RTL" \
             --budget "$CI_MAX_RUNS" --chunk "$CI_CHUNK" --report over-budget.txt "${extra[@]}")
           echo "images=$images" >> "$GITHUB_OUTPUT"
-          { echo "processor_fv.v sha256: $(sha256sum formal/build/rtl/processor_fv.v | cut -c1-12)";
+          { echo "processor_fv.v sha256: $(sha256sum "$FORMAL_RTL/processor_fv.v" | cut -c1-12)";
             echo "Images to prove: $images"; } >> "$GITHUB_STEP_SUMMARY"
           if [ -s over-budget.txt ]; then
             { echo; echo "Not proved in CI (over the budget of $CI_MAX_RUNS runs):"; echo;
@@ -201,7 +229,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: certs-formal-rtl
-          path: formal/build/rtl/
+          path: ${{ steps.design.outputs.rtl }}/
           if-no-files-found: error
 
   lemmas:

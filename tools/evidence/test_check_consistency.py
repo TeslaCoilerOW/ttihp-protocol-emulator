@@ -399,6 +399,32 @@ class StatusRunTests(RepoCase):
         self.assertEqual(len(errs), 1)
         self.assertIn("src/config.json", errs[0].message)
 
+    def test_current_on_main_is_checked_against_main(self) -> None:
+        # A branch whose src/ carries another design: "(current on `main`)"
+        # compares the cited commit with main's design, not with the checkout.
+        self.write("src/config.json", json.dumps({"CLOCK_PERIOD": 15}))
+        sha = self.commit("design of record")
+        self.git("checkout", "-q", "-b", "variant")
+        self.write("src/config.json", json.dumps({"CLOCK_PERIOD": 15, "ANTENNA": 1}))
+        self.commit("variant design")
+        self.write("README.md", f"| x | `{sha}`, run 36298635436 (current on `main`) |\n|---|---|\n")
+        self.assertEqual(self.errors(self.run_checks("status-runs")), [])
+        self.write("README.md", f"| x | `{sha}`, run 36298635436 (current) |\n|---|---|\n")
+        errs = self.errors(self.run_checks("status-runs"), "status-runs")
+        self.assertEqual(len(errs), 1, "the plain marker still compares with the checkout")
+        self.git("checkout", "-q", "main")
+        self.write("src/config.json", json.dumps({"CLOCK_PERIOD": 20}))
+        self.commit("main moves on")
+        self.git("checkout", "-q", "variant")
+        self.write("README.md", f"| x | `{sha}`, run 36298635436 (current on `main`) |\n|---|---|\n")
+        errs = self.errors(self.run_checks("status-runs"), "status-runs")
+        self.assertEqual(len(errs), 1)
+        self.assertIn("on main", errs[0].message)
+        self.git("branch", "-q", "-m", "main", "trunk")
+        f = self.run_checks("status-runs")
+        self.assertEqual(self.errors(f), [])
+        self.assertEqual(len(self.warnings(f, "status-runs")), 1, "no main ref: not checked, said so")
+
     def test_superseded_cell_is_exempt(self) -> None:
         self.write("src/config.json", "{}")
         sha = self.commit("design")

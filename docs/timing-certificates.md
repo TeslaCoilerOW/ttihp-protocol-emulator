@@ -891,7 +891,15 @@ campaign in `tools/timing/cert/results/`. After the record job,
 - `plan` and `proofs`, only when a push or pull request changes
   `firmware/`, `hardcaml/`, `tools/timing/`, `formal/gen/`, `formal/run.sh`,
   `models/` or `configs/`. `plan` regenerates `processor_fv.v` as the
-  `formal` workflow does, and `ledger.py plan` picks the images to prove: the
+  `formal` workflow does, for the design selection
+  (`configs/design-selection.txt`; [extension.md](extension.md) section
+  12.2). `ledger.py plan --rtl` first requires that the certificate harness
+  fits that `processor_fv.v`: every port `cert_dut.vh` connects must exist
+  with the width of its wire (`interface_problems`). The harness is written
+  for the design of record, so on a branch whose selection names a design
+  variant (7-bit PCs, a 7-bit transfer mode) `plan` fails there and no
+  proof job starts ([extension.md](extension.md) section 13). It then picks
+  the images to prove: the
   image files that changed and, when the RTL inputs or `tools/timing/`
   changed, every image that `ledger.py check --rtl` flags against the
   regenerated netlist (a new image, changed obligations, or a different

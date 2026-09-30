@@ -16,6 +16,15 @@ badges above" and "the Status section" refer to `README.md`, "Milestones" is
 the plan as it was listed there, and dates are as written on 2026-09-27.
 Every number has its evidence in [results.md](results.md).
 
+On the branch `eval/diet8-rec16`, whose `src/` carries the `diet8_rec16` core
+and the antenna setting of [extension.md](extension.md) section 7.2.1, the
+table's `d76f1cc` column is the current sign-off of the design of record on
+`main`, not of this branch's design; its marker therefore reads "(current on
+`main`)" here, and the evidence check compares it with `main`'s design
+(`tools/evidence/README.md`, `status-runs`). The branch design's official run
+is in [extension.md](extension.md) section 12.1; it predates the antenna
+setting, so no official run of the branch's current design exists yet.
+
 ## Status (moved from README.md, as of 2026-09-27)
 
 In short: the 8x4 build is constrained at 15 ns (66.7 MHz), and its
@@ -47,7 +56,7 @@ configurations, kept as history: `131e793` (20 ns, promotion p010, adopted
 in `25e331e`) and tag `v0.1-hardened`. All three are IHP SG13CMOS5L, 8x4
 tiles, LibreLane 3.1.0.dev3.
 
-| Check | `d76f1cc`, 15 ns, run [36298635436](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36298635436) (current) | `131e793`, 20 ns, run [36257636798](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36257636798) (superseded by `d76f1cc`) | `c118027`, tag `v0.1-hardened`, 20 ns, run [36144357821](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36144357821) (superseded) |
+| Check | `d76f1cc`, 15 ns, run [36298635436](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36298635436) (current on `main`) | `131e793`, 20 ns, run [36257636798](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36257636798) (superseded by `d76f1cc`) | `c118027`, tag `v0.1-hardened`, 20 ns, run [36144357821](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36144357821) (superseded) |
 |---|---|---|---|
 | gds | PASS: utilization 65.3% (standard cells 61.4%); route DRC 0; LVS 0; antenna 0 | PASS: utilization 61.9% (standard cells 57.6%); route DRC 0; LVS 0; antenna 0 | PASS: utilization 58.5% (standard cells 53.9%); route DRC 0; LVS 0; antenna 0 |
 | Setup at the flow's period | 15 ns: met at all three corners: typical +5.95 ns, fast +6.92 ns, slow +2.24 ns; 0 violating endpoints | 20 ns: met at all three corners: typical +7.88 ns, fast +9.31 ns, slow +2.95 ns; 0 violating endpoints | 20 ns: typical +0.89 ns, fast +6.15 ns; slow −8.52 ns with 2,482 violating endpoints, almost all starting at `rst_n` |
