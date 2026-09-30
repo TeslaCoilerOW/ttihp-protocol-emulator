@@ -1,8 +1,8 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
 # Slurm job body: the Tiny Tapeout precheck on one promoted configuration
-# (docs/optimization.md, "Promotion"). It is the local precheck reproduction of
-# docs/drc-triage.md (tt-support-tools d66cf179e precheck.py, unmodified, run as
+# (docs/notes/optimization.md, "Promotion"). It is the local precheck reproduction of
+# docs/notes/drc-triage.md (tt-support-tools d66cf179e precheck.py, unmodified, run as
 # the tt-gds-action precheck step runs it:
 #   python precheck.py --gds <sub>/<top>.gds --tech ihp-sg13cmos5l   (cwd tt/precheck)
 # with KLayout from the LibreLane 3.1.0.dev3 SIF), using the reproduction's

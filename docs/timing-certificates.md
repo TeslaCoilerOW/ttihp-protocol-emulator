@@ -379,7 +379,7 @@ engine and the synchronizer (the lemmas).
   metastability are outside the RTL model. Their handling is as described in
   `timing-analysis.md`.
 - **Physical delays.** Clock-to-pad, pad skew, board delays and gate-level
-  timing are not covered; see [`hardening.md`](hardening.md).
+  timing are not covered; see [`notes/hardening.md`](notes/hardening.md).
 - **The netlist.** The certificates and lemmas are proved on
   `protocol_processor_fv`. `equiv_src.py` proves it sequentially equivalent to
   the committed `src/project.v` + `src/protocol_emulator_core.v` on the chip

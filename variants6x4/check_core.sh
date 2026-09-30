@@ -43,7 +43,7 @@ fi
 if [ "$UPDATE" = 1 ]; then
   cp "$TMP/protocol_emulator_core.v" "$COMMITTED"
   chmod 644 "$COMMITTED"
-  echo "check_core.sh: updated variants6x4/protocol_emulator_core.v; update PROVENANCE.json and re-run the 6x4 signoff (docs/6x4.md)"
+  echo "check_core.sh: updated variants6x4/protocol_emulator_core.v; update PROVENANCE.json and re-run the 6x4 signoff (docs/notes/6x4.md)"
   exit 0
 fi
 diff -u "$COMMITTED" "$TMP/protocol_emulator_core.v" | head -n 40 || true

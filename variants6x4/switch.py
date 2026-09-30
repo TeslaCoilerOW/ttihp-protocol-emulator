@@ -19,7 +19,7 @@
                                    every other line is unchanged
 
 It is meant for a CI workspace (.github/workflows/gds_6x4.yaml) or for a
-deliberate switch of the submission (docs/6x4.md, "Switching the submission").
+deliberate switch of the submission (docs/notes/6x4.md, "Switching the submission").
 `check` fails when:
 
   * the committed core's sha256 differs from PROVENANCE.json, or its header does

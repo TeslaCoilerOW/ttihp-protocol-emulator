@@ -284,7 +284,7 @@ gate-level simulation answer different questions, and both are needed:
 - the gate-level suite shows that the netlist passes the simulation that
   Tiny Tapeout runs.
 
-[optimization.md](optimization.md) records how the optimizer handles this
+[notes/optimization.md](notes/optimization.md) records how the optimizer handles this
 case.
 
 ## 6. What is not covered

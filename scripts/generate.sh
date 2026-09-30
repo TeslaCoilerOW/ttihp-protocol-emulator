@@ -4,7 +4,7 @@
 # Usage: scripts/generate.sh [CONFIG_JSON | --variant NAME] [--output FILE]
 #   CONFIG_JSON     default configs/instruction-sram-32.json. A refinement config
 #                   (schema protocol-emulator.refinement.v1, optional "options"
-#                   object with the variant knobs of docs/variants.md) uses the
+#                   object with the variant knobs of docs/notes/variants.md) uses the
 #                   SRAM generator; an architecture config uses the
 #                   register-store one.
 #   --variant NAME  use configs/variants/NAME.json and write

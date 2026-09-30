@@ -37,7 +37,7 @@ evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
   Since `d76f1cc`, `src/config.json` sets `CLOCK_PERIOD` 15, so the flow
   repairs and signs off timing at 66.7 MHz; `info.yaml` `clock_hz` stays
   50000000, and the firmware, the host library, `pe_timing` and the
-  datasheet assume 50 MHz ([timing-closure.md](timing-closure.md)
+  datasheet assume 50 MHz ([notes/timing-closure.md](notes/timing-closure.md)
   section 10). What this does and does not establish:
   - **Official 15 ns result.** The `gds` run of `d76f1cc` (36298635436;
     results.md R85) passed gds, precheck and gl_test: setup WS typ/fast/slow
@@ -64,14 +64,14 @@ evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
     the real delays are larger.
   - **The 6x4 fallback is signed off at 20 ns only.** Its overlay pins
     `CLOCK_PERIOD` 20 and `clock_hz` 50000000, so the 15 ns change does not
-    reach it ([6x4.md](6x4.md); results.md section 2c).
+    reach it ([notes/6x4.md](notes/6x4.md); results.md section 2c).
   - **No 13.33 ns (75.0 MHz) configuration is signed off by the official
     flow on `main`.** The optimizer's first 13.33 ns promotion, p024, passed
     the full run (LVS 0; setup WS typ/fast/slow +4.96/+6.10/+0.76 ns at
     13.33 ns), the precheck (9/9), the gate-level tests (0 fail) and the
     equivalence check (leaderboard of 2026-09-27 13:37 UTC). Its official
     `gds` job is projected at 7.37 h, beyond GitHub's 6-hour job limit, so
-    it cannot be adopted ([optimization.md](optimization.md), "The 75 MHz
+    it cannot be adopted ([notes/optimization.md](notes/optimization.md), "The 75 MHz
     plan"). Any 13.33 ns result would be sign-off margin only: the
     operating clock stays 50 MHz.
 - **Resolved: the slow corner meets setup at 50 MHz.** The official build
@@ -81,7 +81,7 @@ evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
   corner. The RTL is byte-identical to `c118027`; only `src/config.json`
   changed (timing-driven placement, a 5.75 ns post-CTS setup-repair margin,
   repair and fan-out limits, clock-tree settings, `SYNTH_STRATEGY`
-  "DELAY 4", density and macro placement; [timing-closure.md](timing-closure.md)
+  "DELAY 4", density and macro placement; [notes/timing-closure.md](notes/timing-closure.md)
   section 9). The promoted full run of that configuration (job 24010051)
   had produced a byte-identical `metrics.csv`, and its fast-mode trial (job
   24009268) the same slack values (R19). This is the 20 ns build of
@@ -105,7 +105,7 @@ evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
   slow results above are the flow's STA reports; a later configuration that
   missed the slow corner would still pass the gds action. The optimizer
   ranks its trials by the minimum slack over all three corners
-  ([optimization.md](optimization.md), "Objective").
+  ([notes/optimization.md](notes/optimization.md), "Objective").
 - **Superseded by `d76f1cc` (first item of this section): "No clock above
   50 MHz is signed off by the official flow or committed."** A 15 ns
   configuration is now committed, and its official build passed (R85).
@@ -120,8 +120,8 @@ evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
   derived from the 20 ns slack, 1000 / (20 − WS) (typ 82.5 MHz, slow
   58.7 MHz for `131e793`), assume that every path gains the full period
   change, but the constrained input and output delays scale with the period
-  ([optimization.md](optimization.md), "Frequency tracks and the SDC";
-  [timing-closure.md](timing-closure.md) section 10).
+  ([notes/optimization.md](notes/optimization.md), "Frequency tracks and the SDC";
+  [notes/timing-closure.md](notes/timing-closure.md) section 10).
 - **Hold margin at the fast corner is small.** Hold is met at every corner.
   In p018's local sign-off (R84) the worst slack is +0.165 ns at the fast
   corner (typ +0.372 ns, slow +0.743 ns); the worst hold paths are
@@ -131,10 +131,10 @@ evidence it refers to. Open defects are in [bug-ledger.md](bug-ledger.md).
 - **The RTL variants did not close the slow corner.** In local runs at
   `73536f0`, `rstreg` gave −7.52 ns (register to register −0.96 ns) and
   `cn_s2` gave −4.99 ns, with its worst path register to register
-  ([sweep.md](sweep.md)). The slow corner failed in every 8x4 base run of
+  ([notes/sweep.md](notes/sweep.md)). The slow corner failed in every 8x4 base run of
   the sweep, at −5.09 to −10.88 ns. The behaviour-preserving timing options
   and the named variants `rstreg_timing` and `cn_s2_timing` did not close
-  it either ([timing-closure.md](timing-closure.md) section 7). These
+  it either ([notes/timing-closure.md](notes/timing-closure.md) section 7). These
   results stand; the closure of `131e793` comes from the flow settings.
 - **Design-rule counts are not zero.** p018's local full run (R84) reports
   max-slew / max-capacitance / max-fan-out violations of 1/0/1 at the
@@ -334,7 +334,7 @@ on them."
 - **Magic DRC is not run in the official flow.** `RUN_MAGIC_DRC` is false
   since `1e2cfb3`. The Tiny Tapeout precheck's KLayout SG13CMOS5L deck is
   the DRC gate, and it passed. The Magic markers of earlier local runs were
-  all inside the SRAM macros ([drc-triage.md](drc-triage.md)).
+  all inside the SRAM macros ([notes/drc-triage.md](notes/drc-triage.md)).
 - **The SRAM macros are the IHP open-source `RM_IHPSG13_1P_64x16_c2`
   views.** Their silicon behaviour and characterisation are taken as given.
   The Magic illegal overlaps, power stripes over the macros' Metal4
@@ -343,7 +343,7 @@ on them."
 - **Tile size.** The official build is 8x4 tiles; 8x4 confirmed by the
   organizers (2026-09-28). (Until 2026-09-28 this item read: "That the
   competition accepts 8x4 is not confirmed in this repository.") The 6x4
-  build is a fallback kept green in CI: `diet4` ([6x4.md](6x4.md)), built by
+  build is a fallback kept green in CI: `diet4` ([notes/6x4.md](notes/6x4.md)), built by
   the `gds_6x4` workflow at `CLOCK_PERIOD` 20, so it is signed off at
   50 MHz only, not at the 15 ns of the 8x4 build (section 2):
   - Its configuration before `25e331e` passed gds, precheck and gl_test in
@@ -366,7 +366,7 @@ on them."
 
   Earlier state, kept for reference: the first 6x4 candidate (`diet4` on
   `fp6_tworow`, results.md R52) had 14 precheck Pin-check errors from the
-  same short power straps as BL-6 ([drc-triage.md](drc-triage.md),
+  same short power straps as BL-6 ([notes/drc-triage.md](notes/drc-triage.md),
   section 6); the `edgeobs` floorplan of the current overlay removes them.
 - **One tool version.** The results are for one flow and PDK revision:
   LibreLane 3.1.0.dev3 and IHP-Open-PDK `2bbec755`.

@@ -735,7 +735,7 @@ final-tree controls (stage `suite`) 23819701, generator measurement 23806285.
 
 ## Variant diet4 (6x4) campaigns
 
-The 6x4 candidate is design variant `diet4` ([`variants.md`](variants.md);
+The 6x4 candidate is design variant `diet4` ([`notes/variants.md`](notes/variants.md);
 ISA version 3: 4-word queues built from registers, asynchronous reset with
 synchronized release, no debug counters, 7-bit saturating PC, byte-lane
 shifts). The campaigns above ran on the design of record (`base`) at
@@ -754,10 +754,10 @@ Job ids: `<work dir>/sixby4-verify/manifest.json`. All runs are from
 
 | item | value |
 |---|---|
-| design under test | frozen `git archive` of `c11802730ea10a9501ce16517ca6218fd8b7c43e`; `build/variants/diet4/protocol_emulator_core.v` generated in the snapshot by `scripts/gen_variants.sh diet4` (job 23974763; its checks regenerate `src/protocol_emulator_core.v` byte for byte), sha256 `cc27c465…`, the core of the diet4 runs in [`sweep.md`](sweep.md); `src/project.v` sha256 `2aacfd24…` |
+| design under test | frozen `git archive` of `c11802730ea10a9501ce16517ca6218fd8b7c43e`; `build/variants/diet4/protocol_emulator_core.v` generated in the snapshot by `scripts/gen_variants.sh diet4` (job 23974763; its checks regenerate `src/protocol_emulator_core.v` byte for byte), sha256 `cc27c465…`, the core of the diet4 runs in [`notes/sweep.md`](notes/sweep.md); `src/project.v` sha256 `2aacfd24…` |
 | reference model | the snapshot's `test/model/variant.py`, configured from `configs/variants/diet4.json` by `PE_VARIANT=diet4` (`test/variants.py` checks the file against its own table). Every result file records the variant, `fifo_words` 4 and the model options |
 | stimulus | `random_gen.make_case`, generation 2 (the snapshot default: mid-traffic deselect and rejected command sequences). On `diet4` the generator also draws byte-lane shift counts (15% deliberately off-lane, fault code 1) and jumps to targets of 128 or more (8%, saturated to PC 127) |
-| gate-level netlist | the routed netlist of sweep run `diet4-cc27c4-6x4-fp6_tworow-d65-p20-h0p1_0p05-full-t32` (job 23763343_0, full flow, LVS 0; [`sweep.md`](sweep.md)), `final/nl`, sha256 `98b31b96…` (gzip `c4a2ddfb…`). The eight SRAM macros are simulated with the behavioral models, the cells with the IHP `sg13cmos5l` Verilog models, zero delay. The 6x4 sign-off runs of [`6x4.md`](6x4.md) had no final netlist yet at 2026-09-26 01:00; the gate-level sample should be repeated on the netlist that is submitted. No such repeat is recorded in this repository at `24f31f0`; the submitted 6x4 netlist runs the cocotb suite in the official `gl_test` (46 pass, 56 skip, 0 fail; [`results.md`](results.md) R83, R89), not this random sample |
+| gate-level netlist | the routed netlist of sweep run `diet4-cc27c4-6x4-fp6_tworow-d65-p20-h0p1_0p05-full-t32` (job 23763343_0, full flow, LVS 0; [`notes/sweep.md`](notes/sweep.md)), `final/nl`, sha256 `98b31b96…` (gzip `c4a2ddfb…`). The eight SRAM macros are simulated with the behavioral models, the cells with the IHP `sg13cmos5l` Verilog models, zero delay. The 6x4 sign-off runs of [`notes/6x4.md`](notes/6x4.md) had no final netlist yet at 2026-09-26 01:00; the gate-level sample should be repeated on the netlist that is submitted. No such repeat is recorded in this repository at `24f31f0`; the submitted 6x4 netlist runs the cocotb suite in the official `gl_test` (46 pass, 56 skip, 0 fail; [`results.md`](results.md) R83, R89), not this random sample |
 | simulator | Icarus Verilog 14.0 (devel, OSS CAD Suite 2026-07-29), cocotb 2.0.1, Python 3.12 |
 | compute | Slurm `mit_normal`, `mit_quicktest` and `mit_preemptable` (with `--requeue`); `mit_preemptable` started few tasks during these runs |
 

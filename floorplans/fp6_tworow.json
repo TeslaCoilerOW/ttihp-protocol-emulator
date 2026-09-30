@@ -2,7 +2,7 @@
   "id": "fp6_tworow",
   "tiles": "6x4",
   "macro": "RM_IHPSG13_1P_64x16_c2",
-  "description": "The 6x4 insurance placement of docs/hardening.md section 4: bottom FS k 0/4/8/12 on row 0, top N k 3/7/11/15 (odd k, off the site grid).",
+  "description": "The 6x4 insurance placement of docs/notes/hardening.md section 4: bottom FS k 0/4/8/12 on row 0, top N k 3/7/11/15 (odd k, off the site grid).",
   "derivation": {
     "bottom_k": [
       0,

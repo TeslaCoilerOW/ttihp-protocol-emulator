@@ -1,6 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
-# Slurm job body for one pe-sweep run (docs/sweep.md). submit.py submits a copy
+# Slurm job body for one pe-sweep run (docs/notes/sweep.md). submit.py submits a copy
 # of this directory (frozen under <sweep>/harness/<sha>/) as a job array:
 #
 #   run_one.sh RUN_DIR          plain job

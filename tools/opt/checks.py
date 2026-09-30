@@ -8,12 +8,12 @@ at least 2.1 um wide, within 10 um of both the bottom and the top edge of the
 block, and inside it. pdngen adds short VPWR/VGND Metal4 straps when a
 standard-cell row segment is not crossed by a lattice stripe, and
 Magic.WriteLEF exports every Metal4 stripe as a port, so a short strap fails the
-precheck (docs/drc-triage.md section 6). Two checks catch this without running
+precheck (docs/notes/drc-triage.md section 6). Two checks catch this without running
 the precheck:
 
   def  the rule applied to the Metal4 VPWR/VGND special-net stripes and DEF pins
        of a DEF, normally the OpenROAD.GeneratePDN step's DEF (same logic as the
-       short-stripe check of docs/drc-triage.md);
+       short-stripe check of docs/notes/drc-triage.md);
   lef  the rule applied to the final LEF's VPWR/VGND ports, after merging
        vertically touching rectangles with the same x span (the precheck merges
        all touching rectangles; for vertical stripes this is the same).

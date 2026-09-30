@@ -766,7 +766,7 @@ below. 10BASE-T timing (40 MHz) is out of reach.
 `host/pio/timing.py` derives the margins from the program's schedule
 (the path check's slots) and from the chip's post-route timing. The chip
 values come from `tools/sta` on the p018 layout at 15 ns (Slurm job
-24089033, [timing-closure.md](timing-closure.md) section 10.5). That run's
+24089033, [notes/timing-closure.md](notes/timing-closure.md) section 10.5). That run's
 SDC puts every I/O delay at X = 3 ns (20% of the period), and its slacks
 include the 0.25 ns clock uncertainty:
 
@@ -836,7 +836,7 @@ decision follows soonest: its first RD sample comes 9 system clocks after
 `ui_in` changes at the RP2's pins, 60 ns at 150 MHz. Against it stand the
 20 ns round trip and at most 4.682413 ns inside the chip at the slow corner
 (15 − 2 × 3 − 4.317587 ns, from the input-to-output setup slack of
-`ui_in[7]` → `uo_out[5]` in [timing-closure.md](timing-closure.md) section
+`ui_in[7]` → `uo_out[5]` in [notes/timing-closure.md](notes/timing-closure.md) section
 10.5), 24.682413 ns in all, which leaves 35.317587 ns for RP2 pad and board
 delays.
 

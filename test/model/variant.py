@@ -30,7 +30,7 @@ Knobs (the optional ``"options"`` object of a refinement config):
 ``host_nibble_slots``, ``split_command_decode``, ``split_engine_issue``,
 ``split_instruction_decode``, ``fifo_write_staging``, ``clear_outputs_only``,
 ``keep_counter_increments``, ``fifo_write_free_slot``
-    Timing restructuring knobs (docs/timing-closure.md). They change how the
+    Timing restructuring knobs (docs/notes/timing-closure.md). They change how the
     logic is built, not what it computes: no model change.
 ``fifo_words``
     Architecture field; 2 and 4 are allowed in addition to 8 and 32.

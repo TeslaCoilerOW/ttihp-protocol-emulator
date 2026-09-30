@@ -2,7 +2,7 @@
 """Area study v2: tabulate runs2/<mode>/<variant>/stat.txt and apply the utilization model.
 
 Utilization model (calibrated on the local LibreLane 3.1.0.dev3 run of the design of
-record, run2, 8x4; see docs/area-study.md section 2.4):
+record, run2, 8x4; see docs/notes/area-study.md section 2.4):
   placed_std = A * S + H * F
   S = replica TT-synthesis area (mode ll66), F = flip-flops in that netlist
   A = (583,689 - 74,686) / 462,710.3  (synthesis + design repair + CTS, per synthesized um2)

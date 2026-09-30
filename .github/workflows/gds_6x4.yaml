@@ -1,10 +1,10 @@
 name: gds_6x4
 # 6x4 fallback submission candidate: the diet4 variant (ISA version 3,
-# docs/variants.md) on a 6x4 tile floorplan. The design of record stays 8x4
+# docs/notes/variants.md) on a 6x4 tile floorplan. The design of record stays 8x4
 # (gds.yaml). This workflow switches a fresh workspace with
 # variants6x4/switch.py (core, src/config.json overlay, info.yaml tiles) and
 # then runs the same Tiny Tapeout gds, precheck and gl_test actions as
-# gds.yaml. Nothing is committed back. See docs/6x4.md.
+# gds.yaml. Nothing is committed back. See docs/notes/6x4.md.
 on:
   push:
     branches: [main]
@@ -119,7 +119,7 @@ jobs:
         uses: TinyTapeout/tt-gds-action@ihp-cmos5l
         with:
           pdk: ihp-sg13cmos5l
-          # Pinned for src/sram_pdn_cfg.tcl, as in gds.yaml (docs/hardening.md section 8).
+          # Pinned for src/sram_pdn_cfg.tcl, as in gds.yaml (docs/notes/hardening.md section 8).
           librelane-version: 3.1.0.dev3
 
   precheck:

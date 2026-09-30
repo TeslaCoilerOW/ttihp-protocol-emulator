@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Search space of the physical-design optimizer (docs/optimization.md).
+"""Search space of the physical-design optimizer (docs/notes/optimization.md).
 
 Every knob is an ordinary LibreLane 3.1.0.dev3 configuration variable that a
 Tiny Tapeout project may set in src/config.json above the template's "DO NOT
@@ -54,7 +54,7 @@ import json
 # them free of short power straps. fp8_base/_trk: paired macros 32.96 um apart,
 # so the halo must be exactly 16.48 (half the gap: halos meet, no std-cell rows
 # and hence no short VPWR/VGND Metal4 straps between the pair --
-# docs/drc-triage.md section 6; any larger value fails
+# docs/notes/drc-triage.md section 6; any larger value fails
 # macros/check_macro_floorplan.py "closer than two halos"). fp8_wide(_trk): gaps
 # 100.4 um; one lattice stripe pair runs through the middle of every gap (macro
 # x + 286.99), so every row segment in a gap is crossed by a full-height stripe
@@ -62,7 +62,7 @@ import json
 # gap); the first top macro (x 213.36) must stay clear of the TT I/O pins at
 # x <= 191.04 plus the halo, so the halo must be <= 22.32.
 FLOORPLANS_8X4 = ["fp8_base", "fp8_base_trk", "fp8_wide", "fp8_wide_trk", "fp8_spread_trk"]
-# 6x4 (docs/6x4.md): the committed variants6x4 placement with its FP_OBSTRUCTIONS
+# 6x4 (docs/notes/6x4.md): the committed variants6x4 placement with its FP_OBSTRUCTIONS
 # box over the stripe-free gap at the right core edge. Its pair gaps are 32.96 um,
 # so the horizontal halo is exactly 16.48 for the same reason as fp8_base; the
 # vertical halo choices are restricted per track to the values for which
@@ -160,7 +160,7 @@ KNOBS = {
                                           key="PL_RESIZER_SETUP_MAX_UTIL_PCT", source="steps/openroad.py",
                                           why="Utilization cap (-max_utilization) for setup repair; bounds "
                                               "the area cost of large margins."),
-    # Runtime of the post-CTS setup repair (docs/optimization.md, "Runtime and the 6-hour limit"),
+    # Runtime of the post-CTS setup repair (docs/notes/optimization.md, "Runtime and the 6-hour limit"),
     # added in v3, 8x4 space only. repair_timing (OpenROAD dcf36133, src/rsz/src/RepairSetup.cc)
     # works through every endpoint whose slack is below the setup margin, worst first; its early
     # stop divides the TNS change by the initial TNS, which is 0 when no endpoint has negative
@@ -242,7 +242,7 @@ KNOBS = {
 # LibreLane default and the only value used since.
 RETIRED = {"DRT_OPT_ITERS": 64}
 
-# Knobs held at one value in every new knob set (docs/optimization.md, "CTS_MAX_SLEW is fixed
+# Knobs held at one value in every new knob set (docs/notes/optimization.md, "CTS_MAX_SLEW is fixed
 # unset"). suggest() does not sample them and fix() sets them in seeds and transfers; their
 # definition in KNOBS (choices) is unchanged, so every optuna study keeps one distribution per
 # parameter name (optuna refuses a changed categorical choice list) and stored knob sets still

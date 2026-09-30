@@ -10,7 +10,7 @@ gate-level tests and an RTL-vs-netlist equivalence check with
 [`formal_eq/`](../../formal_eq/README.md) (verdict PASS only if all four
 pass). Tracks, method, search space, objective, the SDC analysis behind the
 frequency tracks, budget and the adoption procedure are in
-[`docs/optimization.md`](../../docs/optimization.md).
+[`docs/notes/optimization.md`](../../docs/notes/optimization.md).
 
 | File | Role |
 |---|---|
@@ -27,7 +27,7 @@ frequency tracks, budget and the adoption procedure are in
 | `slurm.py` | squeue/sacct/sbatch/scancel helpers |
 | `trial_job.sh` | Job body of a run: PDN watcher, `scripts/sweep/run_one.sh`, `postprocess.py` |
 | `postprocess.py` | LEF check, worst setup paths and clock depth of a finished run |
-| `precheck_job.sh` | TT precheck on a promoted configuration (local reproduction of `docs/drc-triage.md`) |
+| `precheck_job.sh` | TT precheck on a promoted configuration (local reproduction of `docs/notes/drc-triage.md`) |
 | `gl_job.sh` | Gate-level cocotb subset on a promoted configuration's final netlist (`PE_VARIANT` per track) |
 | `eq_job.sh` | RTL-vs-netlist equivalence check on a promoted configuration's final netlist: `formal_eq/eq_check.py` of the frozen tree (`$PE_EQ_CHECK` overrides it) with the PDK root of the full run and yosys from `$OSS_CAD_SUITE` |
 | `driver_job.sh` | Job body of the driver |

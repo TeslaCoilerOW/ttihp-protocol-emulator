@@ -15,16 +15,16 @@ steps on this design:
     pdngen adds a short VPWR/VGND strap pair over it. Magic.WriteLEF exports
     those straps as power ports, and the precheck rejects every Metal4 power
     port that does not reach within 10 um of both the top and the bottom edge
-    (docs/drc-triage.md section 6).
+    (docs/notes/drc-triage.md section 6).
 
 FP_OBSTRUCTIONS boxes are modelled as blockages without halo: OpenROAD makes
-no row under them (the PDN-stage runs of docs/6x4.md section 2).
+no row under them (the PDN-stage runs of docs/notes/6x4.md section 2).
 
 A row segment with no stripe of either net over it is an "island". Islands in
 adjacent rows that overlap in x form one channel, which is where pdngen puts
 one strap pair.
 
-The model reproduces the local evidence of docs/drc-triage.md: 4 channels for
+The model reproduces the local evidence of docs/notes/drc-triage.md: 4 channels for
 the 8x4 fp8_base placement with the default 10 um halo (run2, job 23720702;
 row segments x 393.12..405.60, y 3.78..79.38 in the e0 gap), 0 with 16.48 or
 17 um, and 7 channels for the 6x4 fp6_tworow placement with 10 um (14 precheck
@@ -299,7 +299,7 @@ def emit_floorplan(out_dir, fp_path, halo, result):
         "macro": fp.get("macro", "RM_IHPSG13_1P_64x16_c2"),
         "description": "%s with FP_MACRO_HORIZONTAL_HALO %.2f: the smallest halo that leaves no CoreSite row "
                        "segment without a VPWR/VGND lattice stripe, so pdngen adds no short power strap "
-                       "(docs/6x4.md). Placement unchanged." % (fp["id"], halo),
+                       "(docs/notes/6x4.md). Placement unchanged." % (fp["id"], halo),
         "derivation": {
             "base_floorplan": fp["id"],
             "rule": "halo >= half of every stripe-free macro-to-macro gap and >= every stripe-free "

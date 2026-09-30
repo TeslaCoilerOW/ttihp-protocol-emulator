@@ -273,7 +273,7 @@ push (`../docs/mutation-push.md` section 8).
 
 ## Design variants (PE_VARIANT)
 
-The area and reset variants of `../docs/area-study.md` (defined in
+The area and reset variants of `../docs/notes/area-study.md` (defined in
 `../docs/isa.md`, "Configuration variants") run the same suite:
 
 ```sh
@@ -363,9 +363,9 @@ One such register was seen in a plain-Yosys netlist of `rstreg`, and it fails
 the gate-level read-back of READ_SELECT 5. The asynchronous-reset variants
 cannot hit this, because their flip-flops are reset through `RESET_B`.
 Whether a netlist has such logic depends on the synthesis script. The
-LibreLane-replica netlists (`docs/area-study/scripts/synth3.sh ll66`) of all
+LibreLane-replica netlists (`docs/notes/area-study/scripts/synth3.sh ll66`) of all
 six variants, `rstreg` included, pass the gate-level subset
-(`docs/variants.md` section 7.2). The hardened netlist that the Tiny Tapeout
+(`docs/notes/variants.md` section 7.2). The hardened netlist that the Tiny Tapeout
 `gl_test` runs is a different netlist again.
 
 Model-only (no simulator) runs take the same variable:

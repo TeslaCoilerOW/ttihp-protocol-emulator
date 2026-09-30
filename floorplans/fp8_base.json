@@ -2,7 +2,7 @@
   "id": "fp8_base",
   "tiles": "8x4",
   "macro": "RM_IHPSG13_1P_64x16_c2",
-  "description": "The placement in src/config.json at 73536f0 (docs/hardening.md section 4): bottom row FS on core row 0, top row N clear of the I/O pins, pairs 4 stripe pitches apart (33 um gaps).",
+  "description": "The placement in src/config.json at 73536f0 (docs/notes/hardening.md section 4): bottom row FS on core row 0, top row N clear of the I/O pins, pairs 4 stripe pitches apart (33 um gaps).",
   "derivation": {
     "bottom_k": [
       2,

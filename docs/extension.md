@@ -315,7 +315,7 @@ and outputs are masked by ownership).
 
 ### 7.1 TT-replica synthesis
 
-`docs/area-study/scripts/synth3.sh ll66` (the LibreLane 3.1.0.dev3 "AREA 0"
+`docs/notes/area-study/scripts/synth3.sh ll66` (the LibreLane 3.1.0.dev3 "AREA 0"
 script with the Yosys 0.66 of the LibreLane image; typical liberty; SRAM
 macros as black boxes), job 24122044. The `base` run reproduces the published
 462,171.9 µm² exactly, and `diet8` the study's 375,223.3 µm².
@@ -429,7 +429,7 @@ means:
 
 - the diet options come with it: asynchronous reset with synchronous release,
   no debug counters, a 7-bit PC, byte-lane shifts, ISA version 3
-  ([variants.md](variants.md) section 4);
+  ([notes/variants.md](notes/variants.md) section 4);
 - `src/protocol_emulator_core.v` becomes the variant core, and CI must select
   the variant (section 12);
 - the host library needs the capability-bit check (section 8);

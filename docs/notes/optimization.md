@@ -8,19 +8,19 @@ runs several **tracks**, each with its own optuna study:
 - the same design at 15 ns (66.7 MHz; the committed period since
   `d76f1cc`) and at 13.33 ns (75.0 MHz), the **frequency tracks**;
 - the 6x4 fallback: the `diet4` core with the committed `variants6x4/`
-  overlay on the 6x4 die (`docs/6x4.md`);
+  overlay on the 6x4 die (`docs/notes/6x4.md`);
 - one track per variant core that the variant workflow publishes
-  (`docs/variants.md`).
+  (`docs/notes/variants.md`).
 
-It runs on the Engaging cluster through the sweep harness of `docs/sweep.md`,
+It runs on the Engaging cluster through the sweep harness of `docs/notes/sweep.md`,
 which it uses unchanged. It records every run in an append-only store, and it
 promotes the best configurations of each track to a full-flow run, the Tiny
 Tapeout precheck, the gate-level cocotb suite and a formal RTL-vs-netlist
-equivalence check with [`formal_eq/`](../formal_eq/README.md)
+equivalence check with [`formal_eq/`](../../formal_eq/README.md)
 ([Promotion](#promotion)).
 
 Like every local run, a result here is evidence. It is not the result of
-record (`docs/hardening.md` sections 7 and 9). A configuration becomes the
+record (`docs/notes/hardening.md` sections 7 and 9). A configuration becomes the
 design of record only after it is committed to `src/config.json` and the
 GitHub gds, precheck and gl_test actions pass on that commit (see
 [Adopting a configuration](#adopting-a-configuration)).
@@ -64,7 +64,7 @@ gl_test with a `metrics.csv` and a gate-level netlist byte-identical to the
 full run's (2026-09-27 13:33 UTC; R85), so it is the result of record in
 the sense of [Current results](#current-results), item 1. Re-timed at 20 ns with the
 flow's own STA script, the p018 layout has setup WS +8.950/+9.924/+6.790 ns
-(R86; `docs/timing-closure.md` section 10).
+(R86; `docs/notes/timing-closure.md` section 10).
 
 From `25e331e` until `d76f1cc` the design of record was p010 at 20 ns:
 GitHub run 36257636798 on `131e793` passed gds, precheck and gl_test with
@@ -73,7 +73,7 @@ byte-identical to that of p010's full run, job 24010051 (`docs/results.md`,
 R16 to R19; still true for that commit). The 6x4 overlay carries p014 since
 `4bd30c8`, at 20 ns; its official `gds_6x4` run 36274474540 passed, with
 `metrics.csv` byte-identical to that of p014's full run, job 24036160
-(`docs/results.md` R83; `docs/6x4.md` section 5b), and the run of `1e5b1d8`
+(`docs/results.md` R83; `docs/notes/6x4.md` section 5b), and the run of `1e5b1d8`
 (36285537630) reproduced it byte for byte (R87).
 
 **Per track** (leaderboard of 2026-09-27 06:20 UTC, 02:20 cluster time,
@@ -232,7 +232,7 @@ not change. For `131e793`, which carries that configuration:
   `variants6x4/config.overlay.json`, which then restated placement,
   obstruction, density and halo but no timing key. The optimizer's trial of
   the same configuration shows the same count ([Campaign record](#campaign-record),
-  v2). `4bd30c8` put promotion p014 into the overlay (`docs/6x4.md`
+  v2). `4bd30c8` put promotion p014 into the overlay (`docs/notes/6x4.md`
   sections 4b and 5b).
 
 **Two observations from v1 that still shape the search space.** The first
@@ -407,7 +407,7 @@ TPE samples.
 - **`diet4_6x4`:** 8 distinct seeds:
   - the committed 6x4 build;
   - the 6x4 point signed off before the p010 adoption
-    (`docs/6x4.md` section 4: every timing key at its LibreLane default,
+    (`docs/notes/6x4.md` section 4: every timing key at its LibreLane default,
     density 60, hold margin 0.1; typ +4.30, slow −2.80 ns in full mode, run
     23980402_9);
   - the 5 best 20 ns configurations of `dor` and the 3 best 8x4 `diet4`
@@ -492,7 +492,7 @@ input-to-register or register-to-output path in 0.8·T − 0.25 ns (before
 derate, clock skew and the flip-flop's setup time). The **fmax estimates**
 of the leaderboard are
 `1000 / (T − WS)` per corner, plus a register-to-register-only version,
-as in `docs/sweep.md`. For a register-to-register worst path this
+as in `docs/notes/sweep.md`. For a register-to-register worst path this
 extrapolates correctly from fixed delays. For an I/O worst path the slack
 changes by 0.8 ns per ns of period, so the estimate is conservative when WS
 is positive and optimistic when it is negative. The frequency tracks do not
@@ -500,7 +500,7 @@ depend on the estimate: their STA runs at 15 or 13.33 ns, and a
 non-negative WS at a corner means that corner meets that period in the model.
 
 **What Tiny Tapeout takes from `info.yaml`.** In tt-support-tools
-`d66cf179e` (the revision of the precheck reproduction, `docs/drc-triage.md`):
+`d66cf179e` (the revision of the precheck reproduction, `docs/notes/drc-triage.md`):
 
 - `project_info.py` requires `clock_hz` to be an integer.
 - `project.py` and `doc_utils.py` use it only in generated documentation
@@ -818,7 +818,7 @@ between +0.756 and +2.040 ns:
   +0.756 to +0.963 ns. One is `core._2457`, from `instruction_sram_e1_lo`,
   at +0.984 ns. One is flip-flop to flip-flop, `core._1623[6]` →
   `core._2033[7]`, at +0.996 ns. The generator's name numbering does not
-  identify the engine (`docs/timing-closure.md` section 6.1).
+  identify the engine (`docs/notes/timing-closure.md` section 6.1).
 - **+1.0 to +1.25 ns: 46 more.** These are SRAM paths into
   `completed_instructions_0[28]`, `x_0`, `x_2`, `y_0`, `y_2`,
   `completed_instructions_2` and unnamed registers.
@@ -833,7 +833,7 @@ The worst path, in the order a signal takes:
   corner, 39.4% of the period.
 - **Logic.** 6.724 ns of logic follows. Its last 2.836 ns are an AND4
   chain ending in XOR2 and NOR2 at bit 31: the counter's increment, with
-  the late enable inside the carry chain (docs/timing-closure.md section 4,
+  the late enable inside the carry chain (docs/notes/timing-closure.md section 4,
   "The carry-chain effect").
 - **Capture.** The capture clock latency is 1.350 ns, the uncertainty
   0.25 ns and the setup time 0.215 ns, so the required time is 14.215 ns
@@ -878,7 +878,7 @@ Four of the six endpoints below +1.0 ns are bits of a 32-bit counter whose
 increment enable comes from the SRAM output through the instruction
 decoder, and their paths end in its carry chain. Two behaviour-preserving
 timing options of the generator remove exactly this structure
-(`docs/timing-closure.md` section 4):
+(`docs/notes/timing-closure.md` section 4):
 
 - `split_instruction_decode` gives the completed counter its own increment
   enable. The 256-way multiplexer between the SRAM output and the counter
@@ -896,7 +896,7 @@ has run those only at 20 ns.
 
 The change would set the two options for the design of record and
 regenerate `src/protocol_emulator_core.v`. It would then repeat the checks
-of `docs/timing-closure.md` section 6 and the repository's verification.
+of `docs/notes/timing-closure.md` section 6 and the repository's verification.
 The new core sha256 starts new optimizer tracks. The expected effect on the
 four counter endpoints is the removal of the 2.836 ns carry-chain tail
 (an estimate; not measured). The next limits in p024's layout are
@@ -1012,7 +1012,7 @@ evaluated at the track's `CLOCK_PERIOD`: STA ran at that period.
      action fails otherwise);
    - no hold violation at any corner;
    - no power-port violation. `tools/opt/checks.py` checks both:
-     - the short VPWR/VGND Metal4 straps of `docs/drc-triage.md` section 6,
+     - the short VPWR/VGND Metal4 straps of `docs/notes/drc-triage.md` section 6,
        on the `OpenROAD.GeneratePDN` DEF;
      - the precheck's power-port rule on the final LEF;
    - in a promoted full run, also LVS 0.
@@ -1058,7 +1058,7 @@ in the `trial_done` event).
 - On the final LEF of sweep run 23749131_0 (before `FP_MACRO_HORIZONTAL_HALO`
   16.48), the check reports 8 violating ports. Each is 627.26 um from one
   edge. These are the 8 LEF errors that failed the precheck in
-  `docs/drc-triage.md`.
+  `docs/notes/drc-triage.md`.
 
 **DEF check.** The drc-triage PDN-only runs give the same counts as the
 drc-triage script:
@@ -1263,7 +1263,7 @@ p028 (jobs 24094067 and 24096961, [Campaign record](#v2-from-2026-09-26-1411)).
 
 ### Macro halo and short power straps
 
-The halo values follow the short-strap rule of `docs/drc-triage.md` section
+The halo values follow the short-strap rule of `docs/notes/drc-triage.md` section
 6. pdngen adds a short strap when a standard-cell row segment between
 macros is not crossed by a lattice stripe.
 
@@ -1281,7 +1281,7 @@ macros is not crossed by a lattice stripe.
   - The pair gaps are 32.96 um again, so the halo is exactly 16.48.
   - The stripe-free gap between the top row's last macro and the right core
     edge is covered by the floorplan's `FP_OBSTRUCTIONS` box
-    (`docs/6x4.md` section 2). That box starts at the top row's y minus the
+    (`docs/notes/6x4.md` section 2). That box starts at the top row's y minus the
     default 10 um vertical halo.
   - `variants6x4/row_islands.py` finds, with halo 16.48, 0 island row
     segments for vertical halos 5 and 10. It finds 1 for 15 and 3 for 20,
@@ -1374,7 +1374,7 @@ A variant track is **retired**, which means it receives no new trials, when:
 
 The reasoning:
 
-- Every variant changes the design's contract (`docs/variants.md`
+- Every variant changes the design's contract (`docs/notes/variants.md`
   section 4). It is worth keeping only if it buys margin or area over the
   design of record.
 - 0.25 ns is 25 times the 10 ps resolution of the ranking and 5 times the
@@ -1455,7 +1455,7 @@ period, `OPENROAD_THREADS` 4 (the committed value), 8 CPUs and an 11 h limit.
 If that run is legal, including LVS 0, three jobs follow in parallel:
 
 - **Precheck.** `tools/opt/precheck_job.sh` runs the precheck reproduction
-  of `docs/drc-triage.md` on a submission-like directory: the snapshot's
+  of `docs/notes/drc-triage.md` on a submission-like directory: the snapshot's
   `info.yaml` (with the track's `tiles` and `clock_hz`) and the GDS, LEF and
   unpowered netlist, gunzipped from the run's `final/`. That reproduction is
   tt-support-tools `d66cf179e` `precheck.py`, unmodified, with KLayout from
@@ -1535,10 +1535,10 @@ is at most 5.5 h, see [Runtime and the 6-hour limit](#runtime-and-the-6-hour-lim
 
 ### Equivalence check
 
-The stage runs [`formal_eq/eq_check.py`](../formal_eq/README.md), the
+The stage runs [`formal_eq/eq_check.py`](../../formal_eq/README.md), the
 repository's formal RTL-vs-netlist check. It asks whether the final netlist
 and the RTL produce the same outputs, cycle by cycle from reset, for every
-input sequence. [`docs/equivalence.md`](equivalence.md) gives the method,
+input sequence. [`docs/equivalence.md`](../equivalence.md) gives the method,
 the controls that show the check can fail, what it does not cover, and the
 correction of the first recipe (its section 3).
 
@@ -2009,13 +2009,13 @@ writes it).
 - Then run `python3 variants6x4/switch.py check`. The CI workflow
   `gds_6x4.yaml` is the result of record for the 6x4 build.
 - `4bd30c8` did this for p014: the merged configuration equals the full
-  run's key for key (`docs/6x4.md` section 4b).
+  run's key for key (`docs/notes/6x4.md` section 4b).
 - The difference lists only the keys in which the promoted configuration
   differs from the committed 6x4 build. At `4bd30c8` the knob keys that
   were equal stayed inherited from `src/config.json`, among them
   `SYNTH_STRATEGY`, `PL_TIMING_DRIVEN` and `DESIGN_REPAIR_MAX_WIRE_LENGTH`.
   Since `8a05de7` and `fdc23f2` the overlay states all 33 knob keys of the
-  6x4 space (`docs/6x4.md` section 4c), so an adoption for the 8x4 build no
+  6x4 space (`docs/notes/6x4.md` section 4c), so an adoption for the 8x4 build no
   longer changes the 6x4 build's knob settings, and
   `variants6x4/info.overlay.json` keeps the 6x4 `clock_hz` at 50 MHz. Keep
   it that way when adopting: the difference only changes keys that are
@@ -2043,11 +2043,11 @@ precheck (job 24053971) ran on the snapshot's `info.yaml` with `clock_hz`
 66666667; the precheck does not read it. The flow therefore signs the
 design off at 66.7 MHz, and the margin at 50 MHz was measured separately
 by re-timing the p018 layout at 20 ns (`docs/results.md` R86;
-`docs/timing-closure.md` section 10).
+`docs/notes/timing-closure.md` section 10).
 
 **6x4.** `variants6x4/config.overlay.json` pins `CLOCK_PERIOD` 20 and every
 other knob key, and `variants6x4/info.overlay.json` pins `clock_hz`, so the
-6x4 build is unchanged ([`docs/6x4.md`](6x4.md) section 4c;
+6x4 build is unchanged ([`docs/notes/6x4.md`](6x4.md) section 4c;
 `docs/results.md` section 2c).
 
 **Why p018 and not p019 or p021.** All three 15 ns promotions passed the
@@ -2183,7 +2183,7 @@ per core, fast mode, at 20 ns:
 | cn_s2_timing | 2.401 | +9.05 / +2.40 | 0.6396 |
 
 Every variant changes the design's contract in some way
-(`docs/variants.md` section 4); the diet cores also change the ISA and the
+(`docs/notes/variants.md` section 4); the diet cores also change the ISA and the
 queue depth. These trials rank the variants on physical design only. The
 best legal trial of the design of record at that point was v1 `#118`
 (min WS 2.998 ns, utilization 0.6196), which was not promoted: its gain over
@@ -2256,7 +2256,7 @@ leaderboard has the current state). WS is at the track's period.
     in full mode with `OPENROAD_THREADS` 4 (full run job 24029191): route
     DRC 69, and the flow stopped in `Netgen.LVS`, so p012 is FAIL.
   - The pre-adoption 6x4 point reproduced its full-mode sign-off numbers of
-    `docs/6x4.md` (+4.30 / +8.50 / −2.80 ns, utilization 56.3%, hold
+    `docs/notes/6x4.md` (+4.30 / +8.50 / −2.80 ns, utilization 56.3%, hold
     minimum +0.099 ns) to within 0.01 ns.
   - Two translated 20 ns configurations are legal with positive setup WS
     at all corners (+1.26 and +2.06 ns at the slow corner).
@@ -2481,7 +2481,7 @@ optimizer roots and job names `pe-v4-mhz75-*`:
 - **Fast trials differ from promoted runs.**
   - Trials use `OPENROAD_THREADS` 32; the action uses 4. Four runs of the
     submission point gave identical results at 4, 32 and 48 threads
-    (`docs/sweep.md`, "Repeatability"), but detailed routing can depend on
+    (`docs/notes/sweep.md`, "Repeatability"), but detailed routing can depend on
     the thread count. Promoted runs therefore use 4.
   - Trials do not run LVS.
 - **Imported trials rely on determinism.** An imported trial is the result
@@ -2494,7 +2494,7 @@ optimizer roots and job names `pe-v4-mhz75-*`:
   rectangles. For the full-height vertical stripes of this design the two
   agree. The precheck itself runs on every promotion.
 - **The island model is a model.** `row_islands.py` reproduces every
-  earlier strap observation (`docs/6x4.md` section 2). The PDN DEF and LEF
+  earlier strap observation (`docs/notes/6x4.md` section 2). The PDN DEF and LEF
   checks of every trial and the precheck of every promotion remain the
   checks that count.
 - **The slow corner is not a sign-off corner.** Objective 2 still ranks by

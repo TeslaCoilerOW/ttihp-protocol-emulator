@@ -38,7 +38,7 @@ repository's history** by these methods:
 The sources say so explicitly:
 [verification-campaign.md](verification-campaign.md) (finding 1),
 [formal-depth.md](formal-depth.md) ("No design bug was found"),
-[variants.md](variants.md) section 7.2,
+[notes/variants.md](notes/variants.md) section 7.2,
 [independent-peers.md](independent-peers.md),
 [timing-certificates.md](timing-certificates.md) and
 [equivalence.md](equivalence.md) section 1. The design defect below
@@ -174,7 +174,7 @@ This is recorded as a firmware property, not as a failing test.
   `-threads None` (ORD-0032), and detailed routing runs on one thread.
 - **Found by.** Reading the log of the first local run that mirrors the gds
   action, `run1` (job 23715924). It was still in detailed routing on one
-  thread after about 20 minutes ([hardening.md](hardening.md), section 7).
+  thread after about 20 minutes ([notes/hardening.md](notes/hardening.md), section 7).
 - **Consequence in CI.** The `gds` job of run
   [36086335671](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36086335671)
   on `180f98d` did not set the key. It was cancelled when it reached
@@ -230,18 +230,18 @@ This is recorded as a firmware property, not as a failing test.
     only at stripes at least 100 um tall, so it let the straps through.
 - **Found by.** The official `precheck` job of run 36096045527 on
   `73536f0`. The diagnosis, with the PDN step reproduced from scratch
-  (job 23808070), is in [drc-triage.md](drc-triage.md), section 6.
+  (job 23808070), is in [notes/drc-triage.md](notes/drc-triage.md), section 6.
 - **Fix.** `1e2cfb3`:
   - `FP_MACRO_HORIZONTAL_HALO` 16.48, half the gap, so the halos meet and
     no rows or straps are generated there;
   - `RUN_MAGIC_DRC` false, which saves about 40 minutes of the 6-hour
-    runner limit (drc-triage.md, section 7).
+    runner limit (notes/drc-triage.md, section 7).
 - **Verified.**
   - Locally: full run job 23850490, then the unmodified precheck passes
     9 of 9 checks (job 23856538).
   - Officially: the `precheck` job of run 36144357821 passed.
 - **Still open.** Extending the wrapper's check 3 to every stripe, as
-  drc-triage.md recommends, is not done: `src/sram_pdn_cfg.tcl` is
+  notes/drc-triage.md recommends, is not done: `src/sram_pdn_cfg.tcl` is
   unchanged from `c118027` to `24f31f0`.
 
 ### BL-7: datasheet still the template (flow)
@@ -464,7 +464,7 @@ See [independent-peers.md](independent-peers.md).
 - **Found by.** An audit of every Slurm log against the manifest; 82 jobs
   checked.
 - **Fix.** The list names now carry the process id and a content hash, and
-  the file is created with `O_EXCL`. See [sweep.md](sweep.md), "Harness bug
+  the file is created with `O_EXCL`. See [notes/sweep.md](notes/sweep.md), "Harness bug
   found and fixed"; committed in `d510f85`.
 
 ### BL-21: CAN minimum-spacing bug in the extension study (study firmware)
@@ -521,7 +521,7 @@ See [independent-peers.md](independent-peers.md).
 - **LibreLane 3.1.0.dev3 `Netgen.LVS`.** It raised a Python
   `JSONDecodeError` ("Invalid \escape") while parsing netgen's statistics
   after a route with residual shorts (`cn` full run, 23751800_0). LVS then
-  gave no count at all ([sweep.md](sweep.md)).
+  gave no count at all ([notes/sweep.md](notes/sweep.md)).
 - **sby AIGER witness replay.** It fails for rIC3 and abc on the
   timing-isolation miter ("witness signal mismatch for a.dut.ena"). sby then
   reports ERROR although the engine's verdict is FAIL. btormc gives a full
@@ -611,5 +611,5 @@ See [independent-peers.md](independent-peers.md).
   function and timing are right. The two promotions with such deep SRAM
   clock trees, p025 and p026, were the only ones that set `CTS_MAX_SLEW`;
   the optimizer no longer samples that knob
-  ([optimization.md](optimization.md)). The adopted netlists pass `gl_test`
+  ([notes/optimization.md](notes/optimization.md)). The adopted netlists pass `gl_test`
   ([results.md](results.md) R85, R89).

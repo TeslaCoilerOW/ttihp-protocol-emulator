@@ -1,5 +1,5 @@
 # Follow-ups to the variant sweep (matrices/variants.yaml), added 2026-09-25 from its first
-# results; see docs/sweep.md "Variant launch". Same cores (pinned sha256), same defaults.
+# results; see docs/notes/sweep.md "Variant launch". Same cores (pinned sha256), same defaults.
 # Submitted with --cpu-budget 768 (chained behind earlier pe-sweep tasks) and
 # --exclude node1621,node1918 (preemptable nodes whose owners reclaimed them repeatedly).
 name: var2

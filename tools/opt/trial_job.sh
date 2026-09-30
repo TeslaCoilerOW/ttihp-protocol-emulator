@@ -1,6 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
-# Slurm job body for one optimizer run (docs/optimization.md): a wrapper around
+# Slurm job body for one optimizer run (docs/notes/optimization.md): a wrapper around
 # the sweep harness's scripts/sweep/run_one.sh, which is used unchanged.
 #
 #   trial_job.sh RUN_DIR

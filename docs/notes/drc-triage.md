@@ -163,7 +163,7 @@ nothing about the standard-cell area, where Magic reports 0 markers.
 | Per macro | 10 or 12 boxes; 4 stripes each, split by Magic into 2 or 4 boxes |
 
 This is exactly the case described in `src/config.json` and
-`docs/hardening.md` section 3. The stripe crosses a LEF obstruction that
+`docs/notes/hardening.md` section 3. The stripe crosses a LEF obstruction that
 abstracts the split between two same-net (VPWR) pin columns. The flattened
 macro GDS has no Metal4, Via3 or TopMetal1 within 1 um of the stripes in that
 band (`BAND_HITS 0`). The KLayout deck, which checks the real merged GDS,
@@ -306,10 +306,10 @@ Each bottom strap is 627.26 um from the top edge, and each top strap is
   macro's outer sides. Slow-corner setup differs from run2 (−5.09 ns), but
   run2 used 4 OpenROAD threads and these runs used 32, so the difference
   cannot be attributed to the halo alone. Slow setup is not a sign-off corner
-  (`docs/hardening.md` section 7).
+  (`docs/notes/hardening.md` section 7).
 * **Other options** (not tested): move the pairs 5 lattice pitches apart,
   so a full-height stripe pair runs through the 100 um gap (the fallback
-  already listed in `docs/hardening.md` section 8); or have the wrapper drop
+  already listed in `docs/notes/hardening.md` section 8); or have the wrapper drop
   pins for, or fail on, *any* VPWR/VGND Metal4 shape that does not span the
   die. Whichever is chosen, extend the wrapper's check 3 to all stripes so the
   failure shows up at GeneratePDN, in minutes, and not at the precheck.
@@ -376,7 +376,7 @@ fails only on the power-port issue in section 6.
 2. `src/sram_pdn_cfg.tcl` (hardening owner): apply check 3 to every
    VPWR/VGND Metal4 shape, not just the tall ones, so a short strap fails
    `OpenROAD.GeneratePDN` in minutes.
-3. `docs/hardening.md` section 8: the "Precheck pin check" row says the
+3. `docs/notes/hardening.md` section 8: the "Precheck pin check" row says the
    wrapper's check 3 should catch a cut stripe. It does not catch
    channel-repair straps under 100 um.
 4. Floorplan variants (`floorplans/`, sweep owner): every macro-to-macro or

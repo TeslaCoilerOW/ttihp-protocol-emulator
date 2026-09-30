@@ -46,6 +46,15 @@ flowchart LR
 The pin assignment shown is the flagship example (`firmware/flagship-scenario.json`);
 ownership is set by the host.
 
+![Layout of the 8x4 die: four SRAM macros along the top edge, four along the bottom, standard cells between them](docs/img/die.png)
+
+The layout of the design of record (8x4 tiles, IHP SG13CMOS5L) with its eight
+SRAM macros, rendered by the official `gds` workflow (artifact `gds_render` of run
+[36714406904](https://github.com/TeslaCoilerOW/ttihp-protocol-emulator/actions/runs/36714406904),
+commit `ce6b9bd`) and scaled down. The
+[GDS viewer](https://teslacoilerow.github.io/ttihp-protocol-emulator/) shows
+the same layout in 3D.
+
 ## What is different
 
 1. **Isolated engines and a host-free mover.** Each engine fetches from its
@@ -82,7 +91,7 @@ these fit with the other checks, and what they do not establish, is in
 
 | | |
 |---|---|
-| Official build, 8x4 | The Tiny Tapeout `gds`, `precheck` and `gl_test` jobs pass. The `viewer` job, which only publishes a preview, failed in every run so far because GitHub Pages was not enabled, and that turns the gds badge red. Pages was enabled after the last run (on `24f31f0`). |
+| Official build, 8x4 | The Tiny Tapeout `gds`, `precheck` and `gl_test` jobs pass. The `viewer` job, which publishes the GDS preview to GitHub Pages, failed until Pages was enabled after `24f31f0`; since `bab697b` (run 36624435821) it passes, and every completed official `gds` run of `main` since then has passed all four jobs, for example run 36714406904 on `ce6b9bd`. |
 | Clock | Signed off at 15 ns (66.7 MHz), with setup and hold met at all three corners; operated at 50 MHz. Operation above 50 MHz is not claimed. |
 | Tile size | 8x4 confirmed by the organizers (2026-09-28). The 6x4 build is a fallback kept green in CI: the `diet4` variant (4-word queues, 7-bit PC, byte-lane shifts) passes `gds`, `precheck` and `gl_test` in the `gds_6x4` workflow at 20 ns (50 MHz). |
 | Timing certificates | All 19 images committed at `24f31f0` are certified: 350 of 350 segments proved, the 22 long segments also as 127 chunks, 455 covers reached; 132 of 132 negative controls and 52 of 52 chunk-level ones fail as required; 3 of 5 RTL timing mutants caught. The 7 images added since (`uart-rx-idle` and the SWD, WS2812B, PS/2 and 1-Wire images) are certified by the campaign on `6a3ea08`: 91 of 91 segments proved, the 28 long ones (up to 80,004 steps) as chains of 96-step chunks, 91 covers reached, and 53 of 53 negative controls that were run fail as required (36 deeper than 2,000 steps are not run). The ledger lists 26 of 26 images certified. |
@@ -98,10 +107,15 @@ these fit with the other checks, and what they do not establish, is in
 | [docs/results.md](docs/results.md) | Every headline number, its evidence and the command that reproduces it |
 | [docs/limitations.md](docs/limitations.md) | What the verification does not establish |
 | [docs/info.md](docs/info.md) | Datasheet (rendered by the Tiny Tapeout docs action) |
-| [docs/isa.md](docs/isa.md), [docs/architecture.md](docs/architecture.md), [docs/firmware.md](docs/firmware.md) | ISA and host-protocol contract, architecture notes, firmware and assembler contract |
+| [docs/isa.md](docs/isa.md), [docs/isa-spec.md](docs/isa-spec.md), [docs/architecture.md](docs/architecture.md), [docs/firmware.md](docs/firmware.md) | ISA and host-protocol contract and its instruction-level formal specification, architecture notes, firmware and assembler contract |
+| [docs/timing-analysis.md](docs/timing-analysis.md), [docs/timing-certificates.md](docs/timing-certificates.md), [docs/timing-certificates-tutorial.md](docs/timing-certificates-tutorial.md) | Static timing analysis of the firmware images; timing certificates proved on the RTL; a worked example |
+| [docs/equivalence.md](docs/equivalence.md), [docs/formal-depth.md](docs/formal-depth.md) | RTL-to-netlist equivalence; deeper formal runs and further properties |
+| [docs/verification-campaign.md](docs/verification-campaign.md), [docs/mutation-push.md](docs/mutation-push.md), [docs/independent-peers.md](docs/independent-peers.md) | Random differential and mutation campaigns; the mutation score push; tests against unmodified third-party protocol peers |
 | [docs/bug-ledger.md](docs/bug-ledger.md) | Each defect the verification found, the method that found it and its fix |
+| [docs/host.md](docs/host.md), [docs/fpga.md](docs/fpga.md), [docs/demo.md](docs/demo.md) | Host library, FPGA prototype and hardware demonstration procedures (not yet run on hardware) |
 | [docs/signoff-history.md](docs/signoff-history.md) | Sign-off record, including superseded configurations and the milestone plan |
-| [docs/extension.md](docs/extension.md) | Line-coding and CRC-16 extension, built on a branch; not the design of record |
+| [docs/extension.md](docs/extension.md), [docs/extension-study.md](docs/extension-study.md) | Line-coding and CRC-16 extension, built on a branch; not the design of record. The study that proposed it |
+| [docs/notes/README.md](docs/notes/README.md) | Working notes: area study, hardening recipe, DRC triage, sweep harness, RTL variants, timing closure, optimizer, 6x4 fallback build |
 
 ## Build, test and prove
 
@@ -124,7 +138,7 @@ the ISA and check protocol results at the pins ([test/README.md](test/README.md)
 covers gate-level runs with `GATES=yes` and the constrained-random test).
 [formal/README.md](formal/README.md) lists each formal claim and its method.
 The firmware assembler is `hardcaml/bin/assemble.ml` ([docs/firmware.md](docs/firmware.md)),
-and [docs/hardening.md](docs/hardening.md) covers the `gds` flow of record.
+and [docs/notes/hardening.md](docs/notes/hardening.md) records the recipe of the first 8x4 `gds` build (as of `c118027`); `src/config.json` holds the current flow settings.
 
 ## Repository layout
 

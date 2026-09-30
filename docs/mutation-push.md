@@ -492,7 +492,7 @@ proven, and killed mutants 2 and 171 are not (job 24043514).
 | mutant | region | change | design fact |
 |---|---|---|---|
 | 1973, 1989, 2000 | imem | the read enable of engine 3's, 0's or 1's two macros held at 1, so a program write also reads | as 1988 and 2009 of section 4.3 |
-| 1981 | imem | bit 6 of engine 2's high macro output (instruction bit 22) inverted whenever bit 13 (instruction bit 29, opcode bit 5) is 1 | the opcodes are 0 to 29 (`docs/isa.md`; the list of `diet` changes in `docs/variants.md` adds none), so a word with opcode bit 5 set faults as an invalid opcode whatever its bit 22 |
+| 1981 | imem | bit 6 of engine 2's high macro output (instruction bit 22) inverted whenever bit 13 (instruction bit 29, opcode bit 5) is 1 | the opcodes are 0 to 29 (`docs/isa.md`; the list of `diet` changes in `docs/notes/variants.md` adds none), so a word with opcode bit 5 set faults as an invalid opcode whatever its bit 22 |
 
 **Longer ABC cap** (not part of the push's procedure; job 24049008): the miter
 with `formal_mutant.py`'s default limits (PDR 600 s, ABC cap 900 s) on the

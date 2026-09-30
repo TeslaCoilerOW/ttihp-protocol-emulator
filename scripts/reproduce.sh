@@ -125,7 +125,7 @@ Deeper and new formal properties (docs/formal-depth.md; formal_depth/README.md):
   Without Slurm, one class at a time:
     FD_PARALLEL=8 formal_depth/run.sh local "$PE_WORK/formal-depth" --only '^rr_'
 
-Formal suite on every design variant (docs/variants.md section 7.2):
+Formal suite on every design variant (docs/notes/variants.md section 7.2):
     formal/run.sh --variant <base|rstreg|cn|cn_s2|diet4|diet2>
 
 Independent-peer seeded campaign (docs/independent-peers.md, "Results"):
@@ -141,7 +141,7 @@ Static timing analyzer validation (docs/timing-analysis.md; tools/timing/README.
 Host library fuzzing (docs/host.md, "Verification of the library"):
     python3 host/tools/fuzz_host.py --help
 
-Physical sweep of the gds flow (docs/sweep.md; LibreLane 3.1.0.dev3 SIF and
+Physical sweep of the gds flow (docs/notes/sweep.md; LibreLane 3.1.0.dev3 SIF and
 IHP-Open-PDK 2bbec755 under $PE_WORK/sram-flow):
     PE_WORK=... python3 scripts/sweep/submit.py --help
     PE_WORK=... python3 scripts/sweep/collect.py

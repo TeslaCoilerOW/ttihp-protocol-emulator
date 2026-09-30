@@ -1,7 +1,7 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
 # Dry run of the optimizer driver against a copy of the campaign's results store
-# (docs/optimization.md, "Operation"). Nothing is submitted and nothing outside
+# (docs/notes/optimization.md, "Operation"). Nothing is submitted and nothing outside
 # DRY_DIR is written.
 #
 #   PE_WORK=<cluster work dir> tools/opt/dry_run.sh DRY_DIR [LOOPS]

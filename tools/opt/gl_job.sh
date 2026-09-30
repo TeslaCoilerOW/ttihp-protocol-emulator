@@ -1,7 +1,7 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
 # Slurm job body: the gate-level cocotb subset on a promoted configuration's
-# final netlist (docs/optimization.md, "Promotion"), as the tt-gds-action gl_test
+# final netlist (docs/notes/optimization.md, "Promotion"), as the tt-gds-action gl_test
 # step runs it: the unpowered final netlist becomes test/gate_level_netlist.v and
 # `make GATES=yes` runs in test/ (here with GL_NETLIST=<netlist>, which the
 # Makefile supports). Icarus Verilog 13.0 (the CI version, $PE_WORK/host/iv13/bin),

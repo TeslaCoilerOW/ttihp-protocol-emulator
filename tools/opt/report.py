@@ -472,16 +472,16 @@ def write_md(state, path, jobs=None, stop=None, tree=None, settings=None, tracks
     ctx = RT.Context(state)
     L.append("# Physical-design optimizer: leaderboard")
     L.append("")
-    L.append("Generated %s by tools/opt/report.py from the results store; see docs/optimization.md. "
+    L.append("Generated %s by tools/opt/report.py from the results store; see docs/notes/optimization.md. "
              "Trial numbers are fast-mode runs (post-route STA at all three corners at the track's CLOCK_PERIOD, "
              "antenna, power-port checks; no LVS; OPENROAD_THREADS 32). Sign-off numbers are promoted full runs "
              "(OPENROAD_THREADS 4, LVS), the TT precheck, the gate-level tests and the RTL-vs-netlist equivalence "
              "check; a promotion's verdict is PASS only if all four pass. Best trials are the best legal ones "
-             "inside the current search space (docs/optimization.md, \"Search space\"). fmax estimates are "
-             "1000 / (period - setup WS) per corner (docs/optimization.md, \"Frequency tracks and the SDC\"). "
+             "inside the current search space (docs/notes/optimization.md, \"Search space\"). fmax estimates are "
+             "1000 / (period - setup WS) per corner (docs/notes/optimization.md, \"Frequency tracks and the SDC\"). "
              "An imported trial is a finished run of an earlier track whose effective configuration is identical; "
              "it keeps that run's job id. \"Projected CI job h\" is the projected length of the official gds job "
-             "(GitHub stops it at 6 h) from the run's step times (docs/optimization.md, \"Runtime and the 6-hour "
+             "(GitHub stops it at 6 h) from the run's step times (docs/notes/optimization.md, \"Runtime and the 6-hour "
              "limit\"); in the dor15, dor13 and diet4_6x4 tracks a trial is promoted only if its projection is at "
              "most %.1f h, trials rank by min WS, then projection, and a promotion's verdict is PASS only if its "
              "full run's projection is within that bound too." % (now, RT.BOUND_S / 3600.0))

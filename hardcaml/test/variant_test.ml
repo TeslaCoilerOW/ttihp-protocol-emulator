@@ -1,4 +1,4 @@
-(* RTL variant knobs (Variant_options, docs/variants.md).
+(* RTL variant knobs (Variant_options, docs/notes/variants.md).
 
    1. Configuration: the "options" object parses, validates and round-trips.
    2. FIFO: every depth and storage/reset form against a queue model.

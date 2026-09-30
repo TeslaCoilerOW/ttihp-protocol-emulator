@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Runtime of the official gds job (docs/optimization.md, "Runtime and the 6-hour limit").
+"""Runtime of the official gds job (docs/notes/optimization.md, "Runtime and the 6-hour limit").
 
 GitHub's hosted runner stops a job after 6 h (21,600 s). The gds job of the Tiny
 Tapeout workflow is one such job: runner setup, the LibreLane flow on 4 vCPUs,
@@ -29,7 +29,7 @@ Models (constants: maxima over those 18 jobs, rounded up; slow runner):
   fast-mode trial (OPENROAD_THREADS 32; post-CTS and post-GRT repair = "repair"):
       CI job <= OVERHEAD_S + S_CI * (K_RSZ * repair / s + K_REST * (flow - repair) / s)
 
-Both over-predict every one of the 18 official jobs (docs/optimization.md). A
+Both over-predict every one of the 18 official jobs (docs/notes/optimization.md). A
 projection needs a flow that ran to its end (flow_complete); a timed-out or
 failed run has none.
 Eligibility (tracks of the kinds in RULE_KINDS: dor15, dor13, diet4_6x4): the trial

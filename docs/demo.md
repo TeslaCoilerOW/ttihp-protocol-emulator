@@ -899,7 +899,7 @@ one.
   - Experiment A runs the design at the Pico's clock rate, not at 50 MHz.
   - Experiment B runs it at 12 MHz. In a synchronous design that meets
     timing, cycle behaviour does not depend on the clock rate. Timing closure
-    at 50 MHz is a separate question ([hardening.md](hardening.md),
+    at 50 MHz is a separate question ([notes/hardening.md](notes/hardening.md),
     [fpga.md](fpga.md) "Build results").
   - Experiment C runs at the bitstream's clock, 50 MHz with the `pll50`
     builds. Its simulation ran the 12 MHz `osc12` top. The 50 MHz timing is

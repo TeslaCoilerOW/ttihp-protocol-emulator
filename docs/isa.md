@@ -181,7 +181,7 @@ ordinary sticky host fault. READ_SELECT6 zero-extends a 16-bit held RX register.
 
 The sections above are the contract of the design of record
 (`configs/instruction-sram-32.json`). The area and reset variants of
-`docs/area-study.md` (sections 4, 5 and 8) are refinement configs with an
+`docs/notes/area-study.md` (sections 4, 5 and 8) are refinement configs with an
 optional `"options"` object (`configs/variants/<name>.json`). A config without
 `"options"` is the design of record. Each option changes the contract only as
 stated here. The Hardcaml RTL (`hardcaml/lib/variant_options.ml`), the

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tracks of the physical-design optimizer (docs/optimization.md, "Tracks").
+"""Tracks of the physical-design optimizer (docs/notes/optimization.md, "Tracks").
 
 A track is one (core, die, clock period, search space) combination with its
 own optuna study. Its committed configuration ("base") is what the repository

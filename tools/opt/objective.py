@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Objective of the physical-design optimizer (docs/optimization.md, "Objective").
+"""Objective of the physical-design optimizer (docs/notes/optimization.md, "Objective").
 
 Lexicographic, in this order:
   1. legal: the flow completed with exit 0 and post-route STA; route DRC 0;
@@ -21,7 +21,7 @@ The period is the track's CLOCK_PERIOD (20, 15 or 13.33 ns): STA ran at that
 period, so the setup slacks, the legality (typ setup) and the ranking are all
 at that period. flatten() also reports an fmax estimate per corner,
 1000 / (period - setup WS), and the same for register-to-register paths only
-(docs/optimization.md, "Frequency tracks and the SDC").
+(docs/notes/optimization.md, "Frequency tracks and the SDC").
 
 value() folds this into the single number TPE maximizes. Standard library only.
 """

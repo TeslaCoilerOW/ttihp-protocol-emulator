@@ -5,7 +5,7 @@ open Signal
 type instruction_memory = Baseline | Ihp_pair | Synchronous_model
 
 (* [options] (default: the design of record) selects the variant knobs;
-   docs/variants.md defines them.  [clear] is the chip reset net: a
+   docs/notes/variants.md defines them.  [clear] is the chip reset net: a
    synchronous clear in the synchronous styles, the asynchronous reset of every
    register in the asynchronous styles.  Either way it keeps gating the same
    combinational paths (outputs, ready/valid, SRAM enables, mover, triggers). *)

@@ -1,6 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
-# Slurm job body of the optimizer driver (docs/optimization.md). Submitted by
+# Slurm job body of the optimizer driver (docs/notes/optimization.md). Submitted by
 # launch.sh and, before each time limit, by the driver itself (with
 # --dependency=afterany on the running driver). Runs the driver of the tree that
 # $PE_OPT_ROOT/current points to at start, so a relaunch with new tools is picked

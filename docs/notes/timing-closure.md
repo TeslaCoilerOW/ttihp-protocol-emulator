@@ -149,7 +149,7 @@ What the failing paths have in common:
 ### 3.2 The registered-reset variants
 
 The earlier sweep hardened two reset variants at 8x4, 20 ns (before the
-`FP_MACRO_HORIZONTAL_HALO` change; `docs/sweep.md`). Re-analysed the same way:
+`FP_MACRO_HORIZONTAL_HALO` change; `docs/notes/sweep.md`). Re-analysed the same way:
 
 | Variant (sweep job) | Slow WS | From `ui_in` | From registers | From SRAM | From `reset_sync_2` |
 |---|---:|---:|---:|---:|---:|
@@ -170,7 +170,7 @@ endpoint can appear in several columns.
 ## 4. The timing options
 
 Eight options, all in the refinement config's `"options"` object next to the
-variant knobs of `docs/variants.md` (`hardcaml/lib/timing_options.ml`). Each
+variant knobs of `docs/notes/variants.md` (`hardcaml/lib/timing_options.ml`). Each
 changes how the logic is built, never what the pins do. With all of them false
 (the default), every generator path is the one that existed before:
 `scripts/generate.sh` reproduces `src/protocol_emulator_core.v` and the six
@@ -269,7 +269,7 @@ from the critical logic without adding state, and replaced it.
 
 Two named variants in `configs/variants/`, one per registered reset style. The
 timing options themselves change no pin behaviour, so each variant has exactly
-the contract of the variant it is built on (`docs/variants.md` section 4).
+the contract of the variant it is built on (`docs/notes/variants.md` section 4).
 
 | Variant | Built on | Variant options | Timing options | Contract |
 |---|---|---|---|---|
@@ -404,7 +404,7 @@ The block-level steps rely on the processor using the host word only when the
 last-nibble strobe is high and a queue head only when the queue's valid is
 high. That was checked by reading `processor.ml`, not by a tool. The
 whole-core simulations of 6.2 and 6.3 test the composed designs directly.
-`narrow` is an existing variant knob (`docs/variants.md`).
+`narrow` is an existing variant knob (`docs/notes/variants.md`).
 
 ### 6.2 Repository verification of the named variants
 
@@ -445,7 +445,7 @@ cycles, 13,184 mover grants, 288,925 accepted commands, 3,546 reset cycles.
 
 ### 6.4 Area (TT synthesis replica)
 
-Same flows and model as `docs/variants.md` section 5 (typical-corner liberty,
+Same flows and model as `docs/notes/variants.md` section 5 (typical-corner liberty,
 SRAM macros as black boxes; U and D predicted with the area study's model,
 not placed). The same job re-synthesized `base` and got that section's
 wrapper figure, 462,710.3 µm².
@@ -459,7 +459,7 @@ wrapper figure, 462,710.3 µm².
 | `cn_s2_timing` | 438,449.6 | 438,395.5 | 423,311.9 | 4,115 | 9 | 56.5% | 51.6% |
 
 Job 24001192 for the two timing variants; the other rows are from
-`docs/variants.md`. The added flops are the staging registers, 8 queues ×
+`docs/notes/variants.md`. The added flops are the staging registers, 8 queues ×
 (32 data + 3 slot + 1 valid) = 288, less 72 for `narrow` in `rstreg_timing`
 (`cn_s2` already has it). Wrapper areas of the exploratory builds of section
 7 (jobs 23993545, 23996560, 23999002) separate the options: replacing `free`
@@ -471,7 +471,7 @@ about 5K µm².
 
 ## 7. LibreLane results
 
-Every run uses the sweep harness (`scripts/sweep/`, `docs/sweep.md`) with the
+Every run uses the sweep harness (`scripts/sweep/`, `docs/notes/sweep.md`) with the
 `src/config.json` of `c118027` (the runs predate `25e331e`): 8x4 tiles,
 floorplan `fp8_base`, density 60, 20 ns, the LibreLane 3.1.0.dev3 image. Slack and violation counts are LibreLane's
 post-route STA (`nom` parasitics); "violations" are setup-violating endpoints.
@@ -660,7 +660,7 @@ and `cn_s2_timing.v`
 in `MANIFEST.sha256` of the variants work directory's `cores/`. LibreLane
 runs use `scripts/sweep/make_snapshot.py --core <core> --tiles 8x4
 --floorplan fp8_base --density 60 --period 20 --mode fast|full` and
-`scripts/sweep/run_one.sh` as described in `docs/sweep.md`.
+`scripts/sweep/run_one.sh` as described in `docs/notes/sweep.md`.
 
 Outside the repository, in the workstream directory (`rtl-timing/` next to
 the variants work directory): the STA and classification scripts and every
@@ -824,7 +824,7 @@ RTL did not change.
 
 The flow fails on a setup violation at the typical corner or a hold
 violation at any corner; setup at the fast and slow corners is reported,
-not gated ([limitations.md](limitations.md) section 2).
+not gated ([limitations.md](../limitations.md) section 2).
 
 ### 10.1 What changed
 
@@ -839,7 +839,7 @@ comments). Every other key is p010's (section 9.2).
 | `PL_RESIZER_SETUP_SLACK_MARGIN` | 5.75 | 5.8 |
 
 These four keys are the `config_changes_vs_repo` of p018's full run against
-the tree it ran on (`131e793`; [results.md](results.md) R84), so the
+the tree it ran on (`131e793`; [results.md](../results.md) R84), so the
 committed file is the promoted configuration. Why p018 and not the other
 15 ns promotions: [optimization.md](optimization.md), "Adoption of p018".
 
@@ -877,7 +877,7 @@ The official flow times the design at 15 ns only. To measure the margin at
 the operating clock, the p018 layout was re-timed at 20 ns with the flow's
 own STA step. The work is in `<work dir>/sta50/` (`README.md`,
 `results.json`, `results.md`); Slurm job 24077956 ran it. The method is
-packaged in [`tools/sta/`](../tools/sta/README.md); run from the repository,
+packaged in [`tools/sta/`](../../tools/sta/README.md); run from the repository,
 it reproduces these results exactly (jobs 24089033, 24089058, 24089059;
 section 10.7).
 
@@ -948,14 +948,14 @@ output is −X.
 
 This design has such paths: the window-select bits `ui[7:6]` of the host
 port drive write-ready and read-valid (`uo[4]`, `uo[5]`) combinationally
-([info.md](info.md), "Host interface": they "drop immediately when the
+([info.md](../info.md), "Host interface": they "drop immediately when the
 window bits change"). `ui_in[7]` → `uo_out[5]` is the worst setup path at
 the typical and fast corners at both periods, so a rule that "I/O paths
 gain 4 ns" would overstate the typical and fast margin by 1 ns.
 
 ### 10.5 Measured shifts
 
-`pe_extra.tcl` (now [`tools/sta/pe_extra.tcl`](../tools/sta/pe_extra.tcl)),
+`pe_extra.tcl` (now [`tools/sta/pe_extra.tcl`](../../tools/sta/pe_extra.tcl)),
 sourced by `corner.tcl` before its reports, wrote the worst path of each
 class. Setup WS in ns:
 
@@ -1063,10 +1063,10 @@ SDC terms, the prediction minima and the rounding) was checked with AXLE
 
 - **Local sign-off:** the promotion pipeline of
   [optimization.md](optimization.md) ("Promotion", "Operation"); p018's
-  jobs are listed in [results.md](results.md) R84.
+  jobs are listed in [results.md](../results.md) R84.
 - **Official:** the `gds` workflow run of `d76f1cc`, artifact
   `tt_submission`, `stats/metrics.csv`.
-- **Re-analysis at 20 ns:** [`tools/sta/`](../tools/sta/README.md). The
+- **Re-analysis at 20 ns:** [`tools/sta/`](../../tools/sta/README.md). The
   tool runs LibreLane's `corner.tcl` and `base.sdc` on a run's final netlist
   and nominal SPEF, per corner, with only `CLOCK_PERIOD` changed, and writes
   the path-class report. It reads the scripts from the `librelane-3.1.0.dev3`

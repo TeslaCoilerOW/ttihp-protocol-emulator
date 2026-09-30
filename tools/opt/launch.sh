@@ -1,6 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
-# Freeze the inputs of the optimizer and submit its driver job (docs/optimization.md).
+# Freeze the inputs of the optimizer and submit its driver job (docs/notes/optimization.md).
 #
 #   PE_WORK=<cluster work dir> OSS_CAD_SUITE=<OSS CAD Suite root> tools/opt/launch.sh [--commit REV] [--no-submit]
 #

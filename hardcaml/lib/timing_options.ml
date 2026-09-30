@@ -1,4 +1,4 @@
-(* Timing-restructuring knobs (docs/timing-closure.md). With [default] every
+(* Timing-restructuring knobs (docs/notes/timing-closure.md). With [default] every
    generator path is the one that existed before these knobs, so the design of
    record and the earlier variants are emitted byte for byte. *)
 

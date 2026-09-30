@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Promotion gates of the optimizer (docs/optimization.md, "Promotion").
+"""Promotion gates of the optimizer (docs/notes/optimization.md, "Promotion").
 
 A promoted configuration goes through four stages: the full run (legal
 including LVS 0), then, in parallel, the Tiny Tapeout precheck, the gate-level

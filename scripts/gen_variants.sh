@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate the named RTL variants of docs/variants.md and their firmware images.
+# Generate the named RTL variants of docs/notes/variants.md and their firmware images.
 #
 # Usage: scripts/gen_variants.sh [--publish DIR] [--no-firmware] [--no-check] [NAME...]
 #   NAME           variants to generate (default: every configs/variants/*.json,

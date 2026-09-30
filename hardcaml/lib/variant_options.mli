@@ -1,5 +1,5 @@
 (** RTL variant knobs, the optional ["options"] object of a refinement config.
-    docs/variants.md defines the semantics of every knob. *)
+    docs/notes/variants.md defines the semantics of every knob. *)
 
 (** Reset style.
     - [Sync]: design of record; synchronous clear from [~(rst_n & ena)].

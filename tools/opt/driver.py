@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Autonomous physical-design optimizer (docs/optimization.md).
+"""Autonomous physical-design optimizer (docs/notes/optimization.md).
 
   driver.py run        the main loop (run as a Slurm job by driver_job.sh)
   driver.py once       one loop iteration (with --dry-run: plan, build snapshots, submit nothing)
@@ -24,7 +24,7 @@ limit until the budget is spent, the stop date is reached or <opt root>/STOP
 exists. Knobs in space.FIXED are not sampled, and trials that set them to
 another value are not promoted, seeded or transferred.
 
-Runtime (runtime.py; docs/optimization.md, "Runtime and the 6-hour limit"): every
+Runtime (runtime.py; docs/notes/optimization.md, "Runtime and the 6-hour limit"): every
 run's step times are recorded (in its metrics; runs from before v3 once from their
 result.json). In the tracks of the kinds in runtime.RULE_KINDS (dor15, dor13 and
 diet4_6x4, which the gds and gds_6x4 actions build) a trial is promoted only if the
@@ -97,10 +97,10 @@ STOP_AT = datetime.datetime(2026, 10, 24, 0, 0, 0)   # local time of the cluster
 # Since d76f1cc the committed CLOCK_PERIOD is 15 ns (p018), so dor15 is the committed track
 # (weights until then: dor20 0.35, dor15 0.22, dor13 0.08; from d76f1cc to v3: dor20 0.15,
 # dor15 0.35, dor13 0.15, 6x4 0.20, variant 0.15). v3 aims at an official sign-off at 13.33 ns
-# (docs/optimization.md, "The 75 MHz plan"), so dor13 is the main track.
+# (docs/notes/optimization.md, "The 75 MHz plan"), so dor13 is the main track.
 WEIGHTS = {"dor20": 0.05, "dor15": 0.15, "dor13": 0.45, "6x4": 0.20, "variant": 0.15}
 VARIANT_TRIAL_CAP = 200          # trials per variant track
-# Retirement of a variant track (docs/optimization.md, "Retirement"): at least
+# Retirement of a variant track (docs/notes/optimization.md, "Retirement"): at least
 # RETIRE_MIN_TRIALS finished trials, and either no legal trial, or its best legal min WS
 # at least RETIRE_WS_MARGIN below the design of record's (20 ns) best while its
 # utilization is not RETIRE_UTIL_MARGIN or more below the design of record's.
@@ -122,7 +122,7 @@ SEED_TOP = {"freq": 8, "6x4": 5, "variant": 3}   # best 20 ns configurations see
 # (runtime.py), each with PL_RESIZER_SETUP_REPAIR_TNS_PCT at each of RUNTIME_SEED_TNS (the
 # runtime knob, space.py). On the committed configuration at
 # 13.33 ns (p024's), 0 gave slow WS -0.988 ns and 10 gave +0.142 ns with the repair cut from
-# 10,842 to 3,272 normalized seconds (jobs 24120814, 24120815; docs/optimization.md, "The 75 MHz
+# 10,842 to 3,272 normalized seconds (jobs 24120814, 24120815; docs/notes/optimization.md, "The 75 MHz
 # plan"), so 0 is not seeded.
 SEED_REVISION = 3
 RUNTIME_SEED_TOP = 3
@@ -168,7 +168,7 @@ PATHS = {
     "log": os.path.join(OPT, "driver.log"),
 }
 
-# The 6x4 configuration signed off before the p010 adoption (docs/6x4.md section 4:
+# The 6x4 configuration signed off before the p010 adoption (docs/notes/6x4.md section 4:
 # variants6x4 overlay on the c118027 src/config.json, which set none of the timing keys).
 PRE_ADOPTION_6X4 = dict({n: SPACE.KNOBS[n]["unset"] for n in SPACE.SIMPLE},
                         abc_fine_tune="none", gpl_pad=0, grt_adj_m2=0.0, grt_adj_m3=0.0, grt_adj_m4=0.0,
@@ -372,7 +372,7 @@ class Driver(object):
                 {})]
         best20 = self.ranked(self.primary, in_space=True) if self.primary else []
         if t.kind == "6x4":
-            out.append(("6x4 point signed off before the p010 adoption (docs/6x4.md)", PRE_ADOPTION_6X4))
+            out.append(("6x4 point signed off before the p010 adoption (docs/notes/6x4.md)", PRE_ADOPTION_6X4))
             for i, b in enumerate(best20[:SEED_TOP["6x4"]], 1):
                 out.append(("20 ns 8x4 best #%d %s (floorplan/halo of the 6x4 build)" % (i, b["uid"]), b["knobs"]))
             for b in self.legacy_ranked(t.core_sha, "8x4")[:3]:

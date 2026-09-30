@@ -7,10 +7,10 @@ them is the submission.** `src/protocol_emulator_core.v` is still the design of 
 (`configs/instruction-sram-32.json`), and it is byte-for-byte what the code emits
 when no knob is set. The variants exist so that a fallback is ready if routing or
 the slow-corner reset timing fails at 8x4, or if the project must fit 6x4
-(`docs/area-study.md` sections 4, 5 and 8, `docs/hardening.md` section 7).
+(`docs/notes/area-study.md` sections 4, 5 and 8, `docs/notes/hardening.md` section 7).
 
 The knobs were first prototyped as environment variables in a scratch copy
-(`docs/area-study/area-knobs-v2.patch`). Here they are optional fields of the
+(`docs/notes/area-study/area-knobs-v2.patch`). Here they are optional fields of the
 refinement config, and some semantics differ from the prototype (section 6).
 
 ## 1. Using the variants
@@ -105,9 +105,9 @@ low when edge t samples it.
 
 **What each style is for.**
 - `sync_registered` removes the `rst_n` input-delay paths that failed
-  slow-corner setup in the `c118027` build (`docs/hardening.md` section 7;
+  slow-corner setup in the `c118027` build (`docs/notes/hardening.md` section 7;
   since `25e331e` the design of record meets the slow corner without it,
-  `docs/timing-closure.md` section 9). `rst_n` and `ena` now reach only the D
+  `docs/notes/timing-closure.md` section 9). `rst_n` and `ena` now reach only the D
   input of `reset_sync_1`.
 - `async` removes the synchronous-clear logic and, with `fifo_storage_reset`,
   almost every tie cell (3,929 to 8 in `cn`). It does not remove timing from `rst_n`: release becomes a
@@ -201,7 +201,7 @@ v2 image, and `test/harness.py` accepts only ISA 1 or 2 images.
 `uart-rx-idle` (reassembled from `firmware/uart-rx-idle.source.json`) for each
 variant with a 32-bit datapath, to `build/variants/<name>/firmware/`. The SWD,
 WS2812B, PS/2 and 1-Wire images of `firmware/` are not reassembled
-([test/README.md](../test/README.md)). For the built-in images:
+([test/README.md](../../test/README.md)). For the built-in images:
 - For `base`, `rstreg`, `cn` and `cn_s2` they are byte-identical to `firmware/`.
 - For `diet4` and `diet2` every instruction word and `bytecode_sha256` is
   unchanged. The architecture binds `fifo_words` 4 or 2, so the source and
@@ -236,12 +236,12 @@ The `diet` variants change the following:
 - **Firmware.** Every committed image still assembles, because all 15 shifting
   images shift by 24. (That was the state of 2026-09-25; since `e64cd6b`,
   `ps2-host` shifts by 21 at word 45 and does not run on byte-lane designs:
-  [isa.md](isa.md), "ISA version".) The flagship scenario needs a TX top-up instead of an
+  [isa.md](../isa.md), "ISA version".) The flagship scenario needs a TX top-up instead of an
   8-word prefill.
 
 ## 5. Area (TT synthesis replica)
 
-**Flows.** Areas come from `docs/area-study/scripts/synth3.sh`, unchanged:
+**Flows.** Areas come from `docs/notes/area-study/scripts/synth3.sh`, unchanged:
 - `ll66` is the LibreLane 3.1.0.dev3 "AREA 0" replica, run with the Yosys 0.66
   inside the LibreLane SIF;
 - `plain` is the study's revision-1 flow;
@@ -249,7 +249,7 @@ The `diet` variants change the following:
   boxes.
 
 **Scope and model.**
-- **Core** is `protocol_emulator_core` alone, the scope of `docs/area-study.md`.
+- **Core** is `protocol_emulator_core` alone, the scope of `docs/notes/area-study.md`.
 - **Wrapper** adds `src/project.v`, which is what the TT flow synthesizes.
 - **U and D** use the study's model (section 2.4):
   `placed = 1.100 x S + 19.05 x F`,

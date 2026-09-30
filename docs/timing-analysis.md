@@ -553,7 +553,7 @@ checks it by hash, loads it, and checks that its ownership is as declared. Then:
   and fall times are not included. The reported numbers are the digital
   budgets these must fit in: for example, the 600 ns SPI MISO round trip or the
   34-cycle I2C tSU;DAT. Gate-level timing closure is a separate question
-  (`docs/hardening.md`).
+  (`docs/notes/hardening.md`).
 - **Refinement.** The link between the ISA-level schedule and the RTL is
   shown by lockstep simulation, not by proof. A formal per-instruction cycle
   refinement would close this gap. For example: an issued `WAIT n` is followed

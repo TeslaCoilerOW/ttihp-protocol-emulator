@@ -80,7 +80,7 @@ whose `gl_test` passes with an unmodified model that has no power ports.
 | `ERROR_ON_MAGIC_DRC` | false | Magic's cmos5l tech lacks the SRAM exceptions. Loom saw ~58k in-macro Magic errors. The precheck does not run Magic, and its KLayout deck passed on loom's merged GDS. |
 | `MAGIC_EXT_ABSTRACT_CELLS` | `["RM_IHPSG13_.*"]` | This blackboxes the SRAM for LVS extraction. |
 | `MAGIC_MACRO_STD_CELL_SOURCE` | `PDK` | Same as the reference projects. It is harmless if KLayout streams out. |
-| `PL_TARGET_DENSITY_PCT`, `CLOCK_PERIOD` | 60, 20 ns | Template values. The local run measured 58.4% utilization of the core and 53.7% standard-cell density outside the macros (section 7; `docs/area-study.md` section 2.4). 20 ns matches `info.yaml` `clock_hz` 50 MHz. The macro's slow-corner clock-to-output is ~5.0–5.2 ns (Liberty), and pre-route STA of this netlist had +8.6 ns setup slack (typ). |
+| `PL_TARGET_DENSITY_PCT`, `CLOCK_PERIOD` | 60, 20 ns | Template values. The local run measured 58.4% utilization of the core and 53.7% standard-cell density outside the macros (section 7; `docs/notes/area-study.md` section 2.4). 20 ns matches `info.yaml` `clock_hz` 50 MHz. The macro's slow-corner clock-to-output is ~5.0–5.2 ns (Liberty), and pre-route STA of this netlist had +8.6 ns setup slack (typ). |
 | `OPENROAD_THREADS` | 4 | LibreLane 3.1.0.dev3 builds OpenROAD's thread argument as `str(OPENROAD_THREADS) or ...`. When the key is unset, that is `"None"`, so every OpenROAD step is called with `-threads None` (ORD-0032) and detailed routing runs single-threaded (observed in run1, section 7). 4 matches the runner's vCPUs. This key is our addition to the template. |
 | Halos | LibreLane defaults, 10 um | Not overridden. The macro GDS NWell extends 0.225 um beyond the LEF box on the pin edge, and the halo covers it. |
 
@@ -235,7 +235,7 @@ with `tiles: "6x4"`:
 The top row uses odd k (off the 0.48 site grid, which MarcosAsh's passing
 off-grid macros suggest is tolerated), because at even k it would run into
 the I/O span or the right edge. Macros then take 13.5% of the core. Area
-feasibility is task 1.4a's question (`docs/area-study.md`).
+feasibility is task 1.4a's question (`docs/notes/area-study.md`).
 
 ## 5. Issue #190 (KLayout DRC errors inside SRAM macros)
 
@@ -419,7 +419,7 @@ and gdstk, both in the SIF.
 | `SRAMPDN BAD ...` / `no stripe runs through` | The macro x is off the `11.04 + 67.44 k` lattice, or the VOFFSET/core origin changed. Run `check_macro_floorplan.py`. |
 | `SRAMPDN: pdn::... does not exist` | LibreLane/OpenROAD changed under the wrapper. `gds.yaml` pins `librelane-version: 3.1.0.dev3`; if that pin was changed, restore it or port the wrapper. |
 | GPL-0302 (density too low) | Raise `PL_TARGET_DENSITY_PCT` to 65–70. |
-| Heavy GRT overflow / DRT not converging | Lower `PL_TARGET_DENSITY_PCT` to 55 to spread cells. Then apply the area study's contract-neutral fallback `cn` (asynchronous reset from `~(rst_n & ena)`, FIFO storage as reset registers, 7-bit image registers: −48.7K um² in TT synthesis, predicted 53.8%; `docs/area-study.md` section 8a). It needs simulation, formal and model updates first. Then spread the macros 5 stripe pitches apart instead of 4, so the gap grows from 33 to 100 um. For example, top row k = 6, 11, 16, 21 and bottom row k = 2, 7, 13, 18; odd k is off the site grid. Re-run `check_macro_floorplan.py` after the change. |
+| Heavy GRT overflow / DRT not converging | Lower `PL_TARGET_DENSITY_PCT` to 55 to spread cells. Then apply the area study's contract-neutral fallback `cn` (asynchronous reset from `~(rst_n & ena)`, FIFO storage as reset registers, 7-bit image registers: −48.7K um² in TT synthesis, predicted 53.8%; `docs/notes/area-study.md` section 8a). It needs simulation, formal and model updates first. Then spread the macros 5 stripe pitches apart instead of 4, so the gap grows from 33 to 100 um. For example, top row k = 6, 11, 16, 21 and bottom row k = 2, 7, 13, 18; odd k is off the site grid. Re-run `check_macro_floorplan.py` after the change. |
 | Setup violations (slow corner) | Timing sign-off is typ-only by default. Check `nom_slow` first; the SRAM output is ~5.2 ns clock-to-output at slow. |
 | Hold violations | Raise `PL_RESIZER_HOLD_SLACK_MARGIN` / `GRT_RESIZER_HOLD_SLACK_MARGIN`. |
 | `Checker.IllegalOverlap` is still fatal | The waiver key did not apply. Confirm that the overlaps are only the POWER-stripe × OBS-band crossings. |

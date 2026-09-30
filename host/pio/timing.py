@@ -18,7 +18,7 @@ RP2's clock pin at time 0 (the end of the slot-0 cycle):
 Chip-side requirements at the project boundary come from the post-route
 static timing of the design of record (tools/sta re-analysis of the p018
 layout at 15 ns, the layout of the official d76f1cc build: Slurm job 24089033,
-docs/timing-closure.md section 10.5; per-class worst slacks from
+docs/notes/timing-closure.md section 10.5; per-class worst slacks from
 tools/sta/pe_extra.tcl). The flow's SDC puts every input and output delay at
 X = 20% of the period (3 ns at 15 ns) and a 0.25 ns clock uncertainty, so,
 per corner, with T = 15 ns:

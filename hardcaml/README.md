@@ -2,7 +2,7 @@
 
 This directory is the generator of the chip: `scripts/generate.sh` builds
 `bin/generate_refinement.exe` and writes `src/protocol_emulator_core.v` from
-`configs/instruction-sram-32.json`, and the RTL variants of `docs/variants.md`
+`configs/instruction-sram-32.json`, and the RTL variants of `docs/notes/variants.md`
 from `configs/variants/*.json`. CI (`.github/workflows/regen.yaml`) fails if
 the committed core differs from a fresh generation. The tests are described in
 [test/README.md](test/README.md).
@@ -51,8 +51,8 @@ Every module has an `.mli` with its contract.
 |--------|----------|
 | `Config` | The architecture (engines, widths, queue depth, issue) |
 | `Refinement_config` | A refinement config: architecture plus the three option sets below |
-| `Variant_options` | RTL variant knobs (reset style, PC width, shifts, ...; `docs/variants.md`) |
-| `Timing_options` | Behaviour-preserving restructurings (`docs/timing-closure.md`) |
+| `Variant_options` | RTL variant knobs (reset style, PC width, shifts, ...; `docs/notes/variants.md`) |
+| `Timing_options` | Behaviour-preserving restructurings (`docs/notes/timing-closure.md`) |
 | `Line_options` | The line-unit extension (`docs/extension.md`) |
 
 ### Hardware

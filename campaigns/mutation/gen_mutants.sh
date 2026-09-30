@@ -11,7 +11,7 @@
 #               list gets no mutants
 # SEED          base RNG seed; region k (in QUOTAS order) uses SEED+k
 #
-# Design variants (docs/variants.md; unset = the design of record, as before):
+# Design variants (docs/notes/variants.md; unset = the design of record, as before):
 #   PE_VARIANT=<name>  mutate SNAPSHOT_DIR/build/variants/<name>/protocol_emulator_core.v
 #                      (scripts/gen_variants.sh <name>, run in the snapshot) and pack
 #                      build/variants/<name>/ (its firmware images) into testtree.tgz;

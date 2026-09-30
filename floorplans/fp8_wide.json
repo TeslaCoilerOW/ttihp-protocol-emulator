@@ -2,7 +2,7 @@
   "id": "fp8_wide",
   "tiles": "8x4",
   "macro": "RM_IHPSG13_1P_64x16_c2",
-  "description": "docs/hardening.md section 8 troubleshooting row: macros 5 stripe pitches apart (100 um gaps). Top k 6/11/16/21, bottom k 2/7/13/18; odd k is off the 0.48 site grid.",
+  "description": "docs/notes/hardening.md section 8 troubleshooting row: macros 5 stripe pitches apart (100 um gaps). Top k 6/11/16/21, bottom k 2/7/13/18; odd k is off the 0.48 site grid.",
   "derivation": {
     "bottom_k": [
       2,

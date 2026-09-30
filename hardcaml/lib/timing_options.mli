@@ -1,9 +1,9 @@
-(** Timing-restructuring knobs of a closed refinement (docs/timing-closure.md).
+(** Timing-restructuring knobs of a closed refinement (docs/notes/timing-closure.md).
 
     They are read from the same ["options"] object as {!Variant_options} and
     change how the logic is built, never what it computes: with every knob
     false the generators emit exactly the design selected by the other options.
-    Each knob is behaviour-preserving on its own (docs/timing-closure.md
+    Each knob is behaviour-preserving on its own (docs/notes/timing-closure.md
     section 4.1 states the argument for each, section 6 the checks). *)
 
 type t = {

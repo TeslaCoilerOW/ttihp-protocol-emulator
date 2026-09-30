@@ -38,7 +38,7 @@ output and the new one. If the change is intended, accept it with
 | `isa2_test.ml` | Strict and blocking `PUSH`, stalls, RX and version status, the four trigger modes |
 | `instruction_sram_test.ml` | The SRAM refinement: config validation, adapter timing, next-PC prediction, and cycle-by-cycle comparison against the register-store processor |
 | `instruction_sram_formal_test.ml`, `payload_sram_test.ml` | The formal wrappers and the payload SRAM model |
-| `variant_test.ml` | The variant knobs of `docs/variants.md`, with lockstep comparisons and negative controls |
+| `variant_test.ml` | The variant knobs of `docs/notes/variants.md`, with lockstep comparisons and negative controls |
 | `line_test.ml` | The line unit of `docs/extension.md` at engine level (part of `dune test`) |
 | `line_sys_test.ml` | The line unit on the whole chip; takes a config, so it is run separately |
 | `expect/` | Waveform expect tests, below |

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Write the sweep floorplans (floorplans/*.json) from their derivations.
 
-Every macro x is on the PDN stripe lattice x = 11.04 + 67.44 k (docs/hardening.md
+Every macro x is on the PDN stripe lattice x = 11.04 + 67.44 k (docs/notes/hardening.md
 section 3, src/sram_pdn_cfg.tcl), so the unchanged FP_PDN_V* keys power every
 floorplan. Orientation is N or FS only: src/sram_pdn_cfg.tcl rejects anything
 else, because a rotation turns the Metal4 power columns horizontal (no vertical
@@ -97,7 +97,7 @@ def floorplans():
     # ---------------------------------------------------------------- 8x4
     fps.append(dict(
         id="fp8_base", tiles="8x4",
-        description="The placement in src/config.json at 73536f0 (docs/hardening.md section 4): bottom row FS "
+        description="The placement in src/config.json at 73536f0 (docs/notes/hardening.md section 4): bottom row FS "
                     "on core row 0, top row N clear of the I/O pins, pairs 4 stripe pitches apart (33 um gaps).",
         derivation={"bottom_k": [2, 6, 14, 18], "top_k": [6, 10, 16, 20], "fs_y": Y_FS_ROW0, "n_y": Y_N_TOP},
         instances=two_rows([2, 6, 14, 18], [6, 10, 16, 20], Y_FS_ROW0)))
@@ -109,7 +109,7 @@ def floorplans():
         instances=two_rows([2, 6, 14, 18], [6, 10, 16, 20], Y_FS_TRK)))
     fps.append(dict(
         id="fp8_wide", tiles="8x4",
-        description="docs/hardening.md section 8 troubleshooting row: macros 5 stripe pitches apart (100 um "
+        description="docs/notes/hardening.md section 8 troubleshooting row: macros 5 stripe pitches apart (100 um "
                     "gaps). Top k 6/11/16/21, bottom k 2/7/13/18; odd k is off the 0.48 site grid.",
         derivation={"bottom_k": [2, 7, 13, 18], "top_k": [6, 11, 16, 21], "fs_y": Y_FS_ROW0, "n_y": Y_N_TOP},
         instances=two_rows([2, 7, 13, 18], [6, 11, 16, 21], Y_FS_ROW0)))
@@ -132,7 +132,7 @@ def floorplans():
     # x 29.76..191.04 plus a 10 um halo), so four N macros fit only at k 3/7/11/15.
     fps.append(dict(
         id="fp6_tworow", tiles="6x4",
-        description="The 6x4 insurance placement of docs/hardening.md section 4: bottom FS k 0/4/8/12 on row 0, "
+        description="The 6x4 insurance placement of docs/notes/hardening.md section 4: bottom FS k 0/4/8/12 on row 0, "
                     "top N k 3/7/11/15 (odd k, off the site grid).",
         derivation={"bottom_k": [0, 4, 8, 12], "top_k": [3, 7, 11, 15], "fs_y": Y_FS_ROW0, "n_y": Y_N_TOP},
         instances=two_rows([0, 4, 8, 12], [3, 7, 11, 15], Y_FS_ROW0)))

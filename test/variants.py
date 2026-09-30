@@ -4,7 +4,7 @@
 
 ``base`` is the design of record (``src/protocol_emulator_core.v`` from
 ``configs/instruction-sram-32.json``) and is what the Tiny Tapeout CI runs. The
-other names are the area/reset variants of ``docs/area-study.md`` sections 4, 5
+other names are the area/reset variants of ``docs/notes/area-study.md`` sections 4, 5
 and 8, defined by ``configs/variants/<name>.json`` (a refinement config with an
 optional ``"options"`` object, see ``model/variant.py``).
 
@@ -36,7 +36,7 @@ VARIANT_CONFIGS = REPO / "configs" / "variants"
 _CN = {"fifo_storage_reset": True, "narrow_image_regs": True}
 _DIET = {"reset": "async_sync_release", **_CN, "debug_counters": False, "pc_bits": "saturating_7",
          "shift": "byte_lane"}
-# Timing options (docs/timing-closure.md); they do not change pin behaviour.
+# Timing options (docs/notes/timing-closure.md); they do not change pin behaviour.
 _TIMING = {"host_nibble_slots": True, "split_command_decode": True, "split_engine_issue": True,
            "split_instruction_decode": True, "keep_counter_increments": True,
            "fifo_write_staging": True, "clear_outputs_only": True}

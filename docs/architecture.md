@@ -106,8 +106,8 @@ replace those program bits while keeping independent per-engine fetch and the
 same issue timing. A 2–4 KiB shared payload/capture buffer would be a third,
 unimplemented memory organization; private instruction SRAM does not provide
 it. Area measurements and the 6x4 insurance options are in
-[area-study.md](area-study.md); the macro integration and local hardening
-evidence are in [hardening.md](hardening.md).
+[notes/area-study.md](notes/area-study.md); the macro integration and local hardening
+evidence are in [notes/hardening.md](notes/hardening.md).
 
 ## Hardcaml structure
 

@@ -4,7 +4,7 @@
 final netlist and nominal SPEF of a finished LibreLane run, with
 `CLOCK_PERIOD` replaced by a period of your choice. The layout, the parasitics
 and every other constraint stay as the flow had them. It is the method behind
-the 50 MHz margins in [timing-closure.md](../../docs/timing-closure.md)
+the 50 MHz margins in [timing-closure.md](../../docs/notes/timing-closure.md)
 section 10.3 and [results.md](../../docs/results.md) R86. The design is signed
 off at 15 ns and operated at 20 ns; the flow itself times it at 15 ns only.
 
@@ -133,7 +133,7 @@ The defaults follow `scripts/sweep/sweeplib.py`:
 | `PE_APPTAINER` | apptainer executable | `apptainer` on `PATH` |
 
 The image and the PDK are the ones the flow ran with: LibreLane 3.1.0.dev3
-and IHP-Open-PDK `2bbec755` (see [sweep.md](../../docs/sweep.md), "Where
+and IHP-Open-PDK `2bbec755` (see [sweep.md](../../docs/notes/sweep.md), "Where
 things live"). The host needs Python 3.6 or later (standard library only)
 and apptainer.
 

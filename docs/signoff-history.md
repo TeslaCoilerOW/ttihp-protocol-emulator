@@ -25,7 +25,7 @@ signed off at 20 ns. There is no silicon.
 
 As of 2026-09-27, `src/config.json` constrains the Tiny Tapeout flow at
 `CLOCK_PERIOD` 15 ns (66.7 MHz): optimizer promotion p018, committed in
-`d76f1cc` ([docs/optimization.md](optimization.md), "Adoption of p018").
+`d76f1cc` ([docs/notes/optimization.md](notes/optimization.md), "Adoption of p018").
 The flow therefore signs timing off at 66.7 MHz; in the official build,
 setup and hold are met at that period at all three corners (table below). The operating clock is 50 MHz (`info.yaml` `clock_hz` 50000000),
 which all firmware, the host library, the firmware timing analyzer and the
@@ -41,7 +41,7 @@ passed gds (4 h 24 min), gl_test and precheck (finished 2026-09-27
 sign-off run of p018 (job 24042265), as for the two earlier adoptions. The
 50 MHz row of that column is a re-analysis of the signed-off layout at 20 ns with
 the flow's own STA script and SDC, whose two controls reproduce the flow's
-numbers exactly ([docs/timing-closure.md](timing-closure.md)
+numbers exactly ([docs/notes/timing-closure.md](notes/timing-closure.md)
 section 10). The two other columns are the official results of earlier
 configurations, kept as history: `131e793` (20 ns, promotion p010, adopted
 in `25e331e`) and tag `v0.1-hardened`. All three are IHP SG13CMOS5L, 8x4
@@ -62,7 +62,7 @@ The flow fails on a setup violation at the typical corner or a hold
 violation at any corner; setup at the fast and slow corners is reported,
 not gated. The slow corner was closed by LibreLane configuration alone
 (floorplan, placement, timing-repair, clock-tree, routing and synthesis
-settings), not by an RTL change; [docs/timing-closure.md](timing-closure.md)
+settings), not by an RTL change; [docs/notes/timing-closure.md](notes/timing-closure.md)
 sections 9 and 10 have the comparison and [docs/results.md](results.md)
 sections 2b and 2d the evidence (R84 to R86 and R88 for the 15 ns configuration).
 
@@ -89,7 +89,7 @@ check the design, but it is why the gds badge above shows a failure.
   defect the verification found, the method that found it and its fix.
 - **Limits.** [docs/limitations.md](limitations.md) lists what the
   verification does not establish.
-- **Hardening notes.** [docs/hardening.md](hardening.md) covers the
+- **Hardening notes.** [docs/notes/hardening.md](notes/hardening.md) covers the
   recipe and the earlier local runs.
 
 - **Configuration.** The first hardening target is
@@ -98,8 +98,8 @@ check the design, but it is why the gds badge above shows a failure.
   queues and fused issue. It targets 8×4 tiles (1724.16 × 710.64 µm); its
   operating clock is 50 MHz and the flow constrains it at 15 ns (above).
 - **Tile size.** 8×4 still has to be confirmed by the competition organizers.
-  A 6×4 variant is kept in parallel as insurance; [docs/area-study.md](area-study.md)
-  covers it, and [docs/6x4.md](6x4.md) describes the 6×4 build
+  A 6×4 variant is kept in parallel as insurance; [docs/notes/area-study.md](notes/area-study.md)
+  covers it, and [docs/notes/6x4.md](notes/6x4.md) describes the 6×4 build
   (`diet4`, workflow `gds_6x4`) and the status of its CI runs. The 6×4
   build stays at `CLOCK_PERIOD` 20, pinned by its overlay, so it is signed
   off at 50 MHz only; the 15 ns change of `d76f1cc` does not reach it. The
@@ -138,7 +138,7 @@ Milestones:
 The Tiny Tapeout `gds` action (`TinyTapeout/tt-gds-action@ihp-cmos5l`) is the
 flow of record. Local LibreLane runs use the same configuration and are for
 iteration; until an official run finishes, the Status section quotes the
-local sign-off of the committed configuration and labels it local. [docs/hardening.md](hardening.md) covers the recipe, the
+local sign-off of the committed configuration and labels it local. [docs/notes/hardening.md](notes/hardening.md) covers the recipe, the
 SRAM macro integration and what remains open.
 
 ## Updates since the move (2026-09-29)

@@ -10,7 +10,7 @@
   "//": "If you get stuck with this config, please open an issue or get in touch via the discord.",
 
   "//": "protocol-emulator: changes to the cmos5l template: the SRAM macro block, the four FP_PDN_V*",
-  "//": "stripe keys (docs/hardening.md) and the optimizer's timing settings (docs/optimization.md). Placement",
+  "//": "stripe keys (docs/notes/hardening.md) and the optimizer's timing settings (docs/notes/optimization.md). Placement",
   "//": "self-check without EDA tools: python3 macros/check_macro_floorplan.py",
 
   "//": "Here are some of the variables you may want to change:",
@@ -37,7 +37,7 @@
   "//": "https://tinytapeout.com/faq/#how-can-i-map-an-additional-external-clock-to-one-of-the-gpios",
   "CLOCK_PORT": "clk",
 
-  "//": "================= SRAM macro integration (docs/hardening.md) =================",
+  "//": "================= SRAM macro integration (docs/notes/hardening.md) =================",
 
   "//": "Eight RM_IHPSG13_1P_64x16_c2 (236.80 x 64.36 um): per engine e, instruction_sram_e<e>_lo holds",
   "//": "instruction bits 15:0 and _hi bits 31:16. Views are vendored from IHP-Open-PDK 2bbec755",
@@ -46,7 +46,7 @@
   "//": "Die 8x4 = 1724.16 x 710.64; core x 2.88..1721.28, y 3.78..706.86 (tt_block_8x4_pgvdd.def).",
   "//": "x = 11.04 + 67.44 k (k even, so also on the 0.48 um site grid) puts each macro's power columns under",
   "//": "the FP_PDN_V* stripe grid below (src/sram_pdn_cfg.tcl fails the PDN step otherwise).",
-  "//": "Placement = floorplans/fp8_spread_trk.json (chosen by the optimizer, docs/optimization.md): bottom",
+  "//": "Placement = floorplans/fp8_spread_trk.json (chosen by the optimizer, docs/notes/optimization.md): bottom",
   "//": "row k 0/7/14/21 at y 3.87, FS (on the Metal2 track; signal pins on the TOP edge, facing the logic);",
   "//": "top row k 3/9/15/21 at y 638.82, N (pins on the bottom edge), first macro clear of the TT I/O pins",
   "//": "on the top edge. Macros are spread over the full width (168-235 um gaps) instead of paired.",
@@ -158,7 +158,7 @@
   "//": "Magic's cmos5l DRC lacks the SRAM rule exceptions and flags thousands of in-macro errors. Magic DRC",
   "//": "is not part of the cmos5l precheck; the precheck's KLayout SG13CMOS5L deck checks the real GDS.",
   "ERROR_ON_MAGIC_DRC": false,
-  "//": "All Magic markers lie inside the SRAM macros (docs/drc-triage.md); skipping the step saves ~40 min",
+  "//": "All Magic markers lie inside the SRAM macros (docs/notes/drc-triage.md); skipping the step saves ~40 min",
   "//": "of the GitHub runner's 6 h limit. KLayout DRC in the precheck is the sign-off check.",
   "RUN_MAGIC_DRC": false,
 
@@ -168,7 +168,7 @@
 
   "//": "Waived for ONE known case: POWER stripes cross the LEF Metal4 OBS at each macro's VDD!/VDDARRAY!",
   "//": "split (local y 39.085..45.205). The flattened GDS has no Metal4/Via3/TopMetal1 within 1 um of the",
-  "//": "stripes inside that band (docs/hardening.md). Expect about 32 overlap boxes (8 macros x 4 stripes,",
+  "//": "stripes inside that band (docs/notes/hardening.md). Expect about 32 overlap boxes (8 macros x 4 stripes,",
   "//": "possibly split); magic__illegal_overlap__count in the metrics must stay at that scale.",
   "ERROR_ON_ILLEGAL_OVERLAPS": false,
 
@@ -185,7 +185,7 @@
 
   "//": "Configuration docs: https://librelane.readthedocs.io/en/latest/reference/configuration.html",
 
-  "//": "Timing/repair settings chosen by the physical-design optimizer (tools/opt, docs/optimization.md):",
+  "//": "Timing/repair settings chosen by the physical-design optimizer (tools/opt, docs/notes/optimization.md):",
   "//": "promotion p010-dor, trial dor-26a873-c8bf57e#94; full run 24010051 (LVS 0), TT precheck 24011934 (9/9),",
   "//": "gate-level 24011935 (0 fail). Floorplan fp8_spread_trk with FP_MACRO_HORIZONTAL_HALO 20 (no short straps).",
   "//": "Then promotion p018-dor15 (15 ns track), trial dor15-26a873-8x4-p15-f174dc0#1; full run 24042265 (LVS 0),",

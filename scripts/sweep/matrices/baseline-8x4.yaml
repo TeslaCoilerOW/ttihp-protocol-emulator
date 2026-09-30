@@ -1,5 +1,5 @@
 # Baseline exploration of the design of record (base core, 8x4), 2026-09-25.
-# docs/sweep.md explains every field. OPENROAD_THREADS ("threads") is a
+# docs/notes/sweep.md explains every field. OPENROAD_THREADS ("threads") is a
 # local-only deviation: the submission (src/config.json) and the action use 4.
 name: base8
 defaults:

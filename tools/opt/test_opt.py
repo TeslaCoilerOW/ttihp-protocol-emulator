@@ -5,7 +5,7 @@ no LibreLane, no optuna needed):
 
   python3 tools/opt/test_opt.py
 
-They check the properties the driver relies on (docs/optimization.md):
+They check the properties the driver relies on (docs/notes/optimization.md):
   * the committed configuration maps to a knob set that reproduces it exactly;
   * knob values are absolute: a knob set gives the same effective configuration
     on any committed configuration that differs only in knob-controlled keys;
@@ -159,7 +159,7 @@ class SixByFour(unittest.TestCase):
         self.assertEqual(self.t.diff_vs_base({}), {})
 
     def test_overlay_states_every_knob(self):
-        # docs/6x4.md section 4c: a later src/config.json change of a knob key
+        # docs/notes/6x4.md section 4c: a later src/config.json change of a knob key
         # for the 8x4 build must not reach the 6x4 build
         sys.path.insert(0, os.path.join(REPO, "variants6x4"))
         import switch  # noqa: E402
@@ -664,7 +664,7 @@ class Gates(unittest.TestCase):
 def adopted_tree(d, sets, overlay_nulls):
     """A minimal copy of the repository in d (src/, floorplans/, macros/, variants6x4/) whose
     src/config.json also sets `sets`, and whose 6x4 overlay states `overlay_nulls` as null: the
-    state after an 8x4 adoption of v3 knob values made as docs/optimization.md prescribes."""
+    state after an 8x4 adoption of v3 knob values made as docs/notes/optimization.md prescribes."""
     import shutil
     for sub in ("src", "floorplans", "macros", "variants6x4"):
         shutil.copytree(os.path.join(REPO, sub), os.path.join(d, sub),
@@ -796,7 +796,7 @@ class RuntimeKnobs(unittest.TestCase):
             sys.path.remove(os.path.join(self.adopted, "variants6x4"))
 
 
-# Calibration of runtime.py (docs/optimization.md, "Runtime and the 6-hour limit"): per configuration,
+# Calibration of runtime.py (docs/notes/optimization.md, "Runtime and the 6-hour limit"): per configuration,
 # the fastest synthesis time of its key over the optimizer's runs as the driver computes it
 # (runtime.Context; p010 and p018 share the DELAY 4 key), the paired trial (synthesis,
 # post-CTS repair, flow seconds) and full run (synthesis, flow), and the official gds jobs of the same

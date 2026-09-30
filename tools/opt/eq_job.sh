@@ -1,7 +1,7 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
 # Slurm job body: the RTL-vs-netlist equivalence check on a promoted
-# configuration's final netlist (docs/optimization.md, "Promotion" and
+# configuration's final netlist (docs/notes/optimization.md, "Promotion" and
 # "Equivalence check"). It runs after a legal full run, next to the precheck and
 # the gate-level tests.
 #

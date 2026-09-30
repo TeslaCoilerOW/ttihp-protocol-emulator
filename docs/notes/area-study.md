@@ -12,7 +12,7 @@ some contract impacts wrong. All numbers below were regenerated from one source
 state (manifest in section 10), except the one row marked as carried over
 from revision 1 in section 6.
 1. **Utilization.** It is now calibrated on the local LibreLane 3.1.0.dev3 run
-   of the design of record (`docs/hardening.md` section 7, the TT action's
+   of the design of record (`docs/notes/hardening.md` section 7, the TT action's
    LibreLane version and configuration). That run measured **58.4%**, not the
    52% revision 1 predicted. The TT flow adds about 75K µm² of hold buffers after
    CTS, and revision 1's calibration run did not.
@@ -31,7 +31,7 @@ from revision 1 in section 6.
    PC are marked as ISA changes.
 6. **Also:** the macro table is now complete; the latch estimate uses the
    asynchronous-reset FIFO baseline; and the scripts and patch are published
-   in `docs/area-study/` (section 10).
+   in `docs/notes/area-study/` (section 10).
 
 ## 1. Bottom line
 
@@ -41,7 +41,7 @@ standard-cell density outside the macros.
 
 | Question | Answer |
 |---|---|
-| 8x4, design as is | **Fits; routing converged locally, with little margin.** The local TT-flow run measured **58.4%** (D 53.7%). Global routing had 617 overflows (574 on Metal3). Detailed routing went from 34,515 violations to 0 at iteration 46; the re-routes after antenna repair also ended at 0 (00:40, 2026-09-25). Post-route STA and the later steps are in `docs/hardening.md` section 7. |
+| 8x4, design as is | **Fits; routing converged locally, with little margin.** The local TT-flow run measured **58.4%** (D 53.7%). Global routing had 617 overflows (574 on Metal3). Detailed routing went from 34,515 violations to 0 at iteration 46; the re-routes after antenna repair also ended at 0 (00:40, 2026-09-25). Post-route STA and the later steps are in `docs/notes/hardening.md` section 7. |
 | 8x4 fallback with no contract change | Asynchronous reset from `~(rst_n & ena)`, FIFO storage as reset registers, and 7-bit `image_length`/`image_loaded`. TT synthesis −48.7K µm², predicted **53.8%** (D 48.6%). |
 | 6x4, design as is | Does not fit: **78.1%**. |
 | 6x4, config change only (FIFO depth 4, plus the neutral items) | 60.0% (D 53.7%). This is the same density that barely routed at 8x4, with more macro blockage (section 8c). Too tight. |
@@ -489,7 +489,7 @@ Harden `configs/instruction-sram-32.json` unchanged, as decided.
 - Timing met at typical: setup WS +6.59 ns before routing (+2.94 ns post-route), and hold met after repair.
 - Detailed routing reached 0 violations at iteration 46, and the re-routes after
   antenna repair also ended at 0. Post-route STA: typical and fast met; slow
-  setup −5.09 ns, dominated by `rst_n` input paths (`docs/hardening.md` section 7).
+  setup −5.09 ns, dominated by `rst_n` input paths (`docs/notes/hardening.md` section 7).
 
 It fits, but it is at the edge; this is not a comfortable margin. If the action's
 routing fails, apply these in order:
@@ -560,7 +560,7 @@ when 4-deep queues must be kept and the latch tool risk has been retired. Hold
   against 21.6% on Metal4.
 - **Macro-induced congestion at 6x4.** The macros obstruct Metal1 and Metal3
   over their whole footprint, so no horizontal wire crosses a macro. In the
-  edge-row floorplan (`docs/hardening.md` section 4), the four macros of each
+  edge-row floorplan (`docs/notes/hardening.md` section 4), the four macros of each
   row block horizontal routing across **947.2 µm**:
   - 6x4: **73.8%** of the 1,283.5 µm core width.
   - 8x4: **55.1%** of 1,718.4 µm.
@@ -571,7 +571,7 @@ when 4-deep queues must be kept and the latch tool risk has been retired. Hold
   is higher than at 8x4 at equal density**, which is why the budget above targets
   D ≈ 48–50% instead of 53.7%. There is no 6x4 routing data point yet.
 - **Macro placement.** Pins must face the logic (bottom row FS, top row N), and
-  macros stay on the core edges. The 6x4 placement in `docs/hardening.md` passes
+  macros stay on the core edges. The 6x4 placement in `docs/notes/hardening.md` passes
   the lattice check, with its top row on off-grid x.
 - **PDN and DRC.** The macros need the SRAM PDN wrapper. `TinyTapeout/tt-support-tools#190`
   (KLayout SG13G2 DRC fails inside hard SRAM macros) was still open when checked
@@ -613,7 +613,7 @@ when 4-deep queues must be kept and the latch tool risk has been retired. Hold
 
 ## 10. Reproduction
 
-Everything needed to rerun the study is in `docs/area-study/` (listed below).
+Everything needed to rerun the study is in `docs/notes/area-study/` (listed below).
 The work directory (`<local work dir>/tt-work/area/`) also keeps:
 - `runs2/<plain|ll66>/<variant>/{stat.txt,pre_map_stat.txt,synth.ys,time.txt}` (Yosys logs and the dune build directory were deleted);
 - `vg2/` with `MANIFEST.sha256` (55 Verilog files: 54 emitted variants and blocks, plus the hand-written latch sketch);
@@ -649,7 +649,7 @@ The scripts read their locations from the environment: `W` (work directory),
 (the local LibreLane run directory with its SIF). They were used with absolute
 paths on the study machine; only those assignments differ from the versions run.
 
-### Files in `docs/area-study/`
+### Files in `docs/notes/area-study/`
 
 | File | Contents |
 |---|---|

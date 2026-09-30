@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Clock-path depth of a final netlist: the number of cells between the `clk`
 port and every flip-flop CLK pin and every SRAM macro A_CLK pin
-(docs/optimization.md, "Clock depth warning").
+(docs/notes/optimization.md, "Clock depth warning").
 
 In a zero-delay gate-level simulation (the Tiny Tapeout gl_test and
 tools/opt/gl_job.sh) every clock buffer costs at least one evaluation step, so
@@ -26,7 +26,7 @@ import sys
 
 # sram_excess of the final netlists of promotions p001-p027 (26 with a netlist): 1 to 5 for
 # the 24 with CTS_MAX_SLEW unset, 7 for p025 and p026, the two with CTS_MAX_SLEW set
-# (docs/optimization.md, "Clock depth warning").
+# (docs/notes/optimization.md, "Clock depth warning").
 WARN_EXCESS = 6
 
 OUT_PINS = frozenset(("X", "Y", "Q", "Q_N", "L_HI", "L_LO", "A_DOUT", "Z", "ZN", "GCLK"))

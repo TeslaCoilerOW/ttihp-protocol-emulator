@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Shared constants and helpers for the local LibreLane sweep harness.
 
-See docs/sweep.md. Everything here is standard library only and works with
+See docs/notes/sweep.md. Everything here is standard library only and works with
 Python 3.6+ (the compute nodes' /usr/bin/python3), because run_one.sh may call
 extract_result.py with whichever python3 it finds.
 """
@@ -24,7 +24,7 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 WORK = os.environ.get("PE_WORK", os.path.join(REPO, "build", "tt-work"))
 MAIN_SWEEP_ROOT = os.path.join(WORK, "sweep")
 SWEEP_ROOT = os.environ.get("PE_SWEEP_ROOT", MAIN_SWEEP_ROOT)
-# The proven local mirror of the gds action (docs/hardening.md section 7).
+# The proven local mirror of the gds action (docs/notes/hardening.md section 7).
 FLOW_ROOT = os.environ.get("PE_FLOW_ROOT", os.path.join(WORK, "sram-flow"))
 SIF = os.environ.get("PE_SIF", os.path.join(FLOW_ROOT, "librelane-3.1.0.dev3.sif"))
 PDK_ROOT = os.environ.get("PE_PDK_ROOT", os.path.join(FLOW_ROOT, "pdk"))

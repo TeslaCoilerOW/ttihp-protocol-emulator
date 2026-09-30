@@ -4,9 +4,9 @@ This harness runs many variants of the Tiny Tapeout hardening flow in parallel
 on the Engaging cluster. It exists to explore clock period, placement density,
 hold margins, macro floorplans, tile size and core variants. It does not replace
 the GitHub gds action: a local result is evidence, not the result of record
-(`docs/hardening.md` sections 7 and 9).
+(`docs/notes/hardening.md` sections 7 and 9).
 
-Every run reproduces the local action mirror of `docs/hardening.md` section 7.
+Every run reproduces the local action mirror of `docs/notes/hardening.md` section 7.
 That means the same LibreLane 3.1.0.dev3 image (SIF), the same IHP PDK revision
 and the same tt-support-tools `d66cf179e` config merge. The only differences
 are the parameters you choose, plus the local-only deviations listed below.
@@ -303,7 +303,7 @@ running it.
 
 Test fixture: `collect.py --run-dir …/sram-flow/run2/runs/wokwi:run2` on the
 real run2 (job 23720702, which completed at 01:29 on 2026-09-25) reproduces
-the numbers in `docs/hardening.md` section 7:
+the numbers in `docs/notes/hardening.md` section 7:
 
 * utilization 0.585;
 * GRT overflow 617 (Metal2 24, Metal3 574, Metal4 19);
@@ -341,10 +341,10 @@ Metal3 track at 68.04.
 |---|---|---|---:|---:|---:|
 | `fp8_base` | 8x4 | = `src/config.json` (bottom FS k 2/6/14/18 at y 3.78, top N k 6/10/16/20) | 33.0 | 0 | 60 |
 | `fp8_base_trk` | 8x4 | fp8_base, FS row at y 3.87 | 33.0 | 0 | 0 |
-| `fp8_wide` | 8x4 | `docs/hardening.md` §8: bottom k 2/7/13/18, top k 6/11/16/21 | 100.4 | 4 | 78 |
+| `fp8_wide` | 8x4 | `docs/notes/hardening.md` §8: bottom k 2/7/13/18, top k 6/11/16/21 | 100.4 | 4 | 78 |
 | `fp8_wide_trk` | 8x4 | fp8_wide, FS row at y 3.87 (best-guess alternative) | 100.4 | 4 | 0 |
 | `fp8_spread_trk` | 8x4 | bottom k 0/7/14/21, top k 3/9/15/21, FS y 3.87 | 167.8 | 6 | 0 |
-| `fp6_tworow` | 6x4 | `docs/hardening.md` §4 insurance: bottom FS k 0/4/8/12, top N k 3/7/11/15 | 33.0 | 4 | 60 |
+| `fp6_tworow` | 6x4 | `docs/notes/hardening.md` §4 insurance: bottom FS k 0/4/8/12, top N k 3/7/11/15 | 33.0 | 4 | 60 |
 | `fp6_tworow_trk` | 6x4 | fp6_tworow, FS y 3.87 | 33.0 | 4 | 0 |
 | `fp6_spread_trk` | 6x4 | bottom FS k 0/5/10/15, top N k 3/7/11/15 | 33.0 | 6 | 0 |
 | `fp6_block_trk` | 6x4 | compact 2×4 block on the bottom edge: FS row y 3.87 facing an N row at y 158.76, 90.5 µm channel, k 2/6/10/14 | 33.0 | 0 | 0 |
@@ -459,7 +459,7 @@ Total: 23 runs, 752 CPUs on mit_preemptable, none left on mit_normal.
 
 The cores are the variant workflow's published files in
 `$PE_WORK/variants/cores/`, as listed in
-`MANIFEST.sha256` (written 01:25). `docs/variants.md` section 4 describes
+`MANIFEST.sha256` (written 01:25). `docs/notes/variants.md` section 4 describes
 them. Every core passed `sha256sum -c` before submission, and the matrix pins
 each hash:
 
@@ -490,8 +490,8 @@ a variant run that is itself chained:
 * `cn_s2` at 15 ns follows the 48-CPU canary 23749132_0.
 
 The best 6x4 guess is diet4 with `fp6_tworow_trk` at density 60. Diet4 is the
-"items 1–6" insurance variant of `docs/area-study.md` §8b. `fp6_tworow_trk` is
-the §4 edge-row topology of `docs/hardening.md`, the same topology as the 8x4
+"items 1–6" insurance variant of `docs/notes/area-study.md` §8b. `fp6_tworow_trk` is
+the §4 edge-row topology of `docs/notes/hardening.md`, the same topology as the 8x4
 run that routed, with the FS pins on track (0 predicted DRT-0418). Density 60
 is the density that routed at 8x4.
 

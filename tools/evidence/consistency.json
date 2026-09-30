@@ -2,7 +2,7 @@
   "//": "Configuration of tools/evidence/check_consistency.py; see tools/evidence/README.md.",
   "repo_url": "https://github.com/TeslaCoilerOW/ttihp-protocol-emulator",
   "markdown_roots": ["README.md", "docs"],
-  "markdown_exclude": ["docs/notes/"],
+  "markdown_exclude": [],
   "strict_docs": [
     "README.md",
     "docs/architecture.md",
