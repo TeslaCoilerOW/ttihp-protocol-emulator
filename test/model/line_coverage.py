@@ -28,7 +28,6 @@ from collections import Counter
 from typing import Any
 
 from .line_unit import LineTransfer
-from .reference import Transfer
 
 MODES = ("drive", "sample", "drive+sample")
 CODES = ("NRZ", "NRZI", "Manchester")

@@ -59,8 +59,12 @@ head -1 "$CORE" | grep -q "configs/variants/$VARIANT.json" \
 
 echo "$VARIANT" > variant.txt
 cp "$CORE" core_orig.v
+# test/Makefile reads the design selection with scripts/design_selection.sh when
+# PE_VARIANT or PE_CORE is not given, so pack it when the snapshot has it.
+SEL=()
+[ ! -f "$SNAP/scripts/design_selection.sh" ] || SEL=(scripts/design_selection.sh)
 tar -C "$SNAP" --exclude='test/sim_build' --exclude='test/__pycache__' --exclude='test/results.xml' \
-  -czf testtree.tgz src/project.v test firmware models configs
+  -czf testtree.tgz src/project.v test firmware models configs ${SEL[@]+"${SEL[@]}"}
 cp "$SNAP/models/blackbox/RM_IHPSG13_1P_64x16_c2.v" sram_blackbox.v
 
 yosys -q -l prep.log -p "

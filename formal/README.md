@@ -3,7 +3,11 @@
 SymbiYosys (`sby`) proofs over RTL generated from `hardcaml/`. There are three
 kinds of job: unbounded proofs (k-induction or IC3/PDR), bounded model checks
 (BMC) and cover witnesses. There are also two negative controls, which must
-produce counterexamples. CI runs every job in `.github/workflows/formal.yaml`.
+produce counterexamples. CI (`.github/workflows/formal.yaml`) runs the jobs
+of `formal/run.sh --list` for the design selection (`configs/design-selection.txt`,
+`docs/extension.md` section 12.2): for a variant with `--variant NAME`, and
+for a variant with the line unit only the line-unit jobs that `--ci --list`
+names (section "Line unit").
 
 ```sh
 formal/run.sh                  # generate RTL from hardcaml/, then run every job
@@ -232,7 +236,7 @@ VARIANT_CORES=/path/to/cores formal/run.sh --variant cn_s2   # also check the co
 ```
 
 `--variant NAME` (or `FORMAL_VARIANT`) runs the same 16 jobs on a design variant
-(plus the 15 line-unit jobs when the variant has the line unit, section "Line unit")
+(plus the 46 line-unit jobs when the variant has the line unit, section "Line unit")
 (`docs/isa.md`, "Configuration variants"). Without it nothing changes. The
 build tree is `formal/build/variants/NAME/`.
 
@@ -305,9 +309,15 @@ formal/run.sh --variant diet8_rec16 --ci --list             # its job names
 `--parallel N` runs up to N jobs at a time (reports as jobs finish, the
 summary table in job order). Without `--parallel` jobs run one after another,
 as before. The CI subset took 526 s and 411 s wall-clock in two runs with
-`--parallel 4` on 4-CPU Slurm allocations (jobs 24307354 and 24309392, all
-42 expectations met in each); its longest job is `line_codec_prove` (481 s
-and 370 s).
+`--parallel 4` on 4-CPU Slurm allocations, which on these nodes are 4 cores
+with 8 hardware threads (jobs 24307354 and 24309392, all 42 expectations met
+in each); its longest job is `line_codec_prove` (481 s and 370 s). Pinned to
+4 hardware threads (`taskset`), the subset took 525 s, all 42 met (job
+24313629). No run on a GitHub-hosted runner is recorded here.
+
+`line_codec_bmc` took 1,300 s and 2,331 s in two runs on cluster nodes (jobs
+24307353 and 24311615), more than the default `SBY_TIMEOUT` of 1,500 s; run
+the whole list with `SBY_TIMEOUT=3600` as above. It is not in the CI subset.
 
 **Methods.** A `*_prove` job is a k-induction proof. Besides its claims, the
 harness asserts lemmas (source lines marked `// L`) that make the claims
@@ -320,7 +330,14 @@ after `proc`, which changes no logic. The reference models are written from
 `docs/isa.md`, not from `engine.ml`: the tick schedule (`line_tick.sv`), the
 encoder (`line_tx.sv`), the decoder (`line_rx.sv`), the arbitration monitor
 (`line_arb.sv`) and the CRC fold (`line_crc.sv` with `line_ref.vh`, whose
-step is written from the published generator polynomials). `line_tx`,
+step is written from the published generator polynomials). Two parts follow
+the engine instead. `line_arb` states the lost flag over the engine's own
+cell-bit and boundary-seen registers (`ls_line_cell_bit`,
+`ls_line_boundary_seen`), the condition the RTL uses; the cell bit is checked
+against the ISA's cell sequence only for drive-only XFERs (`line_tx`), so for
+a drive-and-sample XFER it is not. After a wrong stuff bit, `line_rx`'s
+reference takes the received bit as the last bit, as the engine does;
+`docs/isa.md` does not say what state a wrong stuff bit leaves. `line_tx`,
 `line_rx` and `line_arb` take the tick cycles from the engine's tick counter;
 `line_tick` proves that these cycles are the ISA's T(k). Covers and negative
 controls run without the lemmas (`-DNO_LEMMAS`); the negative controls are
@@ -354,7 +371,11 @@ lost). `line_crc_rx_se0_stuff_cover` reaches the excluded case below.
 (`Line_unit.mutation`); it meets its expectation only if the assertion whose
 source line names it (`target of:`) fired. Every line-unit property has at
 least one; the `*_prove` jobs of `line_pins`, `line_reset` and `line_decode`
-check the same assertions as their BMC jobs and share their controls.
+check the same assertions as their BMC jobs and share their controls. The
+closed-form CRC assertion that only `line_crc_tx_bmc` and `line_crc_rx_bmc`
+add (`-DCRC_CLOSED`) has no `target of:` tag and no control of its own: it
+shares claim C2's `crc_tap` controls (`line_crc_tx_neg`, `line_crc_rx_neg`),
+which run without `-DCRC_CLOSED` and fire C2.
 
 | Control | Defect | Claim that fires |
 |---|---|---|

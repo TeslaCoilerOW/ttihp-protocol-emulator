@@ -22,7 +22,7 @@ behavioral peers.
 | `test_smoke.py` | reset/deselect, ISA version, loader (BEGIN/OWN/COMMIT/START/STOP), status registers, host-fault rejections, checker self-test |
 | `test_protocols.py` | `uart-tx` (decoded from pin 0), `uart-rx` (pin 1 driven, RX FIFO read; idle timeout and framing faults), `spi-controller-mode0..3` against the SPI target, `i2c-write`/`i2c-read`/NACK against the open-drain target |
 | `test_flagship.py` | `../firmware/flagship-scenario.json`: four engines concurrently (UART TX, UART RX with `uart-rx-idle`, SPI, I2C) plus the autonomous UART-RX to SPI-TX route; and 5 RTL-only tests of `uart-rx-idle` alone on engine 1 (idle stretches of `PE_UART_IDLE_CYCLES`, default 100,000 cycles; sparse frames at every poll phase, a break across START and a framing error; back-to-back frames at -2%, 0 and +2% baud error), which record the reference model's sample points while the DUT is checked in lockstep on its outputs; skipped at gate level |
-| `test_protocols_ext.py` | the SWD, WS2812B, PS/2 and 1-Wire images (`../docs/firmware.md`) against peers written here from the cited specifications, 22 tests. Not in the default list or the gate-level test: run `make COCOTB_TEST_MODULES=test_protocols_ext` (RTL, about 7 minutes); CI runs it in the `protocols-ext` job of `../.github/workflows/test.yaml`. It loads `../firmware/` directly and skips a design whose engine count, data width, queue depth or issue mode differs from the design of record |
+| `test_protocols_ext.py` | the SWD, WS2812B, PS/2 and 1-Wire images (`../docs/firmware.md`) against peers written here from the cited specifications, 22 tests, and `test_ps2_host_restricted` (below). Not in the default list or the gate-level test: run `make COCOTB_TEST_MODULES=test_protocols_ext` (RTL, about 7 minutes); CI runs it in the `protocols-ext` job of `../.github/workflows/test.yaml`. It loads `../firmware/` directly and skips an image's tests on a design whose engine count, data width, queue depth or issue mode differs from the design of record, or whose ISA-version-3 knobs change one of the image's words (`model/variant.py` `Options.image_differences`; `../docs/isa.md`, "ISA version"): `ps2-host` shifts by 21, so on a byte-lane design (`diet8`, `diet8_rec16`) the two `test_ps2_host` tests are skipped and `test_ps2_host_restricted` checks instead that the image runs up to that word and faults there with code 1 (on the design of record it is skipped). `test_ps2_host_no_device` ends before that word and runs on both |
 | `test_legacy.py` | lockstep replay of the 25 monorepo differential workloads (`model/verification.py`): queues, DMA congestion, SPI mode matrix, strict push, input triggers, JTAG, waveform, I2C target, UART overflow, ... |
 | `test_random.py`, `random_gen.py` | constrained-random lockstep differential test with functional coverage and a minimizer |
 | `test_directed.py` | directed tests written from the mutation campaign's survivor analysis (full-capacity image, OWN overlap, operand check, ROUTE counts above 4095, FLUSH of a routed engine, COUNT/LOOP, 40,003 completed instructions, blocked count after ALU/TIME, LIMIT 0x2108, SHR into bit 15, odd XFER half-period, far jump targets, XFER next to driven pins) |
@@ -48,7 +48,9 @@ make
 The RTL run compiles `../src/project.v`, `../src/protocol_emulator_core.v` and the
 IHP SRAM behavioral models `../models/RM_IHPSG13_1P_64x16_c2.v` +
 `../models/RM_IHPSG13_1P_core_behavioral.v` with `-DFUNCTIONAL`. The full suite
-has 107 tests. In job 24303859, `make clean; make` with Icarus 13.0 on a
+of the design of record has 107 tests; `make` runs the suite of the design
+selection (section "Design variants"), which on a checkout whose selection
+names `diet8_rec16` has 165 (section "Line-unit tests"). In job 24303859, `make clean; make` with Icarus 13.0 on a
 cluster node, while other `scripts/reproduce.sh` steps ran in parallel,
 took 373 s, with 368 s of test time; the five `uart-rx-idle` tests of `test_flagship.py`, added in
 `e64cd6b`, took 105 s of it. For the 102-test suite before that commit it
@@ -240,9 +242,22 @@ make PE_VARIANT=diet4                       # ../build/variants/diet4/protocol_e
 make PE_VARIANT=cn PE_CORE=/path/to/cn.v    # a core kept elsewhere
 ```
 
+The default `PE_VARIANT` is the design selection: `../configs/design-selection.txt`,
+read by `../scripts/design_selection.sh`, names the configuration that
+`../src/protocol_emulator_core.v` is generated from (`base` for
+`configs/instruction-sram-32.json`, the name `NAME` for
+`configs/variants/NAME.json`; `../docs/extension.md` section 12.2). It is
+`base` on `main` and `diet8_rec16` on the branch `eval/diet8-rec16`. The
+selected variant simulates `../src/protocol_emulator_core.v`, so `make` and the
+Tiny Tapeout `gl_test` action (`make GATES=yes`, no variables set) run the
+suite of the design in `src/`. The Makefile runs the script only when the
+result depends on it (`PE_VARIANT` not given, or given without `PE_CORE`); a
+copy of `test/` without `../scripts/design_selection.sh` needs both
+`PE_VARIANT` and `PE_CORE`.
+
 | name | reset | queue words | ISA knobs | ISA version |
 |---|---|---:|---|---:|
-| `base` (default) | `sync` | 8 | none | 2 |
+| `base` (the default on `main`) | `sync` | 8 | none | 2 |
 | `rstreg` | `sync_registered` | 8 | none | 2 |
 | `cn` | `async` (+ FIFO storage reset, narrow image registers) | 8 | none | 2 |
 | `cn_s2` | `async_sync_release` (+ the same) | 8 | none | 2 |
@@ -251,10 +266,11 @@ make PE_VARIANT=cn PE_CORE=/path/to/cn.v    # a core kept elsewhere
 | `diet8` | as `cn_s2` | 8 | as `diet4` | 3 |
 | `diet8_rec16` | as `cn_s2` | 8 | as `diet4`, plus the line unit (`../docs/extension.md`) | 3 (READ_SELECT 7 = 0x000F5F03) |
 
-`base` is exactly the Tiny Tapeout CI run: the same file list
-(`../src/protocol_emulator_core.v`), `sim_build/rtl`, and the verbatim
-`model/reference.py`; its random cases and lockstep cycle counts are unchanged.
-For any other name:
+`base` with the base selection is exactly the Tiny Tapeout CI run of `main`:
+the same file list (`../src/protocol_emulator_core.v`), `sim_build/rtl`, and
+the verbatim `model/reference.py`; its random cases and lockstep cycle counts
+are unchanged. For any other name (and for `base` on a checkout whose
+selection names a variant, which then simulates `../build/variants/base/`):
 
 - **Core and configuration.** The core is `../build/variants/<name>/protocol_emulator_core.v`
   (`scripts/gen_variants.sh`) or `PE_CORE`. The model is configured from
@@ -271,8 +287,10 @@ For any other name:
   24303859). These 20 images are valid on every variant (shift counts are
   all 24, targets at most 54).
   The SWD, WS2812B, PS/2 and 1-Wire images are not reassembled:
-  `test_protocols_ext.py` loads them from `../firmware/` and skips other
-  designs (`ps2-host` shifts by 21, which the byte-lane variants reject).
+  `test_protocols_ext.py` loads them from `../firmware/` and skips the tests
+  of an image on a design that cannot run it unchanged (another engine count,
+  data width, queue depth or issue mode, or a word that the design's ISA knobs
+  change: `ps2-host` shifts by 21, which the byte-lane variants fault on).
 - **Model.** `model/variant.py` subclasses the verbatim reference: queue depth,
   counters, saturating PC, byte-lane faults, ISA version, and the reset
   styles, modelled with the two synchronizer flops explicitly.
@@ -327,25 +345,42 @@ Model-only (no simulator) runs take the same variable:
 ## Line-unit tests
 
 For variants with the line unit (`PE_VARIANT=diet8_rec16`, `../docs/extension.md`)
-the Makefile adds three modules to the default list; on every other variant
-they are skipped (they are not in the default list either):
+the Makefile adds three modules and the fourteen `test_line_spec_*` modules to
+the default list. On every other variant they are not in the default list, and
+all but `test_line_spec_limit_bits` skip themselves when run:
 
 | file | content |
 |---|---|
 | `test_line_unit.py`, `line_scenarios.py` | 12 directed tests: version word, nine catalogued CRC check values, CRC from classic and sampling XFERs, ticker timing formula, TX line coding and RX decoding against independent encoders, arbitration, 43 invalid/valid encodings, LSTAT, START/STOP/reset, ticker sharing, completion points |
 | `test_line_demos.py`, `line_demos.py` | the extension study's demos with the `../firmware/ext/` images: 10BASE-T UDP frame (to the first link pulse, 660,000 cycles), CAN node scenarios (including the ACK of received frames) and negative controls, reset in the middle of a CAN frame, USB low-speed IN responder, its rejection of a bad-CRC5, OUT and SETUP token and its EOP, and the absence of an address filter, CRC stream |
 | `test_line_random.py`, `line_random.py` | constrained-random line-unit programs on up to four engines; `PE_SEED`, `PE_LINE_RANDOM_ITERS` (default 16), `PE_LINE_RANDOM_FIRST`, `PE_LINE_RANDOM_CYCLES`; logs the functional coverage counted by the model |
+| `test_line_spec_*.py` (14 modules, 33 tests), `test_line_spec_common.py` (their helper, not a module) | behaviour-named tests written from the survivors of the line-unit mutation campaign (`../docs/extension.md` section 11.3), each checking a statement of `../docs/isa.md` at the pins, the status registers or the PC: `every_engine` (11 tests), `crc` (5), `lstat` (4), `bounded_wait`, `limit_bits` (2 each), `registers`, `pins`, `ticker`, `state_held`, `stuffing`, `xfer_crc_bit`, `se0_pins`, `invalid_fields`, `image_end` (1 each). `test_line_spec_limit_bits` uses no line-unit instruction (WAITEVENT/WAITPIN with LIMIT 2^k + 2, k = 0..23, with the time warp), is not skipped on other variants and passes on the design of record's core (Slurm job 24370776) |
 | `line_support.py` | encoders, the firmware/ext loader, CRC catalogue model, NRZI/stuffing/CAN/USB/UDP references, the behavioural CAN node |
 | `model/line_unit.py` | the reference model of the unit (`LineReference`) |
 
 ```sh
-make PE_VARIANT=diet8_rec16                                        # 107 + 25 tests
+make PE_VARIANT=diet8_rec16                                        # 107 + 25 + 33 = 165 tests
 make PE_VARIANT=diet8_rec16 COCOTB_TEST_MODULES=test_line_unit     # directed tests only
+make PE_VARIANT=diet8_rec16 COCOTB_TEST_MODULES=test_line_stdref   # the standards-based reference, separately
 ```
 
 At gate level the CAN demos are skipped and the 10BASE-T test stops after the
 frame (no link pulse), unless `PE_LINE_GL_FULL=1`; the random test runs one
-case.
+case. The `test_line_spec_*` modules are skipped at gate level unless
+`PE_LINE_GL_FULL=1`, so the Tiny Tapeout `gl_test` action reports their 33
+tests as SKIP; with `PE_LINE_GL_FULL=1`, 31 of them run and
+`test_line_spec_limit_bits` (2 tests) is still skipped, since the time warp
+needs the RTL's register names. `PE_SPEC_ONLY=1` turns off the per-cycle
+comparison with the reference model in the four modules written from the
+second mutation sample (`se0_pins`, `invalid_fields`, `image_end`,
+`limit_bits`), so that their own checks decide alone.
+
+`test_line_stdref.py` (`stdref/README.md`, `../docs/extension.md` section 6.6)
+checks the pads against a reference written from the standards. It is not in
+the default list while the LSTAT[13:8] point of section 6.6 is open (after SE0
+in the cell of a trailing stuff bit the RTL reports 1 data bit remaining where
+that reference expects 0, so two of its tests fail); run it with
+`make COCOTB_TEST_MODULES=test_line_stdref`.
 
 ## Model-only development
 

@@ -43,6 +43,21 @@ are `none`, `tx_fifo_unbounded`, `rx_fifo_unbounded`, `pin_limit`, `event_limit`
 This is local instruction timing, not a claim about whole-program runtime or
 fmax: control flow, external edges, events, and queue occupancy affect execution.
 
+An image may also carry an optional `requires` field: a list of feature names
+from the capability bits of READ_SELECT 7 ([isa.md](isa.md), "Discovery"):
+`line_unit`, `fraction`, `stuffing`, `arbitration`, `crc16`, `crc32`,
+`crc_presets`. The OCaml assembler does not write it, and no committed image
+carries it. The host library ([host.md](host.md), `pe_host.image`) reads it:
+the list must name every capability that the image's words use (line-unit
+opcodes 30 to 33, the XFER line and CRC bits, the fraction, stuffing,
+arbitration and preset fields), and `load_image` refuses the image on a device
+that does not report every required feature, or the line unit on the image's
+engine. The words alone already determine the capabilities they use; `requires`
+can only add features. ISA-version restrictions are not capabilities: an ISA-2
+image on a version-3 device is checked against the rule of [isa.md](isa.md),
+"ISA version" (byte-lane shift counts, targets below 128), which only
+`ps2-host` of the committed images breaks.
+
 Load by SELECT, BEGIN, complete contiguous program-word writes, OWN, COMMIT,
 then START. For a concurrent start, load every image and issue one START mask.
 Do not release a partial image. Prefill queues before START for protocols whose
@@ -320,7 +335,12 @@ dune exec bin/assemble.exe -- --source ../firmware/swd-read.source.json --output
 
 `scripts/gen_variants.sh` does not reassemble them for the variants, and the
 tests below skip a design whose engine count, data width, FIFO depth or
-issue mode differs from the design of record.
+issue mode differs from the design of record. They also skip the tests of an
+image on a design whose ISA-version-3 knobs change one of its words
+([isa.md](isa.md), "ISA version"): `ps2-host` shifts by 21, which a design
+with byte-lane shifts (`diet8`, `diet8_rec16`) faults on with code 1; there
+`test_ps2_host_restricted` checks that fault instead
+([test/README.md](../test/README.md)).
 
 | Image | Engine, pins | Words of 64 | Protocol subset | Timing at 50 MHz | Cited document |
 |---|---|---:|---|---|---|
@@ -530,7 +550,9 @@ presence pulse of the DS2404/DS1994.
   ```
 
   Its 22 tests take about seven minutes with cocotb 2.0.1 and Icarus
-  Verilog 13.0.
+  Verilog 13.0. A 23rd, `test_ps2_host_restricted`, runs only on a design
+  that cannot run `ps2-host` unchanged (above) and is skipped on the design
+  of record.
 - **Ground truth for the static schedules.** pe_timing's validator traced the
   reference model through every scenario of `test_protocols_ext.py` and
   through its random-traffic stress suite on the six images (8 seeds of

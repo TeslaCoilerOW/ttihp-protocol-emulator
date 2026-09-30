@@ -405,7 +405,22 @@ diet4 under the 102-test suite"; parameters:
 For comparison, the design of record: 96.82 % (2,223 / 2,296), and 91.86 %
 (2,223 / 2,420) without removing equivalent mutants; with the longer ABC cap of
 section 4.5 on both, 97.93 % for the design of record and 96.66 % for `diet4`
-(7.3). As the section "Variant diet4 (6x4) campaigns" of
+(7.3).
+
+**Note (added 2026-09-30): mutant 1860.** One of the 107 `equiv_induct`
+proofs is of a clock inversion: mutant 1860 (`inv` of the `CLK` port of the
+`$procdff` cell of engine 0's `transfer_pins` register, `transfer_pins_2` in
+the netlist, `results/diet4-102/engine_map.json`) moves that flip-flop
+to the falling edge. `equiv_induct` models every flip-flop as a one-cycle
+delay of the one clock and does not see the change; the line-unit campaign
+found the same limit with its mutant 231 ([extension.md](extension.md)
+section 11.4), and `push_summary.py --no-clock-proofs` ignores such proofs.
+Without that proof, `diet4` scores 2,199 / (2,420 − 110) = 95.19 % with 111
+survivors, and with the longer cap of 7.3 2,199 / (2,420 − 144) = 96.62 %
+with 77 survivors (recount of the recorded results, Slurm job 24383267). The
+figures of this section keep the accounting as first published. The design
+of record's three `CLK` mutants (857, 1390, 2111) are all killed, so its
+96.82 % and 97.93 % do not change (the same recount on the push, 24383364). As the section "Variant diet4 (6x4) campaigns" of
 verification-campaign.md notes, the two mutant sets are drawn from different
 netlists, so the two scores are not a paired comparison.
 

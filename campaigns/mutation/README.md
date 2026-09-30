@@ -39,6 +39,8 @@ per-mutant files stay in the campaign directory `$CAMP`.
 | `line_region.py` | Locate the line-unit logic structurally: the statements that compute line-unit state and the first statements on every path out of them |
 | `sample_score.py` | Score of a uniform mutant sample with a Wilson confidence interval, total and per region |
 | `line_survivor_classes.py` | Line-unit campaign: locate the engine-control selects and the blocked-cycle count's opcode chain structurally and classify survivors (docs/extension.md section 11.4); `--chain-share` counts the mutants of a sample by their place on that chain |
+| `dor_stage.py` | List every engine's WAITPIN and WAITEVENT stage of the blocked-cycle count, with its `$ternary` cells, in a core and its `base.il` (also the design of record's core, whose PC is compared with a zero-extended image length) |
+| `dor_analogues.sh` | Apply one row of `results/diet8_rec16/dor_waitevent_analogues.tsv` to the design of record's design and run the base variant's default modules and `test_line_spec_limit_bits` on it (see "Line unit (diet8_rec16)") |
 
 Stages of `run_mutant.py`:
 
@@ -488,6 +490,38 @@ done
 # the summaries then add --sim kill4=results/kill4-Q to the push_summary.py calls above, and
 python3 $H/line_survivor_classes.py design-ext --chain-share mutant_status-ext.tsv --json chain_share-ext.json
 ```
+
+Design-of-record analogues of the second sample's last unargued survivors
+(`results/diet8_rec16/dor_waitevent_analogues.tsv`, docs/extension.md section
+11.4). Survivors 331 and 333 are `cnot1` mutations of engine 0's WAITEVENT
+stage of the blocked-cycle count, 1438 and 1442 of engine 2's. `dor_stage.py`
+lists the WAITPIN and WAITEVENT stage cells of every engine in a core; the
+table applies each survivor's port, port bit and control bit to the WAITEVENT
+stage cell of the same engine in the design of record's design (the push
+campaign's `design/`, core sha256 `26a873db…`). `dor_analogues.sh` runs one
+row: the mutant, then the base variant's 20 default modules and
+`test_line_spec_limit_bits`, each module as its own `make` call, on a test tree
+of `99f39c0` (the commit that added the `test_line_spec_*` modules; its base
+modules have 102 tests):
+
+```sh
+source campaigns/mutation/campaign.env; source campaigns/mutation/campaign-push.env   # PUSH_DIR
+export PATH=$OSS_CAD_SUITE/bin:$PATH      # yosys; Icarus 13.0 and cocotb 2.0.1 (CI) as for the campaign
+H=$PWD/campaigns/mutation
+python3 $H/dor_stage.py $PUSH_DIR/design/core_orig.v $PUSH_DIR/design/base.il   # engine 0: 8783$1163, engine 2: 11539$2365
+python3 $H/dor_stage.py $CAMP_LINE/design-ext/core_orig.v $CAMP_LINE/design-ext/base.il   # the survivors' cells (12124$1100, 16169$3002)
+mkdir -p $PE_WORK/dor/tree && git archive 99f39c0 | tar -x -C $PE_WORK/dor/tree
+for id in orig 0 D331 D333 D1438 D1442; do        # about 4 minutes each
+  sbatch -p mit_preemptable,mit_normal --requeue -c 2 --mem=8G -t 45 \
+    $H/dor_analogues.sh $PUSH_DIR/design $PE_WORK/dor/tree $id $PE_WORK/dor/$id
+done
+# each $PE_WORK/dor/<id>/summary.txt: one line per module (TESTS/PASS/FAIL/SKIP)
+```
+
+(`CAMP_LINE` is `CAMP` of `campaign-line-diet8_rec16.env`.) As run: job
+24370776, with work-directory versions of these two scripts; reproduced with
+them by job 24383219 (`orig` and `0`: 102 of 102 and 2 of 2; each of the four
+mutants: 102 of 102 and 1 of 2, as in the table).
 
 `design/engine_map.json` is `engine_map.py`'s output for the core;
 `results/diet8_rec16/engine_map.json` also maps the line-unit registers

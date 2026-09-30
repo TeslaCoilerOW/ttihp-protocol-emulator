@@ -21,9 +21,12 @@
 // LCFG's initial level) and, when the run of equal line bits (either
 // polarity) or of 1s has reached the run length, drops the bit as a stuff bit
 // (setting the stuff-error flag when it is not the complement of the last bit,
-// or 0 for runs of 1s; the run then restarts as after the expected stuff
-// bit); otherwise it shifts the bit into rx, MSB or LSB first, without
-// clearing rx. After the last data bit it also takes a trailing stuff bit
+// or 0 for runs of 1s; the run counter then restarts as after a correct stuff
+// bit, at 1 for either polarity and at 0 for runs of 1s, and the last bit
+// becomes the received bit: docs/isa.md does not say what state a wrong stuff
+// bit leaves, and here the reference follows the engine, whose last bit takes
+// the decoded bit); otherwise it shifts the bit into rx, MSB or LSB first,
+// without clearing rx. After the last data bit it also takes a trailing stuff bit
 // when one is due. Claims (target of: line_rx_neg_nrzi line_rx_neg_destuff):
 //   R1  rx equals the reference's shift register (the whole register);
 //   R2  the stuff-error and SE0 flags (LSTAT bits 2 and 0) equal the

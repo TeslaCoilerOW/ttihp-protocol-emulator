@@ -313,6 +313,16 @@ Per case, the directory `OUT/<case>/` (`netlist`, `mutA`, `mutC`,
   `failure` when only its `viewer` job fails and a `gds_6x4` run can be
   cancelled by a newer push after its `gds` job succeeded. The workflow sets the variant:
   `gds` gives `base`, `gds_6x4` gives `diet4`.
+- **Design selection and branch builds (branch `eval/diet8-rec16`).** On this
+  branch the filter also names `eval/diet8-rec16`, effective once the file is
+  on `main` (GitHub runs `workflow_run` workflows from the default branch).
+  For a `gds` run the variant is the built commit's design selection
+  (`configs/design-selection.txt`, read through the API as data; `base` for a
+  commit without it), and the `check` job requires the sparse checkout's
+  selection and the core's header line to name that configuration before it
+  runs `eq_check.py check --variant NAME` (docs/equivalence.md section 7,
+  docs/extension.md section 12.2). `gds_6x4` still gives `diet4`. The unit
+  tests (`test_eq_check.py`) use a base core file of their own, not `src/`.
 - **Where results appear.** A run started by `workflow_run` is listed under
   the default branch's latest commit, not under the built commit; its job
   summary names the built commit and the `gds` run. When the `gds` job of

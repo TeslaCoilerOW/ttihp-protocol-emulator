@@ -67,8 +67,12 @@ cp "$CORE" core_orig.v
 # ../firmware and ../configs relative to test/; a variant also its firmware images).
 # The variant's unmutated core is left out, so a run that failed to point PE_CORE
 # at the mutant cannot silently simulate it.
+# test/Makefile reads the design selection with scripts/design_selection.sh when
+# PE_VARIANT or PE_CORE is not given (base tasks), so pack it when the snapshot has it.
+SEL=()
+[ ! -f "$SNAP/scripts/design_selection.sh" ] || SEL=(scripts/design_selection.sh)
 tar -C "$SNAP" --exclude='build/variants/*/protocol_emulator_core.v' -czf testtree.tgz \
-  src/project.v test firmware models configs ${EXTRA[@]+"${EXTRA[@]}"}
+  src/project.v test firmware models configs ${EXTRA[@]+"${EXTRA[@]}"} ${SEL[@]+"${SEL[@]}"}
 cp "$SNAP/models/blackbox/RM_IHPSG13_1P_64x16_c2.v" sram_blackbox.v
 
 yosys -q -l prep.log -p "

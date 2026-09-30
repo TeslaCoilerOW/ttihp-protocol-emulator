@@ -38,7 +38,7 @@ port. Both are listed under [Verification](#verification-of-the-library).
 CPython, reference model (from the repository root):
 
 ```sh
-python3 host/examples/selftest_demo.py      # 73 checks, every host command
+python3 host/examples/selftest_demo.py      # 77 checks (93 with the argument diet8_rec16), every host command
 python3 host/examples/flagship_demo.py      # the flagship scenario with software peers
 make -C host test                           # the library's unit tests
 ```
@@ -50,7 +50,7 @@ from pe_host.ports.model import ModelPort
 
 pe = ProtocolEmulator(ModelPort())
 pe.reset()
-pe.check_isa()                                    # READ_SELECT 7 == 2
+pe.check_isa()                                    # READ_SELECT 7 bits 7..0 == 2
 pe.load_image(FirmwareImage.load("firmware/uart-tx.image.json"))
 pe.tx_write([0x48, 0x69], engine=0)               # prefill engine 0's TX FIFO
 pe.start(0b0001)
@@ -269,14 +269,24 @@ a 1-cycle bubble, 1 capture cycle and 8 read cycles.
 All cycle counts are host clocks. `timeout` arguments bound one blocked nibble
 handshake; the default is `ProtocolEmulator.timeout`, 100000.
 
-### `ProtocolEmulator(port, timeout=100000, architecture=None, isa_versions=(2,), strict=True, log=None)`
+### `ProtocolEmulator(port, timeout=100000, architecture=None, isa_versions=None, strict=True, log=None, device=None)`
 
+- `device`: a name in `protocol.DEVICES`: `"base"` (the design of record,
+  READ_SELECT 7 = 0x00000002) or `"diet8_rec16"` (the line-unit extension
+  variant of [extension.md](extension.md), 0x000F5F03, no completed-instruction
+  counters). It sets the READ_SELECT 7 word and the READ_SELECT 5 behaviour
+  that the self-test expects, and the defaults below. The default is `"base"`
+  unless `isa_versions` is given; then no known device is assumed. The default
+  does not follow the repository's design selection
+  (`configs/design-selection.txt`), which a MicroPython board cannot read: a
+  host for another device passes `device=`.
 - `architecture`: the device architecture that images must be bound to. The
-  default is `protocol.DESIGN_ARCHITECTURE`, the design of record
-  `configs/instruction-sram-32.json`: 4 engines, 32-bit, 64 words, FIFO 8,
-  fused, no prefetch.
-- `isa_versions`: the READ_SELECT 7 values that `check_isa()` and
-  `load_image()` accept.
+  default is the device's, `protocol.DESIGN_ARCHITECTURE` for both known
+  devices: the design of record `configs/instruction-sram-32.json`, 4 engines,
+  32-bit, 64 words, FIFO 8, fused, no prefetch.
+- `isa_versions`: the ISA versions (READ_SELECT 7 bits 7..0) that
+  `check_isa()` and `load_image()` accept; the default is the device's (2 for
+  `base`, 3 for `diet8_rec16`).
 - `strict`: raise `CommandRejected` when uo[7] rises across a command word.
 - `log`: an optional print-like callable that logs every command and its
   outcome.
@@ -351,7 +361,10 @@ case. On a port without uo[7], every other command returns None.
 | `event_pending(engine=None)` | 4. |
 | `completed(engine=None)` | 5. |
 | `held_rx(engine=None)` | 6, for example the word a strict PUSH rejected. |
-| `isa_version()` / `check_isa()` | 7. `check_isa` raises `IsaMismatch` for a version outside `isa_versions`. |
+| `version_word()` | 7, the whole word: the ISA version in bits 7..0, the capability bits in bits 23..8 ([isa.md](isa.md), "Discovery"). |
+| `isa_version()` / `check_isa()` | 7, bits 7..0. `check_isa` raises `IsaMismatch` for a version outside `isa_versions`. |
+| `capabilities()` | 7, bits 23..8, decoded into `protocol.Capabilities` (`line_unit`, `line_engines`, the feature bits). |
+| `identify()` | 7: the name of the known device whose word the device reads, or None. |
 
 **Loading**
 
@@ -366,9 +379,13 @@ case. On a port without uo[7], every other command returns None.
   call `select`, `begin`, `write_word(W_PROGRAM, ...)`, `own` and `commit`
   yourself.
 - `load_image(image_or_path, engine=None, check_isa=True, verify=False)`
-  checks the image's architecture binding. It reads the ISA version (at least
-  the image's `isa_version`, and in `isa_versions`), then loads the image on
-  `image.engine`.
+  checks the image's architecture binding. With `check_isa` it reads
+  READ_SELECT 7 and requires an ISA version in `isa_versions` and at least the
+  image's `isa_version`; on a version-3 device, an image of an earlier version
+  must also run unchanged there (below); and the device must report every
+  capability the image needs, including the line unit on the target engine
+  (`CapabilityMismatch`, a subclass of `ImageError`). Then it loads the image
+  on `image.engine` (or `engine`).
 
 **Queues**
 
@@ -410,10 +427,23 @@ as [firmware.md](firmware.md) specifies:
   is present (`source="required"` makes it mandatory, `False` skips it);
 - 8-bit pin masks, with open-drain pins inside the owned pins;
 - the engine range and program capacity;
-- with `architecture`, the binding to that architecture.
+- with `architecture`, the binding to that architecture;
+- the capabilities the words use (line-unit opcodes 30 to 33, the XFER line
+  and CRC bits, the fraction, stuffing, arbitration and preset fields), plus
+  those of the optional `"requires"` list of feature names
+  (`protocol.CAPABILITY_NAMES`, [firmware.md](firmware.md)); a list that omits
+  a capability the words use is an error. `image.required_capabilities` holds
+  the result.
 
 `image.check_binding(arch, ignore=())` and `image.check_isa(version)` raise
-`ImageError`. `load_scenario(path, architecture=None)` loads a
+`ImageError`; `image.check_capabilities(capabilities, engine=None)` raises
+`CapabilityMismatch`. `check_isa(3)` also refuses an ISA-1 or ISA-2 image that
+does not meet the rule of [isa.md](isa.md), "ISA version": every SHL/SHR count
+a byte lane and every JMP, LOOP and JZ target below 128
+(`image.isa3_differences(words)` lists the words that break it). READ_SELECT 7
+does not say which ISA-3 knobs a device has, so both are required. Of the
+committed images only `ps2-host` (an SHR by 21) is refused on a version-3
+device. `load_scenario(path, architecture=None)` loads a
 `protocol-emulator.firmware-scenario.v1` file and checks its binding. All of
 this uses only `json`, `hashlib.sha256`, `binascii` and `struct`, so it runs
 on the board too.
@@ -436,8 +466,12 @@ pullups=0xFF)` combines peers as a wired-AND. Attach an environment with
 ### Scenarios
 
 - `pe_host.selftest.run(pe, trigger_pin=0, log=None, sections=None)` runs a
-  bring-up self-test in 10 independent sections and 73 checks, using only
-  the host port. The "trigger" section drives uio0 for a few cycles; nothing
+  bring-up self-test in 11 independent sections, using only the host port:
+  77 checks with the `base` device, 93 with `diet8_rec16`. The `identity`
+  section compares READ_SELECT 7 with the device's word and READ_SELECT 5 with
+  its counters; the `line_unit` section checks that LSTAT faults with code 1
+  on a device without the unit, and on each engine that reports the unit runs
+  a probe program (CRC cleared by START, a CRC round trip, LSTAT). The "trigger" section drives uio0 for a few cycles; nothing
   else leaves the chip. It returns `SelfTestResult` (`passed`, `summary()`).
 - `pe_host.flagship.run_flagship(pe, scenario_path, firmware_dir=None,
   peers="software", i2c_stretch=0, done=None, max_cycles=None,
@@ -531,7 +565,8 @@ same pad against each other. A test in
    off, then run `mpremote run host/examples/selftest_demo.py`. It selects the
    project through `tt.shuttle`, takes the clock (`clock_project_stop`, then
    RP2-driven), disables the v3.3 manual-clock button timer, resets the chip
-   and runs the 73 checks.
+   and runs the 77 checks of the `base` device (93 with
+   `DEVICE = "diet8_rec16"` in the script, for a chip with the line unit).
 4. **Run the flagship scenario with software peers.** Keep the PMOD header
    empty and run `mpremote run host/examples/flagship_demo.py`. The RP2 plays
    the UART sender and receiver, the SPI target and the I2C target on its own
@@ -598,6 +633,7 @@ installs in CI.
 | `host/tests/test_host_commands.py` | Every command and READ_SELECT against the model's internal state. Also: rejections, TX/RX timeouts, read pauses, strict-overflow held RX, every committed image loaded (19 at the time of job 23778831, 26 since `e64cd6b`), a self-test that fails on a model with an injected host-port bug, and raw SELECT/READ_SELECT under a high FAULT pin (the library's selection stays equal to the model's, and `fault_report()` still works). | PASS (job 23778831; with the 26 images, job 24302122) |
 | `test_host_transfers.py` | Abandoned partial command, program, TX, RX and status transfers (1 to 7 nibbles) have no side effect. A window change abandons the RX reservation. Every window change is a bubble with ready and valid low. Read-valid comes two cycles and write-ready one cycle after the change. | PASS (23778831) |
 | `test_host_image.py` | SHA-256 and structure checks, architecture binding and ISA requirement, including tampered images. | PASS (23778831) |
+| `test_host_capabilities.py` | The READ_SELECT 7 capability bits of both devices (`base`, `diet8_rec16`), the capabilities images need (from their words and an optional `"requires"` list), the self-test's `line_unit` section, and the ISA-3 rule of [isa.md](isa.md), "ISA version": `isa3_differences` flags exactly the non-lane SHL/SHR counts and the JMP/LOOP/JZ targets of 128 or more of a word list, every committed image but `ps2-host` loads on both devices, and `ps2-host` (an SHR by 21 at word 45) is refused on `diet8_rec16` with nothing loaded. | PASS, 19 tests (24382647); full suite 24385763 (90 tests) |
 | `test_host_harness_equivalence.py` | An operation list covering every command, accepted and rejected, gives cycle-identical ui/uio/rst/ena/uo and identical returned values on the library and on `test/harness.py`. The harness driver returns nothing for commands, so an acceptance oracle (`tests/acceptance.py`) checks `command()`'s results separately. It wraps the model's own command decoder and compares each result with the model's accept/reject decision. It also checks that the library's `selected` and `read_selected` equal the model's after every operation. The oracle runs on the operation list and on 30 random programs, each on a full port and on a 6-bit uo port. A mutant with the old SELECT/READ_SELECT rule is caught. | PASS (23778831) |
 | `test_host_flagship.py` | The flagship scenario with pe_host peers. The pad waveform is decoded by `test/model/scoreboards.py` (`uart_decode` on pins 0 and 1, `spi_decode` MOSI and MISO, `i2c_decode`, `assert_open_drain`) and by `test/peers.py`'s `UartMonitor`. Also covered: I2C clock stretching, NACK reported as fault 65, and the contention interlock. With the `test/` peers, the whole flagship waveform (over 7,000 cycles) equals `test/scenarios.py` `flagship()` on the harness, cycle for cycle. `peers="external"`, with SPI and I2C targets on the pads and an idle UART line, has four tests. (1) Engine 1 (`uart-rx-idle` since `e64cd6b`) does not fault on the idle line: the run passes with no engine fault and no host fault, and nothing is cleared. (2) A host fault injected right after reset is still detected. (3) An extra engine fault (no I2C target, so fault 65) fails the run. (4) On a 6-bit uo port the run passes, with the host fault reported as not checked. (Until `e64cd6b` engine 1 ran the bounded `uart-rx`, test (1) expected its fault 3 and a CLEAR, and (3) and (4) expected fault 3 as well.) | PASS (23778831; with `uart-rx-idle`, 24302122) |
 | `test_host_ports.py` | `DemoBoardPort` (fast and slow) and `PicoPort` (fast and slow) against SDK/GPIO fakes. For the self-test and the flagship scenario, their rising-edge sequence equals `ModelPort`'s. `PIN_MAP_CMOD_A7_HOST`: the self-test minus `trigger`, then `deselect()` through the ena GPIO, gives the same edges as `ModelPort`, ena included. `PIN_MAP_URBANA_HOST`: active-high reset, uo_out[5:0] only, program load, TX/RX traffic, and SELECT/READ_SELECT acceptance without uo[7]. | PASS (23778831) |

@@ -45,6 +45,14 @@ trap 'rm -rf "$T"' EXIT
 mkdir -p "$T/src"
 cp "$SNAP/src/project.v" "$T/src/"
 cp -r "$SNAP/test" "$SNAP/firmware" "$SNAP/models" "$SNAP/configs" "$T/"
+# test/Makefile reads the design selection with scripts/design_selection.sh when
+# PE_VARIANT or PE_CORE is not given (base tasks), so pack it when the snapshot has it.
+SEL=()
+if [ -f "$SNAP/scripts/design_selection.sh" ]; then
+  mkdir -p "$T/scripts"
+  cp -p "$SNAP/scripts/design_selection.sh" "$T/scripts/"
+  SEL=(scripts/design_selection.sh)
+fi
 if [ ${#EXTRA[@]} -gt 0 ]; then
   mkdir -p "$T/build/variants"
   cp -r "$SNAP/build/variants/$VARIANT" "$T/build/variants/"
@@ -52,7 +60,7 @@ if [ ${#EXTRA[@]} -gt 0 ]; then
 fi
 for f in ${EXTRA_TESTS:-}; do cp "$f" "$T/test/"; done
 rm -rf "$T/test/sim_build" "$T/test/__pycache__" "$T/test/results.xml"
-(cd "$T" && tar -czf "$DST/testtree.tgz" src/project.v test firmware models configs ${EXTRA[@]+"${EXTRA[@]}"} \
-  && find src test firmware models configs ${EXTRA[@]+"${EXTRA[@]}"} -type f | sort | xargs sha256sum > "$DST/testtree.sha256")
+(cd "$T" && tar -czf "$DST/testtree.tgz" src/project.v test firmware models configs ${EXTRA[@]+"${EXTRA[@]}"} ${SEL[@]+"${SEL[@]}"} \
+  && find src test firmware models configs ${EXTRA[@]+"${EXTRA[@]}"} ${SEL[@]+"${SEL[@]}"} -type f | sort | xargs sha256sum > "$DST/testtree.sha256")
 if [ $# -gt 0 ]; then echo "$*" > "$DST/kill_modules.txt"; fi
 echo "$DST: variant $VARIANT, $(wc -l < "$DST/testtree.sha256") files in testtree.tgz${1:+, kill modules: $*}"

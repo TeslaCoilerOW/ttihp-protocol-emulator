@@ -22,11 +22,26 @@ The reference and its standalone tests were written from `docs/isa.md`
 standards (reveng CRC catalogue, USB 2.0 and the USB-IF CRC paper, Bosch CAN
 2.0, IEEE 802.3). The Hardcaml RTL, `test/model/line_unit.py`,
 `formal/line_ref.vh` and the other line-unit tests were not read until those
-tests passed. The cocotb module then ran on the RTL; each point below that the
-contract leaves open became a named field of `line_std_ref.Interpretation`,
-measured on the RTL by `test_contract_open_points`. The field defaults are
-the readings chosen before the RTL ran; `RTL_READING` in
-`../test_line_stdref.py` holds the readings the RTL follows.
+tests passed. During that clean-room phase the base-ISA sections of
+`docs/isa.md` and section 1 of `docs/extension.md` were also read (contract and
+summary text, no implementation). The clean-room version of
+`test/model/line_std_ref.py` (sha256 `38d03908…`) is kept outside the
+repository; `docs/extension.md` section 6.6 ("Provenance after the clean-room
+phase") lists what changed after it.
+
+The cocotb module then ran on the RTL. Each point that the contract leaves
+open became a named field of `line_std_ref.Interpretation`, measured on the
+RTL by `test_contract_open_points`; `RTL_READING` in `../test_line_stdref.py`
+holds the readings the RTL follows. The field defaults are not all readings
+chosen before the RTL ran: where the clean-room version had a behaviour, the
+default reproduces it, while `classic_ds_crc_basis` (the clean-room program
+model rejected a classic drive-and-sample XFER with the CRC bit) and the
+`reset` reading of `stuff_error_state` were added after the RTL runs. After
+those runs the reference also received fixes of its own bugs (the Manchester
+level-update timing, a separate NRZI previous sample, a guard against an
+unbounded prediction loop). The random case generator `cases.py` and the host
+driver `chip.py` were written after the clean-room phase; `cases.py` is not
+derived from `test/line_random.py`.
 
 ## Running
 

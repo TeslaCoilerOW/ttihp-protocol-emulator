@@ -491,6 +491,45 @@ gh workflow run equiv.yaml -f run_id=36298635404   # gds_6x4, 6x4 (diet4)
 gh workflow run equiv.yaml -f run_id=36298635436   # gds, 8x4 (base)
 ```
 
+**Design selection and branch builds (branch `eval/diet8-rec16`).** On this
+branch `equiv.yaml` takes the design from the design selection
+([extension.md](extension.md) section 12.2) and also triggers for builds of
+`eval/diet8-rec16`:
+
+- **Which variant.** A `gds_6x4` run is checked as `diet4` with
+  `variants6x4/protocol_emulator_core.v`, as before. For a `gds` run the
+  `select` job reads `configs/design-selection.txt` of the built commit
+  through the API, as data, with the rules of `scripts/design_selection.sh`:
+  `base` for `configs/instruction-sram-32.json`, the variant's name for a
+  configuration in `configs/variants/` (for example `diet8_rec16` for
+  `configs/variants/diet8_rec16.json`), and `base` when the commit has no
+  selection file; any other read error fails the job.
+- **Which core.** The `check` job requires, from its sparse checkout of the
+  built commit (now `src/`, `variants6x4/` and the selection file), that the
+  selection names the same configuration (read with
+  `scripts/design_selection.sh --repo` of the workflow's own commit) and that
+  the first line of `src/protocol_emulator_core.v` names it; then it runs
+  `eq_check.py check --variant <name> --selftest`.
+- **When.** `workflow_run` now lists `branches: [main, eval/diet8-rec16]`.
+  GitHub runs workflows that `workflow_run` starts from the default branch,
+  so branch builds are checked this way only once this file is on `main`; until then a
+  branch build is checked with `workflow_dispatch`. A `workflow_run` check of
+  a branch build appears under `main`'s latest commit as the job
+  `equivalence (diet8_rec16)`.
+- **Unit tests.** `formal_eq/test_eq_check.py` gives `test_pdk_mismatch_refused`
+  and `test_variant_header` a base core file of their own, so the unit-test
+  step no longer depends on the core that `src/` carries (dispatched from the
+  branch, the step failed before; section 12.3 of extension.md).
+- **Emulation.** The `select` and `check` jobs ran under the emulator of
+  extension.md section 12.3 (Slurm jobs 24300249, 24300555, 24309079): a
+  `workflow_dispatch` of `main`'s `gds` run 36391218317 gives `base` and
+  equivalent; a `workflow_run` of the branch's `gds` run 36360490711, with
+  the selection served for `ac436f7` (which predates the file), gives
+  `diet8_rec16` and equivalent with the self-test passed; a failing selection
+  read fails the job; a dispatch of that run without the selection selects
+  `base` and stops at the core-header check. None of this has run on GitHub
+  yet.
+
 **Runs on GitHub.** Every run that had finished by 2026-09-28 08:40 UTC.
 The builds of `main` that finished between `d76f1cc`'s and the arrival of
 the workflow were not checked: `gds` 36308043760 and `gds_6x4` 36308043804
