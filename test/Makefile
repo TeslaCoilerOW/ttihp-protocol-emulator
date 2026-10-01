@@ -94,14 +94,16 @@ TOPLEVEL = tb
 # List test modules to run, separated by commas and without the .py suffix.
 # Select a subset with e.g. `make COCOTB_TEST_MODULES=test_random` or single
 # tests with `make COCOTB_TEST_FILTER=test_uart_tx`. test_directed..test_timewarp
-# close the campaign gaps, test_kill_* the mutation survivors and test_wait_limit
-# the LIMIT timeouts that a later mutation campaign found unchecked (README.md).
+# close the campaign gaps, test_kill_* the mutation survivors, test_wait_limit
+# the LIMIT timeouts that a later mutation campaign found unchecked, and
+# test_spec_* the specified behaviour behind the held-out gaps (README.md,
+# "Specification checks").
 # Variants with the line unit (docs/extension.md) also run its three modules.
 LINE_UNIT_VARIANTS = diet8_rec16
 ifneq ($(filter $(PE_VARIANT),$(LINE_UNIT_VARIANTS)),)
-COCOTB_TEST_MODULES ?= test_smoke,test_protocols,test_flagship,test_legacy,test_random,test_directed,test_mover,test_counters,test_timewarp,test_kill_decode,test_kill_blocked,test_kill_pc,test_kill_mover,test_kill_regs,test_kill_xfer,test_kill_host,test_kill_events,test_kill_pins,test_kill_edges,test_kill_fifo,test_wait_limit,test_line_unit,test_line_demos,test_line_random
+COCOTB_TEST_MODULES ?= test_smoke,test_protocols,test_flagship,test_legacy,test_random,test_directed,test_mover,test_counters,test_timewarp,test_kill_decode,test_kill_blocked,test_kill_pc,test_kill_mover,test_kill_regs,test_kill_xfer,test_kill_host,test_kill_events,test_kill_pins,test_kill_edges,test_kill_fifo,test_wait_limit,test_spec_pin_writes,test_spec_xfer_timing,test_spec_counters,test_spec_loader,test_spec_invalid_encodings,test_line_unit,test_line_demos,test_line_random
 endif
-COCOTB_TEST_MODULES ?= test_smoke,test_protocols,test_flagship,test_legacy,test_random,test_directed,test_mover,test_counters,test_timewarp,test_kill_decode,test_kill_blocked,test_kill_pc,test_kill_mover,test_kill_regs,test_kill_xfer,test_kill_host,test_kill_events,test_kill_pins,test_kill_edges,test_kill_fifo,test_wait_limit
+COCOTB_TEST_MODULES ?= test_smoke,test_protocols,test_flagship,test_legacy,test_random,test_directed,test_mover,test_counters,test_timewarp,test_kill_decode,test_kill_blocked,test_kill_pc,test_kill_mover,test_kill_regs,test_kill_xfer,test_kill_host,test_kill_events,test_kill_pins,test_kill_edges,test_kill_fifo,test_wait_limit,test_spec_pin_writes,test_spec_xfer_timing,test_spec_counters,test_spec_loader,test_spec_invalid_encodings
 
 # include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim

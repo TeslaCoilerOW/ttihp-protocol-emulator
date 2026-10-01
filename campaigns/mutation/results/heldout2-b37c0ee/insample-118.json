@@ -1,0 +1,242 @@
+{
+ "note": "The five test_spec_* modules (stage kill, every module run; test tree b37c0ee with the test_spec_* modules) on the survivors of the two earlier samples, and the 118-test suite (stage suite) on the unmutated core and the no-op mutant 0. Kills by the 109 other tests are those of results/heldout-56f4b20.",
+ "first_heldout_sample": {
+  "stage_kill_on_suite_survivors": {
+   "job": "24493977",
+   "ids": 281,
+   "killed": [
+    "101",
+    "268",
+    "274",
+    "275",
+    "276",
+    "309",
+    "492",
+    "531",
+    "589",
+    "1133",
+    "1151",
+    "1233",
+    "1285",
+    "1287",
+    "1295",
+    "1318",
+    "1319",
+    "1369",
+    "1433",
+    "1488",
+    "1489"
+   ],
+   "killed_modules": {
+    "101": [
+     "test_spec_counters"
+    ],
+    "268": [
+     "test_spec_counters"
+    ],
+    "274": [
+     "test_spec_counters"
+    ],
+    "275": [
+     "test_spec_counters"
+    ],
+    "276": [
+     "test_spec_counters"
+    ],
+    "309": [
+     "test_spec_counters"
+    ],
+    "492": [
+     "test_spec_loader"
+    ],
+    "531": [
+     "test_spec_loader"
+    ],
+    "589": [
+     "test_spec_counters"
+    ],
+    "1133": [
+     "test_spec_invalid_encodings"
+    ],
+    "1151": [
+     "test_spec_invalid_encodings"
+    ],
+    "1233": [
+     "test_spec_pin_writes"
+    ],
+    "1285": [
+     "test_spec_pin_writes"
+    ],
+    "1287": [
+     "test_spec_pin_writes"
+    ],
+    "1295": [
+     "test_spec_pin_writes"
+    ],
+    "1318": [
+     "test_spec_pin_writes"
+    ],
+    "1319": [
+     "test_spec_pin_writes"
+    ],
+    "1369": [
+     "test_spec_pin_writes"
+    ],
+    "1433": [
+     "test_spec_xfer_timing"
+    ],
+    "1488": [
+     "test_spec_xfer_timing"
+    ],
+    "1489": [
+     "test_spec_xfer_timing"
+    ]
+   },
+   "controls": {
+    "orig": "survived",
+    "0": "survived"
+   }
+  },
+  "stage_kill_PE_SPEC_ONLY_on_the_21_gaps": {
+   "job": "24493968",
+   "killed": [
+    "101",
+    "268",
+    "274",
+    "275",
+    "276",
+    "309",
+    "492",
+    "531",
+    "589",
+    "1133",
+    "1151",
+    "1233",
+    "1285",
+    "1287",
+    "1295",
+    "1318",
+    "1319",
+    "1369",
+    "1433",
+    "1488",
+    "1489"
+   ],
+   "killed_modules": {
+    "101": [
+     "test_spec_counters"
+    ],
+    "268": [
+     "test_spec_counters"
+    ],
+    "274": [
+     "test_spec_counters"
+    ],
+    "275": [
+     "test_spec_counters"
+    ],
+    "276": [
+     "test_spec_counters"
+    ],
+    "309": [
+     "test_spec_counters"
+    ],
+    "492": [
+     "test_spec_loader"
+    ],
+    "531": [
+     "test_spec_loader"
+    ],
+    "589": [
+     "test_spec_counters"
+    ],
+    "1133": [
+     "test_spec_invalid_encodings"
+    ],
+    "1151": [
+     "test_spec_invalid_encodings"
+    ],
+    "1233": [
+     "test_spec_pin_writes"
+    ],
+    "1285": [
+     "test_spec_pin_writes"
+    ],
+    "1287": [
+     "test_spec_pin_writes"
+    ],
+    "1295": [
+     "test_spec_pin_writes"
+    ],
+    "1318": [
+     "test_spec_pin_writes"
+    ],
+    "1319": [
+     "test_spec_pin_writes"
+    ],
+    "1369": [
+     "test_spec_pin_writes"
+    ],
+    "1433": [
+     "test_spec_xfer_timing"
+    ],
+    "1488": [
+     "test_spec_xfer_timing"
+    ],
+    "1489": [
+     "test_spec_xfer_timing"
+    ]
+   },
+   "controls": {
+    "orig": "survived",
+    "0": "survived"
+   }
+  },
+  "scores_118_tests": {
+   "mutants": 1936,
+   "killed": 1676,
+   "equivalent": 165,
+   "score_formula": "1676 / (1936 - 165)",
+   "equivalent_longcap": 212,
+   "score_longcap_formula": "1676 / (1936 - 212)",
+   "survivors_longcap": 48,
+   "argued": 48,
+   "gaps": 0
+  }
+ },
+ "push_sample": {
+  "stage_kill_on_the_72_survivors": {
+   "job": "24500049",
+   "ids": 72,
+   "killed": [],
+   "controls": {
+    "orig": "survived",
+    "0": "survived"
+   }
+  },
+  "scores_118_tests": {
+   "mutants": 2420,
+   "killed": 2224,
+   "equivalent": 124,
+   "score_formula": "2224 / (2420 - 124)",
+   "equivalent_longcap": 150,
+   "score_longcap_formula": "2224 / (2420 - 150)"
+  }
+ },
+ "controls_whole_suite": {
+  "job": "24493969",
+  "stage": "suite",
+  "orig": {
+   "status": "survived",
+   "modules": 26,
+   "tests": 118,
+   "failures": 0
+  },
+  "0": {
+   "status": "survived",
+   "modules": 26,
+   "tests": 118,
+   "failures": 0
+  }
+ }
+}

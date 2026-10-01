@@ -1,0 +1,211 @@
+{
+ "design": "the second held-out design directory (b37c0ee test tree with the test_spec_* modules)",
+ "sim_stages": [
+  "suite"
+ ],
+ "proof_methods": [
+  "equiv_induct",
+  "miter-abc",
+  "equiv_inv",
+  "miter-abc-900s"
+ ],
+ "mutants": 1936,
+ "killed": 1691,
+ "equivalent": 194,
+ "survived": 50,
+ "timeout": 0,
+ "error": 1,
+ "missing": 0,
+ "score": 0.9707,
+ "score_formula": "1691 / (1936 - 194)",
+ "killed_by_stage": {
+  "suite": 1691
+ },
+ "killed_first_stage_by_module": {
+  "test_random": 560,
+  "test_smoke": 377,
+  "test_legacy": 242,
+  "test_protocols": 212,
+  "test_timewarp": 76,
+  "test_directed": 48,
+  "test_kill_decode": 27,
+  "test_counters": 26,
+  "test_kill_blocked": 20,
+  "test_kill_regs": 18,
+  "test_flagship": 17,
+  "test_kill_pins": 13,
+  "test_mover": 12,
+  "test_kill_host": 11,
+  "test_kill_events": 9,
+  "test_kill_xfer": 9,
+  "test_kill_mover": 5,
+  "test_spec_pin_writes": 4,
+  "test_spec_counters": 3,
+  "test_spec_invalid_encodings": 1,
+  "test_kill_pc": 1
+ },
+ "equivalent_by_method": {
+  "equiv_induct": 148,
+  "miter-abc-900s": 39,
+  "miter-abc": 7
+ },
+ "conflicts": [],
+ "controls": {
+  "suite": {
+   "orig": "survived",
+   "0": "survived"
+  }
+ },
+ "survivors": [
+  "51",
+  "53",
+  "60",
+  "75",
+  "84",
+  "86",
+  "87",
+  "93",
+  "269",
+  "324",
+  "360",
+  "367",
+  "372",
+  "376",
+  "377",
+  "386",
+  "388",
+  "407",
+  "431",
+  "465",
+  "520",
+  "584",
+  "587",
+  "593",
+  "675",
+  "693",
+  "694",
+  "695",
+  "819",
+  "821",
+  "907",
+  "960",
+  "1061",
+  "1064",
+  "1212",
+  "1274",
+  "1454",
+  "1457",
+  "1529",
+  "1575",
+  "1583",
+  "1601",
+  "1701",
+  "1770",
+  "1783",
+  "1784",
+  "1825",
+  "1860",
+  "1865",
+  "1886"
+ ],
+ "by_region": {
+  "engine_ctrl": {
+   "killed": 394,
+   "mutants": 440,
+   "equivalent": 27,
+   "survived": 19
+  },
+  "engine_data": {
+   "killed": 136,
+   "mutants": 144,
+   "survived": 4,
+   "equivalent": 4
+  },
+  "engine_xfer": {
+   "killed": 120,
+   "mutants": 160,
+   "equivalent": 37,
+   "survived": 3
+  },
+  "events": {
+   "killed": 206,
+   "mutants": 240,
+   "equivalent": 32,
+   "survived": 2
+  },
+  "fifo": {
+   "killed": 92,
+   "mutants": 104,
+   "equivalent": 7,
+   "survived": 4,
+   "error": 1
+  },
+  "host": {
+   "killed": 255,
+   "mutants": 320,
+   "equivalent": 56,
+   "survived": 9
+  },
+  "imem": {
+   "killed": 43,
+   "mutants": 48,
+   "equivalent": 2,
+   "survived": 3
+  },
+  "mover": {
+   "killed": 189,
+   "mutants": 200,
+   "equivalent": 7,
+   "survived": 4
+  },
+  "pins": {
+   "killed": 184,
+   "mutants": 200,
+   "survived": 2,
+   "equivalent": 14
+  },
+  "shared": {
+   "killed": 64,
+   "mutants": 72,
+   "equivalent": 8
+  },
+  "timestamp": {
+   "killed": 8,
+   "mutants": 8
+  }
+ },
+ "by_mode": {
+  "cnot0": {
+   "killed": 308,
+   "mutants": 326,
+   "survived": 3,
+   "equivalent": 15
+  },
+  "cnot1": {
+   "killed": 238,
+   "mutants": 304,
+   "equivalent": 50,
+   "survived": 16
+  },
+  "const0": {
+   "killed": 330,
+   "mutants": 423,
+   "survived": 10,
+   "equivalent": 83
+  },
+  "const1": {
+   "killed": 405,
+   "mutants": 448,
+   "equivalent": 29,
+   "survived": 13,
+   "error": 1
+  },
+  "inv": {
+   "killed": 410,
+   "mutants": 435,
+   "equivalent": 17,
+   "survived": 8
+  }
+ },
+ "note": "push_summary.py counts the unbuildable mutant 1781 (status error) in \"mutants\"; docs/mutation-push.md section 10 leaves it out (1,935 mutants)"
+}

@@ -86,7 +86,7 @@ scripts re-run on Slurm; **local**, `make reproduce` (`scripts/reproduce.sh`).
 
 | Feature | What proves or tests it | Strength | Where |
 |---|---|---|---|
-| Instruction semantics (all opcode classes, `WAIT`/`XFER` timing, faults) | RTL vs model lockstep: 109 cocotb tests in the default suite (R28b); 536,064 constrained-random cases, 0 failures (R20); `engine_safety` properties | Tested; `engine_safety` bounded (BMC 24) in CI, unbounded on the cluster (R32) | CI [`test.yaml`](../.github/workflows/test.yaml), [`formal.yaml`](../.github/workflows/formal.yaml); [`campaigns.json`](../campaigns/random/results/campaigns.json), [`summary.tsv`](../formal_depth/results/summary.tsv) |
+| Instruction semantics (all opcode classes, `WAIT`/`XFER` timing, faults) | RTL vs model lockstep: 118 cocotb tests in the default suite (R28c); 536,064 constrained-random cases, 0 failures (R20); `engine_safety` properties | Tested; `engine_safety` bounded (BMC 24) in CI, unbounded on the cluster (R32) | CI [`test.yaml`](../.github/workflows/test.yaml), [`formal.yaml`](../.github/workflows/formal.yaml); [`campaigns.json`](../campaigns/random/results/campaigns.json), [`summary.tsv`](../formal_depth/results/summary.tsv) |
 | Host port protocol and read-back | Host-port atomicity and read snapshots (R34); lockstep tests; host library three-way differential fuzz, 100,000 seeds with RTL replay (R24) | Proved, unbounded (R34); tested | Cluster: [`summary.tsv`](../formal_depth/results/summary.tsv); local: `host/tests` |
 | Program load (BEGIN, COMMIT, image length) | Control part (R35); SRAM data integrity `spec_word_*` (R35b); SRAM macro read-last-write lemma ([timing-certificates.md](timing-certificates.md) section 3) | Control: proved, unbounded. Data: bounded (BMC 48), with an argued unbounded chain | Cluster: [`summary.tsv`](../formal_depth/results/summary.tsv), [`cert/results`](../tools/timing/cert/results/) |
 | TX/RX FIFOs | `fifo_conservation`: the ring buffer equals an independent shift-queue model | Proved, unbounded (IC3/PDR) | CI [`formal.yaml`](../.github/workflows/formal.yaml) (R30) |
@@ -216,8 +216,9 @@ most likely to raise are these.
   certificate for its current hash, and proves changed images whose proofs
   fit its budget of 150 runs; the full campaigns, and images over that
   budget, run on the cluster.
-- **Gate-level simulation is partial and zero-delay.** It runs 48 of the
-  109 tests of the default suite. The official runs up to `24f31f0` had 102
+- **Gate-level simulation is partial and zero-delay.** It runs 55 of the
+  118 tests of the default suite (R28c; 48 of 109 before the `test_spec_*`
+  modules). The official runs up to `24f31f0` had 102
   tests, 46 pass and 56 skip (R85); those of `bab697b` had 107, 46 pass and
   61 skip (runs 36624435821 and 36624435439), because the 5 `uart-rx-idle`
   tests added in `e64cd6b` skip at gate level too (R28). The 2 tests of
@@ -230,7 +231,11 @@ most likely to raise are these.
   macros (cut points), liberty functions against cell layouts, or power-up
   values other than 0 of the 2,048 register bits without reset. ABC is
   trusted; no proof certificate is checked.
-- **The mutation score has no held-out set.** The tests added to raise the
+- **The headline mutation score is in-sample; two held-out samples measure
+  the generalisation.** On fresh mutants the suite scores 93.45 % (R23f, 109
+  tests) and, after tests for that sample's 21 gaps, 95.00 % on a second
+  sample (R23g, 118 tests); the first sample is in-sample for the
+  `test_spec_*` modules. The tests added to raise the
   score (`test_directed.py`, `test_kill_*`) were written from the survivors
   of the same mutant set they are scored on. Some kills rely on white-box
   time-warp tests, which deposit reachable counter values into RTL

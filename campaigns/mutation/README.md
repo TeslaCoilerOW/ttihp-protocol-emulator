@@ -6,7 +6,9 @@ They mutate `src/protocol_emulator_core.v` of a frozen snapshot with Yosys
 `mutate` (the mutation engine used by mcy) and run the snapshot's own cocotb
 suite on every mutant as Slurm job arrays. Small result summaries are in
 `results/` (`results/diet4/`: the diet4 campaign; `results/push-4bd30c8/` and
-`results/diet4-102/`: the later additions of docs/mutation-push.md). The bulky
+`results/diet4-102/`: the later additions of docs/mutation-push.md;
+`results/heldout-56f4b20/` and `results/heldout2-b37c0ee/`: its two held-out
+samples, sections 9 and 10). The bulky
 per-mutant files stay in the campaign directory `$CAMP`.
 
 | File | Purpose |
@@ -16,6 +18,7 @@ per-mutant files stay in the campaign directory `$CAMP`.
 | `campaign-push.env` | Parameters of the mutation score push of [docs/mutation-push.md](../../docs/mutation-push.md) (see "Mutation score push") |
 | `campaign-diet4-102.env` | Parameters of the `diet4` re-run under the 102-test suite (see "Variant diet4 under the 102-test suite") |
 | `campaign-heldout.env` | Parameters of the held-out sample of [docs/mutation-push.md](../../docs/mutation-push.md) section 9 (seed, quotas, exclusions) |
+| `campaign-heldout2.env` | Parameters of the second held-out sample of [docs/mutation-push.md](../../docs/mutation-push.md) section 10 (seed, exclusions, test tree) |
 | `heldout_sample.py` | Draw the held-out sample: the raw `mutate -list` database per region, minus every (mode, cell, port) of the push's mutants, sampled uniformly per region with a recorded seed |
 | `gen_mutants.sh` | `prep` the core, map regions, run one seeded `mutate -list` per region, write `mutations.tsv` |
 | `region_map.py` | Assign each statement/cell of the flat Hardcaml netlist to a functional region (nearest named state in its forward cone) |
@@ -45,7 +48,7 @@ Stages of `run_mutant.py`:
 | `full` | all 39 tests with default settings | fast-set survivors only |
 | `rip` | all 39 tests on a wrapper holding the unmutated core and the mutant | the unmutated core drives the pins; every register, FIFO word and SRAM pin net is compared each cycle. The harness's time warp adds its deltas to the registers of both cores (`RIP_WARP_PATCH`, appended to the task tree's copy of `test/harness.py`). Runs before job 24055015 lacked the patch: there the tests of `test_timewarp` failed at their start (`warp_supported()` is false on the wrapper), the other tests that warp failed at their first warp (`WarpUnsupported`), and `test_kill_route_count_parity` skipped its warped cases, so those runs do not cover the rest of those tests. With the patch every test must pass on the wrapper; `survivor_classes.py` reports a run in which one fails as `incomplete` |
 | `deep` | `test_random`, 256 cases, `PE_SEED=0xD33B2027` | full-suite survivors |
-| `suite` | the snapshot's whole suite: the default `COCOTB_TEST_MODULES` of its `test/Makefile` (66 tests in nine modules at c118027, 102 tests in 20 modules from aa07868 on), stopping at the first failing module | fast-set survivors (used instead of `full` for the diet4 campaign); every mutant in the push (there called `head`, on a c118027 tree) and in the diet4 re-run |
+| `suite` | the snapshot's whole suite: the default `COCOTB_TEST_MODULES` that its `test/Makefile` gives the design under test, as make evaluates it (a target appended to the Makefile prints the list; 66 tests in nine modules at c118027, 102 tests in 20 modules from aa07868 on, 118 tests in 26 modules with the `test_spec_*` modules; before docs/mutation-push.md section 10 the runner took the first `?=` line, which on a tree from 76a81f5 on is the line-unit variants' list), stopping at the first failing module | fast-set survivors (used instead of `full` for the diet4 campaign); every mutant in the push (there called `head`, on a c118027 tree) and in the diet4 re-run |
 | `kill` | the modules listed in the design directory's `kill_modules.txt`; every module runs, and `killed_modules` lists each one that fails | the push's `test_kill_*` iterations |
 | `kill-rip` | the `kill` modules on the RIP wrapper of stage `rip` | survivor analysis |
 | `directed` | `directed/test_mutation_gaps.py` | full-suite survivors and the two controls |

@@ -30,6 +30,12 @@ behavioral peers.
 | `test_counters.py` | long-running counters read back: more than 2^16 completed instructions on every engine, a 0xFFFF-word ROUTE drained to zero, COUNT 0xFFFF loops, timestamp past 2^16, ROUTE counts draining exactly, LIMIT values with each bit 9..23 set, exact WAITPIN/WAITEVENT timeouts, exact WAIT ends |
 | `test_timewarp.py` | counter carries up to bit 31 and the 2^32 timestamp rollover by time warp: timestamp/TIME, completed counts while every opcode runs, WAIT timers, blocked counts and LIMIT timeouts, blocked-count clearing by every kind of instruction, repeat counters, ROUTE counts |
 | `test_wait_limit.py` | WAITEVENT and WAITPIN time out on the LIMIT-th sample at LIMIT 2^k + 2 (k = 0..23) on every engine, read from each engine's output enable and status (see "LIMIT timeouts") |
+| `test_spec_pin_writes.py` | output values and enables change only where SET, DIR, OUT and HALT write them: OUT on every pin and value against both levels of every other pin, and DIR/SET patterns held through every other kind of instruction, wait and stall, on every engine (see "Specification checks") |
+| `test_spec_xfer_timing.py` | XFER with every bit count 1..32 and half-periods 1..4 on every engine: the clock pin's level on every edge against the transition rule of `../docs/isa.md` |
+| `test_spec_counters.py` | the completed-instruction count read while the engines block, stall, transfer and hold and after a strict overflow, at twelve count bit patterns (time warp); all eight READ_SELECT words; WAITEVENT and WAITPIN under the default LIMIT 65535 after reset and after START |
+| `test_spec_loader.py` | COMMIT 0 after BEGIN, COMMIT of a length not written and of a committed image are rejected; full-capacity images committed at both cycle parities after their last word are accepted and run |
+| `test_spec_invalid_encodings.py` | every undefined opcode one bit from a defined one (with that opcode's valid operands) and FAULT with an invalid operand fault with code 1 on the engine that issues them: fault pin, status, PC and count |
+| `test_spec_common.py` | helpers of the `test_spec_*` modules (`PE_SPEC_ONLY` harness, pin-trace observer); no tests |
 | `model/` | the reference model, host recorder and wire scoreboards, copied from the asic-lab monorepo (stdlib only; provenance and hashes in `model/__init__.py`); `model/variant.py` (written here) adds the design variants |
 | `variants.py`, `variant_workloads.py` | design-variant selection (`PE_VARIANT`) and the legacy workloads recorded on a variant; see "Design variants" |
 
@@ -49,7 +55,8 @@ make
 The RTL run compiles `../src/project.v`, `../src/protocol_emulator_core.v` and the
 IHP SRAM behavioral models `../models/RM_IHPSG13_1P_64x16_c2.v` +
 `../models/RM_IHPSG13_1P_core_behavioral.v` with `-DFUNCTIONAL`. The full suite
-has 109 tests. In job 24303859, `make clean; make` of the 107 tests before
+has 118 tests in 26 modules (109 in 21 before the five `test_spec_*` modules;
+see "Specification checks"). In job 24303859, `make clean; make` of the 107 tests before
 `test_wait_limit.py` with Icarus 13.0 on a
 cluster node, while other `scripts/reproduce.sh` steps ran in parallel,
 took 373 s, with 368 s of test time; the five `uart-rx-idle` tests of `test_flagship.py`, added in
@@ -58,7 +65,13 @@ took about 221 s of test time, of which the gap-closure modules took 27 s
 and the test_kill_* modules 132 s. With `test_wait_limit.py`, `make clean;
 make` alone on a cluster node took 216 s, with 207 s of test time, of which
 its two tests took 2.9 s (job 24382111_1); in GitHub's `test` job of
-`3364ad9` the 107 tests took 214 s of test time (run 36657674148).
+`3364ad9` the 107 tests took 214 s of test time (run 36657674148). In job
+24493924, which ran four suites at once on one cluster node, the 118 tests
+took 440.8 s of test time, of which the nine `test_spec_*` tests took 17.2 s
+and the other 109 tests 423.6 s; the 109-test suite alone, in the same job,
+took 422.9 s. Uncontended (job 24507279, one suite per node) the 118 tests
+took 198.3 s of test time, of which the nine `test_spec_*` tests 14.9 s, about
+8 % more than the other 109 tests' 183.4 s.
 
 Useful variables:
 
@@ -90,7 +103,9 @@ and `PE_RANDOM_ITERS`). Of the gap-closure modules, the tests that need more tha
 reported as SKIP; 14 of their 27 tests run. The 5 `uart-rx-idle` tests of
 `test_flagship.py` are reported as SKIP too. The 2 tests of
 `test_wait_limit.py` run with LIMIT up to 2^8 + 2 and no time warp (see
-"LIMIT timeouts"), so 48 of the 109 tests run at gate level. A quick pre-hardening check
+"LIMIT timeouts"). Of the nine `test_spec_*` tests, seven run at gate level
+with smaller parameter sets (see "Specification checks"), so 55 of the 118
+tests run at gate level. A quick pre-hardening check
 is possible with a Yosys netlist (`synth -flatten`, `dfflibmap`/`abc` to the
 `sg13cmos5l_stdcell` liberty, SRAM macro read as a blackbox).
 
@@ -270,6 +285,38 @@ module fails on each of them, with the lockstep comparison and with
 `PE_SPEC_ONLY=1`: the enable is released one edge early at LIMIT 2^13 + 2,
 2^14 + 2, 2^18 + 2 or 2^21 + 2. It also fails on survivor 192 of the mutation
 push (`../docs/mutation-push.md` section 8).
+
+## Specification checks
+
+The `test_spec_*` modules check behaviour that `../docs/isa.md` specifies and
+that the suite above ran without observing it. A held-out mutation sample of the
+design of record left 21 such gaps (`../docs/mutation-push.md` sections 9.5 and
+10). Each module names the behaviour, not the mutants, and its docstring quotes
+the isa.md text it checks. Besides the per-cycle comparison with the model, each
+test checks the DUT's pins and read-back words against values that it derives
+from isa.md itself (a small interpreter of the instructions used, or the stated
+rule), not from the model. With `PE_SPEC_ONLY=1` the comparison with the model is
+off, so that only these checks can fail; the model still tells the test when to
+act. `test_spec_common.py` holds the shared helpers.
+
+| module | tests | cycles (RTL) | what it checks | gate level |
+|---|---:|---:|---|---|
+| `test_spec_pin_writes.py` | 2 | 21,060 | OUT changes only its own bit, for every pin p, value v, other pin q and level of q, on every engine; DIR/SET values for eight enable patterns hold through every other kind of instruction, through WAIT and through blocked WAITEVENT, WAITPIN, PULL and PUSH, until HALT releases them. The DUT's (uio_oe, uio_out) runs are compared with the runs isa.md gives for the program | both; the hold test with patterns 0x55 and 0xAA (4,660 cycles) |
+| `test_spec_xfer_timing.py` | 1 | 16,320 | XFER a = 1..32 with b = 1, 2, 3 and 4, four engines at once: the clock pin is CPOL on the issue edge, toggles on the edges T + kb (k = 1..2a), and the next instruction issues on edge T + 2ab + 1; checked edge by edge from DUT pins | b = 2 only (3,609 cycles) |
+| `test_spec_counters.py` | 2 | 35,497 | the completed-instruction count, at twelve count patterns set with `warp_completed`, read three times at both cycle parities while every engine blocks, stalls, transfers or holds a WAIT, and after a strict overflow; all eight READ_SELECT words after the fault; WAITEVENT and WAITPIN without a LIMIT instruction time out on sample 65,535 after reset and after a START that follows LIMIT 7 (time warp) | the count test as one round without warp (3,644 cycles); the default-LIMIT test is skipped |
+| `test_spec_loader.py` | 2 | 7,044 | COMMIT 0 after BEGIN, COMMIT of a length not written, COMMIT of a committed image rejected (fault pin, committed bit), COMMIT of the written length accepted; full-capacity images committed with 0 and 1 extra idle cycles after the last word are accepted and run to the last word | the length test; the full-image test (5,832 cycles) is skipped |
+| `test_spec_invalid_encodings.py` | 2 | 38,227 | every undefined opcode one bit from a defined one, with that opcode's valid operands (98 per engine), and FAULT with 33 invalid operands fault with code 1, one engine at a time: fault pin, status 0x10A, and PC and count still 0 | the neighbours of opcodes 30 and 31 and four FAULT operands (2,496 and 1,340 cycles) |
+
+The nine tests add 118,148 simulated cycles to the RTL run (17.2 s of test time
+in job 24493924, which shared its node with three other suites; 14.9 s in the
+uncontended job 24507279) and 19,825 to the gate-level run (26.7 s of test time on the
+netlist of run 36714406904 in the same job, where the other 48 gate-level tests
+took 151.5 s). All nine pass on RTL and all seven gate-level tests on that
+netlist; under `PE_VARIANT=diet4` with the 6x4 core
+(`../variants6x4/protocol_emulator_core.v`) all nine pass (job 24493924). On the
+21 mutants of the held-out sample that the 109 tests did not detect, each module
+fails where its behaviour differs, with the comparison on and with
+`PE_SPEC_ONLY=1` (`../docs/mutation-push.md` section 10).
 
 ## Design variants (PE_VARIANT)
 

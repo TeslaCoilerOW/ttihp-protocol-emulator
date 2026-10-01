@@ -9,7 +9,9 @@ ones that the tests can reach, and reports the new score. Added later: section
 re-running them, and a re-run on the committed test tree), section 7 (the
 same procedure on design variant `diet4` under the 102-test suite) and section
 8 (a gap that the mutation campaign on the extension branch found, and
-`test/test_wait_limit.py`, which closes it and kills survivor 192).
+`test/test_wait_limit.py`, which closes it and kills survivor 192), section 9
+(a held-out sample) and section 10 (tests for its gaps and a second held-out
+sample).
 
 The mutants, the prepared core (`base.il`) and the per-mutant build are those of
 the campaign (2,420 mutants of `src/protocol_emulator_core.v` at commit
@@ -926,3 +928,345 @@ The controls are held-out mutants, drawn with one `random.Random(20260930)`
 from those killed by `test_smoke` (six for the miter, then three for
 `equiv_inv.py`) and from those proven by `equiv_mutant.py` (six); their ids are
 `HELDOUT_FORMAL_CONTROLS` and `HELDOUT_EINV_CONTROLS` in the env file.
+
+## 10. Closing the held-out gaps and a second held-out sample
+
+*Added 2026-10-01 (UTC).* Section 9.5 listed 21 held-out mutants that change a value
+the host or the pins can observe, in a reachable situation that the 109-test
+suite does not produce or does not check. This section adds tests for the
+specified behaviour behind those gaps, confirms that they detect the 21, re-scores
+the first held-out sample with them (it is then no longer held out for the new
+tests), and draws a second held-out sample with the same method, which no test
+was written for. Parameters: `campaigns/mutation/campaign-heldout2.env`; results:
+[`campaigns/mutation/results/heldout2-b37c0ee/`](../campaigns/mutation/results/heldout2-b37c0ee/).
+
+### 10.1 Tests added
+
+Five modules, `test/test_spec_*.py`, with nine tests ([test/README.md](../test/README.md),
+"Specification checks"; `test/test_spec_common.py` holds shared helpers). They
+are named by the behaviour they check and their docstrings quote the
+[isa.md](isa.md) text, not the mutants. Each runs in lockstep with the
+reference model as usual, and in addition checks the DUT's pins and read-back
+words against values it derives from isa.md (a small interpreter of the
+instructions used, or the stated rule), not from the model. With
+`PE_SPEC_ONLY=1` the per-cycle comparison with the model is off, so that only
+these checks can fail.
+
+| module | tests | specified behaviour checked | gaps of 9.5 in that behaviour |
+|---|---:|---|---|
+| `test_spec_pin_writes.py` | 2 | OUT updates only its own output bit, for every pin, value and level of every other pin; DIR/SET values hold through every other kind of instruction, through WAIT and through blocked WAITEVENT, WAITPIN, PULL and PUSH until HALT releases them (eight enable patterns, every engine) | 1233, 1369 (OUT); 1285, 1287, 1295, 1318, 1319 (enables) |
+| `test_spec_xfer_timing.py` | 1 | XFER a = 1..32 with b = 1..4 on every engine: CPOL on the issue edge, a transition every b cycles, 2a of them, next issue one edge after the last | 1433, 1488, 1489 |
+| `test_spec_counters.py` | 2 | the completed-instruction count is unchanged while an engine blocks, stalls, transfers or holds a WAIT, and after a strict overflow, at twelve count bit patterns (`warp_completed`); all eight READ_SELECT words; WAITEVENT and WAITPIN without a LIMIT instruction time out on sample 65,535 after reset and after a START that follows LIMIT 7 | 268, 274, 275, 276, 309, 589 (count and READ_SELECT 4); 101 (default LIMIT) |
+| `test_spec_loader.py` | 2 | COMMIT 0 after BEGIN, COMMIT of a length not written and of a committed image are rejected, COMMIT of the written length is accepted; full-capacity images committed with 0 and 1 extra idle cycles after the last word are accepted and run | 492, 531 |
+| `test_spec_invalid_encodings.py` | 2 | every undefined opcode one bit from a defined one, with that opcode's valid operands, and FAULT with an invalid operand fault with code 1 on the issuing engine, one engine at a time (fault pin, status, PC, count) | 1133, 1151 |
+
+Cost. The nine tests simulate 118,148 cycles on RTL and took 17.2 s of test
+time in job 24493924 (four suites ran at once on one cluster node; the other
+109 tests took 423.6 s there, and the 109-test suite alone 422.9 s;
+uncontended, in job 24507279, they took 14.9 s against 183.4 s for the other
+109 tests, about 8 % more). The
+default suite is now 118 tests in 26 modules, in both module lists of
+`test/Makefile`. At gate level seven of the nine run, each under 5,000 cycles
+(the rule of section 3), with smaller parameter sets: 19,825 cycles and 26.7 s
+on the netlist of the official run 36714406904 (`ce6b9bd`), where the other 48
+gate-level tests took 151.5 s; 55 of the 118 tests run at gate level. In that
+job the default suite passed 118 of 118 on RTL (Icarus 13.0, cocotb 2.0.1),
+55 of 55 (63 skipped) on the gate-level netlist, and 118 of 118 on the 6x4
+core under `PE_VARIANT=diet4`.
+
+A first version of the count test read the count only after the program had
+ended. Mutant 309 survived it (job 24493538, `PE_SPEC_ONLY=1`): it flips bit 27
+on every blocked WAITPIN cycle, and over the two blocked WAITPINs of a round the
+flips cancelled. The test now reads each engine's count three times while the
+engines block, at captures of both cycle parities, and inside the XFER and the
+WAIT; the runs below are of that version.
+
+### 10.2 The 21 gaps
+
+The campaign's runner rebuilt the 21 mutants and the controls from the first
+held-out sample's `mutations.tsv` (stage `kill`, the five modules, every module
+run; test tree `b37c0ee` with the five modules, the core of section 9).
+
+- **With the comparison on** (job 24493977, with the other first-sample
+  survivors below): all 21 are killed, each by exactly one module, the one
+  listed in the table above. The unmutated core and id 0 pass.
+- **With `PE_SPEC_ONLY=1`** (job 24493968): all 21 are killed by the modules'
+  own checks, by the same modules; the controls pass. The failing checks
+  (job 24494461): the output-enable or value runs differ from isa.md (pins), the
+  clock pin's level differs on an edge (XFER), the count read while blocked or
+  transferring differs (for example 309: `0x5d555541` read in a blocked WAITPIN
+  where isa.md gives `0x55555541`), READ_SELECT 4 reads `0x4001` instead of `0x1`
+  (589), the enable is not released by the default-LIMIT timeout (101), COMMIT 0
+  is accepted or COMMIT 64 rejected (492, 531), and no fault is reported for
+  opcode 0x41 or FAULT 0 (1133, 1151).
+- **Controls with the whole suite.** The unmutated core and id 0 pass all 118
+  tests of the 26 default modules (job 24493969, stage `suite`).
+
+**The first held-out sample, re-scored.** Stage `kill` with the five modules on
+all 281 survivors of section 9 (job 24493977) kills exactly the 21 gaps: none
+of the 165 (or 212) proven equivalent and none of the 48 argued equivalent. The
+1,655 killed by the 109 tests stay killed. The new modules were written against
+these 21, so for them this sample is now in-sample:
+
+| first held-out sample (1,936) | 109 tests (section 9) | 118 tests (in-sample for `test_spec_*`) |
+|---|---:|---:|
+| killed | 1,655 | 1,676 |
+| score, proofs of 4.1–4.3 (165) | 93.45 % (1,655 / 1,771) [92.20, 94.51] | 94.64 % (1,676 / 1,771) [93.49, 95.59] |
+| score, with the longer cap (212) | 96.00 % (1,655 / 1,724) [94.97, 96.83] | 97.22 % (1,676 / 1,724) [96.33, 97.89] |
+| survivors after the longer cap | 69 | 48, all argued equivalent (9.4) |
+| real test gaps | 21: 1.22 % [0.80, 1.86] | 0: 0.00 % [0.00, 0.22] |
+
+### 10.3 Runner: the module list of stage `suite`
+
+Section 9.1 noted that `run_mutant.py` took the first `COCOTB_TEST_MODULES ?=`
+line of `test/Makefile`, which since `76a81f5` is the list of the line-unit
+variants, so every design-of-record run also ran the three line-unit modules
+(25 tests, all skipped there). The runner now asks make for the list: it appends
+a target that prints `$(COCOTB_TEST_MODULES)`
+(`make -f Makefile -f - pe-print-modules`) and runs it with the environment of
+the design under test (`PE_VARIANT` set for a variant, unset for the design of
+record), so it gets the list that make gives that design. On the `56f4b20`
+tree this is the 21 modules for the design of record and `diet4`, and 24 for
+`diet8_rec16`; on a tree before `76a81f5` (one `?=` line) the list is
+unchanged. The result file records the list (`module_list`).
+
+Check (job 24493540): stage `suite` with the changed runner on 44 mutants of the
+first held-out sample, with the `56f4b20` test tree of section 9 (two drawn with
+`random.Random(20261001)` from those killed first by each of the 17 killing
+modules, eight survivors, the unmutated core and id 0). For all 44 the status,
+the first failing module and the failing tests equal the recorded results
+(jobs 24425862 and 24429175); the surviving ones ran 21 modules and 109 tests
+instead of 24 and 134.
+
+### 10.4 Second held-out sample
+
+The first sample is in-sample for the `test_spec_*` modules now. A second
+sample, drawn with the same method and script, is held out for all 118 tests;
+no test was written or changed for it, and its gaps are listed below without
+tests.
+
+| item | value |
+|---|---|
+| core and generator | as in 9.1: the campaign's `base.il` (sha256 `cb91afa0…`) of the core `26a873db…`, its region selections, `campaigns/mutation/heldout_sample.py` at `b37c0ee` |
+| population | for each region, Yosys `mutate`'s whole raw database as in 9.1 (the `cnot` control bits are drawn from the seed, so the database differs slightly from the first sample's): 652,629 mutations |
+| excluded | every mutation with the (mode, cell, port) of one of the 2,420 mutants of this page, the eight of section 8 or the 1,936 of the first held-out sample (4,364 mutants, 4,195 distinct keys): 60,731 (9.31 %), leaving 591,898 |
+| draw | uniform without replacement within each region, the quotas of 9.1 (80 % of the campaign's): 1,936 mutants |
+| seed | 20261001: region k (k = 1 … 11, in the order of `campaign.env`) uses `mutate -seed 20261001+k` and `random.Random(20261001+k).sample` |
+| suite | the 26 default modules of `test/Makefile` (118 tests): `b37c0ee` with the five `test_spec_*` modules and the module lists of 10.1 (every file's sha256 in `testtree.sha256` of the results directory), Icarus Verilog 13.0, cocotb 2.0.1, `run_mutant.py` stage `suite` with the module list of 10.3 (default order, stop at the first failing module) |
+
+No mutant of the second sample has the (mode, cell, port) of an excluded
+mutant. 905 of its 1,936 share (cell, port) with an excluded mutant under
+another mode (566 with a mutant of this page or of section 8), and 1,563 share
+a cell (1,363).
+
+One mutant cannot be built: 1781 (`fifo`, `const1` on port `RD_SRST` of a queue
+memory, whose read port is asynchronous). Yosys stops with an assertion in its
+memory model (`port.srst == State::S0`, `kernel/mem.cc`) when it writes the
+mutant, so the runner reports `error` (job 24494405, task 30). It is left out
+of the counts below, which are over the other 1,935.
+
+### 10.5 Classification
+
+The survivors went through the steps of 9.2, with the same scripts (the runner
+copies of the miter, `equiv_mutant.py` and `equiv_inv.py` have the sha256
+prefixes of section 9's) and the invariant library of 9.2 (regenerated with
+`einv_specs.py --invariants-only`; identical to section 9's file).
+
+| step | second held-out result | jobs |
+|---|---|---|
+| stage `suite` | 1,691 of 1,935 killed, 244 survive (1781 not buildable); both clock-input mutants (568, 802) are killed | 24494405 (48 × 8 CPUs, `mit_preemptable`), 24495281, 24495282, 24495284, 24495285 (48 CPUs each, `mit_quicktest`, run while the array waited; 24495285 was cancelled when the array started, its finished results kept) |
+| `equiv_mutant.py` (4.1) | 148 of the 244 proven equivalent | 24501277 |
+| miter, PDR 60 s, ABC cap 150 s (4.2) | on the 96 others: 7 proven (at most 6 s of ABC time), 89 undecided, no counterexample. Controls drawn with `random.Random(20261001)`: of 6 mutants killed by `test_smoke` (553, 644, 708, 1413, 1587, 1722) none proven; of 6 proven by `equiv_mutant.py` (490, 574, 586, 605, 669, 1140) 5 proven (669 undecided) | 24502293 |
+| `equiv_inv.py` with the invariant library (4.3) | none proven; the three killed controls (151, 504, 1007) not proven | 24502859 |
+| miter, PDR 600 s, ABC cap 900 s (4.5) | on the 96: 46 proven (39 of them not proven by the three methods above; at most 670 s of ABC time), 5 counterexamples (465, 1212 and the SRAM address permutations 1575, 1583, 1601), 45 undecided. Controls: 5 of the 6 equivalent proven (669 undecided); none of the 6 killed (644 a counterexample, 5 undecided) | 24503814 |
+| RIP (stage `kill-rip`: the 26 modules on the wrapper, time warp on both cores) | on the 96 and mutant 0: all 118 tests pass on the wrapper in every run, none skipped; mutant 0 shows no difference in 1,468,494 cycles. Of the 50 survivors left after the longer cap, 23 were never infected, 26 infected without a pin difference, and one (1212) changed `uio_oe` in 26 cycles (below) | 24503815 |
+| by hand | the 50 left: 37 argued equivalent (10.7), 13 real test gaps (10.8) | – |
+
+The control mutants of the miter and `equiv_inv.py` stages were drawn as in
+9.6, from the pools as they stood after job 24501277 (377 killed first by
+`test_smoke`, 148 proven equivalent; ids sorted as integers), in this order: 6
+killed, 6 proven equivalent, then 3 more killed.
+
+### 10.6 Result
+
+Same accounting as 9.3: score = killed / (mutants − proven equivalent), Wilson
+95 % intervals (z = 1.96) in brackets, with the caveats of 9.3. The in-sample
+columns are the push's sample and the first held-out sample under the 118-test
+suite: the five `test_spec_*` modules kill none of the push's 72 survivors (job
+24500049), so its figures are those of section 8; on the first held-out sample
+they kill the 21 gaps they were written against (10.2).
+
+| | push sample (in-sample) | first held-out, 109 tests (9.3) | first held-out, 118 tests (in-sample for `test_spec_*`) | second held-out, 118 tests |
+|---|---:|---:|---:|---:|
+| mutants | 2,420 | 1,936 | 1,936 | 1,935 (1,936 drawn, 1 not buildable) |
+| killed | 2,224 | 1,655 | 1,676 | 1,691 |
+| proven equivalent, methods of 4.1–4.3 | 124 | 165 | 165 | 155 (148 + 7 + 0) |
+| **score** | 96.86 % (2,224 / 2,296) [96.07, 97.50] | 93.45 % (1,655 / 1,771) [92.20, 94.51] | 94.64 % (1,676 / 1,771) [93.49, 95.59] | **95.00 %** (1,691 / 1,780) [93.89, 95.92] |
+| proven equivalent with the longer ABC cap of 4.5 | 150 | 212 | 212 | 194 |
+| score with the longer cap | 97.97 % (2,224 / 2,270) [97.31, 98.48] | 96.00 % (1,655 / 1,724) [94.97, 96.83] | 97.22 % (1,676 / 1,724) [96.33, 97.89] | 97.13 % (1,691 / 1,741) [96.23, 97.81] |
+| survivors after the longer cap | 46 | 69 | 48 | 50 |
+| of those argued equivalent | 46 | 48 | 48 | 37 |
+| real test gaps | 0 | 21 | 0 | 13 |
+| share of real gaps, of the mutants not proven equivalent (longer cap) | 0 % (0 / 2,270) [0.00, 0.17] | 1.22 % (21 / 1,724) [0.80, 1.86] | 0 % (0 / 1,724) [0.00, 0.22] | 0.75 % (13 / 1,741) [0.44, 1.27] |
+
+Counted as a surviving mutant (as `push_summary.py` does in `summary.json`), the
+unbuildable mutant 1781 would give 94.95 % (1,691 / 1,781) [93.83, 95.87] and,
+with the longer cap, 97.07 % (1,691 / 1,742) [96.17, 97.77]. The 37 arguments
+are not proofs; counted as equivalent they would give 1,691 / 1,704 = 99.24 %.
+The two held-out intervals of the score overlap ([92.20, 94.51] and [93.89,
+95.92]); the second sample ran under 9 more tests, which are the first to fail
+on 8 of its mutants.
+
+Kills by the three groups of modules (first failing module; proofs of 4.1–4.3):
+
+| | push sample | first held-out | second held-out |
+|---|---:|---:|---:|
+| killed by the nine modules of the gap-closure suite (`test_smoke` to `test_timewarp`) | 2,061 | 1,540 | 1,570 |
+| left by them and not proven equivalent | 235 | 231 | 210 |
+| of those killed by the twelve modules written against the push's survivors (`test_kill_*`, `test_wait_limit`) | 163: 69.36 % [63.20, 74.91] | 115: 49.78 % [43.39, 56.18] | 113: 53.81 % [47.06, 60.42] |
+| left by the 21 modules | 72 | 116 | 97 |
+| of those killed by the five `test_spec_*` modules | 0 (0 / 72) [0.00, 5.07] | 21 (written against them) | 8: 8.25 % (8 / 97) [4.24, 15.44] |
+
+The eight: 238, 273 and 350 (`engine_ctrl`; `test_spec_counters`, the count read
+while blocked), 1068 (`events`; `test_spec_invalid_encodings`, an undefined
+opcode), and 1332, 1338, 1339 and 1374 (`pins`; the enable runs of
+`test_spec_pin_writes`).
+
+First failing module on the second sample: `test_random` 560, `test_smoke` 377,
+`test_legacy` 242, `test_protocols` 212, `test_timewarp` 76, `test_directed` 48,
+`test_kill_decode` 27, `test_counters` 26, `test_kill_blocked` 20,
+`test_kill_regs` 18, `test_flagship` 17, `test_kill_pins` 13, `test_mover` 12,
+`test_kill_host` 11, `test_kill_events` 9, `test_kill_xfer` 9,
+`test_kill_mover` 5, `test_spec_pin_writes` 4, `test_spec_counters` 3,
+`test_spec_invalid_encodings` 1, `test_kill_pc` 1 (`test_kill_edges`,
+`test_kill_fifo`, `test_wait_limit`, `test_spec_xfer_timing` and
+`test_spec_loader` are never the first to fail).
+
+By region (proofs of 4.1–4.3 in the scores; first held-out: 9.3):
+
+| region | mutants | killed | proven (4.1–4.3) | proven (with the longer cap) | argued | gaps | score (second held-out) | score (first held-out) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| engine_ctrl | 440 | 394 | 20 | 27 | 16 | 3 | 93.8 % | 90.4 % |
+| host | 320 | 255 | 55 | 56 | 8 | 1 | 96.2 % | 95.7 % |
+| events | 240 | 206 | 32 | 32 | 2 | 0 | 99.0 % | 99.0 % |
+| mover | 200 | 189 | 7 | 7 | 2 | 2 | 97.9 % | 99.5 % |
+| pins | 200 | 184 | 9 | 14 | 0 | 2 | 96.3 % | 93.4 % |
+| engine_xfer | 160 | 120 | 14 | 37 | 2 | 1 | 82.2 % | 79.6 % |
+| engine_data | 144 | 136 | 2 | 4 | 1 | 3 | 95.8 % | 95.1 % |
+| fifo | 103 | 92 | 6 | 7 | 3 | 1 | 94.8 % | 97.0 % |
+| shared | 72 | 64 | 8 | 8 | 0 | 0 | 100.0 % | 98.3 % |
+| imem | 48 | 43 | 2 | 2 | 3 | 0 | 93.5 % | 83.7 % |
+| timestamp | 8 | 8 | 0 | 0 | 0 | 0 | 100.0 % | 100.0 % |
+| **total** | **1,935** | **1,691** | **155** | **194** | **37** | **13** | **95.00 %** | **93.45 %** |
+
+By mode (second held-out): `inv` 410 / (435 − 6) = 95.6 %, `const0` 330 /
+(423 − 75) = 94.8 %, `const1` 405 / (447 − 15) = 93.8 %, `cnot0` 308 / (326 − 9)
+= 97.2 %, `cnot1` 238 / (304 − 50) = 93.7 %. 8 of the 13 gaps are `cnot1`
+mutants.
+
+### 10.7 Survivors argued equivalent (37)
+
+Engine numbers follow `campaigns/mutation/results/engine_map.json`; per-survivor
+detail is in `survivors.tsv`.
+
+| group | survivors | argument |
+|---|---|---|
+| blocked-cycle count outside a bounded wait | 51, 60, 84, 86, 93, 367, 372, 376, 377, 407, 431 | As in 9.4: in the count's next value for an instruction other than WAITPIN/WAITEVENT, during an XFER or in a PULL/PUSH stall the mutation forces a bit to 0, or flips a bit only while another bit of the count is 1; there the count is 0. 86 toggles bit 5 on every cycle of a PUSH stall (or on a strict overflow) while bit 0 is 0; the PUSH's completion clears the count again (START after a STOP or the fault), before any bounded wait reads it (RIP: infected, no pin difference). |
+| register changed on a code-2 fault | 53, 87, 388, 1454, 1825 | LIMIT (53, 87), blocked count (388), PINS (1454) or y (1825) changed on the edge the engine faults with a PC outside the image: not readable by the host, the fault masks the engine's pins, and START re-initialises the register before the engine runs again. |
+| blocked count after HALT | 386 | HALT sets the blocked count to 0x2000 instead of 0; the engine is halted afterwards, and START clears the count. |
+| PC on the last XFER edge | 75 | PC + 1, loaded on the last edge of an XFER, has bit 18 forced to 0; an XFER issues from inside the image, so PC + 1 is at most 64. |
+| sample flag on the same edges | 1529 | Engine 0's stored sample flag becomes sample XOR CPHA on an XFER's issue edge and then toggles on every cycle while CPHA is 1; a CPHA-1 transfer reads it only on its sample edges, the even transitions at cycles T + kb with kb even, where it equals the instruction's flag again (CPHA 0: no change). The modes test of `test_kill_xfer` runs every mode on every engine. |
+| reset value | 584, 587, 593, 819, 821, 1061, 1064 | Reset value of the image length (584, 593), the image loaded count (587), a route destination (821; 819: never cleared by reset) or one of the two input synchronizer stages (1061, 1064): BEGIN, COMMIT, ROUTE or the next input sample writes the register before any use. An engine runs only after BEGIN, COMMIT and START; a route moves words only after ROUTE has written its destination; two edges after reset the synchronizer holds the pins, before a TRIGGER command can configure a detector or an engine can run. |
+| image length written by BEGIN | 675, 693, 694, 695 | BEGIN writes 0x400, 4, 0x10 or 0x20 instead of 0; the image is invalid after BEGIN, and the only reader, the fetch range check of a running engine, sees the length that COMMIT writes. |
+| COMMIT capacity test | 520 | The capacity test accepts COMMIT lengths 65 and 66, but COMMIT also needs the length to equal the loaded count, which is at most 64. |
+| SRAM address permutation | 1575, 1583, 1601 | As in 9.4 (1575 and 1601 are in the cells of 1569/1570 and 1597): an instruction-SRAM address bit inverted, unconditionally or depending on another address bit, on the address used for both reads and writes; a bijection. The miter, which cuts the SRAM out, gives counterexamples. |
+| write to an undefined address | 1770, 1783, 1784 | As in 9.4 (1767, 1780): a queue storage write of one data bit enabled on cycles without a push, at the round-trip netlist's write address x, which RTL simulation ignores; the effect on hardware depends on how synthesis resolves the x. |
+
+### 10.8 Real test gaps (13)
+
+Each changes a value that the host or the pins can observe, in a reachable
+situation that the 118 tests do not produce or do not check. As in 9.5 the
+description is of the unobserved behaviour; no test was written for any of
+them, so that the sample stays held out.
+
+| survivor | region, mode | unobserved behaviour | RIP |
+|---|---|---|---|
+| 269 | engine_ctrl, `cnot1` | HALT on engine 3 flips bit 24 of the incremented completed-instruction count when its bit 4 is set (the HALT completes the 16th to 31st instruction modulo 32); READ_SELECT 5 then differs | infected |
+| 324 | engine_ctrl, `const0` | A fault with code 2 (PC outside the image) on engine 1 clears bit 16 of the completed-instruction count, which a faulting instruction leaves unchanged; READ_SELECT 5 differs once the count has bit 16 set | not infected |
+| 360 | engine_ctrl, `cnot1` | STOP or BEGIN of engine 0 flips bit 8 of its completed-instruction count while bit 14 is set (16,384 or more instructions); READ_SELECT 5 then differs | not infected |
+| 465 | host, `const1` | Engine 2's status reports stalled (bit 2) on the cycle it issues a WAITEVENT whose event is already pending; a status word captured on that cycle differs (miter counterexample) | not infected |
+| 907 | mover, `cnot1` | Each word that a route from source engine 2 moves while its count minus one has bit 15 set flips bit 1 of the count, so a ROUTE with a count above 0x8000 moves a different number of words | infected |
+| 960 | mover, `cnot1` | Bit 5 of source engine 0's route count flips on every cycle while bit 1 of the count is set, so such a route moves a different number of words before it expires | infected |
+| 1212 | pins, `const1` | Engine 0's output enable 5 is not masked by run, fault and reset: after a fault that leaves the logical enable set (an undefined opcode keeps it), and in a cycle with rst_n or ena low before the reset edge, `uio_oe` bit 5 stays high when engine 0 owns and had enabled pin 5 (miter counterexample). The RIP run saw `uio_oe` differ only in the first cycle of each of the 26 modules, before the first reset edge (power-up X), where no test compares the outputs; no test faults engine 0 with an undefined opcode while pin 5 is enabled | output (26 cycles) |
+| 1274 | pins, `cnot1` | An XFER on engine 0 with clock pin 5 and CPOL 1 (and CPHA 1 or no drive) also sets output value 7; visible when engine 0 owns pin 7 | infected |
+| 1457 | engine_xfer, `inv` | START sets engine 2's PINS clock pin to 1 instead of 0; an XFER after START without PINS clocks pin 1. The default-pin case of `test_kill_xfer` owns pins 0 and 2, so the mutant faults there with code 1 for the unowned pin 1, the code the unmutated core gives for clock = TX | infected |
+| 1701 | fifo, `const0` | A word that the mover takes from engine 3's RX queue loses bit 7 on its way to the destination TX queue (RIP: TX queue words differ; the suite never pulls them) | infected |
+| 1860 | engine_data, `cnot1` | XOR into x on engine 3 flips bit 18 of the result when its bit 0 is 1 | infected |
+| 1865 | engine_data, `cnot1` | Engine 3's x flips bit 22 on every WAIT hold cycle while its bit 19 is set, so x differs after a WAIT with an odd count | infected |
+| 1886 | engine_data, `cnot1` | SHL into tx on engine 3 flips bit 6 of the result when its bit 1 is 1 (shift counts 0 and 1) | not infected |
+
+Three act on the completed-instruction count (269, 324, 360) and two on route
+counts (907, 960); three need particular data values on engine 3 (1860, 1865,
+1886); 465 needs a status capture on one particular cycle; and 1212 also shows
+that the harness does not compare the pins in the cycles in which `rst_n` or
+`ena` is low.
+
+### 10.9 Jobs and data
+
+| step | jobs | CPU-hours (sum of per-mutant run times) |
+|---|---|---:|
+| first runs of the five modules (RTL, `diet4`, gate level) | 24493146, 24493924 | – |
+| the 21 gaps with `PE_SPEC_ONLY=1`: first version of `test_spec_counters`, final version; assertion texts | 24493538, 24493968; 24494461 | 0.2 |
+| stage `kill` on the first sample's 281 survivors and the controls | 24493977 | 3.7 |
+| controls, stage `suite` (118 tests) | 24493969 | 0.2 |
+| runner check (10.3) | 24493540 | 2.7 |
+| the push's 72 survivors, stage `kill` | 24500049 | 1.1 |
+| draw the second sample (`mit_quicktest`) | 24493549 | – |
+| stage `suite`, second sample | 24494405, 24495281, 24495282, 24495284, 24495285 | 90.5 |
+| `equiv_mutant.py` | 24501277 | 2.4 |
+| miter, ABC cap 150 s | 24502293 | 4.8 |
+| `equiv_inv.py` | 24502859 | 1.4 |
+| miter, ABC cap 900 s | 24503814 | 18.9 |
+| RIP | 24503815 | 14.5 |
+| netlist diffs and descriptions (`mutant_diff.py`, `describe.py`) | 24502208 | – |
+
+Jobs cancelled while pending and resubmitted (24493921 to 24493923, 24502193 to
+24502196) and the quicktest jobs cancelled when the array started (24495286,
+24495287, 24496142, 24496143) are in the work directory's `manifest.json`
+(`<work dir>/gap-close/`).
+
+Committed in `campaigns/mutation/results/heldout2-b37c0ee/`: `sample.json`
+(seed, quotas, per-region database, exclusion and draw counts, the sha256 of
+the exclusion files, of `base.il` and of the drawn `mutations.tsv`, the
+controls, the unbuildable mutant; of the database hashes only
+`database_text_sha256` is reproducible, since the gzip header carries a
+timestamp: a re-draw, job 24507263, gave the same text hashes and
+`mutations.tsv`), `testtree.sha256` (every file of the test
+tree as run), `summary.json` and `summary-longcap.json` (`push_summary.py`;
+they count 1781 under `error`), `mutant_status.tsv`, `survivors.tsv` (the 50
+with their group or gap description, miter results and RIP outcome) and
+`insample-118.json` (the stage `kill` results on the earlier samples and the
+controls). Arithmetic checked with AXLE (`<work dir>/gap-close/axle/`).
+
+Re-run (login node; every heavy step is a Slurm array; as in 9.6, with a test
+tree that contains the `test_spec_*` modules):
+
+```sh
+source campaigns/mutation/campaign.env; source campaigns/mutation/campaign-heldout.env
+source campaigns/mutation/campaign-heldout2.env
+export PATH=$OSS_CAD_SUITE/bin:$PATH MANIFEST=$HELDOUT2/manifest.json JOB_PREFIX=pe-mut-heldout2 SNAPSHOT_COMMIT=$HEAD2_COMMIT
+H=$PWD/campaigns/mutation; S=$H/submit.sh
+mkdir -p $HELDOUT2/snap && git archive HEAD | tar -x -C $HELDOUT2/snap      # a commit with the test_spec_* modules
+srun -p mit_quicktest -c 2 --mem=12G -t 15 python3 $H/heldout_sample.py $CAMP/design $HELDOUT2/sample --quotas $HELDOUT_QUOTAS \
+  --seed $HELDOUT2_SEED --exclude $CAMP/design/mutations.tsv --exclude $HELDOUT2_EXCLUDE_S8 --exclude $HELDOUT2_EXCLUDE_H1
+M=$(cd $HELDOUT2/snap/test && printf 'pe-print-modules:\n\t@echo $(COCOTB_TEST_MODULES)\n' | make -s -f Makefile -f - pe-print-modules | tr ',' ' ')
+$H/mk_design.sh $CAMP/design $HELDOUT2/snap $HELDOUT2/design; $H/mk_design.sh $CAMP/design $HELDOUT2/snap $HELDOUT2/design_rip $M
+for d in design design_rip; do rm $HELDOUT2/$d/mutations.tsv; cp $HELDOUT2/sample/mutations.tsv $HELDOUT2/$d/; done
+cd $HELDOUT2 && (echo orig; cut -f1 design/mutations.tsv) > all_ids.txt
+CAMP=$HELDOUT2 DESIGN=$HELDOUT2/design RESULTS=$HELDOUT2/results/suite PAR=8 $S suite all_ids.txt 48 02:00:00 mit_preemptable,mit_normal
+python3 $H/push_summary.py design --sim suite=results/suite --write-survivors survivors.txt        # 244 (and 1781: error)
+```
+
+The remaining stages are those of 9.6 with `$HELDOUT2`, the controls
+`$HELDOUT2_FORMAL_CONTROLS` and `$HELDOUT2_EINV_CONTROLS`, and `kill-rip` on the
+design directory `design_rip`.

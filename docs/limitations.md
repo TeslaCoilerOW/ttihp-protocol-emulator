@@ -265,7 +265,9 @@ on them."
   `test_flagship.py` also skip at gate level, so 46 run and 61 skip (R28;
   the official gl_test runs of `bab697b`, 36624435821 and 36624435439, gave
   that). With `test_wait_limit.py` the suite has 109 tests, and its 2 run
-  at gate level with LIMIT up to 2^8 + 2: 48 run and 61 skip (R28b). It is
+  at gate level with LIMIT up to 2^8 + 2: 48 run and 61 skip (R28b). With the
+  five `test_spec_*` modules the suite has 118 tests, 7 of whose 9 run at
+  gate level: 55 run and 63 skip (R28c). It is
   zero-delay, without SDF, and uses the FUNCTIONAL SRAM models. It checks the netlist's logic, not its timing.
 - **The time-warp tests are white-box.** They deposit reachable counter
   values into RTL registers, and they run only on RTL. Gap closure killed
@@ -289,7 +291,9 @@ on them."
     from four mutants that the mutation campaign on the extension branch
     found outside this campaign's sample and that pass every other test
     of the default suite ([mutation-push.md](mutation-push.md) section 8).
-    The score covers only the 2,420 sampled mutants.
+    The score covers only the 2,420 sampled mutants. On held-out samples
+    the suite scores 93.45 % (R23f, 109 tests) and 95.00 % (R23g, 118 tests,
+    a second sample drawn after tests for the first one's gaps were added).
   - The score counts as equivalent only mutants proven so: 124 since
     `aa07868` (116 before).
 - **The peers are models, not devices.** Two of the third-party peers have

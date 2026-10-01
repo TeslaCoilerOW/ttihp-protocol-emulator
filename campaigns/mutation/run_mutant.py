@@ -72,10 +72,11 @@ STAGES = {
     # extra random stimulus for full-suite survivors: 256 cases from another seed
     "deep": {"modules": [("test_random", {"PE_SEED": "0xD33B2027", "PE_RANDOM_ITERS": "256"})],
              "budget": 3000},
-    # the snapshot's whole suite: the default COCOTB_TEST_MODULES of its test/Makefile
-    # (66 tests in nine modules at c118027, 102 tests in 20 modules from aa07868 on),
-    # defaults, stopping at the first failing module. On a c118027 test tree this is the
-    # stage `head` of docs/mutation-push.md (same modules, order, stop rule and budget)
+    # the snapshot's whole suite: the default COCOTB_TEST_MODULES that its test/Makefile
+    # gives the design under test (66 tests in nine modules at c118027, 102 tests in 20
+    # modules from aa07868 on), defaults, stopping at the first failing module. On a
+    # c118027 test tree this is the stage `head` of docs/mutation-push.md (same modules,
+    # order, stop rule and budget)
     "suite": {"modules": "makefile", "budget": 3600},
     # docs/mutation-push.md: the modules listed in DESIGN/kill_modules.txt (mk_design.sh),
     # in that order; every module runs (no stop at the first kill) so that each kill is
@@ -84,20 +85,38 @@ STAGES = {
     # the same modules on the reach/infect/propagate wrapper of stage rip
     "kill-rip": {"modules": "kill_modules", "budget": 2400, "rip": True},
 }
-MAKEFILE_MODULES = re.compile(r"^COCOTB_TEST_MODULES\s*\?=\s*(\S.*)$", re.M)
+# A target appended to the snapshot's test/Makefile (read from stdin) that prints the
+# module list make arrives at. Since 76a81f5 the Makefile has two `COCOTB_TEST_MODULES ?=`
+# lines: the first, inside `ifneq ($(filter $(PE_VARIANT),$(LINE_UNIT_VARIANTS)),)`,
+# holds the line-unit variants' list, the second every other design's. Until this
+# target was used (docs/mutation-push.md section 10) the runner took the first `?=`
+# line of the file, so on such a tree the design of record also ran the three
+# line-unit modules, whose tests skip there.
+PRINT_MODULES = "pe-print-modules:\n\t@echo $(COCOTB_TEST_MODULES)\n"
 
 
-def stage_modules(spec: dict, test_dir: Path, design: Path) -> list[tuple[str, dict]]:
-    """The stage's (module, env) list; "makefile" means the snapshot's default module list,
-    "kill_modules" the whitespace-separated list in DESIGN/kill_modules.txt."""
+def makefile_modules(test_dir: Path, env: dict) -> list[str]:
+    """The default COCOTB_TEST_MODULES of the snapshot's test/Makefile as make evaluates it
+    for the design under test (PE_VARIANT in ``env``; unset for the design of record)."""
+    env = {k: v for k, v in env.items() if k != "COCOTB_TEST_MODULES"}
+    env["PWD"] = str(test_dir)  # test/Makefile uses $(PWD)
+    proc = subprocess.run(["make", "-s", "--no-print-directory", "-f", "Makefile", "-f", "-", "pe-print-modules"],
+                          input=PRINT_MODULES, cwd=test_dir, env=env, capture_output=True, text=True, timeout=300)
+    names = [name.strip() for name in proc.stdout.strip().split(",") if name.strip()]
+    if proc.returncode != 0 or not names:
+        raise RuntimeError(f"no COCOTB_TEST_MODULES default in test/Makefile: {proc.stderr.strip()[-400:]}")
+    return names
+
+
+def stage_modules(spec: dict, test_dir: Path, design: Path, env: dict) -> list[tuple[str, dict]]:
+    """The stage's (module, env) list; "makefile" means the snapshot's default module list
+    for the design under test, "kill_modules" the whitespace-separated list in
+    DESIGN/kill_modules.txt."""
     if spec["modules"] == "kill_modules":
         return [(name, {}) for name in (design / "kill_modules.txt").read_text().split()]
     if spec["modules"] != "makefile":
         return spec["modules"]
-    m = MAKEFILE_MODULES.search((test_dir / "Makefile").read_text())
-    if not m:
-        raise RuntimeError("no COCOTB_TEST_MODULES default in test/Makefile")
-    return [(name.strip(), {}) for name in m.group(1).split(",") if name.strip()]
+    return [(name, {}) for name in makefile_modules(test_dir, env)]
 
 
 def design_variant(design: Path) -> str:
@@ -334,16 +353,18 @@ def one(mutant: dict, design: Path, stage: str, out: Path, env0: dict) -> dict:
             result["rip_harness_sha256"] = rip_warp_patch(work / "test")
         budget = spec["budget"]
         status = "survived"
-        modules = stage_modules(spec, work / "test", design)
+        design_env = dict(env0, **COMMON_ENV)
+        if variant != "base":
+            design_env["PE_VARIANT"], design_env["PE_CORE"] = variant, str(core)
+        else:  # the design of record, whatever the submitting shell exported
+            design_env.pop("PE_VARIANT", None)
+            design_env.pop("PE_CORE", None)
+        modules = stage_modules(spec, work / "test", design, design_env)
+        result["module_list"] = [m for m, _ in modules]
         every = bool(spec.get("all_modules"))
         for module, extra in modules:
-            env = dict(env0, **COMMON_ENV, **extra)
+            env = dict(design_env, **extra)
             env["PWD"] = str(work / "test")  # test/Makefile uses $(PWD)
-            if variant != "base":
-                env["PE_VARIANT"], env["PE_CORE"] = variant, str(core)
-            else:  # the design of record, whatever the submitting shell exported
-                env.pop("PE_VARIANT", None)
-                env.pop("PE_CORE", None)
             xml = work / f"results_{module}.xml"
             mlog = work / f"log_{module}.txt"
             remaining = budget - (time.time() - t_start)

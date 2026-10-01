@@ -1,0 +1,257 @@
+{
+ "src_design": "the campaign design directory (campaign.env: $CAMP/design)",
+ "base_il_sha256": "cb91afa088ca7246b2a21e23cca62c8c61b4cd0285ea9bd2cf0bd6c9408c4b5d",
+ "core_orig_sha256": "26a873db82935fe6bc79214ca1e084294d270fd5adc3cc2aab28c1adfe0d7697",
+ "seed": 20261001,
+ "quotas": "engine_ctrl=440,host=320,mover=200,events=240,pins=200,engine_xfer=160,imem=48,shared=72,fifo=104,engine_data=144,timestamp=8",
+ "exclude_files": {
+  "campaign mutations.tsv (2,420 mutants of docs/mutation-push.md)": "0f0a26c3a68483c57e28fdacd4586c9f1eb58eb592cc944aa123f37ce1e126ee",
+  "exclude_section8.tsv of results/heldout-56f4b20 (D331 D333 D1438 D1442 P331 P333 P1438 P1442)": "b301391fda18d9bfed771204b31671fd81b030e0ac4368929e5f4299fd085023",
+  "mutations.tsv of the first held-out sample (1,936 mutants; listed in results/heldout-56f4b20/mutant_status.tsv)": "80f8300173438c6265435c18edf4e1dc430bfe2d261904baf83e337183c237f1"
+ },
+ "excluded_mutants": 4364,
+ "excluded_keys_mode_cell_port": 4195,
+ "python": "3.12.12",
+ "yosys": "Yosys 0.67+111 (git sha1 4821ed17b-dirty, Release, Clang /usr/bin/clang++ 21.1.8)",
+ "regions": {
+  "engine_ctrl": {
+   "k": 1,
+   "mutate_seed": 20261002,
+   "sample_seed": 20261002,
+   "database": 247264,
+   "excluded_mode_cell_port": 23889,
+   "same_mode_cell_port_bit_ctrl": 653,
+   "population": 223375,
+   "drawn": 440,
+   "drawn_by_mode": {
+    "cnot0": 76,
+    "cnot1": 87,
+    "const0": 86,
+    "const1": 107,
+    "inv": 84
+   },
+   "database_gz_sha256": "6a88ed0121780094d375b9b9fa694dcff767fa366fc6999b983a3342cf4fb760",
+   "database_text_sha256": "5a2134367f6f9218a7073a3bc095163815aa308a261ec2b051992848e2e0ddc3"
+  },
+  "host": {
+   "k": 2,
+   "mutate_seed": 20261003,
+   "sample_seed": 20261003,
+   "database": 20202,
+   "excluded_mode_cell_port": 8708,
+   "same_mode_cell_port_bit_ctrl": 549,
+   "population": 11494,
+   "drawn": 320,
+   "drawn_by_mode": {
+    "cnot0": 44,
+    "cnot1": 45,
+    "const0": 73,
+    "const1": 74,
+    "inv": 84
+   },
+   "database_gz_sha256": "88ae60e3f82f9404059f33bfa26f7b352326cc2004406b389faa2684f1a5ec2d",
+   "database_text_sha256": "58603512f61066cfd20f641b5bf4751fef39e63c5cac33a4c5f4f3e0d2978c89"
+  },
+  "mover": {
+   "k": 3,
+   "mutate_seed": 20261004,
+   "sample_seed": 20261004,
+   "database": 7021,
+   "excluded_mode_cell_port": 2772,
+   "same_mode_cell_port_bit_ctrl": 384,
+   "population": 4249,
+   "drawn": 200,
+   "drawn_by_mode": {
+    "cnot0": 28,
+    "cnot1": 30,
+    "const0": 50,
+    "const1": 45,
+    "inv": 47
+   },
+   "database_gz_sha256": "b06f13caf182b74ed1dc1ae6873b5a99cd95b4c28a0c4f44f6ccdd7a2ccfae47",
+   "database_text_sha256": "d254790292fbededac80a5594a6bffe8918a35f5db24b78cbd4e67c198e7edd7"
+  },
+  "events": {
+   "k": 4,
+   "mutate_seed": 20261005,
+   "sample_seed": 20261005,
+   "database": 20719,
+   "excluded_mode_cell_port": 3052,
+   "same_mode_cell_port_bit_ctrl": 438,
+   "population": 17667,
+   "drawn": 240,
+   "drawn_by_mode": {
+    "cnot0": 35,
+    "cnot1": 24,
+    "const0": 57,
+    "const1": 69,
+    "inv": 55
+   },
+   "database_gz_sha256": "7d85afbf804d904aae1b85b0f1c33be0b646576196b55678f07ec406b4f6f579",
+   "database_text_sha256": "1bd0a6ebe4c5830ba34255bb08e4a0c3649c2c46371e23f5ad24ded05ec61a56"
+  },
+  "pins": {
+   "k": 5,
+   "mutate_seed": 20261006,
+   "sample_seed": 20261006,
+   "database": 31784,
+   "excluded_mode_cell_port": 3714,
+   "same_mode_cell_port_bit_ctrl": 324,
+   "population": 28070,
+   "drawn": 200,
+   "drawn_by_mode": {
+    "cnot0": 45,
+    "cnot1": 32,
+    "const0": 39,
+    "const1": 41,
+    "inv": 43
+   },
+   "database_gz_sha256": "b6f9b2b0b2feff229ff712d23453068a13a301809684c7598bcbb1f19e98f909",
+   "database_text_sha256": "50f134a254ea2570f850aef91c7ef7617070eb14a626d983f03681277448211e"
+  },
+  "engine_xfer": {
+   "k": 6,
+   "mutate_seed": 20261007,
+   "sample_seed": 20261007,
+   "database": 23150,
+   "excluded_mode_cell_port": 2494,
+   "same_mode_cell_port_bit_ctrl": 250,
+   "population": 20656,
+   "drawn": 160,
+   "drawn_by_mode": {
+    "cnot0": 27,
+    "cnot1": 25,
+    "const0": 42,
+    "const1": 34,
+    "inv": 32
+   },
+   "database_gz_sha256": "77c12b36f8c1f2c97b3051a7de249444136aa9e62720e8c43f11aff8e366e8e9",
+   "database_text_sha256": "210fc42b069f6188188d715556c45619ec8615337190aeb4dc81a2001b905b65"
+  },
+  "imem": {
+   "k": 7,
+   "mutate_seed": 20261008,
+   "sample_seed": 20261008,
+   "database": 4334,
+   "excluded_mode_cell_port": 1509,
+   "same_mode_cell_port_bit_ctrl": 82,
+   "population": 2825,
+   "drawn": 48,
+   "drawn_by_mode": {
+    "cnot0": 9,
+    "cnot1": 11,
+    "const0": 14,
+    "const1": 10,
+    "inv": 4
+   },
+   "database_gz_sha256": "6c542d58589048ea715a23e26cd52ed6eaedd34a961b9a9b16410577865bfe67",
+   "database_text_sha256": "0fbbeb0772197efd9c67b8699b142b157c5757ecfb28bbbc7ca4021c8e8f85fc"
+  },
+  "shared": {
+   "k": 8,
+   "mutate_seed": 20261009,
+   "sample_seed": 20261009,
+   "database": 2429,
+   "excluded_mode_cell_port": 1115,
+   "same_mode_cell_port_bit_ctrl": 133,
+   "population": 1314,
+   "drawn": 72,
+   "drawn_by_mode": {
+    "cnot0": 15,
+    "cnot1": 5,
+    "const0": 16,
+    "const1": 13,
+    "inv": 23
+   },
+   "database_gz_sha256": "8c52440ec35cba50c02bbd1e7c9eb57c2a9b8b08c315850bee3d25e36f308a50",
+   "database_text_sha256": "05bd5563ab49b10eef994a1a520a20f46ef9fd599172a1f6718832b4037f83e4"
+  },
+  "fifo": {
+   "k": 9,
+   "mutate_seed": 20261010,
+   "sample_seed": 20261010,
+   "database": 16178,
+   "excluded_mode_cell_port": 3005,
+   "same_mode_cell_port_bit_ctrl": 186,
+   "population": 13173,
+   "drawn": 104,
+   "drawn_by_mode": {
+    "cnot0": 16,
+    "cnot1": 16,
+    "const0": 21,
+    "const1": 23,
+    "inv": 28
+   },
+   "database_gz_sha256": "9ee91510528a56057a6a0a88cea96c0ee8159476c451696ce86e69a80a0abd18",
+   "database_text_sha256": "2f64fb87c606692b642c124fd9d7e1d6f15e449e1439c4d5b8fc412af8f9128e"
+  },
+  "engine_data": {
+   "k": 10,
+   "mutate_seed": 20261011,
+   "sample_seed": 20261011,
+   "database": 278492,
+   "excluded_mode_cell_port": 10029,
+   "same_mode_cell_port_bit_ctrl": 204,
+   "population": 268463,
+   "drawn": 144,
+   "drawn_by_mode": {
+    "cnot0": 26,
+    "cnot1": 27,
+    "const0": 25,
+    "const1": 31,
+    "inv": 35
+   },
+   "database_gz_sha256": "c075f379d5bbf49dd5c5ff1a94ab249a64563d01bc6fec572fb54c979632349c",
+   "database_text_sha256": "48f11fb3ad2865691da4815b302f5293121fcbfc9141f4d207a64dfb52e61ab2"
+  },
+  "timestamp": {
+   "k": 11,
+   "mutate_seed": 20261012,
+   "sample_seed": 20261012,
+   "database": 1056,
+   "excluded_mode_cell_port": 444,
+   "same_mode_cell_port_bit_ctrl": 13,
+   "population": 612,
+   "drawn": 8,
+   "drawn_by_mode": {
+    "cnot0": 5,
+    "cnot1": 2,
+    "const1": 1
+   },
+   "database_gz_sha256": "c82bf0e9552f477fe86b9635d8026d0c8ce70b136ac78c86e2d7396288f7d10a",
+   "database_text_sha256": "6e02e826865ac0106759eba72b68521fc24081719be692ae96c552ff4ee721c4"
+  }
+ },
+ "mutants": 1936,
+ "database_total": 652629,
+ "population_total": 591898,
+ "mutations_tsv_sha256": "6bd197d18f8e5331ef386138675cbab329a155efd590410ec0ae53de39a8bb28",
+ "controls": {
+  "draw": "random.Random(20261001), ids sorted as integers, from the pools after job 24501277 (377 killed by test_smoke, 148 proven by equiv_mutant.py), in this order",
+  "miter_killed_by_test_smoke": [
+   "553",
+   "644",
+   "708",
+   "1413",
+   "1587",
+   "1722"
+  ],
+  "miter_proven_by_equiv_mutant": [
+   "490",
+   "574",
+   "586",
+   "605",
+   "669",
+   "1140"
+  ],
+  "equiv_inv_killed_by_test_smoke": [
+   "151",
+   "504",
+   "1007"
+  ]
+ },
+ "unbuildable": {
+  "1781": "Yosys write_verilog stops: Assert `port.srst == State::S0` failed in kernel/mem.cc:494 (const1 on RD_SRST of an asynchronous read port); left out of every count"
+ },
+ "test_tree": "b37c0ee with the test_spec_* modules and test/Makefile of docs/mutation-push.md section 10; file hashes in testtree.sha256"
+}
